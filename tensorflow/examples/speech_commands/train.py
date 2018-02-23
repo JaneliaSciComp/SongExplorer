@@ -98,7 +98,8 @@ def main(_):
   model_settings = models.prepare_model_settings(
       len(input_data.prepare_words_list(FLAGS.wanted_words.split(','))),
       FLAGS.sample_rate, FLAGS.clip_duration_ms, FLAGS.window_size_ms,
-      FLAGS.window_stride_ms, FLAGS.dct_coefficient_count)
+      FLAGS.window_stride_ms, FLAGS.dct_coefficient_count,
+      int(FLAGS.first_filter_count), int(FLAGS.second_filter_count), float(FLAGS.dropout_prob))
   audio_processor = input_data.AudioProcessor(
       FLAGS.data_url, FLAGS.data_dir, FLAGS.silence_percentage,
       FLAGS.unknown_percentage,
@@ -214,7 +215,7 @@ def main(_):
             fingerprint_input: train_fingerprints,
             ground_truth_input: train_ground_truth,
             learning_rate_input: learning_rate_value,
-            dropout_prob: 0.5
+            dropout_prob: model_settings['dropout_prob']
         })
     train_writer.add_summary(train_summary, training_step)
     tf.logging.info('Step #%d: rate %f, accuracy %.1f%%, cross entropy %f' %
@@ -413,6 +414,21 @@ if __name__ == '__main__':
       type=str,
       default='',
       help='If specified, restore this pretrained model before any training.')
+  parser.add_argument(
+      '--first_filter_count',
+      type=str,
+      default=64,
+      help='How many filters to use for the first layer in the conv model')
+  parser.add_argument(
+      '--second_filter_count',
+      type=str,
+      default=64,
+      help='How many filters to use for the second layer in the conv model')
+  parser.add_argument(
+      '--dropout_prob',
+      type=str,
+      default=0.5,
+      help='Dropout probability during training')
   parser.add_argument(
       '--model_architecture',
       type=str,

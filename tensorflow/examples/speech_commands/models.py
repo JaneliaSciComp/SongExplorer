@@ -26,7 +26,8 @@ import tensorflow as tf
 
 def prepare_model_settings(label_count, sample_rate, clip_duration_ms,
                            window_size_ms, window_stride_ms,
-                           dct_coefficient_count):
+                           dct_coefficient_count,
+                           first_filter_count, second_filter_count, dropout_prob):
   """Calculates common settings needed for all models.
 
   Args:
@@ -58,6 +59,9 @@ def prepare_model_settings(label_count, sample_rate, clip_duration_ms,
       'fingerprint_size': fingerprint_size,
       'label_count': label_count,
       'sample_rate': sample_rate,
+      'first_filter_count': first_filter_count,
+      'second_filter_count': second_filter_count,
+      'dropout_prob': dropout_prob,
   }
 
 
@@ -218,7 +222,7 @@ def create_conv_model(fingerprint_input, model_settings, is_training):
                               [-1, input_time_size, input_frequency_size, 1])
   first_filter_width = 8
   first_filter_height = 20
-  first_filter_count = 64
+  first_filter_count = model_settings['first_filter_count']
   first_weights = tf.Variable(
       tf.truncated_normal(
           [first_filter_height, first_filter_width, 1, first_filter_count],
@@ -234,7 +238,7 @@ def create_conv_model(fingerprint_input, model_settings, is_training):
   max_pool = tf.nn.max_pool(first_dropout, [1, 2, 2, 1], [1, 2, 2, 1], 'SAME')
   second_filter_width = 4
   second_filter_height = 10
-  second_filter_count = 64
+  second_filter_count = model_settings['second_filter_count']
   second_weights = tf.Variable(
       tf.truncated_normal(
           [
