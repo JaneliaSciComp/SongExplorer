@@ -261,6 +261,22 @@ class AudioProcessor(object):
         raise Exception('Expected to find ' + wanted_word +
                         ' in labels but only found ' +
                         ', '.join(all_words.keys()))
+    # equalize
+    for set_index in ['validation', 'testing', 'training']:
+      word_indices = {}
+      for isample in range(len(self.data_index[set_index])):
+        sample = self.data_index[set_index][isample]
+        if sample['label'] in word_indices:
+          word_indices[sample['label']].append(isample)
+        else:
+          word_indices[sample['label']]=[isample]
+      largest_word = max([len(word_indices[x]) for x in word_indices.keys()])
+      for word in word_indices.keys():
+        words_needed = largest_word - len(word_indices[word])
+        words_have = range(len(word_indices[word]))
+        for _ in range(words_needed):
+          add_this = word_indices[word][random.choice(words_have)]
+          self.data_index[set_index].append(self.data_index[set_index][add_this])
     # We need an arbitrary file to load as the input for the silence samples.
     # It's multiplied by zero later, so the content doesn't matter.
     silence_wav_path = self.data_index['training'][0]['file']
@@ -273,9 +289,11 @@ class AudioProcessor(object):
             'file': silence_wav_path
         })
       # Pick some unknowns to add to each partition of the data set.
-      random.shuffle(unknown_index[set_index])
-      unknown_size = int(math.ceil(set_size * unknown_percentage / 100))
-      self.data_index[set_index].extend(unknown_index[set_index][:unknown_size])
+      unknown_needed = int(math.ceil(set_size * unknown_percentage / 100))
+      unknown_have = range(len(unknown_index[set_index]))
+      for _ in range(unknown_needed):
+        add_this = random.choice(unknown_have)
+        self.data_index[set_index].append(unknown_index[set_index][add_this])
     # Make sure the ordering is random.
     for set_index in ['validation', 'testing', 'training']:
       random.shuffle(self.data_index[set_index])
@@ -421,10 +439,11 @@ class AudioProcessor(object):
     """
     # Pick one of the partitions to choose samples from.
     candidates = self.data_index[mode]
+    ncandidates = len(self.data_index[mode])
     if how_many == -1:
-      sample_count = len(candidates)
+      sample_count = ncandidates
     else:
-      sample_count = max(0, min(how_many, len(candidates) - offset))
+      sample_count = max(0, min(how_many, ncandidates - offset))
     # Data and labels will be populated and returned.
     data = np.zeros((sample_count, model_settings['fingerprint_size']))
     labels = np.zeros(sample_count)
@@ -437,9 +456,10 @@ class AudioProcessor(object):
       # Pick which audio sample to use.
       if how_many == -1 or pick_deterministically:
         sample_index = i
+        sample = candidates[sample_index]
       else:
         sample_index = np.random.randint(len(candidates))
-      sample = candidates[sample_index]
+        sample = candidates[sample_index]
       # If we're time shifting, set up the offset for this sample.
       if time_shift > 0:
         time_shift_amount = np.random.randint(-time_shift, time_shift)
