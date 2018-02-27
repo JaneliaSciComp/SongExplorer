@@ -146,12 +146,12 @@ if __name__ == '__main__':
       help='Expected sample rate of the wavs',)
   parser.add_argument(
       '--clip_duration_ms',
-      type=int,
+      type=float,
       default=1000,
       help='Expected duration in milliseconds of the wavs',)
   parser.add_argument(
       '--clip_stride_ms',
-      type=int,
+      type=float,
       default=30,
       help='How often to run recognition. Useful for models with cache.',)
   parser.add_argument(

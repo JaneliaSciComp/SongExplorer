@@ -138,8 +138,8 @@ int main(int argc, char* argv[]) {
   string input_data_name = "decoded_sample_data:0";
   string input_rate_name = "decoded_sample_data:1";
   string output_name = "labels_softmax";
-  int32 clip_duration_ms = 1000;
-  int32 clip_stride_ms = 30;
+  float clip_duration_ms = 1000;
+  float clip_stride_ms = 30;
   int32 average_window_ms = 500;
   int32 time_tolerance_ms = 750;
   int32 suppression_ms = 1500;
