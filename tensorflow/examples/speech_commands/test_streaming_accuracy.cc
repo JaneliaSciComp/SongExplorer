@@ -256,12 +256,17 @@ int main(int argc, char* argv[]) {
     Status run_status = session->Run({{input_data_name, audio_data_tensor},
                                       {input_rate_name, sample_rate_tensor}},
                                      {output_name}, {}, &outputs);
+
     if (!run_status.ok()) {
       LOG(ERROR) << "Running model failed: " << run_status;
       return -1;
     }
 
     const int64 current_time_ms = (audio_data_offset * 1000) / sample_rate;
+
+    if (verbose)
+      LOG(INFO) << current_time_ms << "ms: " << outputs[0].SummarizeValue(outputs[0].NumElements());
+
     string found_command;
     float score;
     bool is_new_command;

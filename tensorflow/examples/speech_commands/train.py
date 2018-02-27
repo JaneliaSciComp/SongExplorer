@@ -82,12 +82,21 @@ import input_data
 import models
 from tensorflow.python.platform import gfile
 
+import datetime as dt
+
+import json
+
 FLAGS = None
 
 
 def main(_):
   # We want to see all the logging messages for this tutorial.
   tf.logging.set_verbosity(tf.logging.INFO)
+  np.set_printoptions(threshold=np.nan,linewidth=10000)
+
+  flags = vars(FLAGS)
+  for key in sorted(flags.keys()):
+    tf.logging.info('%s = %s', key, flags[key])
 
   # Start a new TensorFlow session.
   sess = tf.InteractiveSession()
@@ -179,7 +188,8 @@ def main(_):
     models.load_variables_from_checkpoint(sess, FLAGS.start_checkpoint)
     start_step = global_step.eval(session=sess)
 
-  tf.logging.info('Training from step: %d ', start_step)
+  t0 = dt.datetime.now()
+  tf.logging.info('Training from time %s, step: %d ', t0.isoformat(), start_step)
 
   # Save graph.pbtxt.
   tf.train.write_graph(sess.graph_def, FLAGS.train_dir,
@@ -218,8 +228,9 @@ def main(_):
             dropout_prob: model_settings['dropout_prob']
         })
     train_writer.add_summary(train_summary, training_step)
-    tf.logging.info('Step #%d: rate %f, accuracy %.1f%%, cross entropy %f' %
-                    (training_step, learning_rate_value, train_accuracy * 100,
+    t1=dt.datetime.now()-t0
+    tf.logging.info('Elapsed %f, Step #%d: rate %f, accuracy %.1f%%, cross entropy %f' %
+                    (t1.total_seconds(), training_step, learning_rate_value, train_accuracy * 100,
                      cross_entropy_value))
     is_last_step = (training_step == training_steps_max)
     if (training_step % FLAGS.eval_step_interval) == 0 or is_last_step:
@@ -246,9 +257,10 @@ def main(_):
           total_conf_matrix = conf_matrix
         else:
           total_conf_matrix += conf_matrix
-      tf.logging.info('Confusion Matrix:\n %s' % (total_conf_matrix))
-      tf.logging.info('Step %d: Validation accuracy = %.1f%% (N=%d)' %
-                      (training_step, total_accuracy * 100, set_size))
+      tf.logging.info('Confusion Matrix:\n %s\n %s' % (audio_processor.words_list,total_conf_matrix))
+      t1=dt.datetime.now()-t0
+      tf.logging.info('Elapsed %f, Step %d: Validation accuracy = %.1f%% (N=%d)' %
+                      (t1.total_seconds(), training_step, total_accuracy * 100, set_size))
 
     # Save the model checkpoint periodically.
     if (training_step % FLAGS.save_step_interval == 0 or
@@ -265,8 +277,8 @@ def main(_):
   for i in xrange(0, set_size, FLAGS.batch_size):
     test_fingerprints, test_ground_truth = audio_processor.get_data(
         FLAGS.batch_size, i, model_settings, 0.0, 0.0, 0, 'testing', sess)
-    test_accuracy, conf_matrix = sess.run(
-        [evaluation_step, confusion_matrix],
+    test_accuracy, conf_matrix, logit_vals = sess.run(
+        [evaluation_step, confusion_matrix, logits],
         feed_dict={
             fingerprint_input: test_fingerprints,
             ground_truth_input: test_ground_truth,
@@ -278,9 +290,12 @@ def main(_):
       total_conf_matrix = conf_matrix
     else:
       total_conf_matrix += conf_matrix
-  tf.logging.info('Confusion Matrix:\n %s' % (total_conf_matrix))
-  tf.logging.info('Final test accuracy = %.1f%% (N=%d)' % (total_accuracy * 100,
-                                                           set_size))
+    tf.logging.info('ground_truth = %s', json.dumps(test_ground_truth.tolist()))
+    tf.logging.info('logits = %s', json.dumps(logit_vals.tolist()))
+  tf.logging.info('Confusion Matrix:\n %s\n %s' % (audio_processor.words_list,total_conf_matrix))
+  t1=dt.datetime.now()-t0
+  tf.logging.info('Elapsed %f, Step %d: Final test accuracy = %.1f%% (N=%d)' %
+                  (t1.total_seconds(), training_steps_max, total_accuracy * 100, set_size))
 
 
 if __name__ == '__main__':

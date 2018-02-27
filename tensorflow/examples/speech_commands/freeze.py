@@ -112,6 +112,10 @@ def create_inference_graph(wanted_words, sample_rate, clip_duration_ms,
 
 def main(_):
 
+  flags = vars(FLAGS)
+  for key in sorted(flags.keys()):
+    tf.logging.info('%s = %s', key, flags[key])
+
   # Create the model and load its weights.
   sess = tf.InteractiveSession()
   create_inference_graph(FLAGS.wanted_words, FLAGS.sample_rate,

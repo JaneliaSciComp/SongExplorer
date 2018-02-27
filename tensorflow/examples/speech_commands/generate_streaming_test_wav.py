@@ -84,6 +84,10 @@ def mix_in_audio_sample(track_data, track_offset, sample_data, sample_offset,
 
 
 def main(_):
+  flags = vars(FLAGS)
+  for key in sorted(flags.keys()):
+    tf.logging.info('%s = %s', key, flags[key])
+
   words_list = input_data.prepare_words_list(FLAGS.wanted_words.split(','))
   model_settings = models.prepare_model_settings(
       len(words_list), FLAGS.sample_rate, FLAGS.clip_duration_ms,

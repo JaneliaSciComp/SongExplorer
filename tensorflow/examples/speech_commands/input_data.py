@@ -263,6 +263,10 @@ class AudioProcessor(object):
                         ', '.join(all_words.keys()))
     # equalize
     for set_index in ['validation', 'testing', 'training']:
+      tf.logging.info('num %s labels', set_index)
+      words = [sample['label'] for sample in self.data_index[set_index]]
+      for uniqword in sorted(set(words)):
+        tf.logging.info('%7d %s', sum([word==uniqword for word in words]), uniqword)
       word_indices = {}
       for isample in range(len(self.data_index[set_index])):
         sample = self.data_index[set_index][isample]

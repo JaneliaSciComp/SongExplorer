@@ -50,6 +50,9 @@ def prepare_model_settings(label_count, sample_rate, clip_duration_ms,
   else:
     spectrogram_length = 1 + int(length_minus_window / window_stride_samples)
   fingerprint_size = dct_coefficient_count * spectrogram_length
+  tf.logging.info('desired_samples = %d' % (desired_samples))
+  tf.logging.info('window_size_samples = %d' % (window_size_samples))
+  tf.logging.info('window_stride_samples = %d' % (window_stride_samples))
   return {
       'desired_samples': desired_samples,
       'window_size_samples': window_size_samples,
