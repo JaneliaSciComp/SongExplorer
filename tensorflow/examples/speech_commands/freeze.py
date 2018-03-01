@@ -54,7 +54,8 @@ FLAGS = None
 
 def create_inference_graph(wanted_words, sample_rate, clip_duration_ms,
                            clip_stride_ms, window_size_ms, window_stride_ms,
-                           dct_coefficient_count, model_architecture,
+                           dct_coefficient_count, filterbank_channel_count,
+                           model_architecture,
                            first_filter_count, second_filter_count,
                            dropout_prob):
   """Creates an audio model with the nodes needed for inference.
@@ -76,7 +77,7 @@ def create_inference_graph(wanted_words, sample_rate, clip_duration_ms,
   words_list = input_data.prepare_words_list(wanted_words.split(','))
   model_settings = models.prepare_model_settings(
       len(words_list), sample_rate, clip_duration_ms, window_size_ms,
-      window_stride_ms, dct_coefficient_count,
+      window_stride_ms, dct_coefficient_count, filterbank_channel_count,
       first_filter_count, second_filter_count, dropout_prob)
 
   runtime_settings = {'clip_stride_ms': clip_stride_ms}
@@ -95,6 +96,7 @@ def create_inference_graph(wanted_words, sample_rate, clip_duration_ms,
   fingerprint_input = contrib_audio.mfcc(
       spectrogram,
       decoded_sample_data.sample_rate,
+      filterbank_channel_count=filterbank_channel_count,
       dct_coefficient_count=dct_coefficient_count)
   fingerprint_frequency_size = model_settings['dct_coefficient_count']
   fingerprint_time_size = model_settings['spectrogram_length']
@@ -121,7 +123,8 @@ def main(_):
   create_inference_graph(FLAGS.wanted_words, FLAGS.sample_rate,
                          FLAGS.clip_duration_ms, FLAGS.clip_stride_ms,
                          FLAGS.window_size_ms, FLAGS.window_stride_ms,
-                         FLAGS.dct_coefficient_count, FLAGS.model_architecture,
+                         FLAGS.dct_coefficient_count, FLAGS.filterbank_channel_count,
+                         FLAGS.model_architecture,
                          int(FLAGS.first_filter_count), int(FLAGS.second_filter_count),
                          float(FLAGS.dropout_prob))
   models.load_variables_from_checkpoint(sess, FLAGS.start_checkpoint)
@@ -165,10 +168,15 @@ if __name__ == '__main__':
       default=10.0,
       help='How long the stride is between spectrogram timeslices',)
   parser.add_argument(
+      '--filterbank_channel_count',
+      type=int,
+      default=40,
+      help='How many internal bins to use for the MFCC fingerprint',)
+  parser.add_argument(
       '--dct_coefficient_count',
       type=int,
       default=40,
-      help='How many bins to use for the MFCC fingerprint',)
+      help='How many output bins to use for the MFCC fingerprint',)
   parser.add_argument(
       '--start_checkpoint',
       type=str,
