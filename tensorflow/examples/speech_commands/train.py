@@ -108,7 +108,7 @@ def main(_):
       len(input_data.prepare_words_list(FLAGS.wanted_words.split(','))),
       FLAGS.sample_rate, FLAGS.clip_duration_ms, FLAGS.window_size_ms, FLAGS.window_stride_ms,
       FLAGS.dct_coefficient_count, FLAGS.filterbank_channel_count,
-      int(FLAGS.first_filter_count), int(FLAGS.second_filter_count), float(FLAGS.dropout_prob))
+      [int(x) for x in FLAGS.filter_counts], FLAGS.dropout_prob)
   audio_processor = input_data.AudioProcessor(
       FLAGS.data_url, FLAGS.data_dir, FLAGS.silence_percentage,
       FLAGS.unknown_percentage,
@@ -435,18 +435,14 @@ if __name__ == '__main__':
       default='',
       help='If specified, restore this pretrained model before any training.')
   parser.add_argument(
-      '--first_filter_count',
+      '--filter_counts',
       type=str,
-      default=64,
-      help='How many filters to use for the first layer in the conv model')
-  parser.add_argument(
-      '--second_filter_count',
-      type=str,
-      default=64,
-      help='How many filters to use for the second layer in the conv model')
+      nargs='+',
+      default=[64,64],
+      help='How many filters to use for the conv2d layers in the conv model')
   parser.add_argument(
       '--dropout_prob',
-      type=str,
+      type=int,
       default=0.5,
       help='Dropout probability during training')
   parser.add_argument(

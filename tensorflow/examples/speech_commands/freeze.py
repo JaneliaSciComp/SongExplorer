@@ -55,9 +55,7 @@ FLAGS = None
 def create_inference_graph(wanted_words, sample_rate, clip_duration_ms,
                            clip_stride_ms, window_size_ms, window_stride_ms,
                            dct_coefficient_count, filterbank_channel_count,
-                           model_architecture,
-                           first_filter_count, second_filter_count,
-                           dropout_prob):
+                           model_architecture, filter_counts, dropout_prob):
   """Creates an audio model with the nodes needed for inference.
 
   Uses the supplied arguments to create a model, and inserts the input and
@@ -78,7 +76,7 @@ def create_inference_graph(wanted_words, sample_rate, clip_duration_ms,
   model_settings = models.prepare_model_settings(
       len(words_list), sample_rate, clip_duration_ms, window_size_ms,
       window_stride_ms, dct_coefficient_count, filterbank_channel_count,
-      first_filter_count, second_filter_count, dropout_prob)
+      filter_counts, dropout_prob)
 
   runtime_settings = {'clip_stride_ms': clip_stride_ms}
 
@@ -125,8 +123,8 @@ def main(_):
                          FLAGS.window_size_ms, FLAGS.window_stride_ms,
                          FLAGS.dct_coefficient_count, FLAGS.filterbank_channel_count,
                          FLAGS.model_architecture,
-                         int(FLAGS.first_filter_count), int(FLAGS.second_filter_count),
-                         float(FLAGS.dropout_prob))
+                         [int(x) for x in FLAGS.filter_counts],
+                         FLAGS.dropout_prob)
   models.load_variables_from_checkpoint(sess, FLAGS.start_checkpoint)
 
   # Turn all the variables into inline constants inside the graph and save it.
@@ -183,18 +181,14 @@ if __name__ == '__main__':
       default='',
       help='If specified, restore this pretrained model before any training.')
   parser.add_argument(
-      '--first_filter_count',
+      '--filter_counts',
       type=str,
-      default=64,
-      help='How many filters to use for the first layer in the conv model')
-  parser.add_argument(
-      '--second_filter_count',
-      type=str,
-      default=64,
-      help='How many filters to use for the second layer in the conv model')
+      nargs='+',
+      default=[64,64],
+      help='How many filters to use for the conv2d layers in the conv model')
   parser.add_argument(
       '--dropout_prob',
-      type=str,
+      type=float,
       default=0.5,
       help='Dropout probability during training')
   parser.add_argument(
