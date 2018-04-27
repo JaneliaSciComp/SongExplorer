@@ -26,6 +26,8 @@ import random
 import re
 import sys
 import tarfile
+import csv
+import wave
 
 import numpy as np
 from six.moves import urllib
@@ -158,7 +160,7 @@ class AudioProcessor(object):
     self.maybe_download_and_extract_dataset(data_url, data_dir)
     self.prepare_data_index(silence_percentage, unknown_percentage,
                             wanted_words, validation_percentage,
-                            testing_percentage)
+                            testing_percentage, model_settings)
     self.prepare_background_data()
     self.prepare_processing_graph(model_settings)
 
@@ -205,7 +207,7 @@ class AudioProcessor(object):
 
   def prepare_data_index(self, silence_percentage, unknown_percentage,
                          wanted_words, validation_percentage,
-                         testing_percentage):
+                         testing_percentage, model_settings):
     """Prepares a list of the samples organized by set and label.
 
     The training loop needs a list of all the available data, organized by
@@ -238,22 +240,36 @@ class AudioProcessor(object):
     unknown_index = {'validation': [], 'testing': [], 'training': []}
     all_words = {}
     # Look through all the subfolders to find audio samples
-    search_path = os.path.join(self.data_dir, '*', '*.wav')
-    for wav_path in gfile.Glob(search_path):
-      _, word = os.path.split(os.path.dirname(wav_path))
-      word = word.lower()
-      # Treat the '_background_noise_' folder as a special case, since we expect
-      # it to contain long audio samples we mix in to improve training.
-      if word == BACKGROUND_NOISE_DIR_NAME:
-        continue
-      all_words[word] = True
-      set_index = which_set(wav_path, validation_percentage, testing_percentage)
-      # If it's a known class, store its detail, otherwise add it to the list
-      # we'll use to train the unknown label.
-      if word in wanted_words_index:
-        self.data_index[set_index].append({'label': word, 'file': wav_path})
-      else:
-        unknown_index[set_index].append({'label': word, 'file': wav_path})
+    desired_samples = model_settings['desired_samples']
+    search_path = os.path.join(self.data_dir, '*', '*.csv')
+    wav_nsamples = {}
+    for csv_path in gfile.Glob(search_path):
+      annotation_reader = csv.reader(open(os.path.join(self.data_dir,csv_path)))
+      for annotation in annotation_reader:
+        wav_path=os.path.join(os.path.dirname(csv_path),annotation[0]+'.wav')
+        wav_chan=int(annotation[1])
+        ticks=[int(annotation[2]),int(annotation[3])]
+        if wav_path not in wav_nsamples:
+          wavreader = wave.open(wav_path)
+          wav_nsamples[wav_path] = wavreader.getnframes()
+          wavreader.close()
+        nsamples = wav_nsamples[wav_path]
+        if ticks[0]<desired_samples//2 or ticks[1]>(nsamples-desired_samples//2):
+          continue
+        word=annotation[4]
+        # Treat the '_background_noise_' folder as a special case, since we expect
+        # it to contain long audio samples we mix in to improve training.
+        if word == BACKGROUND_NOISE_DIR_NAME:
+          continue
+        all_words[word] = True
+        set_index = which_set(annotation[0]+annotation[1]+annotation[2]+annotation[3],
+                              validation_percentage, testing_percentage)
+        # If it's a known class, store its detail, otherwise add it to the list
+        # we'll use to train the unknown label.
+        if word in wanted_words_index:
+          self.data_index[set_index].append({'label': word, 'file': wav_path, 'channel': wav_chan, 'ticks': ticks})
+        else:
+          unknown_index[set_index].append({'label': word, 'file': wav_path, 'channel': wav_chan, 'ticks': ticks})
     if not all_words:
       raise Exception('No .wavs found at ' + search_path)
     for index, wanted_word in enumerate(wanted_words):
@@ -329,6 +345,9 @@ class AudioProcessor(object):
     Raises:
       Exception: If files aren't found in the folder.
     """
+
+    ### need to refactor this to use csv files if background noise is used in future
+
     self.background_data = []
     background_dir = os.path.join(self.data_dir, BACKGROUND_NOISE_DIR_NAME)
     if not os.path.exists(background_dir):
@@ -369,13 +388,12 @@ class AudioProcessor(object):
       model_settings: Information about the current model being trained.
     """
     desired_samples = model_settings['desired_samples']
-    self.wav_filename_placeholder_ = tf.placeholder(tf.string, [])
-    wav_loader = io_ops.read_file(self.wav_filename_placeholder_)
-    wav_decoder = contrib_audio.decode_wav(
-        wav_loader, desired_channels=1, desired_samples=desired_samples)
+    sample_rate = model_settings['sample_rate']
+    self.foreground_data_placeholder_ = tf.placeholder(tf.float32,
+                                                       [desired_samples, 1])
     # Allow the audio sample's volume to be adjusted.
     self.foreground_volume_placeholder_ = tf.placeholder(tf.float32, [])
-    scaled_foreground = tf.multiply(wav_decoder.audio,
+    scaled_foreground = tf.multiply(self.foreground_data_placeholder_,
                                     self.foreground_volume_placeholder_)
     # Shift the sample's start position, and pad any gaps with zeros.
     self.time_shift_padding_placeholder_ = tf.placeholder(tf.int32, [2, 2])
@@ -403,7 +421,7 @@ class AudioProcessor(object):
         magnitude_squared=True)
     self.mfcc_ = contrib_audio.mfcc(
         spectrogram,
-        wav_decoder.sample_rate,
+        sample_rate,
         filterbank_channel_count=model_settings['filterbank_channel_count'],
         dct_coefficient_count=model_settings['dct_coefficient_count'])
 
@@ -465,6 +483,21 @@ class AudioProcessor(object):
       else:
         sample_index = np.random.randint(len(candidates))
         sample = candidates[sample_index]
+
+      foreground_offset = (np.random.randint(sample['ticks'][0], 1+sample['ticks'][1]) if
+            sample['ticks'][0] < sample['ticks'][1] else sample['ticks'][0])
+      wavreader = wave.open(sample['file'])
+      wavreader.setpos(foreground_offset-desired_samples//2)
+      nchannels = wavreader.getnchannels()
+      foreground_clipped = wavreader.readframes(desired_samples)
+      wavreader.close()
+      foreground_int16 = np.frombuffer(foreground_clipped, dtype=np.int16)
+      foreground_float32 = foreground_int16.astype(np.float32)
+      foreground_scaled = foreground_float32 / abs(np.iinfo(np.int16).min) #extreme
+      foreground_reshaped = foreground_scaled.reshape([nchannels, desired_samples], order='F')
+      foreground_indexed = foreground_reshaped[sample['channel']-1].reshape([desired_samples,1])
+
+      input_dict = { self.foreground_data_placeholder_: foreground_indexed }
       # If we're time shifting, set up the offset for this sample.
       if time_shift > 0:
         time_shift_amount = np.random.randint(-time_shift, time_shift)
@@ -476,11 +509,8 @@ class AudioProcessor(object):
       else:
         time_shift_padding = [[0, -time_shift_amount], [0, 0]]
         time_shift_offset = [-time_shift_amount, 0]
-      input_dict = {
-          self.wav_filename_placeholder_: sample['file'],
-          self.time_shift_padding_placeholder_: time_shift_padding,
-          self.time_shift_offset_placeholder_: time_shift_offset,
-      }
+      input_dict[self.time_shift_padding_placeholder_] = time_shift_padding
+      input_dict[self.time_shift_offset_placeholder_] = time_shift_offset
       # Choose a section of background noise to mix in.
       if use_background:
         background_index = np.random.randint(len(self.background_data))
