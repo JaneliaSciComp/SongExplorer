@@ -63,7 +63,7 @@ class InputDataTest(test.TestCase):
   def testPrepareWordsList(self):
     words_list = ["a", "b"]
     self.assertGreater(
-        len(input_data.prepare_words_list(words_list)), len(words_list))
+        len(input_data.prepare_words_list(words_list), 10.0), len(words_list))
 
   def testWhichSet(self):
     self.assertEqual(

@@ -55,7 +55,7 @@ FLAGS = None
 def create_inference_graph(wanted_words, sample_rate, clip_duration_ms,
                            clip_stride_ms, window_size_ms, window_stride_ms,
                            dct_coefficient_count, filterbank_channel_count,
-                           model_architecture, filter_counts, dropout_prob):
+                           model_architecture, filter_counts, dropout_prob, silence_percentage):
   """Creates an audio model with the nodes needed for inference.
 
   Uses the supplied arguments to create a model, and inserts the input and
@@ -72,7 +72,7 @@ def create_inference_graph(wanted_words, sample_rate, clip_duration_ms,
     model_architecture: Name of the kind of model to generate.
   """
 
-  words_list = input_data.prepare_words_list(wanted_words.split(','))
+  words_list = input_data.prepare_words_list(wanted_words.split(','), silence_percentage)
   model_settings = models.prepare_model_settings(
       len(words_list), sample_rate, clip_duration_ms, window_size_ms,
       window_stride_ms, dct_coefficient_count, filterbank_channel_count,
@@ -124,7 +124,7 @@ def main(_):
                          FLAGS.dct_coefficient_count, FLAGS.filterbank_channel_count,
                          FLAGS.model_architecture,
                          [int(x) for x in FLAGS.filter_counts],
-                         FLAGS.dropout_prob)
+                         FLAGS.dropout_prob, FLAGS.silence_percentage)
   models.load_variables_from_checkpoint(sess, FLAGS.start_checkpoint)
 
   # Turn all the variables into inline constants inside the graph and save it.
@@ -196,6 +196,13 @@ if __name__ == '__main__':
       type=str,
       default='conv',
       help='What model architecture to use')
+  parser.add_argument(
+      '--silence_percentage',
+      type=float,
+      default=10.0,
+      help="""\
+      How much of the training data should be silence.
+      """)
   parser.add_argument(
       '--wanted_words',
       type=str,

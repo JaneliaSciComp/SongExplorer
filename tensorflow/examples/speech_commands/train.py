@@ -105,7 +105,7 @@ def main(_):
   # training data of your own, use `--data_url= ` on the command line to avoid
   # downloading.
   model_settings = models.prepare_model_settings(
-      len(input_data.prepare_words_list(FLAGS.wanted_words.split(','))),
+      len(input_data.prepare_words_list(FLAGS.wanted_words.split(','), FLAGS.silence_percentage)),
       FLAGS.sample_rate, FLAGS.clip_duration_ms, FLAGS.window_size_ms, FLAGS.window_stride_ms,
       FLAGS.dct_coefficient_count, FLAGS.filterbank_channel_count,
       [int(x) for x in FLAGS.filter_counts], FLAGS.dropout_prob)

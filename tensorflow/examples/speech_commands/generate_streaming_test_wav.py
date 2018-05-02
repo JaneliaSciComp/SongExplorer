@@ -88,7 +88,7 @@ def main(_):
   for key in sorted(flags.keys()):
     tf.logging.info('%s = %s', key, flags[key])
 
-  words_list = input_data.prepare_words_list(FLAGS.wanted_words.split(','))
+  words_list = input_data.prepare_words_list(FLAGS.wanted_words.split(','), FLAGS.silence_percentage)
   model_settings = models.prepare_model_settings(
       len(words_list), FLAGS.sample_rate, FLAGS.clip_duration_ms,
       FLAGS.window_size_ms, FLAGS.window_stride_ms,
