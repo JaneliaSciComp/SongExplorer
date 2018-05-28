@@ -186,7 +186,7 @@ def main(_):
 
   if FLAGS.start_checkpoint:
     models.load_variables_from_checkpoint(sess, FLAGS.start_checkpoint)
-    start_step = global_step.eval(session=sess)
+    start_step = 1 + global_step.eval(session=sess)
 
   t0 = dt.datetime.now()
   tf.logging.info('Training from time %s, step: %d ', t0.isoformat(), start_step)
