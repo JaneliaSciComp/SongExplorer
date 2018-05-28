@@ -48,7 +48,7 @@ BACKGROUND_NOISE_DIR_NAME = '_background_noise_'
 RANDOM_SEED = 59185
 
 
-def prepare_words_list(wanted_words, silence_percentage):
+def prepare_words_list(wanted_words, silence_percentage, unknown_percentage):
   """Prepends common tokens to the custom word list.
 
   Args:
@@ -57,10 +57,12 @@ def prepare_words_list(wanted_words, silence_percentage):
   Returns:
     List with the standard silence and unknown tokens added.
   """
+  words_list=[]
   if silence_percentage>0.0:
-    return [SILENCE_LABEL, UNKNOWN_WORD_LABEL] + wanted_words
-  else:
-    return [UNKNOWN_WORD_LABEL] + wanted_words
+    return words_list.append(SILENCE_LABEL)
+  if unknown_percentage>0.0:
+    return words_list.append(UNKNOWN_WORD_LABEL)
+  return words_list + wanted_words
 
 
 def which_set(filename, validation_percentage, testing_percentage):
@@ -238,7 +240,11 @@ class AudioProcessor(object):
     random.seed(RANDOM_SEED)
     wanted_words_index = {}
     for index, wanted_word in enumerate(wanted_words):
-      wanted_words_index[wanted_word] = index + (2 if silence_percentage>0.0 else 1)
+      wanted_words_index[wanted_word] = index
+      if silence_percentage>0.0:
+        wanted_words_index[wanted_word] += 1
+      if unknown_percentage>0.0:
+        wanted_words_index[wanted_word] += 1
     self.data_index = {'validation': [], 'testing': [], 'training': []}
     unknown_index = {'validation': [], 'testing': [], 'training': []}
     all_words = {}
@@ -321,7 +327,7 @@ class AudioProcessor(object):
     for set_index in ['validation', 'testing', 'training']:
       random.shuffle(self.data_index[set_index])
     # Prepare the rest of the result data structure.
-    self.words_list = prepare_words_list(wanted_words, silence_percentage)
+    self.words_list = prepare_words_list(wanted_words, silence_percentage, unknown_percentage)
     self.word_to_index = {}
     for word in all_words:
       if word in wanted_words_index:
@@ -330,6 +336,8 @@ class AudioProcessor(object):
         self.word_to_index[word] = UNKNOWN_WORD_INDEX
     if silence_percentage>0.0:
       self.word_to_index[SILENCE_LABEL] = SILENCE_INDEX
+    if unknown_percentage>0.0:
+      self.word_to_index[UNKNOWN_WORD_LABEL] = UNKNOWN_WORD_INDEX
 
   def prepare_background_data(self):
     """Searches a folder for background noise audio, and loads it into memory.
