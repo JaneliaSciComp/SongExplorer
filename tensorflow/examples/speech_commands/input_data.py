@@ -482,6 +482,7 @@ class AudioProcessor(object):
     # Data and labels will be populated and returned.
     data = np.zeros((sample_count, model_settings['fingerprint_size']))
     labels = np.zeros(sample_count)
+    samples = []
     desired_samples = model_settings['desired_samples']
     use_background = self.background_data and (mode == 'training')
     pick_deterministically = (mode != 'training')
@@ -550,7 +551,8 @@ class AudioProcessor(object):
       data[i - offset, :] = sess.run(self.mfcc_, feed_dict=input_dict).flatten()
       label_index = self.word_to_index[sample['label']]
       labels[i - offset] = label_index
-    return data, labels
+      samples.append(sample)
+    return data, labels, samples
 
   def get_unprocessed_data(self, how_many, model_settings, mode):
     """Retrieve sample data for the given partition, with no transformations.

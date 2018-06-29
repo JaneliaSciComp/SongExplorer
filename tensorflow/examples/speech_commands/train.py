@@ -213,7 +213,7 @@ def main(_):
         learning_rate_value = learning_rates_list[i]
         break
     # Pull the audio samples we'll use for training.
-    train_fingerprints, train_ground_truth = audio_processor.get_data(
+    train_fingerprints, train_ground_truth, _ = audio_processor.get_data(
         FLAGS.batch_size, 0, model_settings, FLAGS.background_frequency,
         FLAGS.background_volume, time_shift_samples, 'training', sess)
     # Run the graph with this batch of training data.
@@ -239,7 +239,7 @@ def main(_):
       total_accuracy = 0
       total_conf_matrix = None
       for i in xrange(0, set_size, FLAGS.batch_size):
-        validation_fingerprints, validation_ground_truth = (
+        validation_fingerprints, validation_ground_truth, _ = (
             audio_processor.get_data(FLAGS.batch_size, i, model_settings, 0.0,
                                      0.0, 0, 'validation', sess))
         # Run a validation step and capture training summaries for TensorBoard
@@ -276,7 +276,7 @@ def main(_):
   total_accuracy = 0
   total_conf_matrix = None
   for i in xrange(0, set_size, FLAGS.batch_size):
-    test_fingerprints, test_ground_truth = audio_processor.get_data(
+    test_fingerprints, test_ground_truth, test_samples = audio_processor.get_data(
         FLAGS.batch_size, i, model_settings, 0.0, 0.0, 0, 'testing', sess)
     test_accuracy, conf_matrix, logit_vals = sess.run(
         [evaluation_step, confusion_matrix, logits],
@@ -291,6 +291,8 @@ def main(_):
       total_conf_matrix = conf_matrix
     else:
       total_conf_matrix += conf_matrix
+    tf.logging.info('samples = %s', json.dumps(test_samples))
+    tf.logging.info('fingerprints = %s', json.dumps(test_fingerprints.tolist()))
     tf.logging.info('ground_truth = %s', json.dumps(test_ground_truth.tolist()))
     tf.logging.info('logits = %s', json.dumps(logit_vals.tolist()))
   tf.logging.info('Confusion Matrix:\n %s\n %s' % (audio_processor.words_list,total_conf_matrix))
