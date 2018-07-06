@@ -203,6 +203,16 @@ def main(_):
       'w') as f:
     f.write('\n'.join(audio_processor.words_list))
 
+  # log complexity of model
+  total_parameters = 0
+  for variable in tf.trainable_variables():
+      shape = variable.get_shape()
+      variable_parameters = 1
+      for dim in shape:
+          variable_parameters *= int(dim)
+      total_parameters += variable_parameters
+  tf.logging.info('number of trainable parameters: %d',total_parameters)
+
   # Training loop.
   training_steps_max = np.sum(training_steps_list)
   for training_step in xrange(start_step, training_steps_max + 1):
