@@ -105,6 +105,8 @@ def create_model(fingerprint_input, model_settings, model_architecture,
   if model_architecture == 'single_fc':
     return create_single_fc_model(fingerprint_input, model_settings,
                                   is_training)
+  elif model_architecture == 'vgg':
+    return create_custom_vgg_model(fingerprint_input, model_settings, is_training)
   elif model_architecture == 'conv':
     return create_conv_model(fingerprint_input, model_settings, is_training)
   elif model_architecture == 'low_latency_conv':
@@ -167,6 +169,172 @@ def create_single_fc_model(fingerprint_input, model_settings, is_training):
     return logits, dropout_prob
   else:
     return logits
+
+
+def create_custom_vgg_model(fingerprint_input, model_settings, is_training):
+  """Builds a standard VGG model.
+
+  Here's the layout of the graph:
+
+  (fingerprint_input)
+          v
+      [Conv2D]<-(weights)
+          v
+      [BiasAdd]<-(bias)
+          v
+        [Relu]
+          v
+         ...
+         ...  <filter_count> of these 3x3 layers
+         ...
+          v
+      [Conv2D]<-(weights)
+          v
+      [BiasAdd]<-(bias)
+          v
+        [Relu]
+          v
+      [MatMul]<-(weights)
+          v
+      [BiasAdd]<-(bias)
+          v
+
+  During training, dropout nodes are introduced after each relu, controlled by a
+  placeholder.
+
+  Args:
+    fingerprint_input: TensorFlow node that will output audio feature vectors.
+    model_settings: Dictionary of information about the model.
+    is_training: Whether the model is going to be used for training.
+
+  Returns:
+    TensorFlow node outputting logits results, and optionally a dropout
+    placeholder.
+  """
+  if is_training:
+    dropout_prob = tf.placeholder(tf.float32, name='dropout_prob')
+  input_frequency_size = model_settings['dct_coefficient_count']
+  input_time_size = model_settings['spectrogram_length']
+  output_time_size = input_time_size
+  filter_counts = model_settings['filter_counts']
+  batch_size = model_settings['batch_size']
+  nstrides = model_settings['nstrides']
+  fingerprint_4d = tf.reshape(fingerprint_input,
+                              [batch_size, -1, input_frequency_size, 1])
+  fingerprint_4d_shape = fingerprint_4d.get_shape().as_list()
+
+  iconv=0
+  dilate_at_level=0  # if > then 0 for all dilate, 8 for no dilate
+  hidden_layers = []
+  residual = False
+
+  filter_size = 3
+  inarg = fingerprint_4d
+  hidden_layers.append(inarg)
+  inarg_shape = inarg.get_shape().as_list()
+  while inarg_shape[2]>=filter_size:
+    filter_count_prev = 1 if iconv==0 else filter_counts[iconv-1]
+    if residual and iconv%2!=0:
+      bypass = inarg
+    weights = tf.Variable( tf.truncated_normal(
+              [filter_size, filter_size, filter_count_prev, filter_counts[iconv]],
+              stddev=0.01))
+    bias = tf.Variable(tf.zeros([filter_counts[iconv]]))
+    if iconv<dilate_at_level:
+      dilation = [1,2**(abs(iconv-dilate_at_level)),1,1]
+      #dilation = [1,2**iconv,1,1]
+    else:
+      dilation = [1,1,1,1]
+      #dilation = [1,2**(dilate_at_level-1),1,1]
+    output_time_size -= (filter_size-1)*dilation[1]
+    conv = tf.nn.conv2d(inarg, weights, [1, 1, 1, 1], 'VALID', dilations=dilation) + bias
+    # insert batch norm here
+    if residual and iconv%2!=0 and iconv!=1:
+      tf.logging.info('adding bypass connection')
+      conv += bypass[:,1:-1,1:-1,:]
+    hidden_layers.append(conv)
+    relu = tf.nn.relu(conv)
+    if is_training:
+      dropout = tf.nn.dropout(relu, dropout_prob)
+    else:
+      dropout = relu
+    tf.logging.info('conv layer %d: in_shape = %s, time_size = %s, conv_shape = %s, dilation = %s' %
+          (iconv, inarg.get_shape(), output_time_size, weights.get_shape(), str(dilation)))
+    inarg = dropout
+    inarg_shape = inarg.get_shape().as_list()
+    iconv += 1
+
+  filter_size = 3
+  while inarg_shape[2]>=filter_size:
+    filter_count_prev = 1 if iconv==0 else filter_counts[iconv-1]
+    weights = tf.Variable( tf.truncated_normal(
+              [filter_size, filter_size, filter_count_prev, filter_counts[iconv]],
+              stddev=0.01))
+    bias = tf.Variable(tf.zeros([filter_counts[iconv]]))
+    if iconv<dilate_at_level:
+      dilation = [1,2**(abs(iconv-dilate_at_level)),1,1]
+      #dilation = [1,2**iconv,1,1]
+    else:
+      dilation = [1,1,1,1]
+      #dilation = [1,2**(dilate_at_level-1),1,1]
+    output_time_size -= (filter_size-1)*dilation[1]
+    conv = tf.nn.conv2d(inarg, weights, [1, 1, 1, 1], 'VALID', dilations=dilation) + bias
+    hidden_layers.append(conv)
+    relu = tf.nn.relu(conv)
+    if is_training:
+      dropout = tf.nn.dropout(relu, dropout_prob)
+    else:
+      dropout = relu
+    tf.logging.info('conv layer %d: in_shape = %s, time_size = %s, conv_shape = %s, dilation = %s' %
+          (iconv, inarg.get_shape(), output_time_size, weights.get_shape(), str(dilation)))
+    inarg = dropout
+    inarg_shape = inarg.get_shape().as_list()
+    iconv += 1
+
+  assert inarg_shape[2]==1
+
+  bottle_size = 110  # must be even
+  filter_size = 3
+  inarg = tf.squeeze(inarg,[2])
+  while output_time_size>(nstrides+bottle_size):
+    filter_count_prev = 1 if iconv==0 else filter_counts[-1]
+    if residual and iconv%2==0:
+      bypass = inarg
+    weights = tf.Variable( tf.truncated_normal(
+              [filter_size, filter_count_prev, filter_counts[-1]],
+              stddev=0.01))
+    bias = tf.Variable(tf.zeros([filter_counts[-1]]))
+    output_time_size -= (filter_size-1)
+    conv = tf.nn.conv1d(inarg, weights, 1, 'VALID') + bias
+    if residual and iconv%2==0:
+      tf.logging.info('adding bypass connection')
+      conv += bypass[:,1:-1,:]
+    hidden_layers.append(conv)
+    relu = tf.nn.relu(conv)
+    if is_training:
+      dropout = tf.nn.dropout(relu, dropout_prob)
+    else:
+      dropout = relu
+    tf.logging.info('conv layer %d: in_shape = %s, time_size = %s, conv_shape = %s, dilation = %s' %
+          (iconv, inarg.get_shape(), output_time_size, weights.get_shape(), str(dilation)))
+    inarg = dropout
+    iconv += 1
+
+  assert output_time_size==(nstrides+bottle_size)
+
+  label_count = model_settings['label_count']
+  weights = tf.Variable( tf.truncated_normal(
+            [1+bottle_size, filter_counts[-1], label_count],
+            stddev=0.01))
+  bias = tf.Variable(tf.zeros([label_count]))
+  final = tf.nn.conv1d(inarg, weights, 1, 'VALID') + bias
+
+  tf.logging.info('final layer: in_shape = %s, conv_shape = %s' %
+        (inarg.get_shape(), weights.get_shape()))
+  if is_training:
+    return hidden_layers, tf.squeeze(final), dropout_prob
+  else:
+    return hidden_layers, tf.squeeze(final)
 
 
 def create_conv_model(fingerprint_input, model_settings, is_training):
