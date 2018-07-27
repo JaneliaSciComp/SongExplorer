@@ -65,7 +65,7 @@ def prepare_words_list(wanted_words, silence_percentage, unknown_percentage):
   return words_list + wanted_words
 
 
-def which_set(filename, validation_percentage, testing_percentage):
+def which_set(filename, validation_percentage, validation_offset_percentage, testing_percentage):
   """Determines which data partition the file should belong to.
 
   We want to keep files in the same training, validation, or testing sets even
@@ -83,6 +83,7 @@ def which_set(filename, validation_percentage, testing_percentage):
   Args:
     filename: File path of the data sample.
     validation_percentage: How much of the data set to use for validation.
+    validation_offset_percentage: Which part of the data set to use for validation.
     testing_percentage: How much of the data set to use for testing.
 
   Returns:
@@ -104,10 +105,11 @@ def which_set(filename, validation_percentage, testing_percentage):
   percentage_hash = ((int(hash_name_hashed, 16) %
                       (MAX_NUM_WAVS_PER_CLASS + 1)) *
                      (100.0 / MAX_NUM_WAVS_PER_CLASS))
-  if percentage_hash < validation_percentage:
-    result = 'validation'
-  elif percentage_hash < (testing_percentage + validation_percentage):
+  if percentage_hash < testing_percentage:
     result = 'testing'
+  elif percentage_hash > (testing_percentage + validation_offset_percentage) and \
+       percentage_hash < (testing_percentage + validation_offset_percentage + validation_percentage):
+    result = 'validation'
   else:
     result = 'training'
   return result
@@ -159,12 +161,12 @@ class AudioProcessor(object):
   """Handles loading, partitioning, and preparing audio training data."""
 
   def __init__(self, data_url, data_dir, silence_percentage, unknown_percentage,
-               wanted_words, validation_percentage, testing_percentage,
+               wanted_words, validation_percentage, validation_offset_percentage, testing_percentage,
                model_settings):
     self.data_dir = data_dir
     self.maybe_download_and_extract_dataset(data_url, data_dir)
     self.prepare_data_index(silence_percentage, unknown_percentage,
-                            wanted_words, validation_percentage,
+                            wanted_words, validation_percentage, validation_offset_percentage,
                             testing_percentage, model_settings)
     self.prepare_background_data()
     self.prepare_processing_graph(model_settings)
@@ -211,7 +213,7 @@ class AudioProcessor(object):
     tarfile.open(filepath, 'r:gz').extractall(dest_directory)
 
   def prepare_data_index(self, silence_percentage, unknown_percentage,
-                         wanted_words, validation_percentage,
+                         wanted_words, validation_percentage, validation_offset_percentage,
                          testing_percentage, model_settings):
     """Prepares a list of the samples organized by set and label.
 
@@ -227,6 +229,7 @@ class AudioProcessor(object):
       unknown_percentage: How much should be audio outside the wanted classes.
       wanted_words: Labels of the classes we want to be able to recognize.
       validation_percentage: How much of the data set to use for validation.
+      validation_offset_percentage: Which part of the data set to use for validation.
       testing_percentage: How much of the data set to use for testing.
 
     Returns:
@@ -272,7 +275,7 @@ class AudioProcessor(object):
           continue
         all_words[word] = True
         set_index = which_set(annotation[0]+annotation[1]+annotation[2]+annotation[3],
-                              validation_percentage, testing_percentage)
+                              validation_percentage, validation_offset_percentage, testing_percentage)
         # If it's a known class, store its detail, otherwise add it to the list
         # we'll use to train the unknown label.
         if word in wanted_words_index:

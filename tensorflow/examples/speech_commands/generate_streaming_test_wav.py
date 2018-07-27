@@ -97,7 +97,7 @@ def main(_):
       int(FLAGS.first_filter_count), int(FLAGS.second_filter_count), float(FLAGS.dropout_prob))
   audio_processor = input_data.AudioProcessor(
       '', FLAGS.data_dir, FLAGS.silence_percentage, 10,
-      FLAGS.wanted_words.split(','), FLAGS.validation_percentage,
+      FLAGS.wanted_words.split(','), FLAGS.validation_percentage, FLAGS.validation_offset_percentage,
       FLAGS.testing_percentage, model_settings)
 
   output_audio_sample_count = FLAGS.sample_rate * FLAGS.test_duration_seconds
@@ -220,14 +220,19 @@ if __name__ == '__main__':
       """)
   parser.add_argument(
       '--testing_percentage',
-      type=int,
+      type=float,
       default=10,
       help='What percentage of wavs to use as a test set.')
   parser.add_argument(
       '--validation_percentage',
-      type=int,
+      type=float,
       default=10,
       help='What percentage of wavs to use as a validation set.')
+  parser.add_argument(
+      '--validation_offset_percentage',
+      type=float,
+      default=10,
+      help='Which wavs to use as a cross-validation set.')
   parser.add_argument(
       '--sample_rate',
       type=int,

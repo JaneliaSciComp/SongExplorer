@@ -113,7 +113,7 @@ def main(_):
   audio_processor = input_data.AudioProcessor(
       FLAGS.data_url, FLAGS.data_dir, FLAGS.silence_percentage,
       FLAGS.unknown_percentage,
-      FLAGS.wanted_words.split(','), FLAGS.validation_percentage,
+      FLAGS.wanted_words.split(','), FLAGS.validation_percentage, FLAGS.validation_offset_percentage,
       FLAGS.testing_percentage, model_settings)
   fingerprint_size = model_settings['fingerprint_size']
   label_count = model_settings['label_count']
@@ -250,13 +250,13 @@ def main(_):
       total_accuracy = 0
       total_conf_matrix = None
       for i in xrange(0, set_size, FLAGS.batch_size):
-        validation_fingerprints, validation_ground_truth, _ = (
+        validation_fingerprints, validation_ground_truth, validation_samples = (
             audio_processor.get_data(FLAGS.batch_size, i, model_settings, 0.0,
                                      0.0, 0, 'validation', sess))
         # Run a validation step and capture training summaries for TensorBoard
         # with the `merged` op.
-        validation_summary, validation_accuracy, conf_matrix = sess.run(
-            [merged_summaries, evaluation_step, confusion_matrix],
+        validation_summary, validation_accuracy, conf_matrix, logit_vals = sess.run(
+            [merged_summaries, evaluation_step, confusion_matrix, logits],
             feed_dict={
                 fingerprint_input: validation_fingerprints,
                 ground_truth_input: validation_ground_truth,
@@ -269,10 +269,16 @@ def main(_):
           total_conf_matrix = conf_matrix
         else:
           total_conf_matrix += conf_matrix
-      tf.logging.info('Confusion Matrix:\n %s\n %s' % (audio_processor.words_list,total_conf_matrix))
-      t1=dt.datetime.now()-t0
-      tf.logging.info('Elapsed %f, Step %d: Validation accuracy = %.1f%% (N=%d)' %
-                      (t1.total_seconds(), training_step, total_accuracy * 100, set_size))
+        if is_last_step and audio_processor.set_size('testing')==0:
+          tf.logging.info('samples = %s', json.dumps(validation_samples))
+          tf.logging.info('fingerprints = %s', json.dumps(validation_fingerprints.tolist()))
+          tf.logging.info('ground_truth = %s', json.dumps(validation_ground_truth.tolist()))
+          tf.logging.info('logits = %s', json.dumps(logit_vals.tolist()))
+      if set_size>0:
+        tf.logging.info('Confusion Matrix:\n %s\n %s' % (audio_processor.words_list,total_conf_matrix))
+        t1=dt.datetime.now()-t0
+        tf.logging.info('Elapsed %f, Step %d: Validation accuracy = %.1f%% (N=%d)' %
+                        (t1.total_seconds(), training_step, total_accuracy * 100, set_size))
 
     # Save the model checkpoint periodically.
     if (training_step % FLAGS.save_step_interval == 0 or
@@ -283,7 +289,6 @@ def main(_):
       saver.save(sess, checkpoint_path, global_step=training_step)
 
   set_size = audio_processor.set_size('testing')
-  tf.logging.info('set_size=%d', set_size)
   total_accuracy = 0
   total_conf_matrix = None
   for i in xrange(0, set_size, FLAGS.batch_size):
@@ -306,10 +311,11 @@ def main(_):
     tf.logging.info('fingerprints = %s', json.dumps(test_fingerprints.tolist()))
     tf.logging.info('ground_truth = %s', json.dumps(test_ground_truth.tolist()))
     tf.logging.info('logits = %s', json.dumps(logit_vals.tolist()))
-  tf.logging.info('Confusion Matrix:\n %s\n %s' % (audio_processor.words_list,total_conf_matrix))
-  t1=dt.datetime.now()-t0
-  tf.logging.info('Elapsed %f, Step %d: Final test accuracy = %.1f%% (N=%d)' %
-                  (t1.total_seconds(), training_steps_max, total_accuracy * 100, set_size))
+  if set_size>0:
+    tf.logging.info('Confusion Matrix:\n %s\n %s' % (audio_processor.words_list,total_conf_matrix))
+    t1=dt.datetime.now()-t0
+    tf.logging.info('Elapsed %f, Step %d: Final test accuracy = %.1f%% (N=%d)' %
+                    (t1.total_seconds(), training_steps_max, total_accuracy * 100, set_size))
 
 
 if __name__ == '__main__':
@@ -365,14 +371,19 @@ if __name__ == '__main__':
       """)
   parser.add_argument(
       '--testing_percentage',
-      type=int,
+      type=float,
       default=10,
       help='What percentage of wavs to use as a test set.')
   parser.add_argument(
       '--validation_percentage',
-      type=int,
+      type=float,
       default=10,
       help='What percentage of wavs to use as a validation set.')
+  parser.add_argument(
+      '--validation_offset_percentage',
+      type=float,
+      default=0,
+      help='Which wavs to use as a cross-validation set.')
   parser.add_argument(
       '--sample_rate',
       type=int,
