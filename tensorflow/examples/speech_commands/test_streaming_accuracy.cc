@@ -140,10 +140,6 @@ int main(int argc, char* argv[]) {
   string output_name = "labels_softmax";
   float clip_duration_ms = 1000;
   float clip_stride_ms = 30;
-  int32 average_window_ms = 500;
-  int32 time_tolerance_ms = 750;
-  int32 suppression_ms = 1500;
-  float detection_threshold = 0.7f;
   bool verbose = false;
   std::vector<Flag> flag_list = {
       Flag("wav", &wav, "audio file to be identified"),
@@ -159,15 +155,7 @@ int main(int argc, char* argv[]) {
       Flag("output_name", &output_name, "name of output node in model"),
       Flag("clip_duration_ms", &clip_duration_ms,
            "length of recognition window"),
-      Flag("average_window_ms", &average_window_ms,
-           "length of window to smooth results over"),
-      Flag("time_tolerance_ms", &time_tolerance_ms,
-           "maximum gap allowed between a recognition and ground truth"),
-      Flag("suppression_ms", &suppression_ms,
-           "how long to ignore others for after a recognition"),
       Flag("clip_stride_ms", &clip_stride_ms, "how often to run recognition"),
-      Flag("detection_threshold", &detection_threshold,
-           "what score is required to trigger detection of a word"),
       Flag("verbose", &verbose, "whether to log extra debugging information"),
   };
   string usage = tensorflow::Flags::Usage(argv[0], flag_list);
@@ -238,12 +226,6 @@ int main(int argc, char* argv[]) {
   Tensor sample_rate_tensor(tensorflow::DT_INT32, tensorflow::TensorShape({}));
   sample_rate_tensor.scalar<int32>()() = sample_rate;
 
-  tensorflow::RecognizeCommands recognize_commands(
-      labels_list, average_window_ms, detection_threshold, suppression_ms);
-
-  std::vector<std::pair<string, int64>> all_found_words;
-  tensorflow::StreamingAccuracyStats previous_stats;
-
   const int64 audio_data_end = (sample_count - clip_duration_ms);
   for (int64 audio_data_offset = 0; audio_data_offset < audio_data_end;
        audio_data_offset += clip_stride_samples) {
@@ -266,52 +248,7 @@ int main(int argc, char* argv[]) {
 
     if (verbose)
       LOG(INFO) << current_time_ms << "ms: " << outputs[0].SummarizeValue(outputs[0].NumElements());
-
-    string found_command;
-    float score;
-    bool is_new_command;
-    Status recognize_status = recognize_commands.ProcessLatestResults(
-        outputs[0], current_time_ms, &found_command, &score, &is_new_command);
-    if (!recognize_status.ok()) {
-      LOG(ERROR) << "Recognition processing failed: " << recognize_status;
-      return -1;
-    }
-
-    if (is_new_command && (found_command != "_silence_")) {
-      all_found_words.push_back({found_command, current_time_ms});
-      if (verbose) {
-        tensorflow::StreamingAccuracyStats stats;
-        tensorflow::CalculateAccuracyStats(ground_truth_list, all_found_words,
-                                           current_time_ms, time_tolerance_ms,
-                                           &stats);
-        int32 false_positive_delta = stats.how_many_false_positives -
-                                     previous_stats.how_many_false_positives;
-        int32 correct_delta = stats.how_many_correct_words -
-                              previous_stats.how_many_correct_words;
-        int32 wrong_delta =
-            stats.how_many_wrong_words - previous_stats.how_many_wrong_words;
-        string recognition_state;
-        if (false_positive_delta == 1) {
-          recognition_state = " (False Positive)";
-        } else if (correct_delta == 1) {
-          recognition_state = " (Correct)";
-        } else if (wrong_delta == 1) {
-          recognition_state = " (Wrong)";
-        } else {
-          LOG(ERROR) << "Unexpected state in statistics";
-        }
-        LOG(INFO) << current_time_ms << "ms: " << found_command << ": " << score
-                  << recognition_state;
-        previous_stats = stats;
-        tensorflow::PrintAccuracyStats(stats);
-      }
-    }
   }
-
-  tensorflow::StreamingAccuracyStats stats;
-  tensorflow::CalculateAccuracyStats(ground_truth_list, all_found_words, -1,
-                                     time_tolerance_ms, &stats);
-  tensorflow::PrintAccuracyStats(stats);
 
   return 0;
 }
