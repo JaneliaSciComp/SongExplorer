@@ -295,6 +295,8 @@ class AudioProcessor(object):
       words = [sample['label'] for sample in self.data_index[set_index]]
       for uniqword in sorted(set(words)):
         tf.logging.info('%7d %s', sum([word==uniqword for word in words]), uniqword)
+      if set_index != 'training':
+        continue
       word_indices = {}
       for isample in range(len(self.data_index[set_index])):
         sample = self.data_index[set_index][isample]
