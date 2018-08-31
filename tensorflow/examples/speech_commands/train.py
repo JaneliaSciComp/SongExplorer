@@ -99,7 +99,11 @@ def main(_):
     tf.logging.info('%s = %s', key, flags[key])
 
   # Start a new TensorFlow session.
-  sess = tf.InteractiveSession()
+  config = tf.ConfigProto()
+  config.gpu_options.allow_growth = True
+  config.allow_soft_placement = True
+  #config.log_device_placement = False
+  sess = tf.InteractiveSession(config=config)
 
   # Begin by making sure we have the training data we need. If you already have
   # training data of your own, use `--data_url= ` on the command line to avoid

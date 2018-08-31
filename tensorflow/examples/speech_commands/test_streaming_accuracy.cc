@@ -104,7 +104,9 @@ Status LoadGraph(const string& graph_file_name,
     return tensorflow::errors::NotFound("Failed to load compute graph at '",
                                         graph_file_name, "'");
   }
-  session->reset(tensorflow::NewSession(tensorflow::SessionOptions()));
+  tensorflow::SessionOptions opts;
+  opts.config.mutable_gpu_options()->set_allow_growth(true);
+  session->reset(tensorflow::NewSession(opts));
   Status session_create_status = (*session)->Create(graph_def);
   if (!session_create_status.ok()) {
     return session_create_status;
