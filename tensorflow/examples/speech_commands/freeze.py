@@ -55,7 +55,7 @@ FLAGS = None
 def create_inference_graph(wanted_words, sample_rate, clip_duration_ms,
                            clip_stride_ms, window_size_ms, window_stride_ms,
                            dct_coefficient_count, filterbank_channel_count,
-                           model_architecture, filter_counts, dropout_prob,
+                           model_architecture, filter_counts, dropout_prob, batch_size,
                            silence_percentage, unknown_percentage):
   """Creates an audio model with the nodes needed for inference.
 
@@ -78,7 +78,7 @@ def create_inference_graph(wanted_words, sample_rate, clip_duration_ms,
   model_settings = models.prepare_model_settings(
       len(words_list), sample_rate, clip_duration_ms, window_size_ms,
       window_stride_ms, dct_coefficient_count, filterbank_channel_count,
-      filter_counts, dropout_prob)
+      filter_counts, dropout_prob, batch_size)
 
   runtime_settings = {'clip_stride_ms': clip_stride_ms}
 
@@ -126,7 +126,7 @@ def main(_):
                          FLAGS.dct_coefficient_count, FLAGS.filterbank_channel_count,
                          FLAGS.model_architecture,
                          [int(x) for x in FLAGS.filter_counts],
-                         FLAGS.dropout_prob,
+                         FLAGS.dropout_prob, FLAGS.batch_size,
                          FLAGS.silence_percentage, FLAGS.unknown_percentage)
   models.load_variables_from_checkpoint(sess, FLAGS.start_checkpoint)
 
@@ -178,6 +178,11 @@ if __name__ == '__main__':
       type=int,
       default=40,
       help='How many output bins to use for the MFCC fingerprint',)
+  parser.add_argument(
+      '--batch_size',
+      type=int,
+      default=100,
+      help='How many items to train with at once',)
   parser.add_argument(
       '--start_checkpoint',
       type=str,

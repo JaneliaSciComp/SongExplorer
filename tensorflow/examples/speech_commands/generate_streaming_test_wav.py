@@ -94,7 +94,8 @@ def main(_):
       len(words_list), FLAGS.sample_rate, FLAGS.clip_duration_ms,
       FLAGS.window_size_ms, FLAGS.window_stride_ms,
       FLAGS.dct_coefficient_count, FLAGS.filterbank_channel_count,
-      int(FLAGS.first_filter_count), int(FLAGS.second_filter_count), float(FLAGS.dropout_prob))
+      int(FLAGS.first_filter_count), int(FLAGS.second_filter_count), float(FLAGS.dropout_prob),
+      int(FLAGS.batch_size))
   audio_processor = input_data.AudioProcessor(
       '', FLAGS.data_dir, FLAGS.silence_percentage, 10,
       FLAGS.wanted_words.split(','), FLAGS.validation_percentage, FLAGS.validation_offset_percentage,
@@ -263,6 +264,11 @@ if __name__ == '__main__':
       type=int,
       default=40,
       help='How many output bins to use for the MFCC fingerprint',)
+  parser.add_argument(
+      '--batch_size',
+      type=int,
+      default=100,
+      help='How many items to train with at once',)
   parser.add_argument(
       '--wanted_words',
       type=str,

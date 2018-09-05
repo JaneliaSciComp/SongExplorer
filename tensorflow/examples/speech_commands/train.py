@@ -113,7 +113,7 @@ def main(_):
                                         FLAGS.silence_percentage, FLAGS.unknown_percentage)),
       FLAGS.sample_rate, FLAGS.clip_duration_ms, FLAGS.window_size_ms, FLAGS.window_stride_ms,
       FLAGS.dct_coefficient_count, FLAGS.filterbank_channel_count,
-      [int(x) for x in FLAGS.filter_counts], FLAGS.dropout_prob)
+      [int(x) for x in FLAGS.filter_counts], FLAGS.dropout_prob, FLAGS.batch_size)
   audio_processor = input_data.AudioProcessor(
       FLAGS.data_url, FLAGS.data_dir, FLAGS.silence_percentage,
       FLAGS.unknown_percentage,
@@ -136,6 +136,8 @@ def main(_):
         '--how_many_training_steps and --learning_rate must be equal length '
         'lists, but are %d and %d long instead' % (len(training_steps_list),
                                                    len(learning_rates_list)))
+
+  actual_batch_size = tf.placeholder(tf.int32, [1])
 
   fingerprint_input = tf.placeholder(
       tf.float32, [None, fingerprint_size], name='fingerprint_input')
@@ -160,7 +162,8 @@ def main(_):
   # Create the back propagation and training evaluation machinery in the graph.
   with tf.name_scope('cross_entropy'):
     cross_entropy_mean = tf.losses.sparse_softmax_cross_entropy(
-        labels=ground_truth_input, logits=logits)
+        labels=tf.slice(ground_truth_input,[0],actual_batch_size),
+        logits=tf.slice(logits,[0,0],tf.concat([actual_batch_size,[-1]],0)))
   tf.summary.scalar('cross_entropy', cross_entropy_mean)
   with tf.name_scope('train'), tf.control_dependencies(control_dependencies):
     learning_rate_input = tf.placeholder(
@@ -171,8 +174,11 @@ def main(_):
   predicted_indices = tf.argmax(logits, 1)
   correct_prediction = tf.equal(predicted_indices, ground_truth_input)
   confusion_matrix = tf.confusion_matrix(
-      ground_truth_input, predicted_indices, num_classes=label_count)
-  evaluation_step = tf.reduce_mean(tf.cast(correct_prediction, tf.float32))
+      tf.slice(ground_truth_input,[0],actual_batch_size),
+      tf.slice(predicted_indices,[0],actual_batch_size),
+      num_classes=label_count)
+  evaluation_step = tf.reduce_mean(tf.cast(tf.slice(
+                                   correct_prediction,[0],actual_batch_size), tf.float32))
   tf.summary.scalar('accuracy', evaluation_step)
 
   global_step = tf.train.get_or_create_global_step()
@@ -241,6 +247,7 @@ def main(_):
             fingerprint_input: train_fingerprints,
             ground_truth_input: train_ground_truth,
             learning_rate_input: learning_rate_value,
+            actual_batch_size: [FLAGS.batch_size],
             dropout_prob: model_settings['dropout_prob']
         })
     train_writer.add_summary(train_summary, training_step)
@@ -257,6 +264,14 @@ def main(_):
         validation_fingerprints, validation_ground_truth, validation_samples = (
             audio_processor.get_data(FLAGS.batch_size, i, model_settings, 0.0,
                                      0.0, 0, 'validation', sess))
+        needed = FLAGS.batch_size - validation_fingerprints.shape[0]
+        if needed>0:
+          validation_fingerprints = np.append(validation_fingerprints,
+                np.repeat(validation_fingerprints[[1],:],needed,axis=0), axis=0)
+          validation_ground_truth = np.append(validation_ground_truth,
+                np.repeat(validation_ground_truth[[1]],needed,axis=0), axis=0)
+          for i in range(needed):
+            validation_samples.append(validation_samples[0])
         # Run a validation step and capture training summaries for TensorBoard
         # with the `merged` op.
         validation_summary, validation_accuracy, conf_matrix, logit_vals = sess.run(
@@ -264,6 +279,7 @@ def main(_):
             feed_dict={
                 fingerprint_input: validation_fingerprints,
                 ground_truth_input: validation_ground_truth,
+                actual_batch_size: [FLAGS.batch_size - needed],
                 dropout_prob: 1.0
             })
         validation_writer.add_summary(validation_summary, training_step)
@@ -274,10 +290,10 @@ def main(_):
         else:
           total_conf_matrix += conf_matrix
         if is_last_step and audio_processor.set_size('testing')==0:
-          tf.logging.info('samples = %s', json.dumps(validation_samples))
-          tf.logging.info('fingerprints = %s', json.dumps(validation_fingerprints.tolist()))
-          tf.logging.info('ground_truth = %s', json.dumps(validation_ground_truth.tolist()))
-          tf.logging.info('logits = %s', json.dumps(logit_vals.tolist()))
+          tf.logging.info('samples = %s', json.dumps(validation_samples[:(FLAGS.batch_size - needed)]))
+          tf.logging.info('fingerprints = %s', json.dumps(validation_fingerprints[:(FLAGS.batch_size - needed),:].tolist()))
+          tf.logging.info('ground_truth = %s', json.dumps(validation_ground_truth[:(FLAGS.batch_size - needed)].tolist()))
+          tf.logging.info('logits = %s', json.dumps(logit_vals[:(FLAGS.batch_size - needed),:].tolist()))
       if set_size>0:
         tf.logging.info('Confusion Matrix:\n %s\n %s' % (audio_processor.words_list,total_conf_matrix))
         t1=dt.datetime.now()-t0
@@ -298,11 +314,20 @@ def main(_):
   for i in xrange(0, set_size, FLAGS.batch_size):
     test_fingerprints, test_ground_truth, test_samples = audio_processor.get_data(
         FLAGS.batch_size, i, model_settings, 0.0, 0.0, 0, 'testing', sess)
+    needed = FLAGS.batch_size - test_fingerprints.shape[0]
+    if needed>0:
+      test_fingerprints = np.append(test_fingerprints,
+            np.repeat(test_fingerprints[[1],:],needed,axis=0), axis=0)
+      test_ground_truth = np.append(test_ground_truth,
+            np.repeat(test_ground_truth[[1]],needed,axis=0), axis=0)
+      for i in range(needed):
+        test_samples.append(test_samples[0])
     test_accuracy, conf_matrix, logit_vals = sess.run(
         [evaluation_step, confusion_matrix, logits],
         feed_dict={
             fingerprint_input: test_fingerprints,
             ground_truth_input: test_ground_truth,
+            actual_batch_size: [FLAGS.batch_size - needed],
             dropout_prob: 1.0
         })
     batch_size = min(FLAGS.batch_size, set_size - i)
@@ -311,10 +336,10 @@ def main(_):
       total_conf_matrix = conf_matrix
     else:
       total_conf_matrix += conf_matrix
-    tf.logging.info('samples = %s', json.dumps(test_samples))
-    tf.logging.info('fingerprints = %s', json.dumps(test_fingerprints.tolist()))
-    tf.logging.info('ground_truth = %s', json.dumps(test_ground_truth.tolist()))
-    tf.logging.info('logits = %s', json.dumps(logit_vals.tolist()))
+    tf.logging.info('samples = %s', json.dumps(test_samples[:(FLAGS.batch_size - needed),:]))
+    tf.logging.info('fingerprints = %s', json.dumps(test_fingerprints[:(FLAGS.batch_size - needed),:].tolist()))
+    tf.logging.info('ground_truth = %s', json.dumps(test_ground_truth[:(FLAGS.batch_size - needed),:].tolist()))
+    tf.logging.info('logits = %s', json.dumps(logit_vals[:(FLAGS.batch_size - needed),:].tolist()))
   if set_size>0:
     tf.logging.info('Confusion Matrix:\n %s\n %s' % (audio_processor.words_list,total_conf_matrix))
     t1=dt.datetime.now()-t0
