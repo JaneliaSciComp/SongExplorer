@@ -140,6 +140,7 @@ int main(int argc, char* argv[]) {
   string input_data_name = "decoded_sample_data:0";
   string input_rate_name = "decoded_sample_data:1";
   string output_name = "labels_softmax";
+  int nstrides = 1;
   float clip_duration_ms = 1000;
   float clip_stride_ms = 30;
   bool verbose = false;
@@ -155,6 +156,7 @@ int main(int argc, char* argv[]) {
       Flag("input_rate_name", &input_rate_name,
            "name of input sample rate node in model"),
       Flag("output_name", &output_name, "name of output node in model"),
+      Flag("nstrides", &nstrides, "how many context windows to process in parallel"),
       Flag("clip_duration_ms", &clip_duration_ms,
            "length of recognition window"),
       Flag("clip_stride_ms", &clip_stride_ms, "how often to run recognition"),

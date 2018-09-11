@@ -25,7 +25,7 @@ import tensorflow as tf
 
 
 def prepare_model_settings(label_count, sample_rate, clip_duration_ms,
-                           window_size_ms, window_stride_ms,
+                           window_size_ms, window_stride_ms, nstrides,
                            dct_coefficient_count, filterbank_channel_count,
                            filter_counts, dropout_prob, batch_size):
   """Calculates common settings needed for all models.
@@ -57,6 +57,7 @@ def prepare_model_settings(label_count, sample_rate, clip_duration_ms,
       'desired_samples': desired_samples,
       'window_size_samples': window_size_samples,
       'window_stride_samples': window_stride_samples,
+      'nstrides': nstrides,
       'spectrogram_length': spectrogram_length,
       'dct_coefficient_count': dct_coefficient_count,
       'filterbank_channel_count': filterbank_channel_count,

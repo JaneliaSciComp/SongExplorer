@@ -111,7 +111,7 @@ def main(_):
   model_settings = models.prepare_model_settings(
       len(input_data.prepare_words_list(FLAGS.wanted_words.split(','),
                                         FLAGS.silence_percentage, FLAGS.unknown_percentage)),
-      FLAGS.sample_rate, FLAGS.clip_duration_ms, FLAGS.window_size_ms, FLAGS.window_stride_ms,
+      FLAGS.sample_rate, FLAGS.clip_duration_ms, FLAGS.window_size_ms, FLAGS.window_stride_ms, 1,
       FLAGS.dct_coefficient_count, FLAGS.filterbank_channel_count,
       [int(x) for x in FLAGS.filter_counts], FLAGS.dropout_prob, FLAGS.batch_size)
   audio_processor = input_data.AudioProcessor(
