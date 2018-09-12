@@ -96,7 +96,7 @@ namespace {
 // Reads a model graph definition from disk, and creates a session object you
 // can use to run it.
 Status LoadGraph(const string& graph_file_name,
-                 std::unique_ptr<tensorflow::Session>* session) {
+                 std::unique_ptr<tensorflow::Session>* session, int ncores) {
   tensorflow::GraphDef graph_def;
   Status load_graph_status =
       ReadBinaryProto(tensorflow::Env::Default(), graph_file_name, &graph_def);
@@ -106,6 +106,8 @@ Status LoadGraph(const string& graph_file_name,
   }
   tensorflow::SessionOptions opts;
   opts.config.mutable_gpu_options()->set_allow_growth(true);
+  opts.config.set_inter_op_parallelism_threads(ncores);
+  opts.config.set_intra_op_parallelism_threads(ncores);
   session->reset(tensorflow::NewSession(opts));
   Status session_create_status = (*session)->Create(graph_def);
   if (!session_create_status.ok()) {
@@ -143,6 +145,7 @@ int main(int argc, char* argv[]) {
   int nstrides = 1;
   float clip_duration_ms = 1000;
   float clip_stride_ms = 30;
+  int ncores = 0;
   bool verbose = false;
   std::vector<Flag> flag_list = {
       Flag("wav", &wav, "audio file to be identified"),
@@ -160,6 +163,7 @@ int main(int argc, char* argv[]) {
       Flag("clip_duration_ms", &clip_duration_ms,
            "length of recognition window"),
       Flag("clip_stride_ms", &clip_stride_ms, "how often to run recognition"),
+      Flag("ncores", &ncores, "how many CPU cores to use"),
       Flag("verbose", &verbose, "whether to log extra debugging information"),
   };
   string usage = tensorflow::Flags::Usage(argv[0], flag_list);
@@ -178,7 +182,7 @@ int main(int argc, char* argv[]) {
 
   // First we load and initialize the model.
   std::unique_ptr<tensorflow::Session> session;
-  Status load_graph_status = LoadGraph(graph, &session);
+  Status load_graph_status = LoadGraph(graph, &session, ncores);
   if (!load_graph_status.ok()) {
     LOG(ERROR) << load_graph_status;
     return -1;
