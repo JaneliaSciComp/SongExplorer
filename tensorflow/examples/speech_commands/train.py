@@ -256,8 +256,8 @@ def main(_):
                     (t1.total_seconds(), training_step, learning_rate_value, train_accuracy * 100,
                      cross_entropy_value))
     is_last_step = (training_step == training_steps_max)
-    if (training_step % FLAGS.eval_step_interval) == 0 or is_last_step:
-      set_size = audio_processor.set_size('validation')
+    set_size = audio_processor.set_size('validation')
+    if set_size>0 and ((training_step % FLAGS.eval_step_interval) == 0 or is_last_step):
       total_accuracy = 0
       total_conf_matrix = None
       for i in xrange(0, set_size, FLAGS.batch_size):
