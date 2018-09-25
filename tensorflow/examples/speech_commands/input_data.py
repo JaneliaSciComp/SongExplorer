@@ -266,7 +266,7 @@ class AudioProcessor(object):
           wav_nsamples[wav_path] = wavreader.getnframes()
           wavreader.close()
         nsamples = wav_nsamples[wav_path]
-        if ticks[0]<desired_samples//2 or ticks[1]>(nsamples-desired_samples//2):
+        if ticks[0]<desired_samples or ticks[1]>(nsamples-desired_samples):
           continue
         word=annotation[4]
         # Treat the '_background_noise_' folder as a special case, since we expect
@@ -454,7 +454,7 @@ class AudioProcessor(object):
     return len(self.data_index[mode])
 
   def get_data(self, how_many, offset, model_settings, background_frequency,
-               background_volume_range, time_shift, mode, sess):
+               background_volume_range, time_shift, time_shift_random, mode, sess):
     """Gather samples from the data set, applying transformations as needed.
 
     When the mode is 'training', a random selection of samples will be returned,
@@ -470,6 +470,7 @@ class AudioProcessor(object):
         1.0.
       background_volume_range: How loud the background noise will be.
       time_shift: How much to randomly shift the clips by in time.
+      time_shift_random:  True means to pick a random shift; False means shift by exactly this value
       mode: Which partition to use, must be 'training', 'validation', or
         'testing'.
       sess: TensorFlow session that was active when processor was created.
@@ -518,7 +519,10 @@ class AudioProcessor(object):
       input_dict = { self.foreground_data_placeholder_: foreground_indexed }
       # If we're time shifting, set up the offset for this sample.
       if time_shift > 0:
-        time_shift_amount = np.random.randint(-time_shift, time_shift)
+        if time_shift_random:
+          time_shift_amount = np.random.randint(-time_shift, time_shift)
+        else:
+          time_shift_amount = time_shift
       else:
         time_shift_amount = 0
       if time_shift_amount > 0:

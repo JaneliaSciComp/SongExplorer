@@ -236,7 +236,7 @@ def main(_):
     # Pull the audio samples we'll use for training.
     train_fingerprints, train_ground_truth, _ = audio_processor.get_data(
         FLAGS.batch_size, 0, model_settings, FLAGS.background_frequency,
-        FLAGS.background_volume, time_shift_samples, 'training', sess)
+        FLAGS.background_volume, time_shift_samples, FLAGS.time_shift_random, 'training', sess)
     # Run the graph with this batch of training data.
     train_summary, train_accuracy, cross_entropy_value, _, _ = sess.run(
         [
@@ -262,8 +262,10 @@ def main(_):
       total_conf_matrix = None
       for i in xrange(0, set_size, FLAGS.batch_size):
         validation_fingerprints, validation_ground_truth, validation_samples = (
-            audio_processor.get_data(FLAGS.batch_size, i, model_settings, 0.0,
-                                     0.0, 0, 'validation', sess))
+            audio_processor.get_data(FLAGS.batch_size, i, model_settings, 0.0, 0.0,
+                                     0.0 if FLAGS.time_shift_random else time_shift_samples,
+                                     FLAGS.time_shift_random,
+                                     'validation', sess))
         needed = FLAGS.batch_size - validation_fingerprints.shape[0]
         if needed>0:
           validation_fingerprints = np.append(validation_fingerprints,
@@ -313,7 +315,10 @@ def main(_):
   total_conf_matrix = None
   for i in xrange(0, set_size, FLAGS.batch_size):
     test_fingerprints, test_ground_truth, test_samples = audio_processor.get_data(
-        FLAGS.batch_size, i, model_settings, 0.0, 0.0, 0, 'testing', sess)
+                                     FLAGS.batch_size, i, model_settings, 0.0, 0.0,
+                                     0.0 if FLAGS.time_shift_random else time_shift_samples,
+                                     FLAGS.time_shift_random,
+                                     'testing', sess)
     needed = FLAGS.batch_size - test_fingerprints.shape[0]
     if needed>0:
       test_fingerprints = np.append(test_fingerprints,
@@ -346,6 +351,13 @@ def main(_):
     tf.logging.info('Elapsed %f, Step %d: Final test accuracy = %.1f%% (N=%d)' %
                     (t1.total_seconds(), training_steps_max, total_accuracy * 100, set_size))
 
+def str2bool(v):
+    if v.lower() in ('yes', 'true', 't', 'y', '1'):
+        return True
+    elif v.lower() in ('no', 'false', 'f', 'n', '0'):
+        return False
+    else:
+        raise argparse.ArgumentTypeError('Boolean value expected.')
 
 if __name__ == '__main__':
   parser = argparse.ArgumentParser()
@@ -396,7 +408,14 @@ if __name__ == '__main__':
       type=float,
       default=100.0,
       help="""\
-      Range to randomly shift the training audio by in time.
+      Range to shift the training audio by in time.
+      """)
+  parser.add_argument(
+      '--time_shift_random',
+      type=str2bool,
+      default=True,
+      help="""\
+      True shifts randomly within +/- time_shift_ms; False shifts by exactly time_shift_ms.
       """)
   parser.add_argument(
       '--testing_percentage',
@@ -506,7 +525,7 @@ if __name__ == '__main__':
       help='What model architecture to use')
   parser.add_argument(
       '--check_nans',
-      type=bool,
+      type=str2bool,
       default=False,
       help='Whether to check for invalid numbers during processing')
 
