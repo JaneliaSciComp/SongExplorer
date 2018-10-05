@@ -142,7 +142,7 @@ def main(_):
   fingerprint_input = tf.placeholder(
       tf.float32, [None, fingerprint_size], name='fingerprint_input')
 
-  logits, dropout_prob = models.create_model(
+  hidden, logits, dropout_prob = models.create_model(
       fingerprint_input,
       model_settings,
       FLAGS.model_architecture,
@@ -184,7 +184,7 @@ def main(_):
   global_step = tf.train.get_or_create_global_step()
   increment_global_step = tf.assign(global_step, global_step + 1)
 
-  saver = tf.train.Saver(tf.global_variables())
+  saver = tf.train.Saver(tf.global_variables(), max_to_keep=20)
 
   # Merge all the summaries and write them out to /tmp/retrain_logs (by default)
   merged_summaries = tf.summary.merge_all()
@@ -223,6 +223,10 @@ def main(_):
       total_parameters += variable_parameters
   tf.logging.info('number of trainable parameters: %d',total_parameters)
 
+  training_set_size = audio_processor.set_size('training')
+  testing_set_size = audio_processor.set_size('testing')
+  validation_set_size = audio_processor.set_size('validation')
+
   # Training loop.
   training_steps_max = np.sum(training_steps_list)
   for training_step in xrange(start_step, training_steps_max + 1):
@@ -255,52 +259,6 @@ def main(_):
     tf.logging.info('Elapsed %f, Step #%d: rate %f, accuracy %.1f%%, cross entropy %f' %
                     (t1.total_seconds(), training_step, learning_rate_value, train_accuracy * 100,
                      cross_entropy_value))
-    is_last_step = (training_step == training_steps_max)
-    set_size = audio_processor.set_size('validation')
-    if set_size>0 and ((training_step % FLAGS.eval_step_interval) == 0 or is_last_step):
-      total_accuracy = 0
-      total_conf_matrix = None
-      for i in xrange(0, set_size, FLAGS.batch_size):
-        validation_fingerprints, validation_ground_truth, validation_samples = (
-            audio_processor.get_data(FLAGS.batch_size, i, model_settings, 0.0, 0.0,
-                                     0.0 if FLAGS.time_shift_random else time_shift_samples,
-                                     FLAGS.time_shift_random,
-                                     'validation', sess))
-        needed = FLAGS.batch_size - validation_fingerprints.shape[0]
-        if needed>0:
-          validation_fingerprints = np.append(validation_fingerprints,
-                np.repeat(validation_fingerprints[[1],:],needed,axis=0), axis=0)
-          validation_ground_truth = np.append(validation_ground_truth,
-                np.repeat(validation_ground_truth[[1]],needed,axis=0), axis=0)
-          for i in range(needed):
-            validation_samples.append(validation_samples[0])
-        # Run a validation step and capture training summaries for TensorBoard
-        # with the `merged` op.
-        validation_summary, validation_accuracy, conf_matrix, logit_vals = sess.run(
-            [merged_summaries, evaluation_step, confusion_matrix, logits],
-            feed_dict={
-                fingerprint_input: validation_fingerprints,
-                ground_truth_input: validation_ground_truth,
-                actual_batch_size: [FLAGS.batch_size - needed],
-                dropout_prob: 1.0
-            })
-        validation_writer.add_summary(validation_summary, training_step)
-        batch_size = min(FLAGS.batch_size, set_size - i)
-        total_accuracy += (validation_accuracy * batch_size) / set_size
-        if total_conf_matrix is None:
-          total_conf_matrix = conf_matrix
-        else:
-          total_conf_matrix += conf_matrix
-        if is_last_step and audio_processor.set_size('testing')==0:
-          tf.logging.info('samples = %s', json.dumps(validation_samples[:(FLAGS.batch_size - needed)]))
-          tf.logging.info('fingerprints = %s', json.dumps(validation_fingerprints[:(FLAGS.batch_size - needed),:].tolist()))
-          tf.logging.info('ground_truth = %s', json.dumps(validation_ground_truth[:(FLAGS.batch_size - needed)].tolist()))
-          tf.logging.info('logits = %s', json.dumps(logit_vals[:(FLAGS.batch_size - needed),:].tolist()))
-      if set_size>0:
-        tf.logging.info('Confusion Matrix:\n %s\n %s' % (audio_processor.words_list,total_conf_matrix))
-        t1=dt.datetime.now()-t0
-        tf.logging.info('Elapsed %f, Step %d: Validation accuracy = %.1f%% (N=%d)' %
-                        (t1.total_seconds(), training_step, total_accuracy * 100, set_size))
 
     # Save the model checkpoint periodically.
     if (training_step % FLAGS.save_step_interval == 0 or
@@ -310,46 +268,71 @@ def main(_):
       tf.logging.info('Saving to "%s-%d"', checkpoint_path, training_step)
       saver.save(sess, checkpoint_path, global_step=training_step)
 
-  set_size = audio_processor.set_size('testing')
-  total_accuracy = 0
-  total_conf_matrix = None
-  for i in xrange(0, set_size, FLAGS.batch_size):
-    test_fingerprints, test_ground_truth, test_samples = audio_processor.get_data(
-                                     FLAGS.batch_size, i, model_settings, 0.0, 0.0,
+    is_last_step = (training_step == training_steps_max)
+    if testing_set_size>0 and is_last_step:
+      set_kind = 'testing'
+      set_size = testing_set_size
+    elif validation_set_size>0 and (is_last_step or (training_step % FLAGS.eval_step_interval) == 0):
+      set_kind = 'validation'
+      set_size = validation_set_size
+    else:
+      set_kind = 'none'
+    if set_kind != 'none':
+      total_accuracy = 0
+      total_conf_matrix = None
+      for i in xrange(0, set_size, FLAGS.batch_size):
+        fingerprints, ground_truth, samples = (
+            audio_processor.get_data(FLAGS.batch_size, i, model_settings, 0.0, 0.0,
                                      0.0 if FLAGS.time_shift_random else time_shift_samples,
                                      FLAGS.time_shift_random,
-                                     'testing', sess)
-    needed = FLAGS.batch_size - test_fingerprints.shape[0]
-    if needed>0:
-      test_fingerprints = np.append(test_fingerprints,
-            np.repeat(test_fingerprints[[1],:],needed,axis=0), axis=0)
-      test_ground_truth = np.append(test_ground_truth,
-            np.repeat(test_ground_truth[[1]],needed,axis=0), axis=0)
-      for i in range(needed):
-        test_samples.append(test_samples[0])
-    test_accuracy, conf_matrix, logit_vals = sess.run(
-        [evaluation_step, confusion_matrix, logits],
-        feed_dict={
-            fingerprint_input: test_fingerprints,
-            ground_truth_input: test_ground_truth,
-            actual_batch_size: [FLAGS.batch_size - needed],
-            dropout_prob: 1.0
-        })
-    batch_size = min(FLAGS.batch_size, set_size - i)
-    total_accuracy += (test_accuracy * batch_size) / set_size
-    if total_conf_matrix is None:
-      total_conf_matrix = conf_matrix
-    else:
-      total_conf_matrix += conf_matrix
-    tf.logging.info('samples = %s', json.dumps(test_samples[:(FLAGS.batch_size - needed),:]))
-    tf.logging.info('fingerprints = %s', json.dumps(test_fingerprints[:(FLAGS.batch_size - needed),:].tolist()))
-    tf.logging.info('ground_truth = %s', json.dumps(test_ground_truth[:(FLAGS.batch_size - needed),:].tolist()))
-    tf.logging.info('logits = %s', json.dumps(logit_vals[:(FLAGS.batch_size - needed),:].tolist()))
-  if set_size>0:
-    tf.logging.info('Confusion Matrix:\n %s\n %s' % (audio_processor.words_list,total_conf_matrix))
-    t1=dt.datetime.now()-t0
-    tf.logging.info('Elapsed %f, Step %d: Final test accuracy = %.1f%% (N=%d)' %
-                    (t1.total_seconds(), training_steps_max, total_accuracy * 100, set_size))
+                                     set_kind, sess))
+        needed = FLAGS.batch_size - fingerprints.shape[0]
+        if needed>0:
+          fingerprints = np.append(fingerprints,
+                np.repeat(fingerprints[[0],:],needed,axis=0), axis=0)
+          ground_truth = np.append(ground_truth,
+                np.repeat(ground_truth[[0]],needed,axis=0), axis=0)
+          for _ in range(needed):
+            samples.append(samples[0])
+        # Run a validation step and capture training summaries for TensorBoard
+        # with the `merged` op.
+        summary, accuracy, conf_matrix, logit_vals, hidden_vals = sess.run(
+            [merged_summaries, evaluation_step, confusion_matrix, logits, hidden],
+            feed_dict={
+                fingerprint_input: fingerprints,
+                ground_truth_input: ground_truth,
+                actual_batch_size: [FLAGS.batch_size - needed],
+                dropout_prob: 1.0
+            })
+        if set_kind=='validation':
+          validation_writer.add_summary(summary, training_step)
+        batch_size = min(FLAGS.batch_size, set_size - i)
+        total_accuracy += (accuracy * batch_size) / set_size
+        if total_conf_matrix is None:
+          total_conf_matrix = conf_matrix
+        else:
+          total_conf_matrix += conf_matrix
+        if is_last_step:
+          tf.logging.info('samples = %s', json.dumps(samples[:(FLAGS.batch_size - needed)]))
+          #tf.logging.info('fingerprints = %s', json.dumps(fingerprints[:(FLAGS.batch_size - needed),:].tolist()))
+          tf.logging.info('ground_truth = %s', json.dumps(ground_truth[:(FLAGS.batch_size - needed)].tolist()))
+          tf.logging.info('logits = %s', json.dumps(logit_vals[:(FLAGS.batch_size - needed),:].tolist()))
+          if FLAGS.save_hidden:
+            if i==0 :
+              hidden_layers = []
+              for ihidden in range(len(hidden_vals)):
+                nH=len(hidden_vals[ihidden][0][0])
+                nC=len(hidden_vals[ihidden][0][0][0])
+                hidden_layers.append(np.empty((set_size,nH,nC)))
+            for ihidden in range(len(hidden_vals)):
+              iW=(len(hidden_vals[ihidden][0][0])-1)//2
+              hidden_layers[ihidden][i:i+len(hidden_vals[ihidden]),:,:]=hidden_vals[ihidden][:,iW,:,:]
+      tf.logging.info('Confusion Matrix:\n %s\n %s' % (audio_processor.words_list,total_conf_matrix))
+      t1=dt.datetime.now()-t0
+      tf.logging.info('Elapsed %f, Step %d: Validation accuracy = %.1f%% (N=%d)' %
+                      (t1.total_seconds(), training_step, total_accuracy * 100, set_size))
+      if is_last_step and FLAGS.save_hidden:
+        np.savez(os.path.join(FLAGS.data_dir,'hidden.npz'), *hidden_layers)
 
 def str2bool(v):
     if v.lower() in ('yes', 'true', 't', 'y', '1'):
@@ -528,6 +511,11 @@ if __name__ == '__main__':
       type=str2bool,
       default=False,
       help='Whether to check for invalid numbers during processing')
+  parser.add_argument(
+      '--save_hidden',
+      type=str2bool,
+      default=False,
+      help='Whether to save hidden layer activations during processing')
 
   FLAGS, unparsed = parser.parse_known_args()
   tf.app.run(main=main, argv=[sys.argv[0]] + unparsed)

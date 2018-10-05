@@ -104,12 +104,14 @@ def create_inference_graph(wanted_words, sample_rate, clip_duration_ms,
       -1, fingerprint_time_size * fingerprint_frequency_size
   ])
 
-  logits = models.create_model(
+  hidden_layers, final = models.create_model(
       reshaped_input, model_settings, model_architecture, is_training=False,
       runtime_settings=runtime_settings)
 
   # Create an output to use for inference.
-  tf.nn.softmax(logits, name='labels_softmax')
+  for i in range(len(hidden_layers)):
+    tf.identity(hidden_layers[i], name='hidden_layer'+str(i))
+  tf.nn.softmax(final, name='output_layer')
 
 
 def main(_):
@@ -131,8 +133,10 @@ def main(_):
   models.load_variables_from_checkpoint(sess, FLAGS.start_checkpoint)
 
   # Turn all the variables into inline constants inside the graph and save it.
+  varnames = [n.name for n in tf.get_default_graph().as_graph_def().node if n.name[:12]=='hidden_layer']
+  varnames.append('output_layer')
   frozen_graph_def = graph_util.convert_variables_to_constants(
-      sess, sess.graph_def, ['labels_softmax'])
+      sess, sess.graph_def, varnames)
   tf.train.write_graph(
       frozen_graph_def,
       os.path.dirname(FLAGS.output_file),

@@ -67,6 +67,7 @@ bazel run tensorflow/examples/speech_commands:test_streaming_accuracy -- \
 #include <iomanip>
 #include <unordered_set>
 #include <vector>
+#include <list>
 
 #include "tensorflow/core/framework/tensor.h"
 #include "tensorflow/core/lib/io/path.h"
@@ -141,7 +142,7 @@ int main(int argc, char* argv[]) {
   string ground_truth = "";
   string input_data_name = "decoded_sample_data:0";
   string input_rate_name = "decoded_sample_data:1";
-  string output_name = "labels_softmax";
+  string output_names = "labels_softmax";
   int nstrides = 1;
   float clip_duration_ms = 1000;
   float clip_stride_ms = 30;
@@ -158,7 +159,7 @@ int main(int argc, char* argv[]) {
            "name of input data node in model"),
       Flag("input_rate_name", &input_rate_name,
            "name of input sample rate node in model"),
-      Flag("output_name", &output_name, "name of output node in model"),
+      Flag("output_names", &output_names, "comma-separated names of output nodes in model"),
       Flag("nstrides", &nstrides, "how many context windows to process in parallel"),
       Flag("clip_duration_ms", &clip_duration_ms,
            "length of recognition window"),
@@ -234,6 +235,12 @@ int main(int argc, char* argv[]) {
   Tensor sample_rate_tensor(tensorflow::DT_INT32, tensorflow::TensorShape({}));
   sample_rate_tensor.scalar<int32>()() = sample_rate;
 
+  std::vector<string> output_names_vec;
+  std::stringstream ss(output_names);
+  std::string item;
+  while (std::getline(ss, item, ',')) {
+      output_names_vec.push_back(item); }
+
   const int64 audio_data_end = (sample_count - clip_duration_ms);
   for (int64 audio_data_offset = 0; audio_data_offset < audio_data_end;
        audio_data_offset += clip_stride_samples) {
@@ -245,7 +252,7 @@ int main(int argc, char* argv[]) {
     std::vector<Tensor> outputs;
     Status run_status = session->Run({{input_data_name, audio_data_tensor},
                                       {input_rate_name, sample_rate_tensor}},
-                                     {output_name}, {}, &outputs);
+                                     {output_names_vec}, {}, &outputs);
 
     if (!run_status.ok()) {
       LOG(ERROR) << "Running model failed: " << run_status;
@@ -254,8 +261,15 @@ int main(int argc, char* argv[]) {
 
     const int64 current_time_ms = (audio_data_offset * 1000) / sample_rate;
 
+    std::vector<string>::iterator output_name;
+    int i=0;
     if (verbose)
-      LOG(INFO) << current_time_ms << "ms: " << outputs[0].SummarizeValue(outputs[0].NumElements());
+      for (output_name=output_names_vec.begin();
+           output_name!=output_names_vec.end();
+           output_name++) {
+        LOG(INFO) << current_time_ms << "ms: " << *output_name << " " << outputs[i].SummarizeValue(outputs[i].NumElements());
+        i++;
+      }
   }
 
   return 0;
