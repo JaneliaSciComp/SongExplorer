@@ -230,43 +230,44 @@ def main(_):
   # Training loop.
   training_steps_max = np.sum(training_steps_list)
   for training_step in xrange(start_step, training_steps_max + 1):
-    # Figure out what the current learning rate is.
-    training_steps_sum = 0
-    for i in range(len(training_steps_list)):
-      training_steps_sum += training_steps_list[i]
-      if training_step <= training_steps_sum:
-        learning_rate_value = learning_rates_list[i]
-        break
-    # Pull the audio samples we'll use for training.
-    train_fingerprints, train_ground_truth, _ = audio_processor.get_data(
-        FLAGS.batch_size, 0, model_settings, FLAGS.background_frequency,
-        FLAGS.background_volume, time_shift_samples, FLAGS.time_shift_random, 'training', sess)
-    # Run the graph with this batch of training data.
-    train_summary, train_accuracy, cross_entropy_value, _, _ = sess.run(
-        [
-            merged_summaries, evaluation_step, cross_entropy_mean, train_step,
-            increment_global_step
-        ],
-        feed_dict={
-            fingerprint_input: train_fingerprints,
-            ground_truth_input: train_ground_truth,
-            learning_rate_input: learning_rate_value,
-            actual_batch_size: [FLAGS.batch_size],
-            dropout_prob: model_settings['dropout_prob']
-        })
-    train_writer.add_summary(train_summary, training_step)
-    t1=dt.datetime.now()-t0
-    tf.logging.info('Elapsed %f, Step #%d: rate %f, accuracy %.1f%%, cross entropy %f' %
-                    (t1.total_seconds(), training_step, learning_rate_value, train_accuracy * 100,
-                     cross_entropy_value))
+    if training_set_size>0:
+      # Figure out what the current learning rate is.
+      training_steps_sum = 0
+      for i in range(len(training_steps_list)):
+        training_steps_sum += training_steps_list[i]
+        if training_step <= training_steps_sum:
+          learning_rate_value = learning_rates_list[i]
+          break
+      # Pull the audio samples we'll use for training.
+      train_fingerprints, train_ground_truth, _ = audio_processor.get_data(
+          FLAGS.batch_size, 0, model_settings, FLAGS.background_frequency,
+          FLAGS.background_volume, time_shift_samples, FLAGS.time_shift_random, 'training', sess)
+      # Run the graph with this batch of training data.
+      train_summary, train_accuracy, cross_entropy_value, _, _ = sess.run(
+          [
+              merged_summaries, evaluation_step, cross_entropy_mean, train_step,
+              increment_global_step
+          ],
+          feed_dict={
+              fingerprint_input: train_fingerprints,
+              ground_truth_input: train_ground_truth,
+              learning_rate_input: learning_rate_value,
+              actual_batch_size: [FLAGS.batch_size],
+              dropout_prob: model_settings['dropout_prob']
+          })
+      train_writer.add_summary(train_summary, training_step)
+      t1=dt.datetime.now()-t0
+      tf.logging.info('Elapsed %f, Step #%d: rate %f, accuracy %.1f%%, cross entropy %f' %
+                      (t1.total_seconds(), training_step, learning_rate_value, train_accuracy * 100,
+                       cross_entropy_value))
 
-    # Save the model checkpoint periodically.
-    if (training_step % FLAGS.save_step_interval == 0 or
-        training_step == training_steps_max):
-      checkpoint_path = os.path.join(FLAGS.train_dir,
-                                     FLAGS.model_architecture + '.ckpt')
-      tf.logging.info('Saving to "%s-%d"', checkpoint_path, training_step)
-      saver.save(sess, checkpoint_path, global_step=training_step)
+      # Save the model checkpoint periodically.
+      if (training_step % FLAGS.save_step_interval == 0 or
+          training_step == training_steps_max):
+        checkpoint_path = os.path.join(FLAGS.train_dir,
+                                       FLAGS.model_architecture + '.ckpt')
+        tf.logging.info('Saving to "%s-%d"', checkpoint_path, training_step)
+        saver.save(sess, checkpoint_path, global_step=training_step)
 
     is_last_step = (training_step == training_steps_max)
     if testing_set_size>0 and is_last_step:

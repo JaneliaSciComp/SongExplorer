@@ -284,18 +284,19 @@ class AudioProcessor(object):
           unknown_index[set_index].append({'label': word, 'file': wav_path, 'channel': wav_chan, 'ticks': ticks})
     if not all_words:
       raise Exception('No .wavs found at ' + search_path)
-    for index, wanted_word in enumerate(wanted_words):
-      if wanted_word not in all_words:
-        raise Exception('Expected to find ' + wanted_word +
-                        ' in labels but only found ' +
-                        ', '.join(all_words.keys()))
+    if validation_percentage+testing_percentage<100:
+      for index, wanted_word in enumerate(wanted_words):
+        if wanted_word not in all_words:
+          raise Exception('Expected to find ' + wanted_word +
+                          ' in labels but only found ' +
+                          ', '.join(all_words.keys()))
     # equalize
     for set_index in ['validation', 'testing', 'training']:
       tf.logging.info('num %s labels', set_index)
       words = [sample['label'] for sample in self.data_index[set_index]]
       for uniqword in sorted(set(words)):
         tf.logging.info('%7d %s', sum([word==uniqword for word in words]), uniqword)
-      if set_index != 'training':
+      if set_index != 'training' or len(self.data_index[set_index])==0:
         continue
       word_indices = {}
       for isample in range(len(self.data_index[set_index])):
@@ -313,7 +314,12 @@ class AudioProcessor(object):
           self.data_index[set_index].append(self.data_index[set_index][add_this])
     # We need an arbitrary file to load as the input for the silence samples.
     # It's multiplied by zero later, so the content doesn't matter.
-    silence_wav_path = self.data_index['training'][0]['file']
+    if len(self.data_index['training'])>0:
+      silence_wav_path = self.data_index['training'][0]['file']
+    elif len(self.data_index['testing'])>0:
+      silence_wav_path = self.data_index['testing'][0]['file']
+    elif len(self.data_index['validation'])>0:
+      silence_wav_path = self.data_index['validation'][0]['file']
     for set_index in ['validation', 'testing', 'training']:
       set_size = len(self.data_index[set_index])
       silence_size = int(math.ceil(set_size * silence_percentage / 100))
