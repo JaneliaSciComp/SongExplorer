@@ -281,9 +281,9 @@ def main(_):
     if set_kind != 'none':
       total_accuracy = 0
       total_conf_matrix = None
-      for i in xrange(0, set_size, FLAGS.batch_size):
+      for isample in xrange(0, set_size, FLAGS.batch_size):
         fingerprints, ground_truth, samples = (
-            audio_processor.get_data(FLAGS.batch_size, i, model_settings, 0.0, 0.0,
+            audio_processor.get_data(FLAGS.batch_size, isample, model_settings, 0.0, 0.0,
                                      0.0 if FLAGS.time_shift_random else time_shift_samples,
                                      FLAGS.time_shift_random,
                                      set_kind, sess))
@@ -307,19 +307,20 @@ def main(_):
             })
         if set_kind=='validation':
           validation_writer.add_summary(summary, training_step)
-        batch_size = min(FLAGS.batch_size, set_size - i)
+        batch_size = min(FLAGS.batch_size, set_size - isample)
         total_accuracy += (accuracy * batch_size) / set_size
         if total_conf_matrix is None:
           total_conf_matrix = conf_matrix
         else:
           total_conf_matrix += conf_matrix
         if is_last_step:
-          tf.logging.info('samples = %s', json.dumps(samples[:(FLAGS.batch_size - needed)]))
-          #tf.logging.info('fingerprints = %s', json.dumps(fingerprints[:(FLAGS.batch_size - needed),:].tolist()))
-          tf.logging.info('ground_truth = %s', json.dumps(ground_truth[:(FLAGS.batch_size - needed)].tolist()))
-          tf.logging.info('logits = %s', json.dumps(logit_vals[:(FLAGS.batch_size - needed),:].tolist()))
+          obtained = FLAGS.batch_size - needed
+          tf.logging.info('samples = %s', json.dumps(samples[:obtained]))
+          #tf.logging.info('fingerprints = %s', json.dumps(fingerprints[:obtained,:].tolist()))
+          tf.logging.info('ground_truth = %s', json.dumps(ground_truth[:obtained].tolist()))
+          tf.logging.info('logits = %s', json.dumps(logit_vals[:obtained,:].tolist()))
           if FLAGS.save_hidden:
-            if i==0 :
+            if isample==0 :
               hidden_layers = []
               for ihidden in range(len(hidden_vals)):
                 nH=len(hidden_vals[ihidden][0][0])
@@ -327,7 +328,7 @@ def main(_):
                 hidden_layers.append(np.empty((set_size,nH,nC)))
             for ihidden in range(len(hidden_vals)):
               iW=(len(hidden_vals[ihidden][0][0])-1)//2
-              hidden_layers[ihidden][i:i+len(hidden_vals[ihidden]),:,:]=hidden_vals[ihidden][:,iW,:,:]
+              hidden_layers[ihidden][isample:isample+obtained,:,:]=hidden_vals[ihidden][:obtained,iW,:,:]
       tf.logging.info('Confusion Matrix:\n %s\n %s' % (audio_processor.words_list,total_conf_matrix))
       t1=dt.datetime.now()-t0
       tf.logging.info('Elapsed %f, Step %d: Validation accuracy = %.1f%% (N=%d)' %
