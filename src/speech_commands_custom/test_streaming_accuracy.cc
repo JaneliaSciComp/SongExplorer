@@ -241,7 +241,7 @@ int main(int argc, char* argv[]) {
   while (std::getline(ss, item, ',')) {
       output_names_vec.push_back(item); }
 
-  const int64 audio_data_end = (sample_count - clip_duration_ms);
+  const int64 audio_data_end = (sample_count - clip_duration_samples);
   for (int64 audio_data_offset = 0; audio_data_offset < audio_data_end;
        audio_data_offset += clip_stride_samples) {
     const float* input_start = &(audio_data[audio_data_offset]);
