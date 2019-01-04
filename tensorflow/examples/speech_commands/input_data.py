@@ -161,13 +161,14 @@ class AudioProcessor(object):
   """Handles loading, partitioning, and preparing audio training data."""
 
   def __init__(self, data_url, data_dir, silence_percentage, unknown_percentage,
-               wanted_words, validation_percentage, validation_offset_percentage, testing_percentage,
+               wanted_words, validation_percentage, validation_offset_percentage,
+               testing_percentage, validation_file,
                model_settings):
     self.data_dir = data_dir
     self.maybe_download_and_extract_dataset(data_url, data_dir)
     self.prepare_data_index(silence_percentage, unknown_percentage,
                             wanted_words, validation_percentage, validation_offset_percentage,
-                            testing_percentage, model_settings)
+                            testing_percentage, validation_file, model_settings)
     self.prepare_background_data()
     self.prepare_processing_graph(model_settings)
 
@@ -214,7 +215,7 @@ class AudioProcessor(object):
 
   def prepare_data_index(self, silence_percentage, unknown_percentage,
                          wanted_words, validation_percentage, validation_offset_percentage,
-                         testing_percentage, model_settings):
+                         testing_percentage, validation_file, model_settings):
     """Prepares a list of the samples organized by set and label.
 
     The training loop needs a list of all the available data, organized by
@@ -274,8 +275,11 @@ class AudioProcessor(object):
         if word == BACKGROUND_NOISE_DIR_NAME:
           continue
         all_words[word] = True
-        set_index = which_set(annotation[0]+annotation[1]+annotation[2]+annotation[3],
-                              validation_percentage, validation_offset_percentage, testing_percentage)
+        if validation_file == '':
+          set_index = which_set(annotation[0]+annotation[1]+annotation[2]+annotation[3],
+                                validation_percentage, validation_offset_percentage, testing_percentage)
+        else:
+          set_index = 'validation' if validation_file == annotation[0] else 'training'
         # If it's a known class, store its detail, otherwise add it to the list
         # we'll use to train the unknown label.
         if word in wanted_words_index:
