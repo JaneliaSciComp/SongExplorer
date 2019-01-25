@@ -118,7 +118,7 @@ def main(_):
       FLAGS.data_url, FLAGS.data_dir, FLAGS.silence_percentage,
       FLAGS.unknown_percentage,
       FLAGS.wanted_words.split(','), FLAGS.validation_percentage, FLAGS.validation_offset_percentage,
-      FLAGS.testing_percentage, FLAGS.validation_file, model_settings)
+      FLAGS.testing_percentage, FLAGS.validation_file, FLAGS.subsample_skip, FLAGS.subsample_word, model_settings)
   fingerprint_size = model_settings['fingerprint_size']
   label_count = model_settings['label_count']
   time_shift_samples = int((FLAGS.time_shift_ms * FLAGS.sample_rate) / 1000)
@@ -407,6 +407,16 @@ if __name__ == '__main__':
       type=float,
       default=10,
       help='What percentage of wavs to use as a test set.')
+  parser.add_argument(
+      '--subsample_word',
+      type=str,
+      default='',
+      help='Train on only a subset of annotations for this word.')
+  parser.add_argument(
+      '--subsample_skip',
+      type=int,
+      default=1,
+      help='Take only every Nth annotation for the specified word.')
   parser.add_argument(
       '--validation_file',
       type=str,

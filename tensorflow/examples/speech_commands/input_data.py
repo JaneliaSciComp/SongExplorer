@@ -162,13 +162,13 @@ class AudioProcessor(object):
 
   def __init__(self, data_url, data_dir, silence_percentage, unknown_percentage,
                wanted_words, validation_percentage, validation_offset_percentage,
-               testing_percentage, validation_file,
+               testing_percentage, validation_file, subsample_skip, subsample_word,
                model_settings):
     self.data_dir = data_dir
     self.maybe_download_and_extract_dataset(data_url, data_dir)
     self.prepare_data_index(silence_percentage, unknown_percentage,
                             wanted_words, validation_percentage, validation_offset_percentage,
-                            testing_percentage, validation_file, model_settings)
+                            testing_percentage, validation_file, subsample_skip, subsample_word, model_settings)
     self.prepare_background_data()
     self.prepare_processing_graph(model_settings)
 
@@ -215,7 +215,7 @@ class AudioProcessor(object):
 
   def prepare_data_index(self, silence_percentage, unknown_percentage,
                          wanted_words, validation_percentage, validation_offset_percentage,
-                         testing_percentage, validation_file, model_settings):
+                         testing_percentage, validation_file, subsample_skip, subsample_word, model_settings):
     """Prepares a list of the samples organized by set and label.
 
     The training loop needs a list of all the available data, organized by
@@ -258,7 +258,10 @@ class AudioProcessor(object):
     wav_nsamples = {}
     for csv_path in gfile.Glob(search_path):
       annotation_reader = csv.reader(open(os.path.join(self.data_dir,csv_path)))
-      for annotation in annotation_reader:
+      for (iannotation, annotation) in enumerate(annotation_reader):
+        word=annotation[4]
+        if subsample_word==word and iannotation % subsample_skip != 0:
+          continue
         wav_path=os.path.join(os.path.dirname(csv_path),annotation[0]+'.wav')
         wav_chan=int(annotation[1])
         ticks=[int(annotation[2]),int(annotation[3])]
@@ -269,7 +272,6 @@ class AudioProcessor(object):
         nsamples = wav_nsamples[wav_path]
         if ticks[0]<desired_samples or ticks[1]>(nsamples-desired_samples):
           continue
-        word=annotation[4]
         # Treat the '_background_noise_' folder as a special case, since we expect
         # it to contain long audio samples we mix in to improve training.
         if word == BACKGROUND_NOISE_DIR_NAME:
