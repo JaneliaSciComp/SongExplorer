@@ -118,7 +118,9 @@ def main(_):
       FLAGS.data_url, FLAGS.data_dir, FLAGS.silence_percentage,
       FLAGS.unknown_percentage,
       FLAGS.wanted_words.split(','), FLAGS.validation_percentage, FLAGS.validation_offset_percentage,
-      FLAGS.testing_percentage, FLAGS.validation_file, FLAGS.subsample_skip, FLAGS.subsample_word, model_settings)
+      FLAGS.testing_percentage, FLAGS.validation_file, FLAGS.subsample_skip, FLAGS.subsample_word,
+      FLAGS.partition_word, FLAGS.partition_n, FLAGS.partition_training_files, FLAGS.partition_validation_files,
+      model_settings)
   fingerprint_size = model_settings['fingerprint_size']
   label_count = model_settings['label_count']
   time_shift_samples = int((FLAGS.time_shift_ms * FLAGS.sample_rate) / 1000)
@@ -417,6 +419,26 @@ if __name__ == '__main__':
       type=int,
       default=1,
       help='Take only every Nth annotation for the specified word.')
+  parser.add_argument(
+      '--partition_word',
+      type=str,
+      default='',
+      help='Train on only a fixed number of annotations for this word.')
+  parser.add_argument(
+      '--partition_n',
+      type=int,
+      default=0,
+      help='Train on only this number of annotations from each file for the specified word.')
+  parser.add_argument(
+      '--partition_training_files',
+      type=str,
+      default='',
+      help='Train on only these files for the specified word.')
+  parser.add_argument(
+      '--partition_validation_files',
+      type=str,
+      default='',
+      help='Validate on only these files for the specified word.')
   parser.add_argument(
       '--validation_file',
       type=str,
