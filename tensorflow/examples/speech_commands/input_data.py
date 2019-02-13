@@ -267,10 +267,9 @@ class AudioProcessor(object):
       if partition_word!='':
         random.shuffle(annotation_list)
       for (iannotation, annotation) in enumerate(annotation_list):
-        word=annotation[4]
+        word=annotation[3]
         wav_path=os.path.join(os.path.dirname(csv_path),annotation[0]+'.wav')
-        wav_chan=int(annotation[1])
-        ticks=[int(annotation[2]),int(annotation[3])]
+        ticks=[int(annotation[1]),int(annotation[2])]
         if subsample_word==word and iannotation % subsample_skip != 0:
           continue
         if partition_word==word:
@@ -302,14 +301,14 @@ class AudioProcessor(object):
           else:
             continue
         else:
-          set_index = which_set(annotation[0]+annotation[1]+annotation[2]+annotation[3],
+          set_index = which_set(annotation[0]+annotation[1]+annotation[2],
                                 validation_percentage, validation_offset_percentage, testing_percentage)
         # If it's a known class, store its detail, otherwise add it to the list
         # we'll use to train the unknown label.
         if word in wanted_words_index:
-          self.data_index[set_index].append({'label': word, 'file': wav_path, 'channel': wav_chan, 'ticks': ticks})
+          self.data_index[set_index].append({'label': word, 'file': wav_path, 'ticks': ticks})
         else:
-          unknown_index[set_index].append({'label': word, 'file': wav_path, 'channel': wav_chan, 'ticks': ticks})
+          unknown_index[set_index].append({'label': word, 'file': wav_path, 'ticks': ticks})
     if not all_words:
       raise Exception('No .wavs found at ' + search_path)
     if validation_percentage+testing_percentage<100:
@@ -542,13 +541,15 @@ class AudioProcessor(object):
       wavreader = wave.open(sample['file'])
       wavreader.setpos(foreground_offset-desired_samples//2)
       nchannels = wavreader.getnchannels()
+      assert nchannels==1
+      assert wavreader.getframerate() == model_settings['sample_rate']
       foreground_clipped = wavreader.readframes(desired_samples)
       wavreader.close()
       foreground_int16 = np.frombuffer(foreground_clipped, dtype=np.int16)
       foreground_float32 = foreground_int16.astype(np.float32)
       foreground_scaled = foreground_float32 / abs(np.iinfo(np.int16).min) #extreme
       foreground_reshaped = foreground_scaled.reshape([nchannels, desired_samples], order='F')
-      foreground_indexed = foreground_reshaped[sample['channel']-1].reshape([desired_samples,1])
+      foreground_indexed = foreground_reshaped[0].reshape([desired_samples,1])
 
       input_dict = { self.foreground_data_placeholder_: foreground_indexed }
       # If we're time shifting, set up the offset for this sample.
