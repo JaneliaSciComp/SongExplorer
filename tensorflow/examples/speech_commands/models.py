@@ -27,7 +27,8 @@ import tensorflow as tf
 def prepare_model_settings(label_count, sample_rate, clip_duration_ms,
                            window_size_ms, window_stride_ms, nstrides,
                            dct_coefficient_count, filterbank_channel_count,
-                           filter_counts, dropout_prob, batch_size):
+                           filter_counts, filter_sizes, final_filter_len,
+                           dropout_prob, batch_size):
   """Calculates common settings needed for all models.
 
   Args:
@@ -68,6 +69,8 @@ def prepare_model_settings(label_count, sample_rate, clip_duration_ms,
       'label_count': label_count,
       'sample_rate': sample_rate,
       'filter_counts': filter_counts,
+      'filter_sizes': filter_sizes,
+      'final_filter_len': final_filter_len,
       'dropout_prob': dropout_prob,
       'batch_size': batch_size,
   }
@@ -225,6 +228,9 @@ def create_custom_vgg_model(fingerprint_input, model_settings, is_training):
   input_time_size = model_settings['spectrogram_length']
   output_time_size = input_time_size
   filter_counts = model_settings['filter_counts']
+  filter_sizes = model_settings['filter_sizes']
+  final_filter_len = model_settings['final_filter_len']
+  filter_sizes = model_settings['filter_sizes']
   batch_size = model_settings['batch_size']
   nstrides = model_settings['nstrides']
   fingerprint_4d = tf.reshape(fingerprint_input,
@@ -236,25 +242,25 @@ def create_custom_vgg_model(fingerprint_input, model_settings, is_training):
   hidden_layers = []
   residual = False
 
-  filter_size = 3
   inarg = fingerprint_4d
   hidden_layers.append(inarg)
   inarg_shape = inarg.get_shape().as_list()
-  while inarg_shape[2]>=filter_size:
-    filter_count_prev = 1 if iconv==0 else filter_counts[iconv-1]
+  filter_count_prev = 1
+  while inarg_shape[2]>=filter_sizes[0]:
     if residual and iconv%2!=0:
       bypass = inarg
     weights = tf.Variable( tf.truncated_normal(
-              [filter_size, filter_size, filter_count_prev, filter_counts[iconv]],
+              [filter_sizes[0], filter_sizes[0], filter_count_prev, filter_counts[0]],
               stddev=0.01))
-    bias = tf.Variable(tf.zeros([filter_counts[iconv]]))
+    filter_count_prev = filter_counts[0]
+    bias = tf.Variable(tf.zeros([filter_counts[0]]))
     if iconv<dilate_at_level:
       dilation = [1,2**(abs(iconv-dilate_at_level)),1,1]
       #dilation = [1,2**iconv,1,1]
     else:
       dilation = [1,1,1,1]
       #dilation = [1,2**(dilate_at_level-1),1,1]
-    output_time_size -= (filter_size-1)*dilation[1]
+    output_time_size -= (filter_sizes[0]-1)*dilation[1]
     conv = tf.nn.conv2d(inarg, weights, [1, 1, 1, 1], 'VALID', dilations=dilation) + bias
     # insert batch norm here
     if residual and iconv%2!=0 and iconv!=1:
@@ -272,20 +278,19 @@ def create_custom_vgg_model(fingerprint_input, model_settings, is_training):
     inarg_shape = inarg.get_shape().as_list()
     iconv += 1
 
-  filter_size = 3
-  while inarg_shape[2]>=filter_size:
-    filter_count_prev = 1 if iconv==0 else filter_counts[iconv-1]
+  while inarg_shape[2]>=filter_sizes[1]:
     weights = tf.Variable( tf.truncated_normal(
-              [filter_size, filter_size, filter_count_prev, filter_counts[iconv]],
+              [filter_sizes[1], filter_sizes[1], filter_count_prev, filter_counts[1]],
               stddev=0.01))
-    bias = tf.Variable(tf.zeros([filter_counts[iconv]]))
+    filter_count_prev = filter_counts[1]
+    bias = tf.Variable(tf.zeros([filter_counts[1]]))
     if iconv<dilate_at_level:
       dilation = [1,2**(abs(iconv-dilate_at_level)),1,1]
       #dilation = [1,2**iconv,1,1]
     else:
       dilation = [1,1,1,1]
       #dilation = [1,2**(dilate_at_level-1),1,1]
-    output_time_size -= (filter_size-1)*dilation[1]
+    output_time_size -= (filter_sizes[1]-1)*dilation[1]
     conv = tf.nn.conv2d(inarg, weights, [1, 1, 1, 1], 'VALID', dilations=dilation) + bias
     hidden_layers.append(conv)
     relu = tf.nn.relu(conv)
@@ -301,18 +306,16 @@ def create_custom_vgg_model(fingerprint_input, model_settings, is_training):
 
   assert inarg_shape[2]==1
 
-  bottle_size = 110  # must be even
-  filter_size = 3
   inarg = tf.squeeze(inarg,[2])
-  while output_time_size>(nstrides+bottle_size):
-    filter_count_prev = 1 if iconv==0 else filter_counts[-1]
+  while output_time_size>(nstrides+final_filter_len):
     if residual and iconv%2==0:
       bypass = inarg
     weights = tf.Variable( tf.truncated_normal(
-              [filter_size, filter_count_prev, filter_counts[-1]],
+              [filter_sizes[2], filter_count_prev, filter_counts[2]],
               stddev=0.01))
-    bias = tf.Variable(tf.zeros([filter_counts[-1]]))
-    output_time_size -= (filter_size-1)
+    filter_count_prev = filter_counts[2]
+    bias = tf.Variable(tf.zeros([filter_counts[2]]))
+    output_time_size -= (filter_sizes[2]-1)
     conv = tf.nn.conv1d(inarg, weights, 1, 'VALID') + bias
     if residual and iconv%2==0:
       tf.logging.info('adding bypass connection')
@@ -328,11 +331,11 @@ def create_custom_vgg_model(fingerprint_input, model_settings, is_training):
     inarg = dropout
     iconv += 1
 
-  assert output_time_size==(nstrides+bottle_size)
+  #assert output_time_size==(nstrides+final_filter_len)
 
   label_count = model_settings['label_count']
   weights = tf.Variable( tf.truncated_normal(
-            [1+bottle_size, filter_counts[-1], label_count],
+            [1+output_time_size-nstrides, filter_count_prev, label_count],
             stddev=0.01))
   bias = tf.Variable(tf.zeros([label_count]))
   final = tf.nn.conv1d(inarg, weights, 1, 'VALID') + bias

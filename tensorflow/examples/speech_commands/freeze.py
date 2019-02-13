@@ -55,7 +55,8 @@ FLAGS = None
 def create_inference_graph(wanted_words, sample_rate, clip_duration_ms,
                            clip_stride_ms, window_size_ms, window_stride_ms, nstrides,
                            dct_coefficient_count, filterbank_channel_count,
-                           model_architecture, filter_counts, dropout_prob, batch_size,
+                           model_architecture, filter_counts, filter_sizes, final_filter_len,
+                           dropout_prob, batch_size,
                            silence_percentage, unknown_percentage):
   """Creates an audio model with the nodes needed for inference.
 
@@ -78,7 +79,8 @@ def create_inference_graph(wanted_words, sample_rate, clip_duration_ms,
   model_settings = models.prepare_model_settings(
       len(words_list), sample_rate, clip_duration_ms, window_size_ms,
       window_stride_ms, nstrides, dct_coefficient_count, filterbank_channel_count,
-      filter_counts, dropout_prob, batch_size)
+      filter_counts, filter_sizes, final_filter_len,
+      dropout_prob, batch_size)
 
   runtime_settings = {'clip_stride_ms': clip_stride_ms}
 
@@ -135,6 +137,8 @@ def main(_):
                          FLAGS.dct_coefficient_count, FLAGS.filterbank_channel_count,
                          FLAGS.model_architecture,
                          [int(x) for x in FLAGS.filter_counts],
+                         [int(x) for x in FLAGS.filter_sizes],
+                         FLAGS.final_filter_len,
                          FLAGS.dropout_prob, FLAGS.batch_size,
                          FLAGS.silence_percentage, FLAGS.unknown_percentage)
   models.load_variables_from_checkpoint(sess, FLAGS.start_checkpoint)
@@ -208,8 +212,19 @@ if __name__ == '__main__':
       '--filter_counts',
       type=str,
       nargs='+',
-      default=[64,64],
-      help='How many filters to use for the conv2d layers in the conv model')
+      default=[64,64,64],
+      help='A vector of length 3 specifying how many filters to use for the conv layers in the conv and vgg models')
+  parser.add_argument(
+      '--filter_sizes',
+      type=str,
+      nargs='+',
+      default=[3,3,3],
+      help='A vector of length 3 specifying the filter sizes to use for the conv layers in the vgg model')
+  parser.add_argument(
+      '--final_filter_len',
+      type=int,
+      default=[110],
+      help='The length of the final conv1d layer in the vgg model.  Must be even.')
   parser.add_argument(
       '--dropout_prob',
       type=float,

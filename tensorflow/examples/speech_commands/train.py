@@ -113,7 +113,10 @@ def main(_):
                                         FLAGS.silence_percentage, FLAGS.unknown_percentage)),
       FLAGS.sample_rate, FLAGS.clip_duration_ms, FLAGS.window_size_ms, FLAGS.window_stride_ms, 1,
       FLAGS.dct_coefficient_count, FLAGS.filterbank_channel_count,
-      [int(x) for x in FLAGS.filter_counts], FLAGS.dropout_prob, FLAGS.batch_size)
+      [int(x) for x in FLAGS.filter_counts],
+      [int(x) for x in FLAGS.filter_sizes],
+      FLAGS.final_filter_len,
+      FLAGS.dropout_prob, FLAGS.batch_size)
   audio_processor = input_data.AudioProcessor(
       FLAGS.data_url, FLAGS.data_dir, FLAGS.silence_percentage,
       FLAGS.unknown_percentage,
@@ -533,8 +536,19 @@ if __name__ == '__main__':
       '--filter_counts',
       type=str,
       nargs='+',
-      default=[64,64],
-      help='How many filters to use for the conv2d layers in the conv model')
+      default=[64,64,64],
+      help='A vector of length 3 specifying how many filters to use for the conv layers in the conv and vgg models')
+  parser.add_argument(
+      '--filter_sizes',
+      type=str,
+      nargs='+',
+      default=[3,3,3],
+      help='A vector of length 3 specifying the filter sizes to use for the conv layers in the vgg model')
+  parser.add_argument(
+      '--final_filter_len',
+      type=int,
+      default=[110],
+      help='The length of the final conv1d layer in the vgg model.  Must be even.')
   parser.add_argument(
       '--dropout_prob',
       type=int,
