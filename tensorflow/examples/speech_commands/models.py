@@ -49,7 +49,10 @@ def prepare_model_settings(label_count, sample_rate, clip_duration_ms,
     spectrogram_length = 0
   else:
     spectrogram_length = 1 + int(length_minus_window / window_stride_samples)
-  fingerprint_size = dct_coefficient_count * spectrogram_length
+  if filterbank_channel_count>0 and dct_coefficient_count>0:
+    fingerprint_size = dct_coefficient_count * spectrogram_length
+  else:
+    fingerprint_size = (window_size_samples//2 + 1) * spectrogram_length
   tf.logging.info('desired_samples = %d' % (desired_samples))
   tf.logging.info('window_size_samples = %d' % (window_size_samples))
   tf.logging.info('window_stride_samples = %d' % (window_stride_samples))
@@ -215,7 +218,10 @@ def create_custom_vgg_model(fingerprint_input, model_settings, is_training):
   """
   if is_training:
     dropout_prob = tf.placeholder(tf.float32, name='dropout_prob')
-  input_frequency_size = model_settings['dct_coefficient_count']
+  if model_settings['filterbank_channel_count']>0 and model_settings['dct_coefficient_count']>0:
+    input_frequency_size = model_settings['dct_coefficient_count']
+  else:
+    input_frequency_size = model_settings['window_size_samples']//2+1
   input_time_size = model_settings['spectrogram_length']
   output_time_size = input_time_size
   filter_counts = model_settings['filter_counts']
