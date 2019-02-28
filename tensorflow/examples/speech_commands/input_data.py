@@ -262,7 +262,7 @@ class AudioProcessor(object):
     search_path = os.path.join(self.data_dir, '*', '*.csv')
     wav_nsamples = {}
     for csv_path in gfile.Glob(search_path):
-      annotation_reader = csv.reader(open(os.path.join(self.data_dir,csv_path)))
+      annotation_reader = csv.reader(open(csv_path))
       annotation_list = list(annotation_reader)
       if partition_word!='':
         random.shuffle(annotation_list)
