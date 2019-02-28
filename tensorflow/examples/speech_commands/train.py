@@ -92,7 +92,7 @@ FLAGS = None
 def main(_):
   # We want to see all the logging messages for this tutorial.
   tf.logging.set_verbosity(tf.logging.INFO)
-  np.set_printoptions(threshold=np.nan,linewidth=10000)
+  np.set_printoptions(threshold=np.inf,linewidth=10000)
 
   flags = vars(FLAGS)
   for key in sorted(flags.keys()):
