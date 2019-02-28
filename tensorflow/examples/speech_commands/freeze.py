@@ -98,6 +98,7 @@ def create_inference_graph(wanted_words, sample_rate, clip_duration_ms,
   mfcc = contrib_audio.mfcc(
       spectrogram,
       decoded_sample_data.sample_rate,
+      upper_frequency_limit=sample_rate//2,
       filterbank_channel_count=filterbank_channel_count,
       dct_coefficient_count=dct_coefficient_count)
 

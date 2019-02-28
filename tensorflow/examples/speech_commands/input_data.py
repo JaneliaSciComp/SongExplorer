@@ -472,6 +472,7 @@ class AudioProcessor(object):
     self.mfcc_ = contrib_audio.mfcc(
         self.spectrogram_,
         sample_rate,
+        upper_frequency_limit=model_settings['sample_rate']//2,
         filterbank_channel_count=model_settings['filterbank_channel_count'],
         dct_coefficient_count=model_settings['dct_coefficient_count'])
 
