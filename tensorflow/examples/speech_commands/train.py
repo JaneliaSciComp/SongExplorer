@@ -321,11 +321,10 @@ def main(_):
         if is_last_step:
           obtained = FLAGS.batch_size - needed
           tf.logging.info('samples = %s', json.dumps(samples[:obtained]))
-          #tf.logging.info('fingerprints = %s', json.dumps(fingerprints[:obtained,:].tolist()))
           tf.logging.info('ground_truth = %s', json.dumps(ground_truth[:obtained].tolist()))
           tf.logging.info('logits = %s', json.dumps(logit_vals[:obtained,:].tolist()))
           if FLAGS.save_hidden:
-            if isample==0 :
+            if isample==0:
               hidden_layers = []
               for ihidden in range(len(hidden_vals)):
                 nH=len(hidden_vals[ihidden][0][0])
@@ -333,13 +332,24 @@ def main(_):
                 hidden_layers.append(np.empty((set_size,nH,nC)))
             for ihidden in range(len(hidden_vals)):
               iW=(len(hidden_vals[ihidden][0][0])-1)//2
-              hidden_layers[ihidden][isample:isample+obtained,:,:]=hidden_vals[ihidden][:obtained,iW,:,:]
+              hidden_layers[ihidden][isample:isample+obtained,:,:] = \
+                    hidden_vals[ihidden][:obtained,iW,:,:]
+          if FLAGS.save_fingerprints:
+            if isample==0:
+              nW = round((FLAGS.clip_duration_ms - FLAGS.window_size_ms) / FLAGS.window_stride_ms + 1)
+              nH = round(np.shape(fingerprints)[1]/nW)
+              input_layer = np.empty((set_size,nW,nH))
+            input_layer[isample:isample+obtained,:,:] = \
+                  np.reshape(fingerprints[:obtained,:],(obtained,nW,nH))
       tf.logging.info('Confusion Matrix:\n %s\n %s' % (audio_processor.words_list,total_conf_matrix))
       t1=dt.datetime.now()-t0
       tf.logging.info('Elapsed %f, Step %d: Validation accuracy = %.1f%% (N=%d)' %
                       (t1.total_seconds(), training_step, total_accuracy * 100, set_size))
-      if is_last_step and FLAGS.save_hidden:
-        np.savez(os.path.join(FLAGS.data_dir,'hidden.npz'), *hidden_layers)
+      if is_last_step:
+        if FLAGS.save_hidden:
+          np.savez(os.path.join(FLAGS.data_dir,'hidden.npz'), *hidden_layers)
+        if FLAGS.save_fingerprints:
+          np.save(os.path.join(FLAGS.data_dir,'fingerprints.npy'), input_layer)
 
 def str2bool(v):
     if v.lower() in ('yes', 'true', 't', 'y', '1'):
@@ -569,6 +579,11 @@ if __name__ == '__main__':
       type=str2bool,
       default=False,
       help='Whether to save hidden layer activations during processing')
+  parser.add_argument(
+      '--save_fingerprints',
+      type=str2bool,
+      default=False,
+      help='Whether to save fingerprint input layer during processing')
 
   FLAGS, unparsed = parser.parse_known_args()
   tf.app.run(main=main, argv=[sys.argv[0]] + unparsed)
