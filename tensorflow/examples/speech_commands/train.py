@@ -173,9 +173,18 @@ def main(_):
   with tf.name_scope('train'), tf.control_dependencies(control_dependencies):
     learning_rate_input = tf.placeholder(
         tf.float32, [], name='learning_rate_input')
-    #train_step = tf.train.GradientDescentOptimizer(
-    train_step = tf.train.AdamOptimizer(
-        learning_rate_input).minimize(cross_entropy_mean)
+    if FLAGS.optimizer=='sgd':
+      train_step = tf.train.GradientDescentOptimizer(
+            learning_rate_input).minimize(cross_entropy_mean)
+    elif FLAGS.optimizer=='adam':
+      train_step = tf.train.AdamOptimizer(
+            learning_rate_input).minimize(cross_entropy_mean)
+    elif FLAGS.optimizer=='adagrad':
+      train_step = tf.train.AdagradOptimizer(
+            learning_rate_input).minimize(cross_entropy_mean)
+    elif FLAGS.optimizer=='rmsprop':
+      train_step = tf.train.RMSPropOptimizer(
+            learning_rate_input).minimize(cross_entropy_mean)
   predicted_indices = tf.argmax(logits, 1)
   correct_prediction = tf.equal(predicted_indices, ground_truth_input)
   confusion_matrix = tf.confusion_matrix(
@@ -561,9 +570,14 @@ if __name__ == '__main__':
       help='The length of the final conv1d layer in the vgg model.  Must be even.')
   parser.add_argument(
       '--dropout_prob',
-      type=int,
+      type=float,
       default=0.5,
       help='Dropout probability during training')
+  parser.add_argument(
+      '--optimizer',
+      type=str,
+      default='sgd',
+      help='What optimzer to use.  One of sgd, adam, adagrad, rmsprop.')
   parser.add_argument(
       '--model_architecture',
       type=str,
