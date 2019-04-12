@@ -18,7 +18,7 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 
-from tensorflow.examples.speech_commands import freeze
+from tensorflow.examples.speech_commands_custom import freeze
 from tensorflow.python.platform import test
 
 

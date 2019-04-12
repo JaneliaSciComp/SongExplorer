@@ -20,7 +20,7 @@ from __future__ import print_function
 
 import tensorflow as tf
 
-from tensorflow.examples.speech_commands import models
+from tensorflow.examples.speech_commands_custom import models
 from tensorflow.python.platform import test
 
 

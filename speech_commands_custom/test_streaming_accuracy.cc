@@ -79,8 +79,8 @@ bazel run tensorflow/examples/speech_commands:test_streaming_accuracy -- \
 #include "tensorflow/core/platform/types.h"
 #include "tensorflow/core/public/session.h"
 #include "tensorflow/core/util/command_line_flags.h"
-#include "tensorflow/examples/speech_commands/accuracy_utils.h"
-#include "tensorflow/examples/speech_commands/recognize_commands.h"
+#include "tensorflow/examples/speech_commands_custom/accuracy_utils.h"
+#include "tensorflow/examples/speech_commands_custom/recognize_commands.h"
 
 // These are all common classes it's handy to reference with no namespace.
 using tensorflow::Flag;

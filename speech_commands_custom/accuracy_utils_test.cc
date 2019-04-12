@@ -13,7 +13,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 ==============================================================================*/
 
-#include "tensorflow/examples/speech_commands/accuracy_utils.h"
+#include "tensorflow/examples/speech_commands_custom/accuracy_utils.h"
 
 #include "tensorflow/core/framework/tensor_testutil.h"
 #include "tensorflow/core/lib/core/status_test_util.h"

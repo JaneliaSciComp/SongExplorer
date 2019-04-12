@@ -13,7 +13,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 ==============================================================================*/
 
-#include "tensorflow/examples/speech_commands/recognize_commands.h"
+#include "tensorflow/examples/speech_commands_custom/recognize_commands.h"
 
 namespace tensorflow {
 
