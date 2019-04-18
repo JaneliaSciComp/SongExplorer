@@ -238,6 +238,14 @@ def main(_):
       total_parameters += variable_parameters
   tf.logging.info('number of trainable parameters: %d',total_parameters)
 
+  # save random initialized network and exit if how_many_training_steps==0
+  if FLAGS.how_many_training_steps=='0':
+      checkpoint_path = os.path.join(FLAGS.train_dir,
+                                     FLAGS.model_architecture + '.ckpt')
+      tf.logging.info('Saving to "%s-%d"', checkpoint_path, 0)
+      saver.save(sess, checkpoint_path, global_step=0)
+      return
+
   training_set_size = audio_processor.set_size('training')
   testing_set_size = audio_processor.set_size('testing')
   validation_set_size = audio_processor.set_size('validation')
