@@ -124,6 +124,7 @@ def main(_):
       FLAGS.testing_percentage, FLAGS.validation_file, FLAGS.subsample_skip, FLAGS.subsample_word,
       FLAGS.partition_word, FLAGS.partition_n, FLAGS.partition_training_files, FLAGS.partition_validation_files,
       model_settings)
+
   fingerprint_size = model_settings['fingerprint_size']
   label_count = model_settings['label_count']
   time_shift_samples = int((FLAGS.time_shift_ms * FLAGS.sample_rate) / 1000)
@@ -225,7 +226,7 @@ def main(_):
   with gfile.GFile(
       os.path.join(FLAGS.train_dir, FLAGS.model_architecture + '_labels.txt'),
       'w') as f:
-    f.write('\n'.join(audio_processor.words_list))
+    f.write(FLAGS.wanted_words.replace(',','\n'))
 
   # log complexity of model
   total_parameters = 0

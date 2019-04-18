@@ -310,13 +310,11 @@ class AudioProcessor(object):
         else:
           unknown_index[set_index].append({'label': word, 'file': wav_path, 'ticks': ticks})
     if not all_words:
-      raise Exception('No .wavs found at ' + search_path)
+      print('WARNING: No wanted words found in labels')
     if validation_percentage+testing_percentage<100:
       for index, wanted_word in enumerate(wanted_words):
         if wanted_word not in all_words:
-          raise Exception('Expected to find ' + wanted_word +
-                          ' in labels but only found ' +
-                          ', '.join(all_words.keys()))
+          print('WARNING: '+wanted_word+' not in labels')
     # equalize
     for set_index in ['validation', 'testing', 'training']:
       tf.logging.info('num %s labels', set_index)
