@@ -267,16 +267,18 @@ class AudioProcessor(object):
       if partition_word!='':
         random.shuffle(annotation_list)
       for (iannotation, annotation) in enumerate(annotation_list):
-        word=annotation[3]
-        wav_path=os.path.join(os.path.dirname(csv_path),annotation[0]+'.wav')
+        wavfile=annotation[0]
         ticks=[int(annotation[1]),int(annotation[2])]
+        kind=annotation[3]
+        word=annotation[4]
+        wav_path=os.path.join(os.path.dirname(csv_path),wavfile)
         if subsample_word==word and iannotation % subsample_skip != 0:
           continue
         if partition_word==word:
-          if annotation[0]+',' not in partition_training_files and \
-             annotation[0]+',' not in partition_validation_files:
+          if wavfile+',' not in partition_training_files and \
+             wavfile+',' not in partition_validation_files:
             continue
-          if annotation[0]+',' in partition_training_files and \
+          if wavfile+',' in partition_training_files and \
              sum([x['label']==word and x['file']==wav_path for x in self.data_index['training']]) >= partition_n:
             continue
         if wav_path not in wav_nsamples:
@@ -292,11 +294,11 @@ class AudioProcessor(object):
           continue
         all_words[word] = True
         if validation_file != '':
-          set_index = 'validation' if validation_file == annotation[0] else 'training'
+          set_index = 'validation' if validation_file == wavfile else 'training'
         elif partition_word == word:
-          if annotation[0]+',' in partition_validation_files:
+          if wavfile+',' in partition_validation_files:
             set_index = 'validation'
-          elif annotation[0]+',' in partition_training_files:
+          elif wavfile+',' in partition_training_files:
             set_index = 'training'
           else:
             continue
