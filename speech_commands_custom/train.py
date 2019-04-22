@@ -120,7 +120,8 @@ def main(_):
   audio_processor = input_data.AudioProcessor(
       FLAGS.data_url, FLAGS.data_dir, FLAGS.silence_percentage,
       FLAGS.unknown_percentage,
-      FLAGS.wanted_words.split(','), FLAGS.validation_percentage, FLAGS.validation_offset_percentage,
+      FLAGS.wanted_words.split(','), FLAGS.labels_touse.split(','),
+      FLAGS.validation_percentage, FLAGS.validation_offset_percentage,
       FLAGS.testing_percentage, FLAGS.validation_file, FLAGS.subsample_skip, FLAGS.subsample_word,
       FLAGS.partition_word, FLAGS.partition_n, FLAGS.partition_training_files, FLAGS.partition_validation_files,
       model_settings)
@@ -545,6 +546,11 @@ if __name__ == '__main__':
       type=str,
       default='yes,no,up,down,left,right,on,off,stop,go',
       help='Words to use (others will be added to an unknown label)',)
+  parser.add_argument(
+      '--labels_touse',
+      type=str,
+      default='annotated,classified',
+      help='A comma-separted list of "annotated", "detected" , or "classified"',)
   parser.add_argument(
       '--train_dir',
       type=str,

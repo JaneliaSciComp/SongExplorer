@@ -161,14 +161,16 @@ class AudioProcessor(object):
   """Handles loading, partitioning, and preparing audio training data."""
 
   def __init__(self, data_url, data_dir, silence_percentage, unknown_percentage,
-               wanted_words, validation_percentage, validation_offset_percentage,
+               wanted_words, labels_touse,
+               validation_percentage, validation_offset_percentage,
                testing_percentage, validation_file, subsample_skip, subsample_word,
                partition_word, partition_n, partition_training_files, partition_validation_files,
                model_settings):
     self.data_dir = data_dir
     self.maybe_download_and_extract_dataset(data_url, data_dir)
     self.prepare_data_index(silence_percentage, unknown_percentage,
-                            wanted_words, validation_percentage, validation_offset_percentage,
+                            wanted_words, labels_touse,
+                            validation_percentage, validation_offset_percentage,
                             testing_percentage, validation_file, subsample_skip, subsample_word,
                             partition_word, partition_n, partition_training_files, partition_validation_files,
                             model_settings)
@@ -217,7 +219,8 @@ class AudioProcessor(object):
     tarfile.open(filepath, 'r:gz').extractall(dest_directory)
 
   def prepare_data_index(self, silence_percentage, unknown_percentage,
-                         wanted_words, validation_percentage, validation_offset_percentage,
+                         wanted_words, labels_touse,
+                         validation_percentage, validation_offset_percentage,
                          testing_percentage, validation_file, subsample_skip, subsample_word,
                          partition_word, partition_n, partition_training_files, partition_validation_files,
                          model_settings):
@@ -271,6 +274,8 @@ class AudioProcessor(object):
         ticks=[int(annotation[1]),int(annotation[2])]
         kind=annotation[3]
         word=annotation[4]
+        if kind not in labels_touse:
+          continue
         wav_path=os.path.join(os.path.dirname(csv_path),wavfile)
         if subsample_word==word and iannotation % subsample_skip != 0:
           continue
@@ -308,9 +313,9 @@ class AudioProcessor(object):
         # If it's a known class, store its detail, otherwise add it to the list
         # we'll use to train the unknown label.
         if word in wanted_words_index:
-          self.data_index[set_index].append({'label': word, 'file': wav_path, 'ticks': ticks})
+          self.data_index[set_index].append({'label': word, 'file': wav_path, 'ticks': ticks, 'kind': kind})
         else:
-          unknown_index[set_index].append({'label': word, 'file': wav_path, 'ticks': ticks})
+          unknown_index[set_index].append({'label': word, 'file': wav_path, 'ticks': ticks, 'kind': kind})
     if not all_words:
       print('WARNING: No wanted words found in labels')
     if validation_percentage+testing_percentage<100:
