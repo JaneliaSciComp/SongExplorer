@@ -122,8 +122,8 @@ def main(_):
       FLAGS.unknown_percentage,
       FLAGS.wanted_words.split(','), FLAGS.labels_touse.split(','),
       FLAGS.validation_percentage, FLAGS.validation_offset_percentage,
-      FLAGS.testing_percentage, FLAGS.validation_file, FLAGS.subsample_skip, FLAGS.subsample_word,
-      FLAGS.partition_word, FLAGS.partition_n, FLAGS.partition_training_files, FLAGS.partition_validation_files,
+      FLAGS.testing_percentage, FLAGS.validation_files.split(','), FLAGS.subsample_skip, FLAGS.subsample_word,
+      FLAGS.partition_word, FLAGS.partition_n, FLAGS.partition_training_files.split(','), FLAGS.partition_validation_files.split(','),
       model_settings)
 
   fingerprint_size = model_settings['fingerprint_size']
@@ -472,10 +472,10 @@ if __name__ == '__main__':
       default='',
       help='Validate on only these files for the specified word.')
   parser.add_argument(
-      '--validation_file',
+      '--validation_files',
       type=str,
       default='',
-      help='Which wav file to use as a validation set.')
+      help='Which wav files to use as a validation set.')
   parser.add_argument(
       '--validation_percentage',
       type=float,

@@ -163,7 +163,7 @@ class AudioProcessor(object):
   def __init__(self, data_url, data_dir, silence_percentage, unknown_percentage,
                wanted_words, labels_touse,
                validation_percentage, validation_offset_percentage,
-               testing_percentage, validation_file, subsample_skip, subsample_word,
+               testing_percentage, validation_files, subsample_skip, subsample_word,
                partition_word, partition_n, partition_training_files, partition_validation_files,
                model_settings):
     self.data_dir = data_dir
@@ -171,7 +171,7 @@ class AudioProcessor(object):
     self.prepare_data_index(silence_percentage, unknown_percentage,
                             wanted_words, labels_touse,
                             validation_percentage, validation_offset_percentage,
-                            testing_percentage, validation_file, subsample_skip, subsample_word,
+                            testing_percentage, validation_files, subsample_skip, subsample_word,
                             partition_word, partition_n, partition_training_files, partition_validation_files,
                             model_settings)
     self.prepare_background_data()
@@ -221,7 +221,7 @@ class AudioProcessor(object):
   def prepare_data_index(self, silence_percentage, unknown_percentage,
                          wanted_words, labels_touse,
                          validation_percentage, validation_offset_percentage,
-                         testing_percentage, validation_file, subsample_skip, subsample_word,
+                         testing_percentage, validation_files, subsample_skip, subsample_word,
                          partition_word, partition_n, partition_training_files, partition_validation_files,
                          model_settings):
     """Prepares a list of the samples organized by set and label.
@@ -280,10 +280,10 @@ class AudioProcessor(object):
         if subsample_word==word and iannotation % subsample_skip != 0:
           continue
         if partition_word==word:
-          if wavfile+',' not in partition_training_files and \
-             wavfile+',' not in partition_validation_files:
+          if wavfile not in partition_training_files and \
+             wavfile not in partition_validation_files:
             continue
-          if wavfile+',' in partition_training_files and \
+          if wavfile in partition_training_files and \
              sum([x['label']==word and x['file']==wav_path for x in self.data_index['training']]) >= partition_n:
             continue
         if wav_path not in wav_nsamples:
@@ -298,12 +298,12 @@ class AudioProcessor(object):
         if word == BACKGROUND_NOISE_DIR_NAME:
           continue
         all_words[word] = True
-        if validation_file != '':
-          set_index = 'validation' if validation_file == wavfile else 'training'
+        if not validation_files:
+          set_index = 'validation' if wavfile in validation_files else 'training'
         elif partition_word == word:
-          if wavfile+',' in partition_validation_files:
+          if wavfile in partition_validation_files:
             set_index = 'validation'
-          elif wavfile+',' in partition_training_files:
+          elif wavfile in partition_training_files:
             set_index = 'training'
           else:
             continue
