@@ -19,11 +19,13 @@ from __future__ import division
 from __future__ import print_function
 
 from tensorflow.examples.speech_commands_custom import freeze
+from tensorflow.python.framework import test_util
 from tensorflow.python.platform import test
 
 
 class FreezeTest(test.TestCase):
 
+  @test_util.run_deprecated_v1
   def testCreateInferenceGraph(self):
     with self.cached_session() as sess:
       freeze.create_inference_graph('a,b,c,d', 16000, 1000.0, 30.0, 30.0, 10.0,

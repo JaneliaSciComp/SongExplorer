@@ -25,6 +25,7 @@ import tensorflow as tf
 
 from tensorflow.contrib.framework.python.ops import audio_ops as contrib_audio
 from tensorflow.examples.speech_commands_custom import input_data
+from tensorflow.python.framework import test_util
 from tensorflow.python.platform import test
 
 
@@ -73,6 +74,7 @@ class InputDataTest(test.TestCase):
         input_data.which_set("foo_nohash_0.wav", 10, 10),
         input_data.which_set("foo_nohash_1.wav", 10, 10))
 
+  @test_util.run_deprecated_v1
   def testPrepareDataIndex(self):
     tmp_dir = self.get_temp_dir()
     self._saveWavFolders(tmp_dir, ["a", "b", "c"], 100)
@@ -101,6 +103,7 @@ class InputDataTest(test.TestCase):
                                     10, self._model_settings())
     self.assertTrue("Expected to find" in str(e.exception))
 
+  @test_util.run_deprecated_v1
   def testPrepareBackgroundData(self):
     tmp_dir = self.get_temp_dir()
     background_dir = os.path.join(tmp_dir, "_background_noise_")
@@ -131,6 +134,7 @@ class InputDataTest(test.TestCase):
     self.assertIsNotNone(loaded_data)
     self.assertEqual(16000, len(loaded_data))
 
+  @test_util.run_deprecated_v1
   def testPrepareProcessingGraph(self):
     tmp_dir = self.get_temp_dir()
     wav_dir = os.path.join(tmp_dir, "wavs")
@@ -160,6 +164,7 @@ class InputDataTest(test.TestCase):
     self.assertIsNotNone(audio_processor.background_volume_placeholder_)
     self.assertIsNotNone(audio_processor.mfcc_)
 
+  @test_util.run_deprecated_v1
   def testGetData(self):
     tmp_dir = self.get_temp_dir()
     wav_dir = os.path.join(tmp_dir, "wavs")
@@ -187,6 +192,7 @@ class InputDataTest(test.TestCase):
     self.assertEqual(10, len(result_data))
     self.assertEqual(10, len(result_labels))
 
+  @test_util.run_deprecated_v1
   def testGetUnprocessedData(self):
     tmp_dir = self.get_temp_dir()
     wav_dir = os.path.join(tmp_dir, "wavs")
