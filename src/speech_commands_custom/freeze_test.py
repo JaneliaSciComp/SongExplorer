@@ -25,7 +25,7 @@ from tensorflow.python.platform import test
 class FreezeTest(test.TestCase):
 
   def testCreateInferenceGraph(self):
-    with self.test_session() as sess:
+    with self.cached_session() as sess:
       freeze.create_inference_graph('a,b,c,d', 16000, 1000.0, 30.0, 30.0, 10.0,
                                     40, 40, 'conv', [64, 64], 0.5)
       self.assertIsNotNone(sess.graph.get_tensor_by_name('wav_data:0'))
