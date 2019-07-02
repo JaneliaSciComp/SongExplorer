@@ -35,6 +35,9 @@ tf_py_test(
         ":models",
         "//tensorflow/python:client_testlib",
     ],
+    tags = [
+        "no_pip",  # b/131330719
+    ],
 )
 
 py_library(
@@ -58,13 +61,14 @@ tf_py_test(
         ":input_data",
         "//tensorflow/python:client_testlib",
     ],
+    tags = [
+        "no_pip",  # b/131330719
+    ],
 )
 
 py_binary(
     name = "train",
-    srcs = [
-        "train.py",
-    ],
+    srcs = ["train.py"],
     srcs_version = "PY2AND3",
     deps = [
         ":input_data",
@@ -77,9 +81,7 @@ py_binary(
 
 py_binary(
     name = "freeze",
-    srcs = [
-        "freeze.py",
-    ],
+    srcs = ["freeze.py"],
     srcs_version = "PY2AND3",
     deps = [
         ":input_data",
@@ -98,13 +100,14 @@ tf_py_test(
         ":freeze",
         "//tensorflow/python:client_testlib",
     ],
+    tags = [
+        "no_pip",  # b/131330719
+    ],
 )
 
 py_binary(
     name = "generate_streaming_test_wav",
-    srcs = [
-        "generate_streaming_test_wav.py",
-    ],
+    srcs = ["generate_streaming_test_wav.py",],
     srcs_version = "PY2AND3",
     deps = [
         ":input_data",
@@ -122,6 +125,9 @@ tf_py_test(
     additional_deps = [
         ":generate_streaming_test_wav",
         "//tensorflow/python:client_testlib",
+    ],
+    tags = [
+        "no_pip",  # b/131330719
     ],
 )
 
@@ -142,9 +148,7 @@ tf_cc_binary(
 
 py_binary(
     name = "label_wav",
-    srcs = [
-        "label_wav.py",
-    ],
+    srcs = ["label_wav.py"],
     srcs_version = "PY2AND3",
     deps = [
         "//tensorflow:tensorflow_py",
@@ -158,6 +162,9 @@ tf_py_test(
     additional_deps = [
         ":label_wav",
         "//tensorflow/python:client_testlib",
+    ],
+    tags = [
+        "no_pip",  # b/131330719
     ],
 )
 
@@ -246,14 +253,16 @@ tf_cc_binary(
     ],
 )
 
-filegroup(
-    name = "all_files",
-    srcs = glob(
-        ["**/*"],
-        exclude = [
-            "**/METADATA",
-            "**/OWNERS",
-        ],
-    ),
-    visibility = ["//tensorflow:__subpackages__"],
+py_library(
+    name = "test_lib",
+    srcs_version = "PY2AND3",
+    deps = [
+        ":freeze",
+        ":generate_streaming_test_wav",
+        ":input_data",
+        ":label_wav",
+        ":models",
+        ":train",
+        ":wav_to_features",
+    ],
 )
