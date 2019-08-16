@@ -122,7 +122,7 @@ def main(_):
       FLAGS.unknown_percentage,
       FLAGS.wanted_words.split(','), FLAGS.labels_touse.split(','),
       FLAGS.validation_percentage, FLAGS.validation_offset_percentage,
-      FLAGS.testing_percentage, FLAGS.validation_files.split(','), FLAGS.subsample_skip, FLAGS.subsample_word,
+      FLAGS.testing_percentage, FLAGS.withhold_files.split(','), FLAGS.subsample_skip, FLAGS.subsample_word,
       FLAGS.partition_word, FLAGS.partition_n, FLAGS.partition_training_files.split(','), FLAGS.partition_validation_files.split(','),
       model_settings)
 
@@ -200,7 +200,7 @@ def main(_):
   global_step = tf.train.get_or_create_global_step()
   increment_global_step = tf.assign(global_step, global_step + 1)
 
-  saver = tf.train.Saver(tf.global_variables(), max_to_keep=20)
+  saver = tf.train.Saver(tf.global_variables())
 
   # Merge all the summaries and write them out to /tmp/retrain_logs (by default)
   merged_summaries = tf.summary.merge_all()
@@ -472,7 +472,7 @@ if __name__ == '__main__':
       default='',
       help='Validate on only these files for the specified word.')
   parser.add_argument(
-      '--validation_files',
+      '--withhold_files',
       type=str,
       default='',
       help='Which wav files to use as a validation set.')
