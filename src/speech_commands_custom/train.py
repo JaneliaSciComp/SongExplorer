@@ -200,7 +200,7 @@ def main(_):
   global_step = tf.train.get_or_create_global_step()
   increment_global_step = tf.assign(global_step, global_step + 1)
 
-  saver = tf.train.Saver(tf.global_variables())
+  saver = tf.train.Saver(tf.global_variables(), max_to_keep=0)
 
   # Merge all the summaries and write them out to /tmp/retrain_logs (by default)
   merged_summaries = tf.summary.merge_all()
