@@ -1,0 +1,68 @@
+Bootstrap: library
+From: ubuntu:20.04
+Stage: build
+%files
+    deepsong /opt
+%environment
+    export CUDA_HOME=/usr/local/cuda
+    CUDA_LIB=$CUDA_HOME/lib64
+    CUDA_INCLUDE=$CUDA_HOME/include
+    CUDA_BIN=$CUDA_HOME/bin
+    export LD_LIBRARY_PATH=$CUDA_LIB
+    export PATH=$CUDA_BIN:$PATH
+    PATH=/opt/deepsong/src:$PATH
+%runscript
+    exec /usr/bin/python3 "$@"
+%post
+    export CUDA_HOME=/usr/local/cuda
+    CUDA_LIB=$CUDA_HOME/lib64
+    CUDA_INCLUDE=$CUDA_HOME/include
+    CUDA_BIN=$CUDA_HOME/bin
+    export LD_LIBRARY_PATH=$CUDA_LIB
+    export PATH=$CUDA_BIN:$PATH
+    sed -i '$s/$/ universe/' /etc/apt/sources.list
+    apt-get update
+    apt-get -y install wget
+
+    # install tensorflow
+    apt-get -y install python3 vim perl gcc python3-distutils
+    wget https://bootstrap.pypa.io/get-pip.py --no-check-certificate
+    python3 get-pip.py
+    pip3 install tensorflow
+
+    # install matplotlib etc
+    apt-get -y install vim python3-tk dc ssh libxml2 nodejs make
+    pip3 install matplotlib scipy natsort scikit-image bokeh nitime sklearn umap-learn matplotlib_venn pandas dictdiffer
+    apt-get -y install python3-dev pkg-config
+    apt-get -y install libavformat-dev libavcodec-dev libavdevice-dev libavutil-dev libswscale-dev libswresample-dev libavfilter-dev
+    pip3 install av
+    pip3 install https://github.com/soft-matter/pims/archive/master.zip
+    pip3 install pyinterval 
+
+    # install CUDA
+    apt-get -y install gnupg
+    wget https://developer.download.nvidia.com/compute/cuda/repos/ubuntu1804/x86_64/cuda-ubuntu1804.pin
+    mv cuda-ubuntu1804.pin /etc/apt/preferences.d/cuda-repository-pin-600
+    wget http://developer.download.nvidia.com/compute/cuda/10.2/Prod/local_installers/cuda-repo-ubuntu1804-10-2-local-10.2.89-440.33.01_1.0-1_amd64.deb
+    dpkg -i cuda-repo-ubuntu1804-10-2-local-10.2.89-440.33.01_1.0-1_amd64.deb
+    apt-key add /var/cuda-repo-10-2-local-10.2.89-440.33.01/7fa2af80.pub
+    apt-get update
+    DEBIAN_FRONTEND=noninteractive apt-get -y --no-install-recommends install cuda
+    rm cuda-repo-ubuntu1804-10-2-local-10.2.89-440.33.01_1.0-1_amd64.deb
+    ln -s /usr/local/cuda/lib64/libcudart.so.10.2 /usr/local/cuda/lib64/libcudart.so.10.1
+    wget http://developer.download.nvidia.com/compute/machine-learning/repos/ubuntu1804/x86_64/libcudnn7_7.6.5.32-1+cuda10.2_amd64.deb
+    apt install ./libcudnn7_7.6.5.32-1+cuda10.2_amd64.deb
+    apt-get update
+    apt-get install --no-install-recommends libcudnn7
+    rm libcudnn7_7.6.5.32-1+cuda10.2_amd64.deb
+    wget http://developer.download.nvidia.com/compute/machine-learning/repos/ubuntu1804/x86_64/libnvinfer7_7.0.0-1+cuda10.2_amd64.deb
+    apt install ./libnvinfer7_7.0.0-1+cuda10.2_amd64.deb
+    wget http://developer.download.nvidia.com/compute/machine-learning/repos/ubuntu1804/x86_64/libnvinfer-plugin7_7.0.0-1+cuda10.2_amd64.deb
+    apt install ./libnvinfer-plugin7_7.0.0-1+cuda10.2_amd64.deb
+    apt-get update
+    apt-get install -y --no-install-recommends libnvinfer7 libnvinfer-plugin7
+    rm libnvinfer7_7.0.0-1+cuda10.2_amd64.deb
+    rm libnvinfer-plugin7_7.0.0-1+cuda10.2_amd64.deb
+
+    # clean up
+    rm -rf /var/cuda-repo-10-2-local-10.2.89-440.33.01

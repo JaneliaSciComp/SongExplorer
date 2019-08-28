@@ -1,0 +1,6 @@
+FROM tensorflow/tensorflow:latest-gpu
+RUN apt-get update && DEBIAN_FRONTEND="noninteractive" apt-get -y install vim python3-tk dc ssh libxml2 nodejs make python3-dev pkg-config libavformat-dev libavcodec-dev libavdevice-dev libavutil-dev libswscale-dev libswresample-dev libavfilter-dev
+RUN pip3 install matplotlib scipy natsort scikit-image bokeh nitime sklearn umap-learn matplotlib_venn pandas av https://github.com/soft-matter/pims/archive/master.zip pyinterval dictdiffer
+COPY . /opt/deepsong
+ENV PATH="/opt/deepsong/src:${PATH}"
+CMD ["python"]

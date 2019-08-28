@@ -1,0 +1,569 @@
+#!/usr/bin/env bash
+
+# `hetero` implements a light weight cluster-style scheduler for use on a single
+# workstation.  Unlike `parallel`, `xargs`, and other similar utilities, which
+# presume that all jobs use the same amount of resources, `hetero` permits one to
+# request a different amount from an arbitrary number of unique kinds of
+# resources.  In effect it implements a counting semaphore for each resource and
+# provides a means to adjust their values by non-negative integers.
+# 
+# Say for example your machine has six cores and you want to batch a heterogeneous
+# collection of jobs which require different numbers of cores:
+# 
+#   hetero start 6
+#   hetero submit my-two-slot-job 2
+#   hetero submit 'my-four-slot-job [and-its-args...]' 4
+#   hetero submit my-single-slot-job 1
+# 
+# In this case, the third job is queued and remains pending until one of the
+# first two finish.
+# 
+# Other kinds of resources you might want to meter out include accelerator cards,
+# memory, and file or network I/O.  If in addition your machine also has two GPUs
+# and 32 GB of RAM:
+# 
+#   hetero start 6 2 32
+#   hetero submit my-high-memory-app 1 0 32
+#   hetero submit my-visualization-app 2 1 8
+#   hetero submit my-compute-intensive-app 6 0 1
+#   hetero submit 'touch helloworld' 0 0 0
+#
+# Should your jobs need to know which specific slot of a resource they consume,
+# an environment variable prefixed with "QUEUE" is defined:
+#
+#   hetero submit 'export CUDA_VISIBLE_DEVICES=\$QUEUE1; my-deeplearning-app' 1 1 1
+#
+# Note that this feature requires a version of `xargs` with the "--process-slot-var"
+# flag be available (e.g. from GNU).
+#
+# One can also specify job dependencies:
+# 
+#   dep1=`hetero submit do-me-first 0 0 0`
+#   hetero submit wait-for-do-me-first-to-finish 0 0 0 "hetero job $dep1"
+#
+# Usage information is displayed if no command is given or the wrong number of
+# arguments is input to any of the commands.  You can also just say `hetero
+# [command] help`.
+
+_prefix() { echo $(dirname $(mktemp -u))/hetero ; }  # -> $TMPDIR/hetero
+
+__isgnu() {
+  echo "" | xargs --process-slot-var=QUEUE &>/dev/null
+}
+
+_start() {
+  if [[ "$1" == help || "$#" -eq "0" ]] ; then
+    echo usage: hetero start \<max-slots-queue0\> \[\<max-slots-queue1\> \[\<max-slots-queue2\>\] ...\]
+    if [[ "$1" == help ]]; then return 0; else return 1; fi
+  fi
+
+  if _nqueues &> /dev/null ; then
+    echo hetero is already running
+    return 1
+  fi
+
+  local prefix=$(_prefix)
+  touch $prefix.pids
+
+  if __isgnu ; then
+    flags=-I{}\ --process-slot-var=QUEUE
+  else
+    flags=-J{}
+  fi
+
+  for (( i=0 ; i<$# ; i++ )) ; do
+    echo "" > ${prefix}.queue$i
+    islot=$((i+1))
+    { tail -n+0 -f ${prefix}.queue$i & \
+        { echo $! >> ${prefix}.pids ; } ; } | \
+      xargs -P${!islot} -n1 $flags bash -c {} &
+      echo $! >> ${prefix}.pids
+  done
+}
+
+_nqueues() {
+  if [[ "$1" == help || "$#" -gt "0" ]] ; then
+    echo usage: hetero nqueues
+    echo prints the number of queues if started
+    echo returns 1 if hetero is stopped or the state is not clean
+    if [[ "$1" == help ]]; then return 0; else return 1; fi
+  fi
+
+  local prefix=$(_prefix)
+  if [[ -e ${prefix}.pids ]] ; then
+    local cmds=$(cat ${prefix}.pids | xargs -I{} ps -p {} -o command=)
+  else
+    echo hetero is not running, or is in a bad state.  use \`hetero start\` first
+    return 1
+  fi
+  local nparallelprocs=$(echo "$cmds" | grep xargs | wc -l)
+  local ntailprocs=$(echo "$cmds" | grep tail | wc -l)
+  local nqueuefiles=$(ls ${prefix}.queue* 2>/dev/null | wc -l)
+  local npidfiles=$(ls ${prefix}.pids 2>/dev/null | wc -l)
+  if [[ "$nparallelprocs" -eq "$ntailprocs" && \
+       "$ntailprocs" -eq "$nqueuefiles" && \
+       "$npidfiles" -eq "1" ]] ; then
+    echo $nparallelprocs
+  else
+    echo hetero is not running, or is in a bad state.  use \`hetero start\` first
+    return 1
+  fi
+}
+
+_nslots() {
+  if [[ "$1" == help || "$#" -gt "0" ]] ; then
+    echo usage: hetero nslots
+    echo prints the number of slots in each queue if started
+    echo returns 1 if hetero is stopped or the state is not clean
+    if [[ "$1" == help ]]; then return 0; else return 1; fi
+  fi
+
+  if ! _nqueues &> /dev/null ; then
+    echo hetero is not running, or is in a bad state.  use \`hetero start\` first
+    return 1
+  fi
+
+  local prefix=$(_prefix)
+  if [[ -e ${prefix}.pids ]] ; then
+    cat ${prefix}.pids | xargs -I{} ps -p {} -o command= | grep xargs | cut -d' ' -f2 | cut -c 3- | tr '\n' ' ' | sed 's/ $//'
+  else
+    return 1
+  fi
+}
+
+_submit() {
+  local nq=`_nqueues`
+  if [[ "$1" == help ]] || (( $# < $nq + 1 )) || (( $# > $nq + 2 )) ; then
+    echo usage: hetero submit \<cmd\> \<num-slots-queue0\> \[\<num-slots-queue1\>...\] \[job-dependencies\]
+    echo "job-dependencies" is a bash expression which delays the start while it is true
+    echo prints the job name 
+    echo returns 1 if hetero is stopped or the state is not clean
+    if [[ "$1" == help ]]; then return 0; else return 1; fi
+  fi
+
+  if ! _nqueues &> /dev/null ; then
+    echo hetero is not running, or is in a bad state.  use \`hetero start\` first
+    return 1
+  fi
+
+  local cmd=$1
+  if (($# == $nq + 2)) && [[ -n ${!#} ]] ; then
+    local dependencies=${!#}
+  else
+    local dependencies='((0 == 1))'
+  fi
+
+  local prefix=$(_prefix)
+
+      #ls $tmpfile |
+      #entr -ns '[[ \`cat $tmpfile | wc -l\` -eq $((1+ntotal)) ]] && ! $dependencies && kill \$PPID';
+  local tmpfile=$(mktemp ${prefix}.jobXXX)
+  local ntotal=$(IFS=+; echo $((${*:2:nq})))
+  local modified_cmd="
+      echo \#'$cmd' >> $tmpfile;
+      while [[ \`cat $tmpfile | wc -l\` -ne $((2+ntotal)) ]] || $dependencies ; do
+        sleep 1;
+      done;
+      if [[ -e $tmpfile ]] ; then
+        source $tmpfile;
+        $cmd &
+        echo \#running\ \$"'!'" >> $tmpfile;
+        wait;
+        rm $tmpfile;
+      fi"
+  eval $modified_cmd &>/dev/null &
+  echo \#$! > $tmpfile
+
+      #ls $tmpfile |
+      #entr -ns '[[ \`cat $tmpfile | wc -l\` -ne 0 ]] && kill \$PPID';
+        #ls $tmpfile | entr -ns 'kill \$PPID';
+  local reserve_resources_cmd="
+      while [[ -e $tmpfile && \`cat $tmpfile | wc -l\` -eq 0 ]] ; do
+        sleep 1;
+      done;
+      if [[ -e $tmpfile ]] ; then
+        echo QUEUE+=\ \#\$\$ >> $tmpfile;
+        while [[ -e $tmpfile ]] ; do
+          sleep 1;
+        done;
+      fi"
+  local iqueue
+  local islot
+  local knowslot
+  if __isgnu; then knowslot=true; else knowslot=false; fi
+  for ((iqueue = 0 ; iqueue < nq ; iqueue++)) ; do
+    iparameter=$(($iqueue + 2))
+    for ((islot=0; islot<${!iparameter}; islot++)) ; do
+      if [ "$knowslot" == true ] ; then
+        if (( "$islot" == ${!iparameter}-1 )) ; then
+          comma=
+        else
+          comma=,
+        fi
+        echo \"${reserve_resources_cmd/QUEUE+=/QUEUE$iqueue+=\$\{QUEUE\}$comma}\" >> ${prefix}.queue$iqueue
+      else
+        echo \"${reserve_resources_cmd/QUEUE/QUEUE$iqueue}\" >> ${prefix}.queue$iqueue
+      fi
+    done
+  done
+
+  jobfile=`basename $tmpfile`
+  echo ${jobfile#hetero.job}
+}
+
+_njobs() {
+  if [[ "$1" == help || "$#" -gt "0" ]] ; then
+    echo usage: hetero njobs
+    echo prints the number of jobs either pending or running
+    echo returns 1 if stopped or the state is not clean
+    if [[ "$1" == help ]]; then return 0; else return 1; fi
+  fi
+
+  if _nqueues &> /dev/null ; then
+    local prefix=$(_prefix)
+    echo $(ls ${prefix}.job* 2>/dev/null | wc -l)
+  else
+    echo hetero is not running, or is in a bad state.  use \`hetero start\` first
+    return 1  
+  fi
+}
+
+_npending() {
+  if [[ "$1" == help || "$#" -gt "0" ]] ; then
+    echo usage: hetero npending
+    echo prints the number of pending jobs
+    echo returns 1 if stopped or the state is not clean
+    if [[ "$1" == help ]]; then return 0; else return 1; fi
+  fi
+
+  if _nqueues &> /dev/null ; then
+    echo $(grep -L running $(_prefix).job* 2>/dev/null | wc -l)
+  else
+    echo hetero is not running, or is in a bad state.  use \`hetero start\` first
+    return 1  
+  fi
+}
+
+_nrunning() {
+  if [[ "$1" == help || "$#" -gt "0" ]] ; then
+    echo usage: hetero nrunning
+    echo prints the number of running jobs
+    echo returns 1 if stopped or the state is not clean
+    if [[ "$1" == help ]]; then return 0; else return 1; fi
+  fi
+
+  if _nqueues &> /dev/null ; then
+    echo $(grep -l running $(_prefix).job* 2>/dev/null | wc -l)
+  else
+    echo hetero is not running, or is in a bad state.  use \`hetero start\` first
+    return 1  
+  fi
+}
+
+__status() {
+  if grep -l running $1 &>/dev/null ; then
+    echo running
+  else
+    echo pending
+  fi
+}
+
+__slots() {
+  local nq=`_nqueues`
+  for ((iqueue = 0 ; iqueue < nq ; iqueue++)) ; do
+    echo \ $(grep ^QUEUE${iqueue}+= $1 | wc -l)
+  done
+}
+
+__command() {
+  local cmd=`head -2 $1 | tail -1`
+  echo ${cmd#\#}
+}
+
+_jobs() {
+  if [[ "$1" == help || "$#" -gt "0" ]] ; then
+    echo usage: hetero jobs
+    echo prints the queued jobs, their status, and the resources currently reserved
+    echo returns 1 if hetero is stopped, the state is not clean, or no jobs are queued
+    if [[ "$1" == help ]]; then return 0; else return 1; fi
+  fi
+
+  if ! _nqueues &> /dev/null ; then
+    echo hetero is not running, or is in a bad state.  use \`hetero start\` first
+    return 1
+  fi
+
+  read -a joblist <<< $(ls -t $(_prefix).job* 2>/dev/null)
+  [[ "$?" != 0 ]] && return 1
+
+  for thisjob in ${joblist[*]} ; do
+    local id=$(basename $thisjob)
+    echo ${id#hetero.job} `__status $thisjob` `__slots $thisjob` `__command $thisjob`
+  done
+}
+
+_job() {
+  if [[ "$1" == help || "$#" -ne "1" ]] ; then
+    echo usage: hetero job \<jobname\>
+    echo prints the command being run by the specified job, its status, and the resources currently reserved
+    echo returns 1 if hetero is stopped, the state is not clean, or no such job exists
+    if [[ "$1" == help ]]; then return 0; else return 1; fi
+  fi
+
+  if ! _nqueues &> /dev/null ; then
+    echo hetero is not running, or is in a bad state.  use \`hetero start\` first
+    return 1
+  fi
+
+  local prefix=$(_prefix)
+
+  if [[ ! -f ${prefix}.job$1 ]] ; then
+    echo $1 is not a current job name
+    return 1
+  fi
+
+  __status ${prefix}.job$1
+  echo `__slots ${prefix}.job$1`
+  __command ${prefix}.job$1
+}
+
+_stop() {
+  if [[ "$1" == help || "$#" -gt "1" || ( "$#" -eq "1" && "$1" != "force" ) ]] ; then
+    echo usage: hetero stop \[force\]
+    if [[ "$1" == help ]]; then return 0; else return 1; fi
+  fi
+
+  local prefix=$(_prefix)
+
+  if ! _nqueues &> /dev/null ; then
+    echo hetero is not running, or is in a bad state.  use \`hetero start\` first
+    return 1
+  fi
+
+  njobs=`_njobs`
+  if [[ $? && (( "$njobs" > 0 )) && "$1" != "force" ]] ; then
+    echo WARNING: jobs are still queued.  use \`hetero stop force\` to stop anyway
+    return 1
+  fi
+  if [[ -e ${prefix}.pids ]] ; then
+    cat ${prefix}.pids | xargs kill -9
+  fi
+  if [[ "$1" == "force" ]] ; then
+    pids=`ps ax | grep -e " xargs -P" -e ' tail -n+0' -e 'hetero submit' | \
+          grep -v grep | awk '{$1=$1};1' | cut -f1 -d' '`
+    if [[ -n "$pids" ]] ; then
+      echo $pids | xargs kill -9
+    fi
+  fi
+  rm ${prefix}* 2>/dev/null
+}
+
+# there might be a race condition when killing pending jobs.  moreover, the queue
+# is not altered; rather the job is changed to do nothing when the resources
+# become available.  so smaller jobs queued after the killed job might still
+# wait.
+
+_kill() {
+  if [[ "$1" == help || "$#" -eq "0" ]] ; then
+    echo usage: hetero kill \<jobname\>
+    echo terminates the command being run by the specified job\(s\)
+    echo returns 1 if hetero is stopped, the state is not clean, or no such job exists
+    if [[ "$1" == help ]]; then return 0; else return 1; fi
+  fi
+
+  if ! _nqueues &> /dev/null ; then
+    echo hetero is not running, or is in a bad state.  use \`hetero start\` first
+    return 1
+  fi
+
+  local prefix=$(_prefix)
+
+  for thisjob in "$@" ; do
+    if [[ ! -f ${prefix}.job$thisjob ]] ; then
+      echo $thisjob is not a current job name
+      return 1
+    fi
+    if grep running ${prefix}.job$thisjob &> /dev/null ; then
+      kill -9 `grep running ${prefix}.job$thisjob | cut -d' ' -f2`
+    else
+      pid=`head -n 1 ${prefix}.job$thisjob`
+      rm ${prefix}.job$thisjob;
+      kill -9 ${pid:1}
+    fi
+  done
+}
+
+_test() {
+  if [[ "$1" == help || "$#" -gt "0" ]] ; then
+    echo usage: hetero test
+    echo printed are the unit tests that failed
+    echo returns the number that failed
+    if [[ "$1" == help ]]; then return 0; else return 1; fi
+  fi
+  local prefix=$(_prefix)
+  local nfailed=0
+
+  _stop force
+
+  if _nqueues &> /dev/null ; then
+    echo '`nqueues` failed after forced stop'
+    nfailed=$((nfailed + 1))
+  fi
+  if _nslots &> /dev/null ; then
+    echo '`nslots` failed after forced stop'
+    nfailed=$((nfailed + 1))
+  fi
+  if _njobs &> /dev/null ; then
+    echo '`njobs` failed after forced stop'
+    nfailed=$((nfailed + 1))
+  fi
+  if _npending &> /dev/null ; then
+    echo '`npending` failed after forced stop'
+    nfailed=$((nfailed + 1))
+  fi
+  if _nrunning &> /dev/null ; then
+    echo '`nrunning` failed after forced stop'
+    nfailed=$((nfailed + 1))
+  fi
+  if _jobs &> /dev/null ; then
+    echo '`jobs` failed after forced stop'
+    nfailed=$((nfailed + 1))
+  fi
+
+  _start 1 2 4
+
+  if [[ $(_nqueues) != "3" ]] ; then
+    echo '`nqueues` failed after start'
+    nfailed=$((nfailed + 1))
+  fi
+  if [[ $(_nslots) != "1 2 4" ]] ; then
+    echo '`nslots` failed after start'
+    nfailed=$((nfailed + 1))
+  fi
+  if [[ $(_njobs) != "0" ]] ; then
+    echo '`njobs` failed after start'
+    nfailed=$((nfailed + 1))
+  fi
+  if [[ $(_npending) != "0" ]] ; then
+    echo '`npending` failed after start'
+    nfailed=$((nfailed + 1))
+  fi
+  if [[ $(_nrunning) != "0" ]] ; then
+    echo '`nrunning` failed after start'
+    nfailed=$((nfailed + 1))
+  fi
+  if ! _jobs &> /dev/null ; then
+    echo '\`jobs\` failed after start'
+    nfailed=$((nfailed + 1))
+  fi
+
+  jobname=`_submit "touch ${prefix}.helloworld" 1 0 0`
+  if grep $jobname `_jobs` &> /dev/null ; then
+    echo '`jobs` failed after submit'
+    nfailed=$((nfailed + 1))
+  fi
+  if ! _job $jobname &> /dev/null ; then
+    echo '`job` failed after submit'
+    nfailed=$((nfailed + 1))
+  fi
+  sleep 3
+  if [[ ! -e ${prefix}.helloworld ]] ; then
+    echo 'helloworld failed'
+    nfailed=$((nfailed + 1))
+  fi
+
+  _submit "touch ${prefix}.gpu1; sleep 5" 0 1 0 &> /dev/null
+  _submit "touch ${prefix}.gpu2; sleep 5" 0 1 0 &> /dev/null
+  _submit "touch ${prefix}.gpu3; sleep 5" 0 1 0 &> /dev/null
+  sleep 1
+  if [[ $(_npending) != "1" ]] ; then
+    echo '`npending` failed after gpu123'
+    nfailed=$((nfailed + 1))
+  fi
+  if [[ $(_nrunning) != "2" ]] ; then
+    echo '`nrunning` failed after gpu123'
+    nfailed=$((nfailed + 1))
+  fi
+  if [[ ! -e ${prefix}.gpu1 || ! -e ${prefix}.gpu2 ]] ; then
+    echo 'gpu1,2 failed'
+    nfailed=$((nfailed + 1))
+  elif [[ -e ${prefix}.gpu3 ]] ; then
+    echo 'gpu3a failed'
+    nfailed=$((nfailed + 1))
+  else
+    sleep 8
+    if [[ ! -e ${prefix}.gpu3 ]] ; then
+      echo 'gpu3b failed'
+      nfailed=$((nfailed + 1))
+    fi
+  fi
+
+  dep1=`_submit "touch ${prefix}.dep1; sleep 5" 0 0 0`
+  _submit "touch ${prefix}.dep2" 0 0 0 "_job $dep1" &> /dev/null
+  if [[ ! -e ${prefix}.dep1 ]] ; then
+    echo 'dep1 failed'
+    nfailed=$((nfailed + 1))
+  elif [[ -e ${prefix}.dep2 ]] ; then
+    echo 'dep2a failed'
+    nfailed=$((nfailed + 1))
+  else
+    sleep 8
+    if [[ ! -e ${prefix}.dep2 ]] ; then
+      echo 'dep2b failed'
+      nfailed=$((nfailed + 1))
+    fi
+  fi
+
+  _submit "echo \$QUEUE1 > ${prefix}.envvar" 0 2 0 &> /dev/null
+  while [[ ! -e ${prefix}.envvar ]] ; do
+    sleep 1
+  done
+  if [[ `cat ${prefix}.envvar` != "0,1" ]] ; then
+    echo 'envvar failed; this is normal on systems without GNU xargs'
+    nfailed=$((nfailed + 1))
+  fi
+
+  kill1=`_submit "sleep 5; touch ${prefix}.kill1" 0 0 0`
+  _kill $kill1
+  sleep 8
+  if [[ -e ${prefix}.kill1 ]] ; then
+    echo '`kill` failed'
+    nfailed=$((nfailed + 1))
+  fi
+
+  sleep 5
+  _stop force &> /dev/null
+  return $nfailed
+}
+
+_help() {
+  echo usage: hetero \<prefix\|start\|nqueues\|nslots\|submit\|njobs\|npending\|nrunning\|jobs\|job\|stop\|kill\|test\|help\> \[args...\]
+}
+
+if [[ "$#" -eq "0" ]] ; then
+  _help
+  exit 1
+fi
+
+command=$1
+shift 1
+
+case $command in 
+
+prefix) _prefix "$@" ;;
+start) _start "$@" ;;
+nqueues) _nqueues "$@" ;;
+nslots) _nslots "$@" ;;
+submit) _submit "$@" ;;
+njobs) _njobs "$@" ;;
+npending) _npending "$@" ;;
+nrunning) _nrunning "$@" ;;
+jobs) _jobs "$@" ;;
+job) _job "$@" ;;
+stop) _stop "$@" ;;
+kill) _kill "$@" ;;
+test) _test "$@" ;;
+help) _help "$@" ;;
+*) _help ;;
+
+esac
