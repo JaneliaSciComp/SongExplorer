@@ -1,0 +1,29 @@
+BootStrap: docker
+From: tensorflow/tensorflow:1.12.0-devel-gpu-py3
+%files
+    deepsong /opt
+%environment
+    export CUDA_HOME=/usr/local/cuda
+    CUDA_LIB=$CUDA_HOME/lib64
+    CUDA_INCLUDE=$CUDA_HOME/include
+    CUDA_BIN=$CUDA_HOME/bin
+    export LD_LIBRARY_PATH=$CUDA_LIB
+    export PATH=$CUDA_BIN:$PATH
+    PATH=/opt/deepsong/src:$PATH
+%post
+    export CUDA_HOME=/usr/local/cuda
+    CUDA_LIB=$CUDA_HOME/lib64
+    CUDA_INCLUDE=$CUDA_HOME/include
+    CUDA_BIN=$CUDA_HOME/bin
+    export LD_LIBRARY_PATH=$CUDA_LIB
+    export PATH=$CUDA_BIN:$PATH
+    rm -rf /var/lib/apt/lists/*
+    apt-get update && apt-get -y install vim python3-tk dc ssh libxml2
+    pip3 install --upgrade jupyter matplotlib scipy keras natsort seaborn scikit-image bokeh nitime sklearn pyinterval matplotlib_venn
+    ln -s /tensorflow /opt/tensorflow
+    ln -s /opt/deepsong/src/speech_commands_custom /tensorflow/tensorflow/examples/speech_commands_custom
+    cd /tensorflow
+    yes "" | ./configure
+    bazel --output_base=/opt/bazel run --config=opt tensorflow/examples/speech_commands_custom:test_streaming_accuracy -- --graph=/opt/deepsong/data/my_frozen_graph_1k_0.pb --labels=/opt/deepsong/data/vgg_labels.txt --wav=/opt/deepsong/data/PS_20130625111709_ch3_p1.wav --ground_truth=/opt/deepsong/src/streaming_test_labels.txt --verbose --clip_duration_ms=305.6 --clip_stride_ms=102.4 --output_names=output_layer
+%runscript
+    exec /usr/bin/python3 "$@"
