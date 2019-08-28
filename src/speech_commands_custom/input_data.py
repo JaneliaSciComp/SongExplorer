@@ -298,7 +298,7 @@ class AudioProcessor(object):
         if word == BACKGROUND_NOISE_DIR_NAME:
           continue
         all_words[word] = True
-        if not withhold_files:
+        if withhold_files != ['']:
           set_index = 'validation' if wavfile in withhold_files else 'training'
         elif partition_word == word:
           if wavfile in partition_validation_files:
