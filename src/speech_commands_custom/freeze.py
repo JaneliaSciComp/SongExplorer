@@ -137,8 +137,8 @@ def main(_):
                          FLAGS.window_size_ms, FLAGS.window_stride_ms, FLAGS.nstrides,
                          FLAGS.dct_coefficient_count, FLAGS.filterbank_channel_count,
                          FLAGS.model_architecture,
-                         [int(x) for x in FLAGS.filter_counts],
-                         [int(x) for x in FLAGS.filter_sizes],
+                         [int(x) for x in FLAGS.filter_counts.split(',')],
+                         [int(x) for x in FLAGS.filter_sizes.split(',')],
                          FLAGS.final_filter_len,
                          FLAGS.dropout_prob, FLAGS.batch_size,
                          FLAGS.silence_percentage, FLAGS.unknown_percentage)
@@ -212,14 +212,12 @@ if __name__ == '__main__':
   parser.add_argument(
       '--filter_counts',
       type=str,
-      nargs='+',
-      default=[64,64,64],
+      default='64,64,64',
       help='A vector of length 3 specifying how many filters to use for the conv layers in the conv and vgg models')
   parser.add_argument(
       '--filter_sizes',
       type=str,
-      nargs='+',
-      default=[3,3,3],
+      default='3,3,3',
       help='A vector of length 3 specifying the filter sizes to use for the conv layers in the vgg model')
   parser.add_argument(
       '--final_filter_len',
