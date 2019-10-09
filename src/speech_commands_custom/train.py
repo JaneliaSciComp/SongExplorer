@@ -337,11 +337,15 @@ def main(_):
           total_conf_matrix = conf_matrix
         else:
           total_conf_matrix += conf_matrix
+        obtained = FLAGS.batch_size - needed
+        if isample==0:
+          samples_data = [None]*set_size
+          groundtruth_data = np.empty((set_size,))
+          logit_data = np.empty((set_size,np.shape(logit_vals)[1]))
+        samples_data[isample:isample+obtained] = samples[:obtained]
+        groundtruth_data[isample:isample+obtained] = ground_truth[:obtained]
+        logit_data[isample:isample+obtained,:] = logit_vals[:obtained,:]
         if is_last_step:
-          obtained = FLAGS.batch_size - needed
-          tf.logging.info('samples = %s', json.dumps(samples[:obtained]))
-          tf.logging.info('ground_truth = %s', json.dumps(ground_truth[:obtained].tolist()))
-          tf.logging.info('logits = %s', json.dumps(logit_vals[:obtained,:].tolist()))
           if FLAGS.save_hidden:
             if isample==0:
               hidden_layers = []
@@ -364,9 +368,13 @@ def main(_):
       t1=dt.datetime.now()-t0
       tf.logging.info('Elapsed %f, Step %d: Validation accuracy = %.1f%% (N=%d)' %
                       (t1.total_seconds(), training_step, total_accuracy * 100, set_size))
+      np.savez(os.path.join(FLAGS.train_dir, \
+               'logits.ckpt-'+str(training_step)+'.npz'), \
+               samples=samples_data, groundtruth=groundtruth_data, logits=logit_data)
       if is_last_step:
         if FLAGS.save_hidden:
-          np.savez(os.path.join(FLAGS.data_dir,'hidden.npz'), *hidden_layers)
+          np.savez(os.path.join(FLAGS.data_dir,'hidden.npz'), \
+                   *hidden_layers, samples=samples_data)
         if FLAGS.save_fingerprints:
           np.save(os.path.join(FLAGS.data_dir,'fingerprints.npy'), input_layer)
 
