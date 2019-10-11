@@ -45,7 +45,6 @@ SILENCE_INDEX = 1
 UNKNOWN_WORD_LABEL = 'other'
 UNKNOWN_WORD_INDEX = 0
 BACKGROUND_NOISE_DIR_NAME = '_background_noise_'
-RANDOM_SEED = 59185
 
 
 def prepare_words_list(wanted_words, silence_percentage, unknown_percentage):
@@ -165,7 +164,7 @@ class AudioProcessor(object):
                validation_percentage, validation_offset_percentage,
                testing_percentage, withhold_files, subsample_skip, subsample_word,
                partition_word, partition_n, partition_training_files, partition_validation_files,
-               model_settings):
+               random_seed, model_settings):
     self.data_dir = data_dir
     self.maybe_download_and_extract_dataset(data_url, data_dir)
     self.prepare_data_index(silence_percentage, unknown_percentage,
@@ -173,7 +172,7 @@ class AudioProcessor(object):
                             validation_percentage, validation_offset_percentage,
                             testing_percentage, withhold_files, subsample_skip, subsample_word,
                             partition_word, partition_n, partition_training_files, partition_validation_files,
-                            model_settings)
+                            random_seed, model_settings)
     self.prepare_background_data()
     self.prepare_processing_graph(model_settings)
 
@@ -223,7 +222,7 @@ class AudioProcessor(object):
                          validation_percentage, validation_offset_percentage,
                          testing_percentage, withhold_files, subsample_skip, subsample_word,
                          partition_word, partition_n, partition_training_files, partition_validation_files,
-                         model_settings):
+                         random_seed, model_settings):
     """Prepares a list of the samples organized by set and label.
 
     The training loop needs a list of all the available data, organized by
@@ -249,7 +248,8 @@ class AudioProcessor(object):
       Exception: If expected files are not found.
     """
     # Make sure the shuffling and picking of unknowns is deterministic.
-    random.seed(RANDOM_SEED)
+    if random_seed!=-1:
+      random.seed(random_seed)
     wanted_words_index = {}
     for index, wanted_word in enumerate(wanted_words):
       wanted_words_index[wanted_word] = index

@@ -117,6 +117,7 @@ def main(_):
       [int(x) for x in FLAGS.filter_sizes.split(',')],
       FLAGS.final_filter_len,
       FLAGS.dropout_prob, FLAGS.batch_size)
+
   audio_processor = input_data.AudioProcessor(
       FLAGS.data_url, FLAGS.data_dir, FLAGS.silence_percentage,
       FLAGS.unknown_percentage,
@@ -124,7 +125,7 @@ def main(_):
       FLAGS.validation_percentage, FLAGS.validation_offset_percentage,
       FLAGS.testing_percentage, FLAGS.withhold_files.split(','), FLAGS.subsample_skip, FLAGS.subsample_word,
       FLAGS.partition_word, FLAGS.partition_n, FLAGS.partition_training_files.split(','), FLAGS.partition_validation_files.split(','),
-      model_settings)
+      FLAGS.random_seed, model_settings)
 
   fingerprint_size = model_settings['fingerprint_size']
   label_count = model_settings['label_count']
@@ -589,6 +590,11 @@ if __name__ == '__main__':
       type=int,
       default=[110],
       help='The length of the final conv1d layer in the vgg model.  Must be even.')
+  parser.add_argument(
+      '--random_seed',
+      type=int,
+      default=59185,
+      help='Randomize mini-batch selection and train/validate/test split if -1; otherwise use supplied number as seed.')
   parser.add_argument(
       '--dropout_prob',
       type=float,
