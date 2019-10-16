@@ -161,16 +161,16 @@ class AudioProcessor(object):
 
   def __init__(self, data_url, data_dir, silence_percentage, unknown_percentage,
                wanted_words, labels_touse,
-               validation_percentage, validation_offset_percentage,
-               testing_percentage, withhold_files, subsample_skip, subsample_word,
+               validation_percentage, validation_offset_percentage, validation_files,
+               testing_percentage, testing_files, subsample_skip, subsample_word,
                partition_word, partition_n, partition_training_files, partition_validation_files,
                random_seed, model_settings):
     self.data_dir = data_dir
     self.maybe_download_and_extract_dataset(data_url, data_dir)
     self.prepare_data_index(silence_percentage, unknown_percentage,
                             wanted_words, labels_touse,
-                            validation_percentage, validation_offset_percentage,
-                            testing_percentage, withhold_files, subsample_skip, subsample_word,
+                            validation_percentage, validation_offset_percentage, validation_files,
+                            testing_percentage, testing_files, subsample_skip, subsample_word,
                             partition_word, partition_n, partition_training_files, partition_validation_files,
                             random_seed, model_settings)
     self.prepare_background_data()
@@ -219,8 +219,8 @@ class AudioProcessor(object):
 
   def prepare_data_index(self, silence_percentage, unknown_percentage,
                          wanted_words, labels_touse,
-                         validation_percentage, validation_offset_percentage,
-                         testing_percentage, withhold_files, subsample_skip, subsample_word,
+                         validation_percentage, validation_offset_percentage, validation_files,
+                         testing_percentage, testing_files, subsample_skip, subsample_word,
                          partition_word, partition_n, partition_training_files, partition_validation_files,
                          random_seed, model_settings):
     """Prepares a list of the samples organized by set and label.
@@ -298,8 +298,10 @@ class AudioProcessor(object):
         if word == BACKGROUND_NOISE_DIR_NAME:
           continue
         all_words[word] = True
-        if withhold_files != ['']:
-          set_index = 'validation' if wavfile in withhold_files else 'training'
+        if wavfile in validation_files:
+          set_index = 'validation'
+        elif wavfile in testing_files:
+          set_index = 'testing'
         elif partition_word == word:
           if wavfile in partition_validation_files:
             set_index = 'validation'

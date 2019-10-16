@@ -122,8 +122,8 @@ def main(_):
       FLAGS.data_url, FLAGS.data_dir, FLAGS.silence_percentage,
       FLAGS.unknown_percentage,
       FLAGS.wanted_words.split(','), FLAGS.labels_touse.split(','),
-      FLAGS.validation_percentage, FLAGS.validation_offset_percentage,
-      FLAGS.testing_percentage, FLAGS.withhold_files.split(','), FLAGS.subsample_skip, FLAGS.subsample_word,
+      FLAGS.validation_percentage, FLAGS.validation_offset_percentage, FLAGS.validation_files.split(','),
+      FLAGS.testing_percentage, FLAGS.testing_files.split(','), FLAGS.subsample_skip, FLAGS.subsample_word,
       FLAGS.partition_word, FLAGS.partition_n, FLAGS.partition_training_files.split(','), FLAGS.partition_validation_files.split(','),
       FLAGS.random_seed, model_settings)
 
@@ -295,89 +295,86 @@ def main(_):
         saver.save(sess, checkpoint_path, global_step=training_step)
 
     is_last_step = (training_step == training_steps_max)
+    if validation_set_size>0 and (is_last_step or (training_step % FLAGS.eval_step_interval) == 0):
+      validate_and_test('validation', validation_set_size, model_settings, time_shift_samples, sess, merged_summaries, evaluation_step, confusion_matrix, logits, hidden, validation_writer, audio_processor, is_last_step, fingerprint_input, ground_truth_input, actual_batch_size, dropout_prob, training_step, t0)
     if testing_set_size>0 and is_last_step:
-      set_kind = 'testing'
-      set_size = testing_set_size
-    elif validation_set_size>0 and (is_last_step or (training_step % FLAGS.eval_step_interval) == 0):
-      set_kind = 'validation'
-      set_size = validation_set_size
+      validate_and_test('testing', testing_set_size, model_settings, time_shift_samples, sess, merged_summaries, evaluation_step, confusion_matrix, logits, hidden, validation_writer, audio_processor, is_last_step, fingerprint_input, ground_truth_input, actual_batch_size, dropout_prob, training_step, t0)
+
+def validate_and_test(set_kind, set_size, model_settings, time_shift_samples, sess, merged_summaries, evaluation_step, confusion_matrix, logits, hidden, validation_writer, audio_processor, is_last_step, fingerprint_input, ground_truth_input, actual_batch_size, dropout_prob, training_step, t0):
+  total_accuracy = 0
+  total_conf_matrix = None
+  for isample in xrange(0, set_size, FLAGS.batch_size):
+    fingerprints, ground_truth, samples = (
+        audio_processor.get_data(FLAGS.batch_size, isample, model_settings, 0.0, 0.0,
+                                 0.0 if FLAGS.time_shift_random else time_shift_samples,
+                                 FLAGS.time_shift_random,
+                                 set_kind, sess))
+    needed = FLAGS.batch_size - fingerprints.shape[0]
+    if needed>0:
+      fingerprints = np.append(fingerprints,
+            np.repeat(fingerprints[[0],:],needed,axis=0), axis=0)
+      ground_truth = np.append(ground_truth,
+            np.repeat(ground_truth[[0]],needed,axis=0), axis=0)
+      for _ in range(needed):
+        samples.append(samples[0])
+    # Run a validation step and capture training summaries for TensorBoard
+    # with the `merged` op.
+    summary, accuracy, conf_matrix, logit_vals, hidden_vals = sess.run(
+        [merged_summaries, evaluation_step, confusion_matrix, logits, hidden],
+        feed_dict={
+            fingerprint_input: fingerprints,
+            ground_truth_input: ground_truth,
+            actual_batch_size: [FLAGS.batch_size - needed],
+            dropout_prob: 1.0
+        })
+    if set_kind=='validation':
+      validation_writer.add_summary(summary, training_step)
+    batch_size = min(FLAGS.batch_size, set_size - isample)
+    total_accuracy += (accuracy * batch_size) / set_size
+    if total_conf_matrix is None:
+      total_conf_matrix = conf_matrix
     else:
-      set_kind = 'none'
-    if set_kind != 'none':
-      total_accuracy = 0
-      total_conf_matrix = None
-      for isample in xrange(0, set_size, FLAGS.batch_size):
-        fingerprints, ground_truth, samples = (
-            audio_processor.get_data(FLAGS.batch_size, isample, model_settings, 0.0, 0.0,
-                                     0.0 if FLAGS.time_shift_random else time_shift_samples,
-                                     FLAGS.time_shift_random,
-                                     set_kind, sess))
-        needed = FLAGS.batch_size - fingerprints.shape[0]
-        if needed>0:
-          fingerprints = np.append(fingerprints,
-                np.repeat(fingerprints[[0],:],needed,axis=0), axis=0)
-          ground_truth = np.append(ground_truth,
-                np.repeat(ground_truth[[0]],needed,axis=0), axis=0)
-          for _ in range(needed):
-            samples.append(samples[0])
-        # Run a validation step and capture training summaries for TensorBoard
-        # with the `merged` op.
-        summary, accuracy, conf_matrix, logit_vals, hidden_vals = sess.run(
-            [merged_summaries, evaluation_step, confusion_matrix, logits, hidden],
-            feed_dict={
-                fingerprint_input: fingerprints,
-                ground_truth_input: ground_truth,
-                actual_batch_size: [FLAGS.batch_size - needed],
-                dropout_prob: 1.0
-            })
-        if set_kind=='validation':
-          validation_writer.add_summary(summary, training_step)
-        batch_size = min(FLAGS.batch_size, set_size - isample)
-        total_accuracy += (accuracy * batch_size) / set_size
-        if total_conf_matrix is None:
-          total_conf_matrix = conf_matrix
-        else:
-          total_conf_matrix += conf_matrix
-        obtained = FLAGS.batch_size - needed
+      total_conf_matrix += conf_matrix
+    obtained = FLAGS.batch_size - needed
+    if isample==0:
+      samples_data = [None]*set_size
+      groundtruth_data = np.empty((set_size,))
+      logit_data = np.empty((set_size,np.shape(logit_vals)[1]))
+    samples_data[isample:isample+obtained] = samples[:obtained]
+    groundtruth_data[isample:isample+obtained] = ground_truth[:obtained]
+    logit_data[isample:isample+obtained,:] = logit_vals[:obtained,:]
+    if is_last_step:
+      if FLAGS.save_hidden:
         if isample==0:
-          samples_data = [None]*set_size
-          groundtruth_data = np.empty((set_size,))
-          logit_data = np.empty((set_size,np.shape(logit_vals)[1]))
-        samples_data[isample:isample+obtained] = samples[:obtained]
-        groundtruth_data[isample:isample+obtained] = ground_truth[:obtained]
-        logit_data[isample:isample+obtained,:] = logit_vals[:obtained,:]
-        if is_last_step:
-          if FLAGS.save_hidden:
-            if isample==0:
-              hidden_layers = []
-              for ihidden in range(len(hidden_vals)):
-                nH=len(hidden_vals[ihidden][0][0])
-                nC=len(hidden_vals[ihidden][0][0][0])
-                hidden_layers.append(np.empty((set_size,nH,nC)))
-            for ihidden in range(len(hidden_vals)):
-              iW=(len(hidden_vals[ihidden][0][0])-1)//2
-              hidden_layers[ihidden][isample:isample+obtained,:,:] = \
-                    hidden_vals[ihidden][:obtained,iW,:,:]
-          if FLAGS.save_fingerprints:
-            if isample==0:
-              nW = round((FLAGS.clip_duration_ms - FLAGS.window_size_ms) / FLAGS.window_stride_ms + 1)
-              nH = round(np.shape(fingerprints)[1]/nW)
-              input_layer = np.empty((set_size,nW,nH))
-            input_layer[isample:isample+obtained,:,:] = \
-                  np.reshape(fingerprints[:obtained,:],(obtained,nW,nH))
-      tf.logging.info('Confusion Matrix:\n %s\n %s' % (audio_processor.words_list,total_conf_matrix))
-      t1=dt.datetime.now()-t0
-      tf.logging.info('Elapsed %f, Step %d: Validation accuracy = %.1f%% (N=%d)' %
-                      (t1.total_seconds(), training_step, total_accuracy * 100, set_size))
-      np.savez(os.path.join(FLAGS.train_dir, \
-               'logits.ckpt-'+str(training_step)+'.npz'), \
-               samples=samples_data, groundtruth=groundtruth_data, logits=logit_data)
-      if is_last_step:
-        if FLAGS.save_hidden:
-          np.savez(os.path.join(FLAGS.data_dir,'hidden.npz'), \
-                   *hidden_layers, samples=samples_data)
-        if FLAGS.save_fingerprints:
-          np.save(os.path.join(FLAGS.data_dir,'fingerprints.npy'), input_layer)
+          hidden_layers = []
+          for ihidden in range(len(hidden_vals)):
+            nH=len(hidden_vals[ihidden][0][0])
+            nC=len(hidden_vals[ihidden][0][0][0])
+            hidden_layers.append(np.empty((set_size,nH,nC)))
+        for ihidden in range(len(hidden_vals)):
+          iW=(len(hidden_vals[ihidden][0][0])-1)//2
+          hidden_layers[ihidden][isample:isample+obtained,:,:] = \
+                hidden_vals[ihidden][:obtained,iW,:,:]
+      if FLAGS.save_fingerprints:
+        if isample==0:
+          nW = round((FLAGS.clip_duration_ms - FLAGS.window_size_ms) / FLAGS.window_stride_ms + 1)
+          nH = round(np.shape(fingerprints)[1]/nW)
+          input_layer = np.empty((set_size,nW,nH))
+        input_layer[isample:isample+obtained,:,:] = \
+              np.reshape(fingerprints[:obtained,:],(obtained,nW,nH))
+  tf.logging.info('Confusion Matrix:\n %s\n %s' % (audio_processor.words_list,total_conf_matrix))
+  t1=dt.datetime.now()-t0
+  tf.logging.info('Elapsed %f, Step %d: %s accuracy = %.1f%% (N=%d)' %
+                  (t1.total_seconds(), training_step, set_kind.capitalize(), total_accuracy * 100, set_size))
+  np.savez(os.path.join(FLAGS.train_dir, \
+           'logits.'+set_kind+'.ckpt-'+str(training_step)+'.npz'), \
+           samples=samples_data, groundtruth=groundtruth_data, logits=logit_data)
+  if is_last_step:
+    if FLAGS.save_hidden:
+      np.savez(os.path.join(FLAGS.data_dir,'hidden.npz'), \
+               *hidden_layers, samples=samples_data)
+    if FLAGS.save_fingerprints:
+      np.save(os.path.join(FLAGS.data_dir,'fingerprints.npy'), input_layer)
 
 def str2bool(v):
     if v.lower() in ('yes', 'true', 't', 'y', '1'):
@@ -451,6 +448,11 @@ if __name__ == '__main__':
       default=10,
       help='What percentage of wavs to use as a test set.')
   parser.add_argument(
+      '--testing_files',
+      type=str,
+      default='',
+      help='Which wav files to use as a test set.')
+  parser.add_argument(
       '--subsample_word',
       type=str,
       default='',
@@ -481,7 +483,7 @@ if __name__ == '__main__':
       default='',
       help='Validate on only these files for the specified word.')
   parser.add_argument(
-      '--withhold_files',
+      '--validation_files',
       type=str,
       default='',
       help='Which wav files to use as a validation set.')
