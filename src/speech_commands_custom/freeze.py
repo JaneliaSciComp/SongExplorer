@@ -53,7 +53,8 @@ FLAGS = None
 
 
 def create_inference_graph(wanted_words, sample_rate, clip_duration_ms,
-                           clip_stride_ms, window_size_ms, window_stride_ms, nstrides,
+                           clip_stride_ms, representation, window_size_ms,
+                           window_stride_ms, nstrides,
                            dct_coefficient_count, filterbank_channel_count,
                            model_architecture, filter_counts, filter_sizes, final_filter_len,
                            dropout_prob, batch_size,
@@ -77,7 +78,7 @@ def create_inference_graph(wanted_words, sample_rate, clip_duration_ms,
   words_list = input_data.prepare_words_list(wanted_words.split(','),
                                              silence_percentage, unknown_percentage)
   model_settings = models.prepare_model_settings(
-      len(words_list), sample_rate, clip_duration_ms, window_size_ms,
+      len(words_list), sample_rate, clip_duration_ms, representation, window_size_ms,
       window_stride_ms, nstrides, dct_coefficient_count, filterbank_channel_count,
       filter_counts, filter_sizes, final_filter_len,
       dropout_prob, batch_size)
@@ -102,17 +103,15 @@ def create_inference_graph(wanted_words, sample_rate, clip_duration_ms,
       filterbank_channel_count=filterbank_channel_count,
       dct_coefficient_count=dct_coefficient_count)
 
-  if filterbank_channel_count>0 and dct_coefficient_count>0:
-    fingerprint_input = mfcc
-    fingerprint_frequency_size = dct_coefficient_count
-  else:
+  if representation=='waveform':
+    fingerprint_input = decoded_sample_data.audio
+  elif representation=='spectrogram':
     fingerprint_input = spectrogram
-    fingerprint_frequency_size = model_settings['window_size_samples']//2+1
+  elif representation=='mel-cepstrum':
+    fingerprint_input = mfcc
 
-  fingerprint_time_size = model_settings['spectrogram_length']
   reshaped_input = tf.reshape(fingerprint_input, [
-      -1, fingerprint_time_size * fingerprint_frequency_size
-  ])
+      -1, model_settings['fingerprint_size']])
 
   hidden_layers, final = models.create_model(
       reshaped_input, model_settings, model_architecture, is_training=False,
@@ -126,6 +125,7 @@ def create_inference_graph(wanted_words, sample_rate, clip_duration_ms,
 
 def main(_):
 
+  tf.logging.set_verbosity(tf.logging.INFO)
   flags = vars(FLAGS)
   for key in sorted(flags.keys()):
     tf.logging.info('%s = %s', key, flags[key])
@@ -133,7 +133,7 @@ def main(_):
   # Create the model and load its weights.
   sess = tf.InteractiveSession()
   create_inference_graph(FLAGS.wanted_words, FLAGS.sample_rate,
-                         FLAGS.clip_duration_ms, FLAGS.clip_stride_ms,
+                         FLAGS.clip_duration_ms, FLAGS.clip_stride_ms, FLAGS.representation,
                          FLAGS.window_size_ms, FLAGS.window_stride_ms, FLAGS.nstrides,
                          FLAGS.dct_coefficient_count, FLAGS.filterbank_channel_count,
                          FLAGS.model_architecture,
@@ -174,6 +174,11 @@ if __name__ == '__main__':
       type=float,
       default=30,
       help='How often to run recognition. Useful for models with cache.',)
+  parser.add_argument(
+      '--representation',
+      type=str,
+      default='waveform',
+      help='What input representation to use.  One of waveform, spectrogram, or mel-cepstrum.')
   parser.add_argument(
       '--window_size_ms',
       type=float,

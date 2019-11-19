@@ -470,6 +470,7 @@ class AudioProcessor(object):
     background_add = tf.add(background_mul, sliced_foreground)
     background_clamp = tf.clip_by_value(background_add, -1.0, 1.0)
     # Run the spectrogram and MFCC ops to get a 2D 'fingerprint' of the audio.
+    self.waveform_ = background_clamp
     self.spectrogram_ = contrib_audio.audio_spectrogram(
         background_clamp,
         window_size=model_settings['window_size_samples'],
@@ -532,7 +533,12 @@ class AudioProcessor(object):
     desired_samples = model_settings['desired_samples']
     use_background = self.background_data and (mode == 'training')
     pick_deterministically = (mode != 'training')
-    use_mfcc = model_settings['filterbank_channel_count']>0 and model_settings['dct_coefficient_count']>0
+    if model_settings['representation']=='waveform':
+      input_to_use = self.waveform_
+    elif model_settings['representation']=='spectrogram':
+      input_to_use = self.spectrogram_
+    elif model_settings['representation']=='mel-cepstrum':
+      input_to_use = self.mfcc_
     # Use the processing graph we created earlier to repeatedly to generate the
     # final output sample data we'll use in training.
     for i in xrange(offset, offset + sample_count):
@@ -602,10 +608,7 @@ class AudioProcessor(object):
       else:
         input_dict[self.foreground_volume_placeholder_] = 1
       # Run the graph to produce the output audio.
-      if use_mfcc:
-        data[i - offset, :] = sess.run(self.mfcc_, feed_dict=input_dict).flatten()
-      else:
-        data[i - offset, :] = sess.run(self.spectrogram_, feed_dict=input_dict).flatten()
+      data[i - offset, :] = sess.run(input_to_use, feed_dict=input_dict).flatten()
       label_index = self.word_to_index[sample['label']]
       labels[i - offset] = label_index
       samples.append(sample)

@@ -25,7 +25,7 @@ import tensorflow as tf
 
 
 def prepare_model_settings(label_count, sample_rate, clip_duration_ms,
-                           window_size_ms, window_stride_ms, nstrides,
+                           representation, window_size_ms, window_stride_ms, nstrides,
                            dct_coefficient_count, filterbank_channel_count,
                            filter_counts, filter_sizes, final_filter_len,
                            dropout_prob, batch_size):
@@ -50,15 +50,18 @@ def prepare_model_settings(label_count, sample_rate, clip_duration_ms,
     spectrogram_length = 0
   else:
     spectrogram_length = 1 + int(length_minus_window / window_stride_samples)
-  if filterbank_channel_count>0 and dct_coefficient_count>0:
-    fingerprint_size = dct_coefficient_count * spectrogram_length
-  else:
+  if representation=='waveform':
+    fingerprint_size = desired_samples
+  elif representation=='spectrogram':
     fingerprint_size = (window_size_samples//2 + 1) * spectrogram_length
+  elif representation=='mel-cepstrum':
+    fingerprint_size = dct_coefficient_count * spectrogram_length
   tf.logging.info('desired_samples = %d' % (desired_samples))
   tf.logging.info('window_size_samples = %d' % (window_size_samples))
   tf.logging.info('window_stride_samples = %d' % (window_stride_samples))
   return {
       'desired_samples': desired_samples,
+      'representation': representation,
       'window_size_samples': window_size_samples,
       'window_stride_samples': window_stride_samples,
       'nstrides': nstrides,
@@ -221,11 +224,15 @@ def create_custom_vgg_model(fingerprint_input, model_settings, is_training):
   """
   if is_training:
     dropout_prob = tf.placeholder(tf.float32, name='dropout_prob')
-  if model_settings['filterbank_channel_count']>0 and model_settings['dct_coefficient_count']>0:
-    input_frequency_size = model_settings['dct_coefficient_count']
-  else:
+  if model_settings['representation']=='waveform':
+    input_frequency_size = 1
+    input_time_size = model_settings['desired_samples']
+  elif model_settings['representation']=='spectrogram':
     input_frequency_size = model_settings['window_size_samples']//2+1
-  input_time_size = model_settings['spectrogram_length']
+    input_time_size = model_settings['spectrogram_length']
+  elif model_settings['representation']=='mel-cepstrum':
+    input_frequency_size = model_settings['dct_coefficient_count']
+    input_time_size = model_settings['spectrogram_length']
   output_time_size = input_time_size
   filter_counts = model_settings['filter_counts']
   filter_sizes = model_settings['filter_sizes']
@@ -326,8 +333,8 @@ def create_custom_vgg_model(fingerprint_input, model_settings, is_training):
       dropout = tf.nn.dropout(relu, dropout_prob)
     else:
       dropout = relu
-    tf.logging.info('conv layer %d: in_shape = %s, time_size = %s, conv_shape = %s, dilation = %s' %
-          (iconv, inarg.get_shape(), output_time_size, weights.get_shape(), str(dilation)))
+    tf.logging.info('conv layer %d: in_shape = %s, time_size = %s, conv_shape = %s' %
+          (iconv, inarg.get_shape(), output_time_size, weights.get_shape()))
     inarg = dropout
     iconv += 1
 

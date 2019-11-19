@@ -111,7 +111,9 @@ def main(_):
   model_settings = models.prepare_model_settings(
       len(input_data.prepare_words_list(FLAGS.wanted_words.split(','),
                                         FLAGS.silence_percentage, FLAGS.unknown_percentage)),
-      FLAGS.sample_rate, FLAGS.clip_duration_ms, FLAGS.window_size_ms, FLAGS.window_stride_ms, 1,
+      FLAGS.sample_rate, FLAGS.clip_duration_ms,
+      FLAGS.representation,
+      FLAGS.window_size_ms, FLAGS.window_stride_ms, 1,
       FLAGS.dct_coefficient_count, FLAGS.filterbank_channel_count,
       [int(x) for x in FLAGS.filter_counts.split(',')],
       [int(x) for x in FLAGS.filter_sizes.split(',')],
@@ -348,13 +350,11 @@ def validate_and_test(set_kind, set_size, model_settings, time_shift_samples, se
         if isample==0:
           hidden_layers = []
           for ihidden in range(len(hidden_vals)):
-            nH=len(hidden_vals[ihidden][0][0])
-            nC=len(hidden_vals[ihidden][0][0][0])
-            hidden_layers.append(np.empty((set_size,nH,nC)))
+            nHWC = np.shape(hidden_vals[ihidden])[1:]
+            hidden_layers.append(np.empty((set_size, *nHWC)))
         for ihidden in range(len(hidden_vals)):
-          iW=(len(hidden_vals[ihidden][0][0])-1)//2
           hidden_layers[ihidden][isample:isample+obtained,:,:] = \
-                hidden_vals[ihidden][:obtained,iW,:,:]
+                hidden_vals[ihidden][:obtained,:,:,:]
       if FLAGS.save_fingerprints:
         if isample==0:
           nW = round((FLAGS.clip_duration_ms - FLAGS.window_size_ms) / FLAGS.window_stride_ms + 1)
@@ -603,10 +603,15 @@ if __name__ == '__main__':
       default=0.5,
       help='Dropout probability during training')
   parser.add_argument(
+      '--representation',
+      type=str,
+      default='waveform',
+      help='What input representation to use.  One of waveform, spectrogram, or mel-cepstrum.')
+  parser.add_argument(
       '--optimizer',
       type=str,
       default='sgd',
-      help='What optimzer to use.  One of sgd, adam, adagrad, rmsprop.')
+      help='What optimizer to use.  One of sgd, adam, adagrad, or rmsprop.')
   parser.add_argument(
       '--model_architecture',
       type=str,
