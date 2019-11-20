@@ -28,7 +28,7 @@ def prepare_model_settings(label_count, sample_rate, clip_duration_ms,
                            representation, window_size_ms, window_stride_ms, nstrides,
                            dct_coefficient_count, filterbank_channel_count,
                            filter_counts, filter_sizes, final_filter_len,
-                           dropout_prob, batch_size):
+                           dropout_prob, batch_size, dilate_after_layer):
   """Calculates common settings needed for all models.
 
   Args:
@@ -76,6 +76,7 @@ def prepare_model_settings(label_count, sample_rate, clip_duration_ms,
       'final_filter_len': final_filter_len,
       'dropout_prob': dropout_prob,
       'batch_size': batch_size,
+      'dilate_after_layer': dilate_after_layer,
   }
 
 
@@ -240,12 +241,13 @@ def create_custom_vgg_model(fingerprint_input, model_settings, is_training):
   filter_sizes = model_settings['filter_sizes']
   batch_size = model_settings['batch_size']
   nstrides = model_settings['nstrides']
+  dilate_after_layer = model_settings['dilate_after_layer']
+
   fingerprint_4d = tf.reshape(fingerprint_input,
                               [batch_size, -1, input_frequency_size, 1])
   fingerprint_4d_shape = fingerprint_4d.get_shape().as_list()
 
   iconv=0
-  dilate_at_level=0  # if > then 0 for all dilate, 8 for no dilate
   hidden_layers = []
   residual = False
 
@@ -261,12 +263,7 @@ def create_custom_vgg_model(fingerprint_input, model_settings, is_training):
               stddev=0.01))
     filter_count_prev = filter_counts[0]
     bias = tf.Variable(tf.zeros([filter_counts[0]]))
-    if iconv<dilate_at_level:
-      dilation = [1,2**(abs(iconv-dilate_at_level)),1,1]
-      #dilation = [1,2**iconv,1,1]
-    else:
-      dilation = [1,1,1,1]
-      #dilation = [1,2**(dilate_at_level-1),1,1]
+    dilation = [1,2**max(0,iconv-dilate_after_layer),1,1]
     output_time_size -= (filter_sizes[0]-1)*dilation[1]
     conv = tf.nn.conv2d(inarg, weights, [1, 1, 1, 1], 'VALID', dilations=dilation) + bias
     # insert batch norm here
@@ -291,12 +288,7 @@ def create_custom_vgg_model(fingerprint_input, model_settings, is_training):
               stddev=0.01))
     filter_count_prev = filter_counts[1]
     bias = tf.Variable(tf.zeros([filter_counts[1]]))
-    if iconv<dilate_at_level:
-      dilation = [1,2**(abs(iconv-dilate_at_level)),1,1]
-      #dilation = [1,2**iconv,1,1]
-    else:
-      dilation = [1,1,1,1]
-      #dilation = [1,2**(dilate_at_level-1),1,1]
+    dilation = [1,2**max(0,iconv-dilate_after_layer),1,1]
     output_time_size -= (filter_sizes[1]-1)*dilation[1]
     conv = tf.nn.conv2d(inarg, weights, [1, 1, 1, 1], 'VALID', dilations=dilation) + bias
     hidden_layers.append(conv)
@@ -313,17 +305,18 @@ def create_custom_vgg_model(fingerprint_input, model_settings, is_training):
 
   assert inarg_shape[2]==1
 
-  inarg = tf.squeeze(inarg,[2])
+  #inarg = tf.squeeze(inarg,[2])
   while output_time_size>(nstrides+final_filter_len):
     if residual and iconv%2==0:
       bypass = inarg
     weights = tf.Variable( tf.truncated_normal(
-              [filter_sizes[2], filter_count_prev, filter_counts[2]],
+              [filter_sizes[2], 1, filter_count_prev, filter_counts[2]],
               stddev=0.01))
     filter_count_prev = filter_counts[2]
     bias = tf.Variable(tf.zeros([filter_counts[2]]))
-    output_time_size -= (filter_sizes[2]-1)
-    conv = tf.nn.conv1d(inarg, weights, 1, 'VALID') + bias
+    dilation = [1,2**max(0,iconv-dilate_after_layer),1,1]
+    output_time_size -= (filter_sizes[2]-1)*dilation[1]
+    conv = tf.nn.conv2d(inarg, weights, [1, 1, 1, 1], 'VALID', dilations=dilation) + bias
     if residual and iconv%2==0:
       tf.logging.info('adding bypass connection')
       conv += bypass[:,1:-1,:]
@@ -333,13 +326,14 @@ def create_custom_vgg_model(fingerprint_input, model_settings, is_training):
       dropout = tf.nn.dropout(relu, dropout_prob)
     else:
       dropout = relu
-    tf.logging.info('conv layer %d: in_shape = %s, time_size = %s, conv_shape = %s' %
-          (iconv, inarg.get_shape(), output_time_size, weights.get_shape()))
+    tf.logging.info('conv layer %d: in_shape = %s, time_size = %s, conv_shape = %s, dilation = %s' %
+          (iconv, inarg.get_shape(), output_time_size, weights.get_shape(), str(dilation)))
     inarg = dropout
     iconv += 1
 
   #assert output_time_size==(nstrides+final_filter_len)
 
+  inarg = tf.squeeze(inarg,[2])
   label_count = model_settings['label_count']
   weights = tf.Variable( tf.truncated_normal(
             [1+output_time_size-nstrides, filter_count_prev, label_count],

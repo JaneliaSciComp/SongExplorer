@@ -118,7 +118,7 @@ def main(_):
       [int(x) for x in FLAGS.filter_counts.split(',')],
       [int(x) for x in FLAGS.filter_sizes.split(',')],
       FLAGS.final_filter_len,
-      FLAGS.dropout_prob, FLAGS.batch_size)
+      FLAGS.dropout_prob, FLAGS.batch_size, FLAGS.dilate_after_layer)
 
   audio_processor = input_data.AudioProcessor(
       FLAGS.data_url, FLAGS.data_dir, FLAGS.silence_percentage,
@@ -597,6 +597,11 @@ if __name__ == '__main__':
       type=int,
       default=59185,
       help='Randomize mini-batch selection and train/validate/test split if -1; otherwise use supplied number as seed.')
+  parser.add_argument(
+      '--dilate_after_layer',
+      type=int,
+      default=65535,
+      help='Convolutional layer at which to start exponentially dilating.')
   parser.add_argument(
       '--dropout_prob',
       type=float,

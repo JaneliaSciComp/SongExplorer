@@ -57,7 +57,7 @@ def create_inference_graph(wanted_words, sample_rate, clip_duration_ms,
                            window_stride_ms, nstrides,
                            dct_coefficient_count, filterbank_channel_count,
                            model_architecture, filter_counts, filter_sizes, final_filter_len,
-                           dropout_prob, batch_size,
+                           dropout_prob, batch_size, dilate_after_layer,
                            silence_percentage, unknown_percentage):
   """Creates an audio model with the nodes needed for inference.
 
@@ -81,7 +81,7 @@ def create_inference_graph(wanted_words, sample_rate, clip_duration_ms,
       len(words_list), sample_rate, clip_duration_ms, representation, window_size_ms,
       window_stride_ms, nstrides, dct_coefficient_count, filterbank_channel_count,
       filter_counts, filter_sizes, final_filter_len,
-      dropout_prob, batch_size)
+      dropout_prob, batch_size, dilate_after_layer)
 
   runtime_settings = {'clip_stride_ms': clip_stride_ms}
 
@@ -140,7 +140,7 @@ def main(_):
                          [int(x) for x in FLAGS.filter_counts.split(',')],
                          [int(x) for x in FLAGS.filter_sizes.split(',')],
                          FLAGS.final_filter_len,
-                         FLAGS.dropout_prob, FLAGS.batch_size,
+                         FLAGS.dropout_prob, FLAGS.batch_size, FLAGS.dilate_after_layer,
                          FLAGS.silence_percentage, FLAGS.unknown_percentage)
   models.load_variables_from_checkpoint(sess, FLAGS.start_checkpoint)
 
@@ -229,6 +229,11 @@ if __name__ == '__main__':
       type=int,
       default=[110],
       help='The length of the final conv1d layer in the vgg model.  Must be even.')
+  parser.add_argument(
+      '--dilate_after_layer',
+      type=int,
+      default=65535,
+      help='Convolutional layer at which to start exponentially dilating.')
   parser.add_argument(
       '--dropout_prob',
       type=float,
