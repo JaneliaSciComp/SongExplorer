@@ -108,9 +108,19 @@ def main(_):
   # Begin by making sure we have the training data we need. If you already have
   # training data of your own, use `--data_url= ` on the command line to avoid
   # downloading.
+
+  if FLAGS.start_checkpoint!='':
+      label_file = os.path.join(os.path.dirname(FLAGS.start_checkpoint), "vgg_labels.txt")
+      fid = open(label_file)
+      label_count = sum(1 for line in fid)
+      fid.close()
+  else:
+      label_count = len(input_data.prepare_words_list(FLAGS.wanted_words.split(','),
+                                                      FLAGS.silence_percentage,
+                                                      FLAGS.unknown_percentage))
+
   model_settings = models.prepare_model_settings(
-      len(input_data.prepare_words_list(FLAGS.wanted_words.split(','),
-                                        FLAGS.silence_percentage, FLAGS.unknown_percentage)),
+      label_count,
       FLAGS.sample_rate, FLAGS.clip_duration_ms,
       FLAGS.representation,
       FLAGS.window_size_ms, FLAGS.window_stride_ms, 1,
@@ -121,12 +131,15 @@ def main(_):
       FLAGS.dropout_prob, FLAGS.batch_size, FLAGS.dilate_after_layer)
 
   audio_processor = input_data.AudioProcessor(
-      FLAGS.data_url, FLAGS.data_dir, FLAGS.silence_percentage,
-      FLAGS.unknown_percentage,
+      FLAGS.data_url, FLAGS.data_dir,
+      FLAGS.silence_percentage, FLAGS.unknown_percentage,
       FLAGS.wanted_words.split(','), FLAGS.labels_touse.split(','),
-      FLAGS.validation_percentage, FLAGS.validation_offset_percentage, FLAGS.validation_files.split(','),
-      FLAGS.testing_percentage, FLAGS.testing_files.split(','), FLAGS.subsample_skip, FLAGS.subsample_word,
-      FLAGS.partition_word, FLAGS.partition_n, FLAGS.partition_training_files.split(','), FLAGS.partition_validation_files.split(','),
+      FLAGS.validation_percentage, FLAGS.validation_offset_percentage,
+      FLAGS.validation_files.split(','),
+      FLAGS.testing_percentage, FLAGS.testing_files.split(','), FLAGS.subsample_skip,
+      FLAGS.subsample_word,
+      FLAGS.partition_word, FLAGS.partition_n, FLAGS.partition_training_files.split(','),
+      FLAGS.partition_validation_files.split(','),
       FLAGS.random_seed, model_settings)
 
   fingerprint_size = model_settings['fingerprint_size']
@@ -227,10 +240,10 @@ def main(_):
                        FLAGS.model_architecture + '.pbtxt')
 
   # Save list of words.
-  with gfile.GFile(
-      os.path.join(FLAGS.train_dir, FLAGS.model_architecture + '_labels.txt'),
-      'w') as f:
-    f.write(FLAGS.wanted_words.replace(',','\n'))
+  if FLAGS.start_checkpoint=='':
+    with gfile.GFile(os.path.join(FLAGS.train_dir, \
+                                  FLAGS.model_architecture + '_labels.txt'), 'w') as f:
+      f.write(FLAGS.wanted_words.replace(',','\n'))
 
   # log complexity of model
   total_parameters = 0
@@ -257,7 +270,7 @@ def main(_):
   # Training loop.
   training_steps_max = np.sum(training_steps_list)
   for training_step in xrange(start_step, training_steps_max + 1):
-    if training_set_size>0:
+    if training_set_size>0 and FLAGS.save_step_interval>0:
       # Figure out what the current learning rate is.
       training_steps_sum = 0
       for i in range(len(training_steps_list)):
@@ -298,11 +311,24 @@ def main(_):
 
     is_last_step = (training_step == training_steps_max)
     if validation_set_size>0 and (is_last_step or (training_step % FLAGS.eval_step_interval) == 0):
-      validate_and_test('validation', validation_set_size, model_settings, time_shift_samples, sess, merged_summaries, evaluation_step, confusion_matrix, logits, hidden, validation_writer, audio_processor, is_last_step, fingerprint_input, ground_truth_input, actual_batch_size, dropout_prob, training_step, t0)
-    if testing_set_size>0 and is_last_step:
-      validate_and_test('testing', testing_set_size, model_settings, time_shift_samples, sess, merged_summaries, evaluation_step, confusion_matrix, logits, hidden, validation_writer, audio_processor, is_last_step, fingerprint_input, ground_truth_input, actual_batch_size, dropout_prob, training_step, t0)
+      validate_and_test('validation', validation_set_size, model_settings, \
+                        time_shift_samples, sess, merged_summaries, evaluation_step, \
+                        confusion_matrix, logits, hidden, validation_writer, \
+                        audio_processor, is_last_step, fingerprint_input, \
+                        ground_truth_input, actual_batch_size, dropout_prob, \
+                        training_step, t0)
+  if testing_set_size>0:
+    validate_and_test('testing', testing_set_size, model_settings, time_shift_samples, \
+                      sess, merged_summaries, evaluation_step, confusion_matrix, \
+                      logits, hidden, validation_writer, audio_processor, \
+                      True, fingerprint_input, ground_truth_input, \
+                      actual_batch_size, dropout_prob, training_steps_max, t0)
 
-def validate_and_test(set_kind, set_size, model_settings, time_shift_samples, sess, merged_summaries, evaluation_step, confusion_matrix, logits, hidden, validation_writer, audio_processor, is_last_step, fingerprint_input, ground_truth_input, actual_batch_size, dropout_prob, training_step, t0):
+def validate_and_test(set_kind, set_size, model_settings, time_shift_samples, sess, \
+                      merged_summaries, evaluation_step, confusion_matrix, logits, \
+                      hidden, validation_writer, audio_processor, is_last_step, \
+                      fingerprint_input, ground_truth_input, actual_batch_size, \
+                      dropout_prob, training_step, t0):
   total_accuracy = 0
   total_conf_matrix = None
   for isample in xrange(0, set_size, FLAGS.batch_size):
@@ -357,15 +383,18 @@ def validate_and_test(set_kind, set_size, model_settings, time_shift_samples, se
                 hidden_vals[ihidden][:obtained,:,:,:]
       if FLAGS.save_fingerprints:
         if isample==0:
-          nW = round((FLAGS.clip_duration_ms - FLAGS.window_size_ms) / FLAGS.window_stride_ms + 1)
+          nW = round((FLAGS.clip_duration_ms - FLAGS.window_size_ms) / \
+                     FLAGS.window_stride_ms + 1)
           nH = round(np.shape(fingerprints)[1]/nW)
           input_layer = np.empty((set_size,nW,nH))
         input_layer[isample:isample+obtained,:,:] = \
               np.reshape(fingerprints[:obtained,:],(obtained,nW,nH))
-  tf.logging.info('Confusion Matrix:\n %s\n %s' % (audio_processor.words_list,total_conf_matrix))
+  tf.logging.info('Confusion Matrix:\n %s\n %s' % \
+                  (audio_processor.words_list,total_conf_matrix))
   t1=dt.datetime.now()-t0
   tf.logging.info('Elapsed %f, Step %d: %s accuracy = %.1f%% (N=%d)' %
-                  (t1.total_seconds(), training_step, set_kind.capitalize(), total_accuracy * 100, set_size))
+                  (t1.total_seconds(), training_step, set_kind.capitalize(), \
+                   total_accuracy * 100, set_size))
   np.savez(os.path.join(FLAGS.train_dir, \
            'logits.'+set_kind+'.ckpt-'+str(training_step)+'.npz'), \
            samples=samples_data, groundtruth=groundtruth_data, logits=logit_data)
