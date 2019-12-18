@@ -140,7 +140,8 @@ def main(_):
       FLAGS.subsample_word,
       FLAGS.partition_word, FLAGS.partition_n, FLAGS.partition_training_files.split(','),
       FLAGS.partition_validation_files.split(','),
-      FLAGS.random_seed, model_settings)
+      FLAGS.random_seed, FLAGS.testing_equalize_ratio, FLAGS.testing_max_samples,
+      model_settings)
 
   fingerprint_size = model_settings['fingerprint_size']
   label_count = model_settings['label_count']
@@ -631,6 +632,16 @@ if __name__ == '__main__':
       type=int,
       default=65535,
       help='Convolutional layer at which to start exponentially dilating.')
+  parser.add_argument(
+      '--testing_equalize_ratio',
+      type=int,
+      default=0,
+      help='Limit most common word to be no more than this times more than the least common word for testing.')
+  parser.add_argument(
+      '--testing_max_samples',
+      type=int,
+      default=0,
+      help='Limit number of test samples to this number.')
   parser.add_argument(
       '--dropout_prob',
       type=float,

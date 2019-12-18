@@ -164,7 +164,7 @@ class AudioProcessor(object):
                validation_percentage, validation_offset_percentage, validation_files,
                testing_percentage, testing_files, subsample_skip, subsample_word,
                partition_word, partition_n, partition_training_files, partition_validation_files,
-               random_seed, model_settings):
+               random_seed, testing_equalize_ratio, testing_max_samples, model_settings):
     self.data_dir = data_dir
     self.maybe_download_and_extract_dataset(data_url, data_dir)
     self.prepare_data_index(silence_percentage, unknown_percentage,
@@ -172,7 +172,8 @@ class AudioProcessor(object):
                             validation_percentage, validation_offset_percentage, validation_files,
                             testing_percentage, testing_files, subsample_skip, subsample_word,
                             partition_word, partition_n, partition_training_files, partition_validation_files,
-                            random_seed, model_settings)
+                            random_seed, testing_equalize_ratio, testing_max_samples,
+                            model_settings)
     self.prepare_background_data()
     self.prepare_processing_graph(model_settings)
 
@@ -222,7 +223,8 @@ class AudioProcessor(object):
                          validation_percentage, validation_offset_percentage, validation_files,
                          testing_percentage, testing_files, subsample_skip, subsample_word,
                          partition_word, partition_n, partition_training_files, partition_validation_files,
-                         random_seed, model_settings):
+                         random_seed, testing_equalize_ratio, testing_max_samples,
+                         model_settings):
     """Prepares a list of the samples organized by set and label.
 
     The training loop needs a list of all the available data, organized by
@@ -283,7 +285,8 @@ class AudioProcessor(object):
              wavfile not in partition_validation_files:
             continue
           if wavfile in partition_training_files and \
-             sum([x['label']==word and x['file']==wav_path for x in self.data_index['training']]) >= partition_n:
+             sum([x['label']==word and x['file']==wav_path \
+                  for x in self.data_index['training']]) >= partition_n:
             continue
         if wav_path not in wav_nsamples:
           wavreader = wave.open(wav_path)
@@ -310,13 +313,16 @@ class AudioProcessor(object):
             continue
         else:
           set_index = which_set(annotation[0]+annotation[1]+annotation[2],
-                                validation_percentage, validation_offset_percentage, testing_percentage)
+                                validation_percentage, validation_offset_percentage, \
+                                testing_percentage)
         # If it's a known class, store its detail, otherwise add it to the list
         # we'll use to train the unknown label.
         if word in wanted_words_index:
-          self.data_index[set_index].append({'label': word, 'file': wav_path, 'ticks': ticks, 'kind': kind})
+          self.data_index[set_index].append({'label': word, 'file': wav_path, \
+                                             'ticks': ticks, 'kind': kind})
         else:
-          unknown_index[set_index].append({'label': word, 'file': wav_path, 'ticks': ticks, 'kind': kind})
+          unknown_index[set_index].append({'label': word, 'file': wav_path, \
+                                           'ticks': ticks, 'kind': kind})
     if not all_words:
       print('WARNING: No wanted words found in labels')
     if validation_percentage+testing_percentage<100:
@@ -327,9 +333,10 @@ class AudioProcessor(object):
     for set_index in ['validation', 'testing', 'training']:
       tf.logging.info('num %s labels', set_index)
       words = [sample['label'] for sample in self.data_index[set_index]]
-      for uniqword in sorted(set(words)):
-        tf.logging.info('%7d %s', sum([word==uniqword for word in words]), uniqword)
-      if set_index != 'training' or len(self.data_index[set_index])==0:
+      if set_index != 'testing':
+        for uniqword in sorted(set(words)):
+          tf.logging.info('%8d %s', sum([word==uniqword for word in words]), uniqword)
+      if set_index == 'validation' or len(self.data_index[set_index])==0:
         continue
       word_indices = {}
       for isample in range(len(self.data_index[set_index])):
@@ -338,13 +345,33 @@ class AudioProcessor(object):
           word_indices[sample['label']].append(isample)
         else:
           word_indices[sample['label']]=[isample]
-      largest_word = max([len(word_indices[x]) for x in word_indices.keys()])
-      for word in word_indices.keys():
-        words_needed = largest_word - len(word_indices[word])
-        words_have = range(len(word_indices[word]))
-        for _ in range(words_needed):
-          add_this = word_indices[word][random.choice(words_have)]
-          self.data_index[set_index].append(self.data_index[set_index][add_this])
+      if set_index == 'training':
+        samples_largest = max([len(word_indices[x]) for x in word_indices.keys()])
+        for word in word_indices.keys():
+          samples_have = len(word_indices[word])
+          samples_needed = samples_largest - samples_have
+          for _ in range(samples_needed):
+            add_this = word_indices[word][random.randrange(samples_have)]
+            self.data_index[set_index].append(self.data_index[set_index][add_this])
+      elif set_index == 'testing':
+        if testing_equalize_ratio>0:
+          samples_smallest = min([len(word_indices[x]) for x in word_indices.keys()])
+          del_these = []
+          for word in word_indices.keys():
+            samples_have = len(word_indices[word])
+            samples_needed = min(samples_have, testing_equalize_ratio * samples_smallest)
+            if samples_needed<samples_have:
+              del_these.extend(random.sample(word_indices[word], \
+                               samples_have-samples_needed))
+          for i in sorted(del_these, reverse=True):
+            del self.data_index[set_index][i]
+        if testing_max_samples>0 and testing_max_samples<len(self.data_index[set_index]):
+          self.data_index[set_index] = random.sample(self.data_index[set_index], \
+                                                     testing_max_samples)
+      if set_index == 'testing':
+        words = [sample['label'] for sample in self.data_index[set_index]]
+        for uniqword in sorted(set(words)):
+          tf.logging.info('%7d %s', sum([word==uniqword for word in words]), uniqword)
     # We need an arbitrary file to load as the input for the silence samples.
     # It's multiplied by zero later, so the content doesn't matter.
     if len(self.data_index['training'])>0:
@@ -371,7 +398,8 @@ class AudioProcessor(object):
     for set_index in ['validation', 'testing', 'training']:
       random.shuffle(self.data_index[set_index])
     # Prepare the rest of the result data structure.
-    self.words_list = prepare_words_list(wanted_words, silence_percentage, unknown_percentage)
+    self.words_list = prepare_words_list(wanted_words, silence_percentage, \
+                                         unknown_percentage)
     self.word_to_index = {}
     for word in all_words:
       if word in wanted_words_index:
