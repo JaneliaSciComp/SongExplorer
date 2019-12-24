@@ -128,7 +128,8 @@ def main(_):
       [int(x) for x in FLAGS.filter_counts.split(',')],
       [int(x) for x in FLAGS.filter_sizes.split(',')],
       FLAGS.final_filter_len,
-      FLAGS.dropout_prob, FLAGS.batch_size, FLAGS.dilate_after_layer)
+      FLAGS.dropout_prob, FLAGS.batch_size,
+      FLAGS.dilate_after_layer, FLAGS.stride_after_layer)
 
   audio_processor = input_data.AudioProcessor(
       FLAGS.data_url, FLAGS.data_dir,
@@ -632,6 +633,11 @@ if __name__ == '__main__':
       type=int,
       default=65535,
       help='Convolutional layer at which to start exponentially dilating.')
+  parser.add_argument(
+      '--stride_after_layer',
+      type=int,
+      default=65535,
+      help='Convolutional layer at which to start striding by 2.')
   parser.add_argument(
       '--testing_equalize_ratio',
       type=int,
