@@ -129,7 +129,8 @@ def main(_):
       [int(x) for x in FLAGS.filter_sizes.split(',')],
       FLAGS.final_filter_len,
       FLAGS.dropout_prob, FLAGS.batch_size,
-      FLAGS.dilate_after_layer, FLAGS.stride_after_layer)
+      FLAGS.dilate_after_layer, FLAGS.stride_after_layer,
+      FLAGS.connection_type)
 
   audio_processor = input_data.AudioProcessor(
       FLAGS.data_url, FLAGS.data_dir,
@@ -668,6 +669,11 @@ if __name__ == '__main__':
       type=str,
       default='conv',
       help='What model architecture to use')
+  parser.add_argument(
+      '--connection_type',
+      type=str,
+      default='plain',
+      help='Either plain or residual.')
   parser.add_argument(
       '--check_nans',
       type=str2bool,

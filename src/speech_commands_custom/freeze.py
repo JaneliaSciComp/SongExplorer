@@ -59,6 +59,7 @@ def create_inference_graph(wanted_words, sample_rate, clip_duration_ms,
                            model_architecture, filter_counts, filter_sizes, final_filter_len,
                            dropout_prob, batch_size,
                            dilate_after_layer, stride_after_layer,
+                           connection_type,
                            silence_percentage, unknown_percentage):
   """Creates an audio model with the nodes needed for inference.
 
@@ -82,7 +83,8 @@ def create_inference_graph(wanted_words, sample_rate, clip_duration_ms,
       len(words_list), sample_rate, clip_duration_ms, representation, window_size_ms,
       window_stride_ms, nstrides, dct_coefficient_count, filterbank_channel_count,
       filter_counts, filter_sizes, final_filter_len,
-      dropout_prob, batch_size, dilate_after_layer, stride_after_layer)
+      dropout_prob, batch_size, dilate_after_layer, stride_after_layer,
+      connection_type)
 
   runtime_settings = {'clip_stride_ms': clip_stride_ms}
 
@@ -143,6 +145,7 @@ def main(_):
                          FLAGS.final_filter_len,
                          FLAGS.dropout_prob, FLAGS.batch_size,
                          FLAGS.dilate_after_layer, FLAGS.stride_after_layer,
+                         FLAGS.connection_type,
                          FLAGS.silence_percentage, FLAGS.unknown_percentage)
   models.load_variables_from_checkpoint(sess, FLAGS.start_checkpoint)
 
@@ -251,6 +254,11 @@ if __name__ == '__main__':
       type=str,
       default='conv',
       help='What model architecture to use')
+  parser.add_argument(
+      '--connection_type',
+      type=str,
+      default='plain',
+      help='Either plain or residual.')
   parser.add_argument(
       '--silence_percentage',
       type=float,

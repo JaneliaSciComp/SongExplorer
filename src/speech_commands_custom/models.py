@@ -29,7 +29,7 @@ def prepare_model_settings(label_count, sample_rate, clip_duration_ms,
                            dct_coefficient_count, filterbank_channel_count,
                            filter_counts, filter_sizes, final_filter_len,
                            dropout_prob, batch_size, dilate_after_layer,
-                           stride_after_layer):
+                           stride_after_layer, connection_type):
   """Calculates common settings needed for all models.
 
   Args:
@@ -79,6 +79,7 @@ def prepare_model_settings(label_count, sample_rate, clip_duration_ms,
       'batch_size': batch_size,
       'dilate_after_layer': dilate_after_layer,
       'stride_after_layer': stride_after_layer,
+      'connection_type': connection_type,
   }
 
 
@@ -244,6 +245,7 @@ def create_custom_vgg_model(fingerprint_input, model_settings, is_training):
   nstrides = model_settings['nstrides']
   dilate_after_layer = model_settings['dilate_after_layer']
   stride_after_layer = model_settings['stride_after_layer']
+  residual = True if model_settings['connection_type']=='residual' else False
 
   fingerprint_4d = tf.reshape(fingerprint_input,
                               [batch_size, input_time_size, input_frequency_size, 1])
@@ -251,14 +253,14 @@ def create_custom_vgg_model(fingerprint_input, model_settings, is_training):
 
   iconv=0
   hidden_layers = []
-  residual = False
 
   inarg = fingerprint_4d
   hidden_layers.append(inarg)
   inarg_shape = inarg.get_shape().as_list()
   filter_count_prev = 1
+
   while inarg_shape[2]>=filter_sizes[0]:
-    if residual and iconv%2!=0:
+    if residual and iconv%2==0:
       bypass = inarg
     weights = tf.Variable( tf.truncated_normal(
               [filter_sizes[0], filter_sizes[0], filter_count_prev, filter_counts[0]],
@@ -268,18 +270,22 @@ def create_custom_vgg_model(fingerprint_input, model_settings, is_training):
     dilation = [1,2**max(0,iconv-dilate_after_layer+1),1,1]
     strides = [1,1+(iconv>=stride_after_layer),1,1]
     conv = tf.nn.conv2d(inarg, weights, strides, 'VALID', dilations=dilation) + bias
-    # insert batch norm here
-    if residual and iconv%2!=0 and iconv!=1:
-      tf.logging.info('adding bypass connection')
-      conv += bypass[:,1:-1,1:-1,:]
+    bypassadded=False
+    if residual and iconv%2!=0:
+      bypassadded=True
+      bypass_shape = bypass.get_shape().as_list()
+      output_shape = conv.get_shape().as_list()
+      woffset = (bypass_shape[1] - output_shape[1]) // 2
+      hoffset = (bypass_shape[2] - output_shape[2]) // 2
+      conv += bypass[:, hoffset:hoffset+output_shape[1], woffset:woffset+output_shape[2], :]
     hidden_layers.append(conv)
     relu = tf.nn.relu(conv)
     if is_training:
       dropout = tf.nn.dropout(relu, dropout_prob)
     else:
       dropout = relu
-    tf.logging.info('conv layer %d: in_shape = %s, conv_shape = %s, strides = %s, dilation = %s' %
-          (iconv, inarg.get_shape(), weights.get_shape(), str(strides), str(dilation)))
+    tf.logging.info('conv layer %d: in_shape = %s, conv_shape = %s, strides = %s, dilation = %s, bypass = %s' %
+          (iconv, inarg.get_shape(), weights.get_shape(), str(strides), str(dilation), str(bypassadded)))
     inarg = dropout
     inarg_shape = inarg.get_shape().as_list()
     if iconv>=stride_after_layer:
@@ -287,6 +293,8 @@ def create_custom_vgg_model(fingerprint_input, model_settings, is_training):
     iconv += 1
 
   while inarg_shape[2]>=filter_sizes[1]:
+    if residual and iconv%2==0:
+      bypass = inarg
     weights = tf.Variable( tf.truncated_normal(
               [filter_sizes[1], filter_sizes[1], filter_count_prev, filter_counts[1]],
               stddev=0.01))
@@ -295,14 +303,22 @@ def create_custom_vgg_model(fingerprint_input, model_settings, is_training):
     dilation = [1,2**max(0,iconv-dilate_after_layer+1),1,1]
     strides = [1,1+(iconv>=stride_after_layer),1,1]
     conv = tf.nn.conv2d(inarg, weights, strides, 'VALID', dilations=dilation) + bias
+    bypassadded=False
+    if residual and iconv%2!=0:
+      bypassadded=True
+      bypass_shape = bypass.get_shape().as_list()
+      output_shape = conv.get_shape().as_list()
+      woffset = (bypass_shape[1] - output_shape[1]) // 2
+      hoffset = (bypass_shape[2] - output_shape[2]) // 2
+      conv += bypass[:, hoffset:hoffset+output_shape[1], woffset:woffset+output_shape[2], :]
     hidden_layers.append(conv)
     relu = tf.nn.relu(conv)
     if is_training:
       dropout = tf.nn.dropout(relu, dropout_prob)
     else:
       dropout = relu
-    tf.logging.info('conv layer %d: in_shape = %s, conv_shape = %s, strides = %s, dilation = %s' %
-          (iconv, inarg.get_shape(), weights.get_shape(), str(strides), str(dilation)))
+    tf.logging.info('conv layer %d: in_shape = %s, conv_shape = %s, strides = %s, dilation = %s, bypass = %s' %
+          (iconv, inarg.get_shape(), weights.get_shape(), str(strides), str(dilation), str(bypassadded)))
     inarg = dropout
     inarg_shape = inarg.get_shape().as_list()
     if iconv>=stride_after_layer:
@@ -325,17 +341,19 @@ def create_custom_vgg_model(fingerprint_input, model_settings, is_training):
     strides = [1,1+(iconv>=stride_after_layer),1,1]
     conv = tf.nn.conv2d(inarg, weights, strides, 'VALID', dilations=dilation) + bias
     output_time_size = conv.get_shape().as_list()[1]
-    if residual and iconv%2==0:
-      tf.logging.info('adding bypass connection')
-      conv += bypass[:,1:-1,:]
+    bypassadded=False
+    if residual and iconv%2!=0:
+      bypassadded=True
+      offset = (bypass.get_shape().as_list()[1] - output_time_size) // 2
+      conv += bypass[:, offset:offset+output_time_size, :, :]
     hidden_layers.append(conv)
     relu = tf.nn.relu(conv)
     if is_training:
       dropout = tf.nn.dropout(relu, dropout_prob)
     else:
       dropout = relu
-    tf.logging.info('conv layer %d: in_shape = %s, conv_shape = %s, strides = %s, dilation = %s' %
-          (iconv, inarg.get_shape(), weights.get_shape(), str(strides), str(dilation)))
+    tf.logging.info('conv layer %d: in_shape = %s, conv_shape = %s, strides = %s, dilation = %s, bypass = %s' %
+          (iconv, inarg.get_shape(), weights.get_shape(), str(strides), str(dilation), str(bypassadded)))
     inarg = dropout
     if iconv>=stride_after_layer:
       nstrides = nstrides//2
