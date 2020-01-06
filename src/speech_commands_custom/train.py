@@ -98,6 +98,9 @@ def main(_):
   for key in sorted(flags.keys()):
     tf.logging.info('%s = %s', key, flags[key])
 
+  if FLAGS.random_seed_weights!=-1:
+      tf.random.set_random_seed(FLAGS.random_seed_weights)
+
   # Start a new TensorFlow session.
   config = tf.ConfigProto()
   config.gpu_options.allow_growth = True
@@ -142,7 +145,8 @@ def main(_):
       FLAGS.subsample_word,
       FLAGS.partition_word, FLAGS.partition_n, FLAGS.partition_training_files.split(','),
       FLAGS.partition_validation_files.split(','),
-      FLAGS.random_seed, FLAGS.testing_equalize_ratio, FLAGS.testing_max_samples,
+      FLAGS.random_seed_batch,
+      FLAGS.testing_equalize_ratio, FLAGS.testing_max_samples,
       model_settings)
 
   fingerprint_size = model_settings['fingerprint_size']
@@ -258,12 +262,14 @@ def main(_):
       total_parameters += variable_parameters
   tf.logging.info('number of trainable parameters: %d',total_parameters)
 
-  # save random initialized network and exit if how_many_training_steps==0
+  checkpoint_path = os.path.join(FLAGS.train_dir,
+                                 FLAGS.model_architecture + '.ckpt')
+  if FLAGS.start_checkpoint=='':
+    tf.logging.info('Saving to "%s-%d"', checkpoint_path, 0)
+    saver.save(sess, checkpoint_path, global_step=0)
+
+  # exit if how_many_training_steps==0
   if FLAGS.how_many_training_steps=='0':
-      checkpoint_path = os.path.join(FLAGS.train_dir,
-                                     FLAGS.model_architecture + '.ckpt')
-      tf.logging.info('Saving to "%s-%d"', checkpoint_path, 0)
-      saver.save(sess, checkpoint_path, global_step=0)
       return
 
   training_set_size = audio_processor.set_size('training')
@@ -307,8 +313,6 @@ def main(_):
       # Save the model checkpoint periodically.
       if (training_step % FLAGS.save_step_interval == 0 or
           training_step == training_steps_max):
-        checkpoint_path = os.path.join(FLAGS.train_dir,
-                                       FLAGS.model_architecture + '.ckpt')
         tf.logging.info('Saving to "%s-%d"', checkpoint_path, training_step)
         saver.save(sess, checkpoint_path, global_step=training_step)
 
@@ -625,10 +629,15 @@ if __name__ == '__main__':
       default=[110],
       help='The length of the final conv1d layer in the vgg model.  Must be even.')
   parser.add_argument(
-      '--random_seed',
+      '--random_seed_batch',
       type=int,
       default=59185,
-      help='Randomize mini-batch selection and train/validate/test split if -1; otherwise use supplied number as seed.')
+      help='Randomize mini-batch selection if -1; otherwise use supplied number as seed.')
+  parser.add_argument(
+      '--random_seed_weights',
+      type=int,
+      default=59185,
+      help='Randomize weight initialization if -1; otherwise use supplied number as seed.')
   parser.add_argument(
       '--dilate_after_layer',
       type=int,

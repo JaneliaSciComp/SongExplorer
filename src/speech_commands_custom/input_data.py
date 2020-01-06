@@ -164,15 +164,18 @@ class AudioProcessor(object):
                validation_percentage, validation_offset_percentage, validation_files,
                testing_percentage, testing_files, subsample_skip, subsample_word,
                partition_word, partition_n, partition_training_files, partition_validation_files,
-               random_seed, testing_equalize_ratio, testing_max_samples, model_settings):
+               random_seed_batch,
+               testing_equalize_ratio, testing_max_samples, model_settings):
     self.data_dir = data_dir
     self.maybe_download_and_extract_dataset(data_url, data_dir)
+    random.seed(None if random_seed_batch==-1 else random_seed_batch)
+    np.random.seed(None if random_seed_batch==-1 else random_seed_batch)
     self.prepare_data_index(silence_percentage, unknown_percentage,
                             wanted_words, labels_touse,
                             validation_percentage, validation_offset_percentage, validation_files,
                             testing_percentage, testing_files, subsample_skip, subsample_word,
                             partition_word, partition_n, partition_training_files, partition_validation_files,
-                            random_seed, testing_equalize_ratio, testing_max_samples,
+                            testing_equalize_ratio, testing_max_samples,
                             model_settings)
     self.prepare_background_data()
     self.prepare_processing_graph(model_settings)
@@ -223,7 +226,7 @@ class AudioProcessor(object):
                          validation_percentage, validation_offset_percentage, validation_files,
                          testing_percentage, testing_files, subsample_skip, subsample_word,
                          partition_word, partition_n, partition_training_files, partition_validation_files,
-                         random_seed, testing_equalize_ratio, testing_max_samples,
+                         testing_equalize_ratio, testing_max_samples,
                          model_settings):
     """Prepares a list of the samples organized by set and label.
 
@@ -250,7 +253,6 @@ class AudioProcessor(object):
       Exception: If expected files are not found.
     """
     # Make sure the shuffling and picking of unknowns is deterministic.
-    random.seed(random_seed)
     wanted_words_index = {}
     for index, wanted_word in enumerate(wanted_words):
       wanted_words_index[wanted_word] = index
@@ -347,7 +349,7 @@ class AudioProcessor(object):
           word_indices[sample['label']]=[isample]
       if set_index == 'training':
         samples_largest = max([len(word_indices[x]) for x in word_indices.keys()])
-        for word in word_indices.keys():
+        for word in sorted(list(word_indices.keys())):
           samples_have = len(word_indices[word])
           samples_needed = samples_largest - samples_have
           for _ in range(samples_needed):
@@ -357,7 +359,7 @@ class AudioProcessor(object):
         if testing_equalize_ratio>0:
           samples_smallest = min([len(word_indices[x]) for x in word_indices.keys()])
           del_these = []
-          for word in word_indices.keys():
+          for word in sorted(list(word_indices.keys())):
             samples_have = len(word_indices[word])
             samples_needed = min(samples_have, testing_equalize_ratio * samples_smallest)
             if samples_needed<samples_have:
