@@ -270,6 +270,18 @@ def main(_):
 
   # exit if how_many_training_steps==0
   if FLAGS.how_many_training_steps=='0':
+      # pre-process a batch of data to make sure settings are valid
+      train_fingerprints, train_ground_truth, _ = audio_processor.get_data(
+          FLAGS.batch_size, 0, model_settings, FLAGS.background_frequency,
+          FLAGS.background_volume, time_shift_samples, FLAGS.time_shift_random, 'training', sess)
+      sess.run([evaluation_step],
+          feed_dict={
+              fingerprint_input: train_fingerprints,
+              ground_truth_input: train_ground_truth,
+              learning_rate_input: learning_rates_list[0],
+              actual_batch_size: [FLAGS.batch_size],
+              dropout_prob: model_settings['dropout_prob']
+          })
       return
 
   training_set_size = audio_processor.set_size('training')
