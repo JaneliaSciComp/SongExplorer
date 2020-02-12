@@ -221,16 +221,11 @@ int main(int argc, char* argv[]) {
     LOG(ERROR) << decode_wav_status;
     return -1;
   }
-  if (channel_count != 1) {
-    LOG(ERROR) << "Only mono .wav files can be used, but input has "
-               << channel_count << " channels.";
-    return -1;
-  }
 
   const int64 clip_duration_samples = (clip_duration_ms * sample_rate) / 1000;
   const int64 clip_stride_samples = (clip_stride_ms * sample_rate) / 1000;
   Tensor audio_data_tensor(tensorflow::DT_FLOAT,
-                           tensorflow::TensorShape({clip_duration_samples, 1}));
+                           tensorflow::TensorShape({clip_duration_samples, channel_count}));
 
   Tensor sample_rate_tensor(tensorflow::DT_INT32, tensorflow::TensorShape({}));
   sample_rate_tensor.scalar<int32>()() = sample_rate;
@@ -241,11 +236,11 @@ int main(int argc, char* argv[]) {
   while (std::getline(ss, item, ',')) {
       output_names_vec.push_back(item); }
 
-  const int64 audio_data_end = (sample_count - clip_duration_samples);
+  const int64 audio_data_end = (sample_count - channel_count * clip_duration_samples);
   for (int64 audio_data_offset = 0; audio_data_offset < audio_data_end;
-       audio_data_offset += clip_stride_samples) {
+       audio_data_offset += channel_count * clip_stride_samples) {
     const float* input_start = &(audio_data[audio_data_offset]);
-    const float* input_end = input_start + clip_duration_samples;
+    const float* input_end = input_start + channel_count * clip_duration_samples;
     std::copy(input_start, input_end, audio_data_tensor.flat<float>().data());
 
     // Actually run the audio through the model.

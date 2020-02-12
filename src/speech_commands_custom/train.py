@@ -124,7 +124,9 @@ def main(_):
 
   model_settings = models.prepare_model_settings(
       label_count,
-      FLAGS.sample_rate, FLAGS.clip_duration_ms,
+      FLAGS.sample_rate,
+      FLAGS.nchannels,
+      FLAGS.clip_duration_ms,
       FLAGS.representation,
       FLAGS.window_size_ms, FLAGS.window_stride_ms, 1,
       FLAGS.dct_coefficient_count, FLAGS.filterbank_channel_count,
@@ -550,6 +552,11 @@ if __name__ == '__main__':
       type=int,
       default=16000,
       help='Expected sample rate of the wavs',)
+  parser.add_argument(
+      '--nchannels',
+      type=int,
+      default=1,
+      help='Expected number of channels in the wavs',)
   parser.add_argument(
       '--clip_duration_ms',
       type=float,

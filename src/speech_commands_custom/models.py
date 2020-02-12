@@ -24,7 +24,7 @@ import math
 import tensorflow as tf
 
 
-def prepare_model_settings(label_count, sample_rate, clip_duration_ms,
+def prepare_model_settings(label_count, sample_rate, nchannels, clip_duration_ms,
                            representation, window_size_ms, window_stride_ms, nstrides,
                            dct_coefficient_count, filterbank_channel_count,
                            filter_counts, filter_sizes, final_filter_len,
@@ -52,16 +52,18 @@ def prepare_model_settings(label_count, sample_rate, clip_duration_ms,
   else:
     spectrogram_length = 1 + int(length_minus_window / window_stride_samples)
   if representation=='waveform':
-    fingerprint_size = desired_samples
+    fingerprint_size = desired_samples * nchannels
   elif representation=='spectrogram':
-    fingerprint_size = (window_size_samples//2 + 1) * spectrogram_length
+    fingerprint_size = (window_size_samples//2 + 1) * spectrogram_length * nchannels
   elif representation=='mel-cepstrum':
-    fingerprint_size = dct_coefficient_count * spectrogram_length
+    fingerprint_size = dct_coefficient_count * spectrogram_length * nchannels
   tf.logging.info('desired_samples = %d' % (desired_samples))
+  tf.logging.info('nchannels = %d' % (nchannels))
   tf.logging.info('window_size_samples = %d' % (window_size_samples))
   tf.logging.info('window_stride_samples = %d' % (window_stride_samples))
   return {
       'desired_samples': desired_samples,
+      'channel_count': nchannels,
       'representation': representation,
       'window_size_samples': window_size_samples,
       'window_stride_samples': window_stride_samples,
@@ -237,6 +239,7 @@ def create_custom_vgg_model(fingerprint_input, model_settings, is_training):
   elif model_settings['representation']=='mel-cepstrum':
     input_frequency_size = model_settings['dct_coefficient_count']
     input_time_size = model_settings['spectrogram_length']
+  input_channel_size = model_settings['channel_count']
   filter_counts = model_settings['filter_counts']
   filter_sizes = model_settings['filter_sizes']
   final_filter_len = model_settings['final_filter_len']
@@ -248,7 +251,8 @@ def create_custom_vgg_model(fingerprint_input, model_settings, is_training):
   residual = True if model_settings['connection_type']=='residual' else False
 
   fingerprint_4d = tf.reshape(fingerprint_input,
-                              [batch_size, input_time_size, input_frequency_size, 1])
+                              [batch_size, input_time_size,
+                               input_frequency_size, input_channel_size])
   fingerprint_4d_shape = fingerprint_4d.get_shape().as_list()
 
   iconv=0
@@ -257,7 +261,7 @@ def create_custom_vgg_model(fingerprint_input, model_settings, is_training):
   inarg = fingerprint_4d
   hidden_layers.append(inarg)
   inarg_shape = inarg.get_shape().as_list()
-  filter_count_prev = 1
+  filter_count_prev = input_channel_size
 
   while inarg_shape[2]>=filter_sizes[0]:
     if residual and iconv%2==0:

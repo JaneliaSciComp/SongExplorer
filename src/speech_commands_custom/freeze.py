@@ -52,7 +52,7 @@ from tensorflow.python.framework import graph_util
 FLAGS = None
 
 
-def create_inference_graph(wanted_words, sample_rate, clip_duration_ms,
+def create_inference_graph(wanted_words, sample_rate, nchannels, clip_duration_ms,
                            clip_stride_ms, representation, window_size_ms,
                            window_stride_ms, nstrides,
                            dct_coefficient_count, filterbank_channel_count,
@@ -80,7 +80,8 @@ def create_inference_graph(wanted_words, sample_rate, clip_duration_ms,
   words_list = input_data.prepare_words_list(wanted_words.split(','),
                                              silence_percentage, unknown_percentage)
   model_settings = models.prepare_model_settings(
-      len(words_list), sample_rate, clip_duration_ms, representation, window_size_ms,
+      len(words_list), sample_rate, nchannels,
+      clip_duration_ms, representation, window_size_ms,
       window_stride_ms, nstrides, dct_coefficient_count, filterbank_channel_count,
       filter_counts, filter_sizes, final_filter_len,
       dropout_prob, batch_size, dilate_after_layer, stride_after_layer,
@@ -91,20 +92,26 @@ def create_inference_graph(wanted_words, sample_rate, clip_duration_ms,
   wav_data_placeholder = tf.placeholder(tf.string, [], name='wav_data')
   decoded_sample_data = contrib_audio.decode_wav(
       wav_data_placeholder,
-      desired_channels=1,
+      desired_channels=nchannels,
       desired_samples=model_settings['desired_samples'],
       name='decoded_sample_data')
-  spectrogram = contrib_audio.audio_spectrogram(
-      decoded_sample_data.audio,
-      window_size=model_settings['window_size_samples'],
-      stride=model_settings['window_stride_samples'],
-      magnitude_squared=True)
-  mfcc = contrib_audio.mfcc(
-      spectrogram,
-      decoded_sample_data.sample_rate,
-      upper_frequency_limit=sample_rate//2,
-      filterbank_channel_count=filterbank_channel_count,
-      dct_coefficient_count=dct_coefficient_count)
+  spectrograms = []
+  for ichannel in range(nchannels):
+    spectrograms.append(contrib_audio.audio_spectrogram(
+        decoded_sample_data.audio,
+        window_size=model_settings['window_size_samples'],
+        stride=model_settings['window_stride_samples'],
+        magnitude_squared=True))
+  spectrogram = tf.stack(spectrograms, -1)
+  mfccs = []
+  for ichannel in range(nchannels):
+    mfccs.append(contrib_audio.mfcc(
+        spectrograms[ichannel],
+        decoded_sample_data.sample_rate,
+        upper_frequency_limit=sample_rate//2,
+        filterbank_channel_count=filterbank_channel_count,
+        dct_coefficient_count=dct_coefficient_count))
+  mfcc = tf.stack(mfccs, -1)
 
   if representation=='waveform':
     fingerprint_input = decoded_sample_data.audio
@@ -135,7 +142,7 @@ def main(_):
 
   # Create the model and load its weights.
   sess = tf.InteractiveSession()
-  create_inference_graph(FLAGS.wanted_words, FLAGS.sample_rate,
+  create_inference_graph(FLAGS.wanted_words, FLAGS.sample_rate, FLAGS.nchannels,
                          FLAGS.clip_duration_ms, FLAGS.clip_stride_ms, FLAGS.representation,
                          FLAGS.window_size_ms, FLAGS.window_stride_ms, FLAGS.nstrides,
                          FLAGS.dct_coefficient_count, FLAGS.filterbank_channel_count,
@@ -169,6 +176,11 @@ if __name__ == '__main__':
       type=int,
       default=16000,
       help='Expected sample rate of the wavs',)
+  parser.add_argument(
+      '--nchannels',
+      type=int,
+      default=1,
+      help='Expected number of channels in the wavs',)
   parser.add_argument(
       '--clip_duration_ms',
       type=float,

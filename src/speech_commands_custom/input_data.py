@@ -27,7 +27,7 @@ import re
 import sys
 import tarfile
 import csv
-import wave
+import scipy.io.wavfile as spiowav
 
 import numpy as np
 from six.moves import urllib
@@ -291,9 +291,8 @@ class AudioProcessor(object):
                   for x in self.data_index['training']]) >= partition_n:
             continue
         if wav_path not in wav_nsamples:
-          wavreader = wave.open(wav_path)
-          wav_nsamples[wav_path] = wavreader.getnframes()
-          wavreader.close()
+          _, data = spiowav.read(wav_path, mmap=True)
+          wav_nsamples[wav_path] = len(data)
         nsamples = wav_nsamples[wav_path]
         if ticks[0]<desired_samples or ticks[1]>(nsamples-desired_samples):
           continue
@@ -474,9 +473,10 @@ class AudioProcessor(object):
       model_settings: Information about the current model being trained.
     """
     desired_samples = model_settings['desired_samples']
+    channel_count = model_settings['channel_count']
     sample_rate = model_settings['sample_rate']
     self.foreground_data_placeholder_ = tf.placeholder(tf.float32,
-                                                       [desired_samples, 1])
+                                                       [desired_samples, channel_count])
     # Allow the audio sample's volume to be adjusted.
     self.foreground_volume_placeholder_ = tf.placeholder(tf.float32, [])
     scaled_foreground = tf.multiply(self.foreground_data_placeholder_,
@@ -493,7 +493,7 @@ class AudioProcessor(object):
                                  [desired_samples, -1])
     # Mix in background noise.
     self.background_data_placeholder_ = tf.placeholder(tf.float32,
-                                                       [desired_samples, 1])
+                                                       [desired_samples, channel_count])
     self.background_volume_placeholder_ = tf.placeholder(tf.float32, [])
     background_mul = tf.multiply(self.background_data_placeholder_,
                                  self.background_volume_placeholder_)
@@ -501,17 +501,24 @@ class AudioProcessor(object):
     background_clamp = tf.clip_by_value(background_add, -1.0, 1.0)
     # Run the spectrogram and MFCC ops to get a 2D 'fingerprint' of the audio.
     self.waveform_ = background_clamp
-    self.spectrogram_ = contrib_audio.audio_spectrogram(
-        background_clamp,
-        window_size=model_settings['window_size_samples'],
-        stride=model_settings['window_stride_samples'],
-        magnitude_squared=True)
-    self.mfcc_ = contrib_audio.mfcc(
-        self.spectrogram_,
-        sample_rate,
-        upper_frequency_limit=model_settings['sample_rate']//2,
-        filterbank_channel_count=model_settings['filterbank_channel_count'],
-        dct_coefficient_count=model_settings['dct_coefficient_count'])
+    spectrograms = []
+    for ichannel in range(channel_count):
+      spectrograms.append(contrib_audio.audio_spectrogram(
+          tf.slice(background_clamp, [0, ichannel], [-1, 1]),
+          window_size=model_settings['window_size_samples'],
+          stride=model_settings['window_stride_samples'],
+          magnitude_squared=True))
+    self.spectrogram_ = tf.stack(spectrograms, -1)
+    mfccs = []
+    for ichannel in range(channel_count):
+      mfccs.append(contrib_audio.mfcc(
+          spectrograms[ichannel],
+          sample_rate,
+          upper_frequency_limit=model_settings['sample_rate']//2,
+          filterbank_channel_count=model_settings['filterbank_channel_count'],
+          dct_coefficient_count=model_settings['dct_coefficient_count']))
+    self.mfcc_ = tf.stack(mfccs, -1)
+
 
   def set_size(self, mode):
     """Calculates the number of samples in the dataset partition.
@@ -582,19 +589,19 @@ class AudioProcessor(object):
 
       foreground_offset = (np.random.randint(sample['ticks'][0], 1+sample['ticks'][1]) if
             sample['ticks'][0] < sample['ticks'][1] else sample['ticks'][0])
-      wavreader = wave.open(sample['file'])
-      wavreader.setpos(foreground_offset-desired_samples//2)
-      nchannels = wavreader.getnchannels()
-      assert nchannels==1
-      assert wavreader.getframerate() == model_settings['sample_rate']
-      foreground_clipped = wavreader.readframes(desired_samples)
-      wavreader.close()
-      foreground_int16 = np.frombuffer(foreground_clipped, dtype=np.int16)
-      foreground_float32 = foreground_int16.astype(np.float32)
+      sample_rate, song = spiowav.read(sample['file'], mmap=True)
+      if np.ndim(song)==1:
+        song = np.expand_dims(song, axis=1)
+      nchannels = np.shape(song)[1]
+      assert sample_rate == model_settings['sample_rate']
+      assert nchannels == model_settings['channel_count']
+      foreground_clipped = song[foreground_offset-desired_samples//2 :
+                                foreground_offset+desired_samples//2,
+                                :]
+      foreground_float32 = foreground_clipped.astype(np.float32)
       foreground_scaled = foreground_float32 / abs(np.iinfo(np.int16).min) #extreme
       foreground_reshaped = foreground_scaled.reshape([nchannels, desired_samples], order='F')
-      foreground_indexed = foreground_reshaped[0].reshape([desired_samples,1])
-
+      foreground_indexed = foreground_reshaped.reshape([desired_samples,nchannels])
       input_dict = { self.foreground_data_placeholder_: foreground_indexed }
       # If we're time shifting, set up the offset for this sample.
       if time_shift > 0:
@@ -617,10 +624,10 @@ class AudioProcessor(object):
         background_index = np.random.randint(len(self.background_data))
         background_samples = self.background_data[background_index]
         background_offset = np.random.randint(
-            0, len(background_samples) - model_settings['desired_samples'])
+            0, len(background_samples) - desired_samples*nchannels)
         background_clipped = background_samples[background_offset:(
-            background_offset + desired_samples)]
-        background_reshaped = background_clipped.reshape([desired_samples, 1])
+            background_offset + desired_samples*nchannels)]
+        background_reshaped = background_clipped.reshape([desired_samples, nchannels])
         if sample['label'] == SILENCE_LABEL:
           background_volume = np.random.uniform(0, 1)
         elif np.random.uniform(0, 1) < background_frequency:
@@ -628,7 +635,7 @@ class AudioProcessor(object):
         else:
           background_volume = 0
       else:
-        background_reshaped = np.zeros([desired_samples, 1])
+        background_reshaped = np.zeros([desired_samples, nchannels])
         background_volume = 0
       input_dict[self.background_data_placeholder_] = background_reshaped
       input_dict[self.background_volume_placeholder_] = background_volume
