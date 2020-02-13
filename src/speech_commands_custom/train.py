@@ -112,15 +112,9 @@ def main(_):
   # training data of your own, use `--data_url= ` on the command line to avoid
   # downloading.
 
-  if FLAGS.start_checkpoint!='':
-      label_file = os.path.join(os.path.dirname(FLAGS.start_checkpoint), "vgg_labels.txt")
-      fid = open(label_file)
-      label_count = sum(1 for line in fid)
-      fid.close()
-  else:
-      label_count = len(input_data.prepare_words_list(FLAGS.wanted_words.split(','),
-                                                      FLAGS.silence_percentage,
-                                                      FLAGS.unknown_percentage))
+  label_count = len(input_data.prepare_words_list(FLAGS.wanted_words.split(','),
+                                                  FLAGS.silence_percentage,
+                                                  FLAGS.unknown_percentage))
 
   model_settings = models.prepare_model_settings(
       label_count,
@@ -152,7 +146,6 @@ def main(_):
       model_settings)
 
   fingerprint_size = model_settings['fingerprint_size']
-  label_count = model_settings['label_count']
   time_shift_samples = int((FLAGS.time_shift_ms * FLAGS.sample_rate) / 1000)
   # Figure out the learning rates for each training phase. Since it's often
   # effective to have high learning rates at the start of training, followed by
