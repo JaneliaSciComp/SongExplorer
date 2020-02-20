@@ -131,20 +131,6 @@ def main(_):
       FLAGS.dilate_after_layer, FLAGS.stride_after_layer,
       FLAGS.connection_type)
 
-  audio_processor = input_data.AudioProcessor(
-      FLAGS.data_url, FLAGS.data_dir,
-      FLAGS.silence_percentage, FLAGS.unknown_percentage,
-      FLAGS.wanted_words.split(','), FLAGS.labels_touse.split(','),
-      FLAGS.validation_percentage, FLAGS.validation_offset_percentage,
-      FLAGS.validation_files.split(','),
-      FLAGS.testing_percentage, FLAGS.testing_files.split(','), FLAGS.subsample_skip,
-      FLAGS.subsample_word,
-      FLAGS.partition_word, FLAGS.partition_n, FLAGS.partition_training_files.split(','),
-      FLAGS.partition_validation_files.split(','),
-      FLAGS.random_seed_batch,
-      FLAGS.testing_equalize_ratio, FLAGS.testing_max_samples,
-      model_settings)
-
   fingerprint_size = model_settings['fingerprint_size']
   time_shift_samples = int((FLAGS.time_shift_ms * FLAGS.sample_rate) / 1000)
   # Figure out the learning rates for each training phase. Since it's often
@@ -262,6 +248,20 @@ def main(_):
   if FLAGS.start_checkpoint=='':
     tf.logging.info('Saving to "%s-%d"', checkpoint_path, 0)
     saver.save(sess, checkpoint_path, global_step=0)
+
+  audio_processor = input_data.AudioProcessor(
+      FLAGS.data_url, FLAGS.data_dir,
+      FLAGS.silence_percentage, FLAGS.unknown_percentage,
+      FLAGS.wanted_words.split(','), FLAGS.labels_touse.split(','),
+      FLAGS.validation_percentage, FLAGS.validation_offset_percentage,
+      FLAGS.validation_files.split(','),
+      FLAGS.testing_percentage, FLAGS.testing_files.split(','), FLAGS.subsample_skip,
+      FLAGS.subsample_word,
+      FLAGS.partition_word, FLAGS.partition_n, FLAGS.partition_training_files.split(','),
+      FLAGS.partition_validation_files.split(','),
+      FLAGS.random_seed_batch,
+      FLAGS.testing_equalize_ratio, FLAGS.testing_max_samples,
+      model_settings)
 
   # exit if how_many_training_steps==0
   if FLAGS.how_many_training_steps=='0':
