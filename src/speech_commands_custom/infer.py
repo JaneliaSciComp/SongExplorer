@@ -56,7 +56,10 @@ def main(_):
 
   label_file = os.path.join(os.path.dirname(FLAGS.start_checkpoint), "vgg_labels.txt")
   fid = open(label_file)
-  label_count = sum(1 for line in fid)
+  labels = []
+  for line in fid:
+    labels.append(line.rstrip())
+  label_count = len(labels)
   fid.close()
 
   model_settings = models.prepare_model_settings(
@@ -137,15 +140,17 @@ def main(_):
     if isample==0:
       samples_data = [None]*testing_set_size
     samples_data[isample:isample+obtained] = samples[:obtained]
-    if FLAGS.save_hidden:
+    if FLAGS.save_activations:
       if isample==0:
-        hidden_layers = []
+        activations = []
         for ihidden in range(len(hidden_vals)):
           nHWC = np.shape(hidden_vals[ihidden])[1:]
-          hidden_layers.append(np.empty((testing_set_size, *nHWC)))
+          activations.append(np.empty((testing_set_size, *nHWC)))
+        activations.append(np.empty((testing_set_size, np.shape(logit_vals)[1])))
       for ihidden in range(len(hidden_vals)):
-        hidden_layers[ihidden][isample:isample+obtained,:,:] = \
+        activations[ihidden][isample:isample+obtained,:,:] = \
               hidden_vals[ihidden][:obtained,:,:,:]
+      activations[-1][isample:isample+obtained,:] = logit_vals[:obtained,:]
     if FLAGS.save_fingerprints:
       if isample==0:
         nW = round((FLAGS.clip_duration_ms - FLAGS.window_size_ms) / \
@@ -154,9 +159,9 @@ def main(_):
         input_layer = np.empty((testing_set_size,nW,nH))
       input_layer[isample:isample+obtained,:,:] = \
             np.reshape(fingerprints[:obtained,:],(obtained,nW,nH))
-  if FLAGS.save_hidden:
-    np.savez(os.path.join(FLAGS.data_dir,'hidden.npz'), \
-             *hidden_layers, samples=samples_data)
+  if FLAGS.save_activations:
+    np.savez(os.path.join(FLAGS.data_dir,'activations.npz'), \
+             *activations, samples=samples_data, labels=labels)
   if FLAGS.save_fingerprints:
     np.save(os.path.join(FLAGS.data_dir,'fingerprints.npy'), input_layer)
 
@@ -393,7 +398,7 @@ if __name__ == '__main__':
       default='plain',
       help='Either plain or residual.')
   parser.add_argument(
-      '--save_hidden',
+      '--save_activations',
       type=str2bool,
       default=False,
       help='Whether to save hidden layer activations during processing')
