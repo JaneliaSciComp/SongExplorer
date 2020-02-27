@@ -42,12 +42,16 @@ import argparse
 import os.path
 import sys
 
-import tensorflow as tf
+import tensorflow.compat.v1 as tf
+tf.disable_v2_behavior()
 
-from tensorflow.contrib.framework.python.ops import audio_ops as contrib_audio
+from tensorflow.python.ops import gen_audio_ops as audio_ops
 import input_data
 import models
 from tensorflow.python.framework import graph_util
+
+from tensorflow.python.platform import tf_logging as logging
+logging.get_logger().propagate = False
 
 FLAGS = None
 
@@ -90,14 +94,14 @@ def create_inference_graph(wanted_words, sample_rate, nchannels, clip_duration_m
   runtime_settings = {'clip_stride_ms': clip_stride_ms}
 
   wav_data_placeholder = tf.placeholder(tf.string, [], name='wav_data')
-  decoded_sample_data = contrib_audio.decode_wav(
+  decoded_sample_data = audio_ops.decode_wav(
       wav_data_placeholder,
       desired_channels=nchannels,
       desired_samples=model_settings['desired_samples'],
       name='decoded_sample_data')
   spectrograms = []
   for ichannel in range(nchannels):
-    spectrograms.append(contrib_audio.audio_spectrogram(
+    spectrograms.append(audio_ops.audio_spectrogram(
         decoded_sample_data.audio,
         window_size=model_settings['window_size_samples'],
         stride=model_settings['window_stride_samples'],
@@ -105,7 +109,7 @@ def create_inference_graph(wanted_words, sample_rate, nchannels, clip_duration_m
   spectrogram = tf.stack(spectrograms, -1)
   mfccs = []
   for ichannel in range(nchannels):
-    mfccs.append(contrib_audio.mfcc(
+    mfccs.append(audio_ops.mfcc(
         spectrograms[ichannel],
         decoded_sample_data.sample_rate,
         upper_frequency_limit=sample_rate//2,

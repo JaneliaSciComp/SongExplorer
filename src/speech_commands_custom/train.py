@@ -76,11 +76,15 @@ import sys
 
 import numpy as np
 from six.moves import xrange  # pylint: disable=redefined-builtin
-import tensorflow as tf
+import tensorflow.compat.v1 as tf
+tf.disable_v2_behavior()
 
 import input_data
 import models
 from tensorflow.python.platform import gfile
+
+from tensorflow.python.platform import tf_logging as logging
+logging.get_logger().propagate = False
 
 import datetime as dt
 

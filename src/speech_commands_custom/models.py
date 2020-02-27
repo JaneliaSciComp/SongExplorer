@@ -21,7 +21,8 @@ from __future__ import print_function
 
 import math
 
-import tensorflow as tf
+import tensorflow.compat.v1 as tf
+tf.disable_v2_behavior()
 
 
 def prepare_model_settings(label_count, sample_rate, nchannels, clip_duration_ms,

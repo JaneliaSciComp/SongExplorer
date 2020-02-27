@@ -32,9 +32,10 @@ import scipy.io.wavfile as spiowav
 import numpy as np
 from six.moves import urllib
 from six.moves import xrange  # pylint: disable=redefined-builtin
-import tensorflow as tf
+import tensorflow.compat.v1 as tf
+tf.disable_v2_behavior()
 
-from tensorflow.contrib.framework.python.ops import audio_ops as contrib_audio
+from tensorflow.python.ops import gen_audio_ops as audio_ops
 from tensorflow.python.ops import io_ops
 from tensorflow.python.platform import gfile
 from tensorflow.python.util import compat
@@ -126,7 +127,7 @@ def load_wav_file(filename):
   with tf.Session(graph=tf.Graph()) as sess:
     wav_filename_placeholder = tf.placeholder(tf.string, [])
     wav_loader = io_ops.read_file(wav_filename_placeholder)
-    wav_decoder = contrib_audio.decode_wav(wav_loader, desired_channels=1)
+    wav_decoder = audio_ops.decode_wav(wav_loader, desired_channels=1)
     return sess.run(
         wav_decoder,
         feed_dict={wav_filename_placeholder: filename}).audio.flatten()
@@ -144,7 +145,7 @@ def save_wav_file(filename, wav_data, sample_rate):
     wav_filename_placeholder = tf.placeholder(tf.string, [])
     sample_rate_placeholder = tf.placeholder(tf.int32, [])
     wav_data_placeholder = tf.placeholder(tf.float32, [None, 1])
-    wav_encoder = contrib_audio.encode_wav(wav_data_placeholder,
+    wav_encoder = audio_ops.encode_wav(wav_data_placeholder,
                                            sample_rate_placeholder)
     wav_saver = io_ops.write_file(wav_filename_placeholder, wav_encoder)
     sess.run(
@@ -440,7 +441,7 @@ class AudioProcessor(object):
     with tf.Session(graph=tf.Graph()) as sess:
       wav_filename_placeholder = tf.placeholder(tf.string, [])
       wav_loader = io_ops.read_file(wav_filename_placeholder)
-      wav_decoder = contrib_audio.decode_wav(wav_loader, desired_channels=1)
+      wav_decoder = audio_ops.decode_wav(wav_loader, desired_channels=1)
       search_path = os.path.join(self.data_dir, BACKGROUND_NOISE_DIR_NAME,
                                  '*.wav')
       for wav_path in gfile.Glob(search_path):
@@ -503,7 +504,7 @@ class AudioProcessor(object):
     self.waveform_ = background_clamp
     spectrograms = []
     for ichannel in range(channel_count):
-      spectrograms.append(contrib_audio.audio_spectrogram(
+      spectrograms.append(audio_ops.audio_spectrogram(
           tf.slice(background_clamp, [0, ichannel], [-1, 1]),
           window_size=model_settings['window_size_samples'],
           stride=model_settings['window_stride_samples'],
@@ -511,7 +512,7 @@ class AudioProcessor(object):
     self.spectrogram_ = tf.stack(spectrograms, -1)
     mfccs = []
     for ichannel in range(channel_count):
-      mfccs.append(contrib_audio.mfcc(
+      mfccs.append(audio_ops.mfcc(
           spectrograms[ichannel],
           sample_rate,
           upper_frequency_limit=model_settings['sample_rate']//2,
@@ -676,7 +677,7 @@ class AudioProcessor(object):
     with tf.Session(graph=tf.Graph()) as sess:
       wav_filename_placeholder = tf.placeholder(tf.string, [])
       wav_loader = io_ops.read_file(wav_filename_placeholder)
-      wav_decoder = contrib_audio.decode_wav(
+      wav_decoder = audio_ops.decode_wav(
           wav_loader, desired_channels=1, desired_samples=desired_samples)
       foreground_volume_placeholder = tf.placeholder(tf.float32, [])
       scaled_foreground = tf.multiply(wav_decoder.audio,
