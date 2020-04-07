@@ -24,9 +24,9 @@ def generic_parameters_callback():
 
 def layer_callback(new):
     M.ilayer=M.layers.index(new)
-    V.circle_fuchsia_cluster.data.update(x=[], y=[])
+    V.circle_fuchsia_cluster.data.update(cx=[], cy=[], cz=[], cr=[])
     V.cluster_update()
-    M.xcluster, M.ycluster = np.nan, np.nan
+    M.xcluster = M.ycluster = M.zcluster = np.nan
     M.isnippet = -1
     V.snippets_update(True)
     V.context_update()
@@ -88,36 +88,36 @@ def color_picker_callback(new):
             del M.cluster_dot_colors[M.species[M.ispecies][:-1]+M.words[M.iword]]
         else:
             M.cluster_dot_colors[M.species[M.ispecies][:-1]+M.words[M.iword]]=new
+    #elif M.ispecies>0:
+    #    if new.lower()=='#ffffff':
+    #        del M.cluster_dot_colors[M.species[M.ispecies]]
+    #    else:
+    #        M.cluster_dot_colors[M.species[M.ispecies]]=new
+    #elif M.iword>0:
+    #    if new.lower()=='#ffffff':
+    #        del M.cluster_dot_colors[M.words[M.iword]]
+    #    else:
+    #        M.cluster_dot_colors[M.words[M.iword]]=new
     V.cluster_initialize(False)
     V.cluster_update()
     
 def circle_radius_callback(attr, old, new):
     M.state["circle_radius"]=new
-    V.p_cluster_circle.glyph.radius=float(M.state["circle_radius"])
+    V.circle_fuchsia_cluster.data.update(cr=[M.state["circle_radius"]])
     M.save_state_callback()
     V.snippets_update(True)
     M.isnippet = -1
     V.context_update()
 
-def hex_size_callback(attr, old, new):
-    M.state["hex_size"]=new
+def dot_size_callback(attr, old, new):
+    M.state["dot_size"]=new
+    V.dot_size_cluster.data.update(ds=[M.state["dot_size"]])
     M.save_state_callback()
-    ilayer, ispecies, iword, inohyphen, ikind = \
-            M.ilayer, M.ispecies, M.iword, M.inohyphen, M.ikind
-    V.cluster_initialize()
-    M.ilayer, M.ispecies, M.iword, M.inohyphen, M.ikind = \
-            ilayer, ispecies, iword, inohyphen, ikind
-    V.cluster_update()
 
 def dot_alpha_callback(attr, old, new):
     M.state["dot_alpha"]=new
+    V.dot_alpha_cluster.data.update(da=[M.state["dot_alpha"]])
     M.save_state_callback()
-    V.p_cluster_dots.fill_alpha=M.state["dot_alpha"]
-
-def cluster_style_callback(attr, old, new):
-    M.state["cluster_style"]=['hexs','dots'][new]
-    M.save_state_callback()
-    V.cluster_update()
 
 play_callback_code="""
 const aud = document.getElementById("context_audio")
@@ -141,8 +141,13 @@ vid.play()
 """
 
 def cluster_tap_callback(event):
-    M.xcluster, M.ycluster = event.x, event.y
-    V.circle_fuchsia_cluster.data.update(x=[M.xcluster], y=[M.ycluster])
+    M.xcluster, M.ycluster = event[0], event[1]
+    if M.ndcluster==3:
+      M.zcluster = event[2]
+    V.circle_fuchsia_cluster.data.update(cx=[M.xcluster],
+                                         cy=[M.ycluster],
+                                         cz=[M.zcluster],
+                                         cr=[M.state["circle_radius"]])
     M.isnippet = -1
     V.snippets_update(True)
     V.context_update()
@@ -309,8 +314,8 @@ def snippets_doubletap_callback(event):
 def undo_callback():
     if M.history_idx>0:
         M.history_idx-=1
-        V.circle_fuchsia_cluster.data.update(x=[], y=[])
-        M.xcluster, M.ycluster = np.nan, np.nan
+        V.circle_fuchsia_cluster.data.update(cx=[], cy=[], cz=[], cr=[])
+        M.xcluster = M.ycluster = M.zcluster = np.nan
         M.isnippet = -1
         V.snippets_update(True)
         M.isnippet = np.searchsorted(M.clustered_starts_sorted, \
@@ -333,8 +338,8 @@ def undo_callback():
 def redo_callback():
     if M.history_idx<len(M.history_stack):
         M.history_idx+=1
-        V.circle_fuchsia_cluster.data.update(x=[], y=[])
-        M.xcluster, M.ycluster = np.nan, np.nan
+        V.circle_fuchsia_cluster.data.update(cx=[], cy=[], cz=[], cr=[])
+        M.xcluster = M.ycluster = M.zcluster = np.nan
         M.isnippet = -1
         V.snippets_update(True)
         M.isnippet = np.searchsorted(M.clustered_starts_sorted, \
@@ -819,9 +824,9 @@ def visualize_actuate():
     V.which_nohyphen.value = M.nohyphens[M.inohyphen]
     M.ikind = 0
     V.which_kind.value = M.kinds[M.ikind]
-    V.circle_fuchsia_cluster.data.update(x=[], y=[])
+    V.circle_fuchsia_cluster.data.update(cx=[], cy=[], cz=[], cr=[])
     V.cluster_update()
-    M.xcluster, M.ycluster = np.nan, np.nan
+    M.xcluster = M.ycluster = M.zcluster = np.nan
     M.isnippet = -1
     V.snippets_update(True)
     V.context_update()

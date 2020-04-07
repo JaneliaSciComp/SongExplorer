@@ -1,8 +1,7 @@
 import os
 from bokeh.models.widgets import RadioButtonGroup, TextInput, Button, Div, DateFormatter, TextAreaInput, Select, NumberFormatter, Slider, Toggle, ColorPicker
-from bokeh.models import ColumnDataSource, TableColumn, DataTable
+from bokeh.models import ColumnDataSource, TableColumn, DataTable, LayoutDOM
 from bokeh.plotting import figure
-from bokeh.util.hex import hexbin
 from bokeh.transform import linear_cmap
 from bokeh.events import Tap, DoubleTap, PanStart, Pan, PanEnd, ButtonClick
 from bokeh.models.callbacks import CustomJS
@@ -24,17 +23,329 @@ import av
 from bokeh import palettes
 from itertools import cycle, product
 import ast
+from bokeh.core.properties import Instance, String, List, Float
+from bokeh.util.compiler import TypeScript
 
 bokehlog = logging.getLogger("deepsong") 
 
 import model as M
 import controller as C
 
-bokeh_document, cluster_dot_palette, snippet_palette, p_cluster, cluster_hexs, cluster_dots, cluster_extent, p_snippets, label_sources, label_sources_new, wav_sources, line_glyphs, quad_grey_snippets, circle_fuchsia_cluster, p_cluster_circle, p_context, p_line_red_context, line_red_context, quad_grey_context_old, quad_grey_context_new, quad_grey_context_pan, quad_fuchsia_context, quad_fuchsia_snippets, wav_source, line_glyph, label_source, label_source_new, which_layer, which_species, which_word, which_nohyphen, which_kind, color_picker, circle_radius_string, hex_size_string, dot_alpha, cluster_style, zoom_context, zoom_offset, zoomin, zoomout, reset, panleft, panright, allleft, allout, allright, save_indicator, label_text_widgets, label_count_widgets, play, play_callback, video_toggle, video_div, undo, redo, detect, misses, configuration, configuration_file, train, leaveoneout, leaveallout, xvalidate, mistakes, activations, cluster, visualize, accuracy, freeze, classify, ethogram, compare, congruence, status_ticker, file_dialog_source, file_dialog_source, configuration_contents, logs, logs_folder, model, model_file, wavtfcsvfiles, wavtfcsvfiles_string, groundtruth, groundtruth_folder, validationfiles, testfiles, validationfiles_string, testfiles_string, wantedwords, wantedwords_string, labeltypes, labeltypes_string, copy, labelsounds, makepredictions, fixfalsepositives, fixfalsenegatives, generalize, tunehyperparameters, findnovellabels, examineerrors, testdensely, doit, time_sigma_string, time_smooth_ms_string, frequency_n_ms_string, frequency_nw_string, frequency_p_string, frequency_smooth_ms_string, nsteps_string, restore_from_string, save_and_validate_period_string, validate_percentage_string, mini_batch_string, kfold_string, activations_equalize_ratio_string, activations_max_samples_string, pca_fraction_variance_to_retain_string, tsne_perplexity_string, tsne_exaggeration_string, umap_neighbors_string, umap_distance_string, cluster_algorithm, connection_type, precision_recall_ratios_string, context_ms_string, shiftby_ms_string, representation, window_ms_string, stride_ms_string, mel_dct_string, dropout_string, optimizer, learning_rate_string, kernel_sizes_string, last_conv_width_string, nfeatures_string, dilate_after_layer_string, stride_after_layer_string, editconfiguration, file_dialog_string, file_dialog_table, readme_contents, wordcounts, wizard_buttons, action_buttons, parameter_buttons, parameter_textinputs, wizard2actions, action2parameterbuttons, action2parametertextinputs = [None]*153
+bokeh_document, cluster_dot_palette, snippet_palette, p_cluster, cluster_dots, p_snippets, label_sources, label_sources_new, wav_sources, line_glyphs, quad_grey_snippets, dot_size_cluster, dot_alpha_cluster, circle_fuchsia_cluster, p_context, p_line_red_context, line_red_context, quad_grey_context_old, quad_grey_context_new, quad_grey_context_pan, quad_fuchsia_context, quad_fuchsia_snippets, wav_source, line_glyph, label_source, label_source_new, which_layer, which_species, which_word, which_nohyphen, which_kind, color_picker, circle_radius, dot_size, dot_alpha, zoom_context, zoom_offset, zoomin, zoomout, reset, panleft, panright, allleft, allout, allright, save_indicator, label_text_widgets, label_count_widgets, play, play_callback, video_toggle, video_div, undo, redo, detect, misses, configuration, configuration_file, train, leaveoneout, leaveallout, xvalidate, mistakes, activations, cluster, visualize, accuracy, freeze, classify, ethogram, compare, congruence, status_ticker, file_dialog_source, file_dialog_source, configuration_contents, logs, logs_folder, model, model_file, wavtfcsvfiles, wavtfcsvfiles_string, groundtruth, groundtruth_folder, validationfiles, testfiles, validationfiles_string, testfiles_string, wantedwords, wantedwords_string, labeltypes, labeltypes_string, copy, labelsounds, makepredictions, fixfalsepositives, fixfalsenegatives, generalize, tunehyperparameters, findnovellabels, examineerrors, testdensely, doit, time_sigma_string, time_smooth_ms_string, frequency_n_ms_string, frequency_nw_string, frequency_p_string, frequency_smooth_ms_string, nsteps_string, restore_from_string, save_and_validate_period_string, validate_percentage_string, mini_batch_string, kfold_string, activations_equalize_ratio_string, activations_max_samples_string, pca_fraction_variance_to_retain_string, tsne_perplexity_string, tsne_exaggeration_string, umap_neighbors_string, umap_distance_string, cluster_algorithm, connection_type, precision_recall_ratios_string, context_ms_string, shiftby_ms_string, representation, window_ms_string, stride_ms_string, mel_dct_string, dropout_string, optimizer, learning_rate_string, kernel_sizes_string, last_conv_width_string, nfeatures_string, dilate_after_layer_string, stride_after_layer_string, editconfiguration, file_dialog_string, file_dialog_table, readme_contents, wordcounts, wizard_buttons, action_buttons, parameter_buttons, parameter_textinputs, wizard2actions, action2parameterbuttons, action2parametertextinputs = [None]*153
+
+class ScatterNd(LayoutDOM):
+
+    __implementation__ = TypeScript("""
+import {LayoutDOM, LayoutDOMView} from "models/layouts/layout_dom"
+import {ColumnDataSource} from "models/sources/column_data_source"
+import {LayoutItem} from "core/layout"
+import * as p from "core/properties"
+
+declare namespace Plotly {
+  class newPlot { constructor(el: HTMLElement, data: object, OPTIONS: object) }
+}
+
+let OPTIONS2 = {
+  margin: { l: 0, r: 0, b: 0, t: 0 },
+  showlegend: false,
+  xaxis: { visible: false },
+  yaxis: { visible: false },
+  hovermode: 'closest',
+  shapes: [ {
+      type: 'circle',
+      xref: 'x', yref: 'y',
+      x0: 0, y0: 0,
+      x1: 0, y1: 0,
+      line: { color: 'fuchsia' } } ]
+}
+let OPTIONS3 = {
+  margin: { l: 0, r: 0, b: 0, t: 0 },
+  hovermode: 'closest',
+  hoverlabel: { bgcolor: 'white' },
+  showlegend: false,
+  scene: {
+    xaxis: { visible: false },
+    yaxis: { visible: false },
+    zaxis: { visible: false },
+  },
+  shapes: [],
+}
+
+// https://github.com/caosdoar/spheres
+let icosphere12 = [[0.525731, 0.850651, 0]]
+let icosphere42 = icosphere12.slice().concat([[0.809017, 0.5, 0.309017],
+                                              [0, 0, 1]])
+let icosphere162 = icosphere42.slice().concat([[0.69378, 0.702046, 0.160622],
+                                               [0.587785, 0.688191, 0.425325],
+                                               [0.433889, 0.862668, 0.259892],
+                                               [0.273267, 0.961938, 0],
+                                               [0.16246, 0.951057, 0.262866]])
+
+// @ts-ignore
+let xicosphere = []
+// @ts-ignore
+let yicosphere = []
+// @ts-ignore
+let zicosphere = []
+icosphere162.forEach((x)=>{
+  // @ts-ignore
+  let V = []
+  for (let i=1; i==1 || i==-1 && x[0]>0; i-=2) {
+    for (let j=1; j==1 || j==-1 && x[1]>0; j-=2) {
+      for (let k=1; k==1 || k==-1 && x[2]>0; k-=2) {
+        // @ts-ignore
+        V = V.concat([i*x[0], j*x[1], k*x[2]])
+      }
+    }
+  }
+  // @ts-ignore
+  xicosphere = xicosphere.concat(V)
+  V.push(V.shift())
+  // @ts-ignore
+  yicosphere = yicosphere.concat(V)
+  V.push(V.shift())
+  // @ts-ignore
+  zicosphere = zicosphere.concat(V)
+});
+
+export class ScatterNdView extends LayoutDOMView {
+  model: ScatterNd
+
+  initialize(): void {
+    super.initialize()
+
+    const url = "https://cdn.plot.ly/plotly-latest.min.js"
+    const script = document.createElement("script")
+    script.onload = () => this._init()
+    script.async = false
+    script.src = url
+    document.head.appendChild(script)
+  }
+
+  ndims() {
+    if (this.model.dots_source.data[this.model.dz].length==0) {
+      return 0 }
+    else if (isNaN(this.model.dots_source.data[this.model.dz][0])) {
+      return 2 }
+    return 3
+  }
+
+  get_dots_data() {
+    return {x: this.model.dots_source.data[this.model.dx],
+            y: this.model.dots_source.data[this.model.dy],
+            z: this.model.dots_source.data[this.model.dz],
+            text: this.model.dots_source.data[this.model.dl],
+            marker: {
+              color: this.model.dots_source.data[this.model.dc],
+              size: this.model.dot_size_source.data[this.model.ds][0],
+              opacity: this.model.dot_alpha_source.data[this.model.da][0],
+            }
+           };
+  }
+
+  set_circle_fuchsia_data2() {
+    if (this.model.circle_fuchsia_source.data[this.model.cx].length==0) {
+      OPTIONS2.shapes[0].x0 = 0
+      OPTIONS2.shapes[0].y0 = 0
+      OPTIONS2.shapes[0].x1 = 0
+      OPTIONS2.shapes[0].y1 = 0 }
+    else {
+      let x = this.model.circle_fuchsia_source.data[this.model.cx][0]
+      let y = this.model.circle_fuchsia_source.data[this.model.cy][0]
+      let r = this.model.circle_fuchsia_source.data[this.model.cr][0]
+      OPTIONS2.shapes[0].x0 = x-r
+      OPTIONS2.shapes[0].y0 = y-r
+      OPTIONS2.shapes[0].x1 = x- -r
+      OPTIONS2.shapes[0].y1 = y- -r }
+  }
+
+  get_circle_fuchsia_data3() {
+    if (this.model.circle_fuchsia_source.data[this.model.cx].length==0) {
+      return {type: 'mesh3d',
+              x:[0], y:[0], z:[0],
+             }; }
+    else {
+      let radius = this.model.circle_fuchsia_source.data[this.model.cr][0]
+      return {type: 'mesh3d',
+              // @ts-ignore
+              x: xicosphere.map(x=>x*radius+this.model.circle_fuchsia_source.data[this.model.cx][0]),
+              // @ts-ignore
+              y: yicosphere.map(x=>x*radius+this.model.circle_fuchsia_source.data[this.model.cy][0]),
+              // @ts-ignore
+              z: zicosphere.map(x=>x*radius+this.model.circle_fuchsia_source.data[this.model.cz][0]),
+             }; }
+  }
+
+  private _init(): void {
+    new Plotly.newPlot(this.el,
+                       [{alphahull: 1.0,
+                         opacity: 0.2,
+                         color: "fuchsia",
+                        },
+                        {hovertemplate: "%{text}<extra></extra>",
+                         mode: 'markers',
+                        }],
+                       {xaxis: { visible: false },
+                        yaxis: { visible: false } });
+
+    this.connect(this.model.dots_source.change, () => {
+      let new_data = this.get_dots_data()
+      let N = this.ndims()
+      if (N==2) {
+        this.set_circle_fuchsia_data2()
+        // @ts-ignore
+        Plotly.update(this.el, {type: '', x:[[]], y:[[]], z:[[]]}, OPTIONS2, [0]);
+        // @ts-ignore
+        Plotly.update(this.el,
+                      {type: 'scatter',
+                       x: [new_data['x']], y: [new_data['y']],
+                       text: [new_data['text']],
+                       marker: new_data['marker'] },
+                      OPTIONS2,
+                      [1]);
+      }
+      else if (N==3) {
+        // @ts-ignore
+        Plotly.update(this.el, {type: 'mesh3d', x:[[]], y:[[]], z:[[]]}, OPTIONS3, [0]);
+        // @ts-ignore
+        Plotly.update(this.el,
+                       {type: 'scatter3d',
+                        x: [new_data['x']], y: [new_data['y']], z: [new_data['z']],
+                        text: [new_data['text']],
+                        marker: new_data['marker'] },
+                       OPTIONS3,
+                       [1]);
+      }
+    });
+
+    this.connect(this.model.dot_size_source.change, () => {
+      let new_data = this.get_dots_data()
+      // @ts-ignore
+      Plotly.restyle(this.el, { marker: new_data['marker'] }, [1]);
+    });
+
+    this.connect(this.model.dot_alpha_source.change, () => {
+      let new_data = this.get_dots_data()
+      // @ts-ignore
+      Plotly.restyle(this.el, { marker: new_data['marker'] }, [1]);
+    });
+
+    // @ts-ignore
+    (<HTMLDivElement>this.el).on('plotly_click', (data) => {
+      let N = this.ndims()
+      if (N==2) {
+        // @ts-ignore
+        this.model.click_position = [data.points[0].x,data.points[0].y] }
+      else if (N==3) {
+        // @ts-ignore
+        this.model.click_position = [data.points[0].x,data.points[0].y,data.points[0].z] }
+    });
+
+    this.connect(this.model.circle_fuchsia_source.change, () => {
+      let N = this.ndims()
+      if (N==2) {
+        this.set_circle_fuchsia_data2()
+        // @ts-ignore
+        Plotly.relayout(this.el, OPTIONS2); }
+      else if (N==3) {
+        let new_data = this.get_circle_fuchsia_data3()
+        // @ts-ignore
+        Plotly.restyle(this.el,
+                       {x: [new_data['x']], y: [new_data['y']], z: [new_data['z']]},
+                       [0]); }
+    });
+  }
+
+  get child_models(): LayoutDOM[] { return [] }
+
+  _update_layout(): void {
+    this.layout = new LayoutItem()
+    this.layout.set_sizing(this.box_sizing())
+  }
+}
+
+export namespace ScatterNd {
+  export type Attrs = p.AttrsOf<Props>
+
+  export type Props = LayoutDOM.Props & {
+    cx: p.Property<string>
+    cy: p.Property<string>
+    cz: p.Property<string>
+    cr: p.Property<string>
+    dx: p.Property<string>
+    dy: p.Property<string>
+    dz: p.Property<string>
+    dl: p.Property<string>
+    dc: p.Property<string>
+    ds: p.Property<string>
+    da: p.Property<string>
+    click_position: p.Property<number[]>
+    circle_fuchsia_source: p.Property<ColumnDataSource>
+    dots_source: p.Property<ColumnDataSource>
+    dot_size_source: p.Property<ColumnDataSource>
+    dot_alpha_source: p.Property<ColumnDataSource>
+  }
+}
+
+export interface ScatterNd extends ScatterNd.Attrs {}
+
+export class ScatterNd extends LayoutDOM {
+  properties: ScatterNd.Props
+
+  constructor(attrs?: Partial<ScatterNd.Attrs>) { super(attrs) }
+
+  static __name__ = "ScatterNd"
+
+  static init_ScatterNd() {
+    this.prototype.default_view = ScatterNdView
+
+    this.define<ScatterNd.Props>({
+      cx: [ p.String   ],
+      cy: [ p.String   ],
+      cz: [ p.String   ],
+      cr: [ p.String   ],
+      dx: [ p.String   ],
+      dy: [ p.String   ],
+      dz: [ p.String   ],
+      dl: [ p.String   ],
+      dc: [ p.String   ],
+      ds: [ p.String   ],
+      da: [ p.String   ],
+      click_position:  [ p.Array   ],
+      circle_fuchsia_source: [ p.Instance ],
+      dots_source: [ p.Instance ],
+      dot_size_source: [ p.Instance ],
+      dot_alpha_source: [ p.Instance ],
+    })
+  }
+}
+"""
+)
+
+    cx = String
+    cy = String
+    cz = String
+    cr = String
+
+    dx = String
+    dy = String
+    dz = String
+    dl = String
+    dc = String
+    ds = String
+    da = String
+
+    click_position = List(Float)
+
+    circle_fuchsia_source = Instance(ColumnDataSource)
+    dots_source = Instance(ColumnDataSource)
+    dot_size_source = Instance(ColumnDataSource)
+    dot_alpha_source = Instance(ColumnDataSource)
 
 def cluster_initialize(newcolors=True):
-    global precomputed_hexs, precomputed_dots
-    global p_cluster_xmax, p_cluster_xmin, p_cluster_ymax, p_cluster_ymin
+    global precomputed_dots
+    global p_cluster_xmax, p_cluster_ymax, p_cluster_zmax
+    global p_cluster_xmin, p_cluster_ymin, p_cluster_zmin
 
     npzfile = np.load(os.path.join(groundtruth_folder.value,'cluster.npz'),
                       allow_pickle=True)
@@ -55,6 +366,9 @@ def cluster_initialize(newcolors=True):
                         for x in M.clustered_activations[0]]
 
     M.nlayers=len(M.clustered_activations)
+    M.ndcluster = np.shape(M.clustered_activations[0])[1]
+    cluster_dots.data.update(dx=[], dy=[], dz=[], dl=[], dc=[])
+    circle_fuchsia_cluster.data.update(cx=[], cy=[], cz=[], cr=[])
 
     M.layers = ["input"]+["hidden #"+str(i) for i in range(1,M.nlayers-1)]+["output"]
     M.species = set([x['label'].split('-')[0]+'-' \
@@ -79,10 +393,10 @@ def cluster_initialize(newcolors=True):
     p_cluster_xmin = [np.iinfo(np.int64).max]*M.nlayers
     p_cluster_ymax = [np.iinfo(np.int64).min]*M.nlayers
     p_cluster_ymin = [np.iinfo(np.int64).max]*M.nlayers
-    precomputed_hexs = [None]*M.nlayers
+    p_cluster_zmax = [np.iinfo(np.int64).min]*M.nlayers
+    p_cluster_zmin = [np.iinfo(np.int64).max]*M.nlayers
     precomputed_dots = [None]*M.nlayers
     for ilayer in range(M.nlayers):
-        precomputed_hexs[ilayer] = [None]*len(M.species)
         precomputed_dots[ilayer] = [None]*len(M.species)
         p_cluster_xmin[ilayer] = np.minimum(p_cluster_xmin[ilayer], \
                                             np.min(M.clustered_activations[ilayer][:,0]))
@@ -92,15 +406,16 @@ def cluster_initialize(newcolors=True):
                                             np.min(M.clustered_activations[ilayer][:,1]))
         p_cluster_ymax[ilayer] = np.maximum(p_cluster_ymax[ilayer], \
                                             np.max(M.clustered_activations[ilayer][:,1]))
+        if M.ndcluster==3:
+            p_cluster_zmin[ilayer] = np.minimum(p_cluster_zmin[ilayer], \
+                                                np.min(M.clustered_activations[ilayer][:,2]))
+            p_cluster_zmax[ilayer] = np.maximum(p_cluster_zmax[ilayer], \
+                                                np.max(M.clustered_activations[ilayer][:,2]))
         for (ispecies,specie) in enumerate(M.species):
-            precomputed_hexs[ilayer][ispecies] = [None]*len(M.words)
             precomputed_dots[ilayer][ispecies] = [None]*len(M.words)
             for (iword,word) in enumerate(M.words):
-                precomputed_hexs[ilayer][ispecies][iword] = [None]*len(M.nohyphens)
                 precomputed_dots[ilayer][ispecies][iword] = [None]*len(M.nohyphens)
                 for (inohyphen,nohyphen) in enumerate(M.nohyphens):
-                    precomputed_hexs[ilayer][ispecies][iword][inohyphen] = \
-                            [None]*len(M.kinds)
                     precomputed_dots[ilayer][ispecies][iword][inohyphen] = \
                             [None]*len(M.kinds)
                     for (ikind,kind) in enumerate(M.kinds):
@@ -114,29 +429,21 @@ def cluster_initialize(newcolors=True):
                                                cluster_isnotnan)
                         if not any(bidx):
                             continue
-                        precomputed_hexs[ilayer][ispecies][iword][inohyphen][ikind] = \
-                                hexbin(M.clustered_activations[ilayer][bidx,0], \
-                                       M.clustered_activations[ilayer][bidx,1], \
-                                       size=float(M.state["hex_size"]))
                         if inohyphen>0:
                             colors = [M.cluster_dot_colors[nohyphen] for b in bidx if b]
                         else:
                             colors = [M.cluster_dot_colors[x['label']] \
                                       if x['label'] in M.cluster_dot_colors else "black" \
                                       for x,b in zip(M.clustered_samples,bidx) if b]
-                        precomputed_dots[ilayer][ispecies][iword][inohyphen][ikind] = \
-                                {'x': M.clustered_activations[ilayer][bidx,0], \
-                                 'y': M.clustered_activations[ilayer][bidx,1], \
-                                 'color': colors }
-
-    for ilayer in range(M.nlayers):
-        for (ispecies,specie) in enumerate(M.species):
-            for (iword,word) in enumerate(M.words):
-                for (inohyphen,nohyphen) in enumerate(M.nohyphens):
-                    for (ikind,kind) in enumerate(M.kinds):
-                        if precomputed_hexs[ilayer][ispecies][iword][inohyphen][ikind] is not None:
-                            cmax = max(precomputed_hexs[ilayer][ispecies][iword][inohyphen][ikind]['counts'])
-                            precomputed_hexs[ilayer][ispecies][iword][inohyphen][ikind]['counts'] = precomputed_hexs[ilayer][ispecies][iword][inohyphen][ikind]['counts'].apply(lambda x: x/cmax)
+                        data = {'x': M.clustered_activations[ilayer][bidx,0], \
+                                'y': M.clustered_activations[ilayer][bidx,1], \
+                                'l': [x['label'] for x,b in zip(M.clustered_samples,bidx) if b], \
+                                'c': colors }
+                        if M.ndcluster==2:
+                            data['z'] = [np.nan]*len(M.clustered_activations[ilayer][bidx,1])
+                        else:
+                            data['z'] = M.clustered_activations[ilayer][bidx,2]
+                        precomputed_dots[ilayer][ispecies][iword][inohyphen][ikind] = data
 
     which_layer.options = M.layers
     which_species.options = M.species
@@ -144,11 +451,9 @@ def cluster_initialize(newcolors=True):
     which_nohyphen.options = M.nohyphens
     which_kind.options = M.kinds
 
-    p_cluster_hexs.glyph.size = float(M.state["hex_size"])
-    circle_radius_string.disabled=False
-    hex_size_string.disabled=False
+    circle_radius.disabled=False
+    dot_size.disabled=False
     dot_alpha.disabled=False
-    cluster_style.disabled=False
 
     M.ilayer=0
     M.ispecies=0
@@ -157,42 +462,43 @@ def cluster_initialize(newcolors=True):
     M.ikind=0
 
 def cluster_update():
-    global cluster_hexs, cluster_dots, cluster_extent
-    global p_cluster, p_cluster_xmax, p_cluster_xmin, p_cluster_ymax, p_cluster_ymin
-    p_cluster_hexs.visible = False
-    if M.state['cluster_style']=="hexs":
-        cluster_dots.data.update(x=[], y=[], fill_color=[])
-        hex_size_string.disabled=False
-        dot_alpha.disabled=True
-        if precomputed_hexs == None:
-            return
-        selected_hexs = precomputed_hexs[M.ilayer][M.ispecies][M.iword][M.inohyphen][M.ikind]
-        if selected_hexs is not None:
-            cluster_hexs.data.update(q=selected_hexs['q'], \
-                                     r=selected_hexs['r'], \
-                                     counts=selected_hexs['counts'], \
-                                     index=range(len(selected_hexs['counts'])))
-        else:
-            cluster_hexs.data.update(q=[], r=[], counts=[], index=[])
-        p_cluster_hexs.visible = True
+    global cluster_dots
+    global p_cluster_xmax, p_cluster_xmin, p_cluster_ymax, p_cluster_ymin
+    dot_alpha.disabled=False
+    if precomputed_dots == None:
+        return
+    selected_dots = precomputed_dots[M.ilayer][M.ispecies][M.iword][M.inohyphen][M.ikind]
+    if selected_dots is not None:
+        kwargs = dict(dx=[*selected_dots['x'],
+                          p_cluster_xmin[M.ilayer], p_cluster_xmin[M.ilayer],
+                          p_cluster_xmin[M.ilayer], p_cluster_xmin[M.ilayer],
+                          p_cluster_xmax[M.ilayer], p_cluster_xmax[M.ilayer],
+                          p_cluster_xmax[M.ilayer], p_cluster_xmax[M.ilayer]],
+                      dy=[*selected_dots['y'],
+                          p_cluster_ymin[M.ilayer], p_cluster_ymin[M.ilayer],
+                          p_cluster_ymax[M.ilayer], p_cluster_ymax[M.ilayer],
+                          p_cluster_ymin[M.ilayer], p_cluster_ymin[M.ilayer],
+                          p_cluster_ymax[M.ilayer], p_cluster_ymax[M.ilayer]],
+                      dz=[*selected_dots['z'],
+                          p_cluster_zmin[M.ilayer], p_cluster_zmax[M.ilayer],
+                          p_cluster_zmin[M.ilayer], p_cluster_zmax[M.ilayer],
+                          p_cluster_zmin[M.ilayer], p_cluster_zmax[M.ilayer],
+                          p_cluster_zmin[M.ilayer], p_cluster_zmax[M.ilayer]],
+                      dl=[*selected_dots['l'], '', '', '', '', '', '', '', ''],
+                      dc=[*selected_dots['c'],
+                          '#ffffff00', '#ffffff00', '#ffffff00', '#ffffff00',
+                          '#ffffff00', '#ffffff00', '#ffffff00', '#ffffff00'])
+        cluster_dots.data.update(**kwargs)
     else:
-        hex_size_string.disabled=True
-        dot_alpha.disabled=False
-        if precomputed_dots == None:
-            return
-        selected_dots = precomputed_dots[M.ilayer][M.ispecies][M.iword][M.inohyphen][M.ikind]
-        if selected_dots is not None:
-            cluster_dots.data.update(x=selected_dots['x'],
-                                     y=selected_dots['y'],
-                                     fill_color=selected_dots['color'])
-        else:
-            cluster_dots.data.update(x=[], y=[], fill_color=[])
-        extent = min(p_cluster_xmax[M.ilayer] - p_cluster_xmin[M.ilayer],
-                     p_cluster_ymax[M.ilayer] - p_cluster_ymin[M.ilayer])
-        npoints = np.shape(M.clustered_activations[M.ilayer])[0]
-        p_cluster_dots.radius = extent / np.sqrt(npoints)
-    cluster_extent.data.update(x=[p_cluster_xmin[M.ilayer], p_cluster_xmax[M.ilayer]],
-                               y=[p_cluster_ymin[M.ilayer], p_cluster_ymax[M.ilayer]])
+        cluster_dots.data.update(dx=[], dy=[], dz=[], dl=[], dc=[])
+    extent = min(p_cluster_xmax[M.ilayer] - p_cluster_xmin[M.ilayer],
+                 p_cluster_ymax[M.ilayer] - p_cluster_ymin[M.ilayer])
+    if M.ndcluster==3:
+        extent = min(extent, p_cluster_zmax[M.ilayer] - p_cluster_zmin[M.ilayer])
+    circle_radius.end = extent
+    circle_radius.step = extent/100
+    #npoints = np.shape(M.clustered_activations[M.ilayer])[0]
+    #dot_size.value = max(1, round(100 * extent / np.sqrt(npoints)))
 
 def within_an_annotation(sample):
     if len(M.annotated_starts_sorted)>0:
@@ -204,7 +510,8 @@ def within_an_annotation(sample):
     return -1
 
 def snippets_update(redraw_wavs):
-    if M.isnippet>0 and not np.isnan(M.xcluster) and not np.isnan(M.ycluster):
+    if M.isnippet>0 and not np.isnan(M.xcluster) and not np.isnan(M.ycluster) \
+                and (M.ndcluster==2 or not np.isnan(M.zcluster)):
         quad_fuchsia_snippets.data.update(
                 left=[M.xsnippet*(M.snippets_gap_pix+M.snippets_pix)],
                 right=[(M.xsnippet+1)*(M.snippets_gap_pix+M.snippets_pix)-
@@ -218,8 +525,10 @@ def snippets_update(redraw_wavs):
                       (M.nohyphens[M.inohyphen]=="" or \
                        M.nohyphens[M.inohyphen]==x['label']) and
                       M.kinds[M.ikind]==x['kind'] for x in M.clustered_samples])[0]
-    distance = np.linalg.norm(M.clustered_activations[M.ilayer][isubset,:] - \
-                                  [M.xcluster,M.ycluster], \
+    origin = [M.xcluster,M.ycluster]
+    if M.ndcluster==3:
+        origin.append(M.zcluster)
+    distance = np.linalg.norm(M.clustered_activations[M.ilayer][isubset,:] - origin, \
                               axis=1)
     isort = np.argsort(distance)
     songs, labels, labels_new, scales = [], [], [], []
@@ -291,8 +600,6 @@ def snippets_update(redraw_wavs):
             top.append(-iy*2+1)
             bottom.append(-iy*2-1)
     quad_grey_snippets.data.update(left=left, right=right, top=top, bottom=bottom)
-
-    xcluster_last, ycluster_last = M.xcluster, M.ycluster
 
 def nparray2base64wav(data, samplerate):
     fid=io.BytesIO()
@@ -712,8 +1019,8 @@ def status_ticker_update():
         newtext = ''
     status_ticker.text = status_ticker_pre+newtext+status_ticker_post
 
-def init(_bokeh_document, _cluster_background_color, _cluster_dot_colormap, _cluster_hex_colormap, _cluster_hex_range_low, _cluster_hex_range_high, _snippet_colormap):
-    global bokeh_document, cluster_dot_palette, snippet_palette, p_cluster, cluster_hexs, cluster_dots, cluster_extent, p_cluster_hexs, p_cluster_dots, precomputed_hexs, precomputed_dots, p_snippets, label_sources, label_sources_new, wav_sources, line_glyphs, quad_grey_snippets, circle_fuchsia_cluster, p_cluster_circle, p_context, p_line_red_context, line_red_context, quad_grey_context_old, quad_grey_context_new, quad_grey_context_pan, quad_fuchsia_context, quad_fuchsia_snippets, wav_source, line_glyph, label_source, label_source_new, which_layer, which_species, which_word, which_nohyphen, which_kind, color_picker, circle_radius_string, hex_size_string, dot_alpha, cluster_style, zoom_context, zoom_offset, zoomin, zoomout, reset, panleft, panright, allleft, allout, allright, save_indicator, label_text_widgets, label_count_widgets, play, play_callback, video_toggle, video_div, undo, redo, detect, misses, configuration, configuration_file, train, leaveoneout, leaveallout, xvalidate, mistakes, activations, cluster, visualize, accuracy, freeze, classify, ethogram, compare, congruence, status_ticker, file_dialog_source, file_dialog_source, configuration_contents, logs, logs_folder, model, model_file, wavtfcsvfiles, wavtfcsvfiles_string, groundtruth, groundtruth_folder, validationfiles, testfiles, validationfiles_string, testfiles_string, wantedwords, wantedwords_string, labeltypes, labeltypes_string, copy, labelsounds, makepredictions, fixfalsepositives, fixfalsenegatives, generalize, tunehyperparameters, findnovellabels, examineerrors, testdensely, doit, time_sigma_string, time_smooth_ms_string, frequency_n_ms_string, frequency_nw_string, frequency_p_string, frequency_smooth_ms_string, nsteps_string, restore_from_string, save_and_validate_period_string, validate_percentage_string, mini_batch_string, kfold_string, activations_equalize_ratio_string, activations_max_samples_string, pca_fraction_variance_to_retain_string, tsne_perplexity_string, tsne_exaggeration_string, umap_neighbors_string, umap_distance_string, cluster_algorithm, connection_type, precision_recall_ratios_string, context_ms_string, shiftby_ms_string, representation, window_ms_string, stride_ms_string, mel_dct_string, dropout_string, optimizer, learning_rate_string, kernel_sizes_string, last_conv_width_string, nfeatures_string, dilate_after_layer_string, stride_after_layer_string, editconfiguration, file_dialog_string, file_dialog_table, readme_contents, wordcounts, wizard_buttons, action_buttons, parameter_buttons, parameter_textinputs, wizard2actions, action2parameterbuttons, action2parametertextinputs, status_ticker_update, status_ticker_pre, status_ticker_post
+def init(_bokeh_document, _cluster_background_color, _cluster_dot_colormap, _snippet_colormap):
+    global bokeh_document, cluster_dot_palette, snippet_palette, p_cluster, cluster_dots, p_cluster_dots, precomputed_dots, p_snippets, label_sources, label_sources_new, wav_sources, line_glyphs, quad_grey_snippets, dot_size_cluster, dot_alpha_cluster, circle_fuchsia_cluster, p_context, p_line_red_context, line_red_context, quad_grey_context_old, quad_grey_context_new, quad_grey_context_pan, quad_fuchsia_context, quad_fuchsia_snippets, wav_source, line_glyph, label_source, label_source_new, which_layer, which_species, which_word, which_nohyphen, which_kind, color_picker, circle_radius, dot_size, dot_alpha, zoom_context, zoom_offset, zoomin, zoomout, reset, panleft, panright, allleft, allout, allright, save_indicator, label_text_widgets, label_count_widgets, play, play_callback, video_toggle, video_div, undo, redo, detect, misses, configuration, configuration_file, train, leaveoneout, leaveallout, xvalidate, mistakes, activations, cluster, visualize, accuracy, freeze, classify, ethogram, compare, congruence, status_ticker, file_dialog_source, file_dialog_source, configuration_contents, logs, logs_folder, model, model_file, wavtfcsvfiles, wavtfcsvfiles_string, groundtruth, groundtruth_folder, validationfiles, testfiles, validationfiles_string, testfiles_string, wantedwords, wantedwords_string, labeltypes, labeltypes_string, copy, labelsounds, makepredictions, fixfalsepositives, fixfalsenegatives, generalize, tunehyperparameters, findnovellabels, examineerrors, testdensely, doit, time_sigma_string, time_smooth_ms_string, frequency_n_ms_string, frequency_nw_string, frequency_p_string, frequency_smooth_ms_string, nsteps_string, restore_from_string, save_and_validate_period_string, validate_percentage_string, mini_batch_string, kfold_string, activations_equalize_ratio_string, activations_max_samples_string, pca_fraction_variance_to_retain_string, tsne_perplexity_string, tsne_exaggeration_string, umap_neighbors_string, umap_distance_string, cluster_algorithm, connection_type, precision_recall_ratios_string, context_ms_string, shiftby_ms_string, representation, window_ms_string, stride_ms_string, mel_dct_string, dropout_string, optimizer, learning_rate_string, kernel_sizes_string, last_conv_width_string, nfeatures_string, dilate_after_layer_string, stride_after_layer_string, editconfiguration, file_dialog_string, file_dialog_table, readme_contents, wordcounts, wizard_buttons, action_buttons, parameter_buttons, parameter_textinputs, wizard2actions, action2parameterbuttons, action2parametertextinputs, status_ticker_update, status_ticker_pre, status_ticker_post
 
     bokeh_document = _bokeh_document
 
@@ -724,34 +1031,22 @@ def init(_bokeh_document, _cluster_background_color, _cluster_dot_colormap, _clu
 
     snippet_palette = getattr(palettes, _snippet_colormap)
 
-    p_cluster = figure(plot_width=M.gui_width_pix//2, \
-                       background_fill_color=_cluster_background_color, \
-                       toolbar_location=None, match_aspect=True)
-    p_cluster.toolbar.active_drag = None
-    p_cluster.grid.visible = False
-    p_cluster.xaxis.visible = False
-    p_cluster.yaxis.visible = False
-     
-    cluster_hexs = ColumnDataSource(hexbin(np.array([]), np.array([]), 1))
-    init_fill_color = linear_cmap('counts', _cluster_hex_colormap,
-                                  float(_cluster_hex_range_low),
-                                  float(_cluster_hex_range_high))
-    p_cluster_hexs = p_cluster.hex_tile(q="q", r="r", size=1,
-                                        line_color=None, source=cluster_hexs,
-                                        fill_color=init_fill_color)
-    p_cluster_hexs.visible = False
+    dot_size_cluster = ColumnDataSource(data=dict(ds=[M.state["dot_size"]]))
+    dot_alpha_cluster = ColumnDataSource(data=dict(da=[M.state["dot_alpha"]]))
 
-    cluster_dots = ColumnDataSource(data=dict(x=[], y=[], fill_color=[]))
-    p_cluster_dots = Circle(x='x', y='y', fill_color='fill_color',
-                            fill_alpha=M.state["dot_alpha"], line_width=0)
-    p_cluster.add_glyph(cluster_dots, p_cluster_dots)
+    cluster_dots = ColumnDataSource(data=dict(dx=[], dy=[], dz=[], dl=[], dc=[]))
+    circle_fuchsia_cluster = ColumnDataSource(data=dict(cx=[], cy=[], cz=[], cr=[]))
+    p_cluster = ScatterNd(dx='dx', dy='dy', dz='dz', dl='dl', dc='dc',
+                          dots_source=cluster_dots,
+                          cx='cx', cy='cy', cz='cz', cr='cr',
+                          circle_fuchsia_source=circle_fuchsia_cluster,
+                          ds='ds',
+                          dot_size_source=dot_size_cluster,
+                          da='da',
+                          dot_alpha_source=dot_alpha_cluster,
+                          width=M.gui_width_pix//2)
+    p_cluster.on_change("click_position", lambda a,o,n: C.cluster_tap_callback(n))
 
-    cluster_extent = ColumnDataSource(data=dict(x=[], y=[]))
-    p_cluster_extent = p_cluster.line('x','y',source=cluster_extent, \
-                                      level='underlay', color=_cluster_background_color)
-    p_cluster_extent.visible = True
-
-    precomputed_hexs = None
     precomputed_dots = None
 
     p_snippets = figure(plot_width=M.gui_width_pix//2, \
@@ -787,13 +1082,6 @@ def init(_bokeh_document, _cluster_background_color, _cluster_dot_colormap, _clu
     quad_grey_snippets = ColumnDataSource(data=dict(left=[], right=[], top=[], bottom=[]))
     p_snippets.quad('left','right','top','bottom',source=quad_grey_snippets,
                 fill_color="lightgrey", line_color="lightgrey", level='underlay')
-
-    circle_fuchsia_cluster = ColumnDataSource(data=dict(x=[], y=[]))
-    p_cluster_circle = p_cluster.circle('x','y',source=circle_fuchsia_cluster, \
-                                  radius=float(M.state["circle_radius"]),
-                                  fill_color=None, line_color="fuchsia", level='overlay')
-
-    p_cluster.on_event(Tap, C.cluster_tap_callback)
 
     p_context = figure(plot_width=M.gui_width_pix, plot_height=150,
                        background_fill_color='#FFFFFF', toolbar_location=None)
@@ -870,26 +1158,23 @@ def init(_bokeh_document, _cluster_background_color, _cluster_dot_colormap, _clu
     color_picker = ColorPicker(disabled=True)
     color_picker.on_change("color", lambda a,o,n: C.color_picker_callback(n))
 
-    circle_radius_string = TextInput(value=M.state["circle_radius"], \
-                                     title="circle radius:", \
-                                     disabled=True)
-    circle_radius_string.on_change("value", C.circle_radius_callback)
+    circle_radius = Slider(start=0, end=10, step=1, \
+                           value=M.state["circle_radius"], \
+                           title="circle radius", \
+                           disabled=True)
+    circle_radius.on_change("value_throttled", C.circle_radius_callback)
 
-    hex_size_string = TextInput(value=M.state["hex_size"], \
-                                title="hex size:", \
-                                disabled=True)
-    hex_size_string.on_change("value", C.hex_size_callback)
+    dot_size = Slider(start=1, end=24, step=1, \
+                      value=M.state["dot_size"], \
+                      title="dot size", \
+                      disabled=True)
+    dot_size.on_change("value", C.dot_size_callback)
 
     dot_alpha = Slider(start=0.01, end=1.0, step=0.01, \
                        value=M.state["dot_alpha"], \
                        title="dot alpha", \
                        disabled=True)
     dot_alpha.on_change("value", C.dot_alpha_callback)
-
-    cluster_style = RadioButtonGroup(labels=["hexs", "dots"], \
-                                     active=0 if M.state['cluster_style']=='hexs' else 1, \
-                                     disabled=True)
-    cluster_style.on_change("active", C.cluster_style_callback)
 
     cluster_update()
 

@@ -25,10 +25,9 @@ server_export=  #export\ SINGULARITYENV_PREPEND_PATH=$PWD/deepsong/src\;
 
 # GUI
 gui_cluster_background_color='#FFFFFF'  #'#440154'
-gui_cluster_dot_colormap='("#f0a3ff","#0075dc","#993f00","#4c005c","#191919","#005c31","#2bce48","#ffcc99","#808080","#94ffb5","#8f7c00","#9dcc00","#c20088","#003380","#ffa405","#ffa8bb","#426600","#ff0010","#5ef1f2","#00998f","#e0ff66","#740aff","#990000","#ffff80","#ffff00","#ff5005")'  #'Category10_10'
-gui_cluster_hex_colormap='Greys256'  #'Viridis256'
-gui_cluster_hex_range_low=1.0  #0.0
-gui_cluster_hex_range_high=-0.05  #1.0
+#gui_cluster_dot_colormap='Category10_10'
+# https://graphicdesign.stackexchange.com/questions/3682/where-can-i-find-a-large-palette-set-of-contrasting-colors-for-coloring-many-d
+gui_cluster_dot_colormap='("#f0a3ff","#0075dc","#993f00","#4c005c","#191919","#005c31","#2bce48","#ffcc99","#808080","#94ffb5","#8f7c00","#9dcc00","#c20088","#003380","#ffa405","#ffa8bb","#426600","#ff0010","#5ef1f2","#00998f","#e0ff66","#740aff","#990000","#ffff80","#ffff00","#ff5005")'
 gui_snippet_colormap='Viridis256'
 gui_snippet_ms=40
 gui_nx_snippets=10

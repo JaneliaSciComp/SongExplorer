@@ -1,6 +1,6 @@
 # interactively browse clusters and annotate sounds
  
-# visualize.py --args <audio-tic-rate> <audio-nchannels> <video-frame-rate> <snippets-ms> <nx-snippets> <ny-snippets> <gui-width-pix> <context-width-ms> <context-offset-ms> <cluster-background-color> <cluster-dot-colormap> <cluster-hex-colormap> <cluster-hex-range-low> <cluster-hex-range-high> <snippet-colormap>
+# visualize.py --args <audio-tic-rate> <audio-nchannels> <video-frame-rate> <snippets-ms> <nx-snippets> <ny-snippets> <gui-width-pix> <context-width-ms> <context-offset-ms> <cluster-background-color> <cluster-dot-colormap> <snippet-colormap>
 # http://<hostname>:<port>/visualize
 
 # e.g.
@@ -8,7 +8,6 @@
 
 import os
 from bokeh.plotting import curdoc
-from bokeh.io import show, output_notebook
 from bokeh.layouts import column, row, Spacer
 import threading
 import logging 
@@ -18,7 +17,7 @@ bokehlog = logging.getLogger("deepsong")
 bokehlog.setLevel(logging.INFO)
 #bokehlog.info(...) 
 
-_, configuration_inarg, audio_tic_rate, audio_nchannels, snippets_ms, nx, ny, nlabels, gui_width_pix, context_width_ms, context_offset_ms, cluster_background_color, cluster_dot_colormap, cluster_hex_colormap, cluster_range_low, cluster_range_high, snippet_colormap = argv
+_, configuration_inarg, audio_tic_rate, audio_nchannels, snippets_ms, nx, ny, nlabels, gui_width_pix, context_width_ms, context_offset_ms, cluster_background_color, cluster_dot_colormap, snippet_colormap = argv
 
 import model as M
 import view as V
@@ -28,8 +27,7 @@ doc = curdoc()
 
 M.init(configuration_inarg, audio_tic_rate, audio_nchannels,
        snippets_ms, nx, ny, nlabels, gui_width_pix, context_width_ms, context_offset_ms)
-V.init(doc, cluster_background_color, cluster_dot_colormap, cluster_hex_colormap,
-       cluster_range_low, cluster_range_high, snippet_colormap)
+V.init(doc, cluster_background_color, cluster_dot_colormap, snippet_colormap)
 C.init(doc)
 
 cluster_buttons = row(V.which_layer, V.which_species, V.which_word,
@@ -49,18 +47,17 @@ label_widgets = row(column(V.label_count_widgets),
                     column(V.label_text_widgets, width=200))
 main_content = row(column(cluster_buttons,
                           row(V.p_cluster, V.p_snippets),
-                          row(column(V.circle_radius_string, width=100),
-                              column(V.hex_size_string, width=100),
+                          row(column(V.dot_size, width=100),
                               column(V.dot_alpha, width=100),
-                              column(V.cluster_style, width=100, align='end'),
-                              Spacer(width=(M.gui_width_pix-950)//3),
+                              column(V.circle_radius, width=100),
+                              Spacer(width=(M.gui_width_pix-850)//3),
                               column(V.play, width=75, align='end'),
                               column(V.video_toggle, width=75, align='end'),
-                              Spacer(width=(M.gui_width_pix-950)//3),
+                              Spacer(width=(M.gui_width_pix-850)//3),
                               column(V.save_indicator, width=50, align='end'),
                               column(V.undo, width=75, align='end'),
                               column(V.redo, width=75, align='end'),
-                              Spacer(width=(M.gui_width_pix-950)//3),
+                              Spacer(width=(M.gui_width_pix-850)//3),
                               column(V.zoom_context, width=100),
                               column(V.zoom_offset, width=100)),
                           V.p_context,

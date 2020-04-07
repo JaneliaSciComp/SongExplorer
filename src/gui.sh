@@ -79,4 +79,4 @@ bokeh serve \
       --allow-websocket-origin=localhost:$port \
       --show $DIR/gui \
       --port $port \
-      --args $configuration_file $audio_tic_rate $audio_nchannels $gui_snippet_ms $gui_nx_snippets $gui_ny_snippets $gui_nlabels $gui_gui_width_pix $gui_context_width_ms $gui_context_offset_ms $gui_cluster_background_color $gui_cluster_dot_colormap $gui_cluster_hex_colormap $gui_cluster_hex_range_low $gui_cluster_hex_range_high $gui_snippet_colormap
+      --args $configuration_file $audio_tic_rate $audio_nchannels $gui_snippet_ms $gui_nx_snippets $gui_ny_snippets $gui_nlabels $gui_gui_width_pix $gui_context_width_ms $gui_context_offset_ms $gui_cluster_background_color $gui_cluster_dot_colormap $gui_snippet_colormap
