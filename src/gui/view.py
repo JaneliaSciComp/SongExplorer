@@ -31,7 +31,7 @@ bokehlog = logging.getLogger("deepsong")
 import model as M
 import controller as C
 
-bokeh_document, cluster_dot_palette, snippet_palette, p_cluster, cluster_dots, p_snippets, label_sources, label_sources_new, wav_sources, line_glyphs, quad_grey_snippets, dot_size_cluster, dot_alpha_cluster, circle_fuchsia_cluster, p_context, p_line_red_context, line_red_context, quad_grey_context_old, quad_grey_context_new, quad_grey_context_pan, quad_fuchsia_context, quad_fuchsia_snippets, wav_source, line_glyph, label_source, label_source_new, which_layer, which_species, which_word, which_nohyphen, which_kind, color_picker, circle_radius, dot_size, dot_alpha, zoom_context, zoom_offset, zoomin, zoomout, reset, panleft, panright, allleft, allout, allright, save_indicator, label_text_widgets, label_count_widgets, play, play_callback, video_toggle, video_div, undo, redo, detect, misses, configuration, configuration_file, train, leaveoneout, leaveallout, xvalidate, mistakes, activations, cluster, visualize, accuracy, freeze, classify, ethogram, compare, congruence, status_ticker, file_dialog_source, file_dialog_source, configuration_contents, logs, logs_folder, model, model_file, wavtfcsvfiles, wavtfcsvfiles_string, groundtruth, groundtruth_folder, validationfiles, testfiles, validationfiles_string, testfiles_string, wantedwords, wantedwords_string, labeltypes, labeltypes_string, copy, labelsounds, makepredictions, fixfalsepositives, fixfalsenegatives, generalize, tunehyperparameters, findnovellabels, examineerrors, testdensely, doit, time_sigma_string, time_smooth_ms_string, frequency_n_ms_string, frequency_nw_string, frequency_p_string, frequency_smooth_ms_string, nsteps_string, restore_from_string, save_and_validate_period_string, validate_percentage_string, mini_batch_string, kfold_string, activations_equalize_ratio_string, activations_max_samples_string, pca_fraction_variance_to_retain_string, tsne_perplexity_string, tsne_exaggeration_string, umap_neighbors_string, umap_distance_string, cluster_algorithm, connection_type, precision_recall_ratios_string, context_ms_string, shiftby_ms_string, representation, window_ms_string, stride_ms_string, mel_dct_string, dropout_string, optimizer, learning_rate_string, kernel_sizes_string, last_conv_width_string, nfeatures_string, dilate_after_layer_string, stride_after_layer_string, editconfiguration, file_dialog_string, file_dialog_table, readme_contents, wordcounts, wizard_buttons, action_buttons, parameter_buttons, parameter_textinputs, wizard2actions, action2parameterbuttons, action2parametertextinputs = [None]*153
+bokeh_document, cluster_dot_palette, snippet_palette, p_cluster, cluster_dots, p_snippets, label_sources, label_sources_new, wav_sources, line_glyphs, quad_grey_snippets, dot_size_cluster, dot_alpha_cluster, circle_fuchsia_cluster, p_context, p_line_red_context, line_red_context, quad_grey_context_old, quad_grey_context_new, quad_grey_context_pan, quad_fuchsia_context, quad_fuchsia_snippets, wav_source, line_glyph, label_source, label_source_new, which_layer, which_species, which_word, which_nohyphen, which_kind, color_picker, circle_radius, dot_size, dot_alpha, zoom_context, zoom_offset, zoomin, zoomout, reset, panleft, panright, allleft, allout, allright, save_indicator, label_text_widgets, label_count_widgets, play, play_callback, video_toggle, video_div, undo, redo, detect, misses, configuration, configuration_file, train, leaveoneout, leaveallout, xvalidate, mistakes, activations, cluster, visualize, accuracy, freeze, classify, ethogram, compare, congruence, status_ticker, file_dialog_source, file_dialog_source, configuration_contents, logs, logs_folder, model, model_file, wavtfcsvfiles, wavtfcsvfiles_string, groundtruth, groundtruth_folder, validationfiles, testfiles, validationfiles_string, testfiles_string, wantedwords, wantedwords_string, labeltypes, labeltypes_string, copy, labelsounds, makepredictions, fixfalsepositives, fixfalsenegatives, generalize, tunehyperparameters, findnovellabels, examineerrors, testdensely, doit, time_sigma_string, time_smooth_ms_string, frequency_n_ms_string, frequency_nw_string, frequency_p_string, frequency_smooth_ms_string, nsteps_string, restore_from_string, save_and_validate_period_string, validate_percentage_string, mini_batch_string, kfold_string, activations_equalize_ratio_string, activations_max_samples_string, pca_fraction_variance_to_retain_string, tsne_perplexity_string, tsne_exaggeration_string, umap_neighbors_string, umap_distance_string, cluster_algorithm, connection_type, precision_recall_ratios_string, context_ms_string, shiftby_ms_string, representation, window_ms_string, stride_ms_string, mel_dct_string, dropout_string, optimizer, learning_rate_string, kernel_sizes_string, last_conv_width_string, nfeatures_string, dilate_after_layer_string, stride_after_layer_string, editconfiguration, file_dialog_string, file_dialog_table, readme_contents, wordcounts, wizard_buttons, action_buttons, parameter_buttons, parameter_textinputs, wizard2actions, action2parameterbuttons, action2parametertextinputs = [None]*151
 
 class ScatterNd(LayoutDOM):
 
@@ -150,6 +150,7 @@ export class ScatterNdView extends LayoutDOMView {
       OPTIONS2.shapes[0].x1 = 0
       OPTIONS2.shapes[0].y1 = 0 }
     else {
+      OPTIONS2.shapes[0].line.color = this.model.circle_fuchsia_source.data[this.model.cc][0]
       let x = this.model.circle_fuchsia_source.data[this.model.cx][0]
       let y = this.model.circle_fuchsia_source.data[this.model.cy][0]
       let r = this.model.circle_fuchsia_source.data[this.model.cr][0]
@@ -180,7 +181,6 @@ export class ScatterNdView extends LayoutDOMView {
     new Plotly.newPlot(this.el,
                        [{alphahull: 1.0,
                          opacity: 0.2,
-                         color: "fuchsia",
                         },
                         {hovertemplate: "%{text}<extra></extra>",
                          mode: 'markers',
@@ -251,7 +251,8 @@ export class ScatterNdView extends LayoutDOMView {
         let new_data = this.get_circle_fuchsia_data3()
         // @ts-ignore
         Plotly.restyle(this.el,
-                       {x: [new_data['x']], y: [new_data['y']], z: [new_data['z']]},
+                       {x: [new_data['x']], y: [new_data['y']], z: [new_data['z']],
+                        color: this.model.circle_fuchsia_source.data[this.model.cc][0]},
                        [0]); }
     });
   }
@@ -272,6 +273,7 @@ export namespace ScatterNd {
     cy: p.Property<string>
     cz: p.Property<string>
     cr: p.Property<string>
+    cc: p.Property<string>
     dx: p.Property<string>
     dy: p.Property<string>
     dz: p.Property<string>
@@ -304,6 +306,7 @@ export class ScatterNd extends LayoutDOM {
       cy: [ p.String   ],
       cz: [ p.String   ],
       cr: [ p.String   ],
+      cc: [ p.String   ],
       dx: [ p.String   ],
       dy: [ p.String   ],
       dz: [ p.String   ],
@@ -326,6 +329,7 @@ export class ScatterNd extends LayoutDOM {
     cy = String
     cz = String
     cr = String
+    cc = String
 
     dx = String
     dy = String
@@ -368,7 +372,7 @@ def cluster_initialize(newcolors=True):
     M.nlayers=len(M.clustered_activations)
     M.ndcluster = np.shape(M.clustered_activations[0])[1]
     cluster_dots.data.update(dx=[], dy=[], dz=[], dl=[], dc=[])
-    circle_fuchsia_cluster.data.update(cx=[], cy=[], cz=[], cr=[])
+    circle_fuchsia_cluster.data.update(cx=[], cy=[], cz=[], cr=[], cc=[])
 
     M.layers = ["input"]+["hidden #"+str(i) for i in range(1,M.nlayers-1)]+["output"]
     M.species = set([x['label'].split('-')[0]+'-' \
@@ -1019,10 +1023,12 @@ def status_ticker_update():
         newtext = ''
     status_ticker.text = status_ticker_pre+newtext+status_ticker_post
 
-def init(_bokeh_document, _cluster_background_color, _cluster_dot_colormap, _snippet_colormap):
+def init(_bokeh_document, _cluster_background_color, _cluster_circle_color, _cluster_dot_colormap, _snippet_colormap):
     global bokeh_document, cluster_dot_palette, snippet_palette, p_cluster, cluster_dots, p_cluster_dots, precomputed_dots, p_snippets, label_sources, label_sources_new, wav_sources, line_glyphs, quad_grey_snippets, dot_size_cluster, dot_alpha_cluster, circle_fuchsia_cluster, p_context, p_line_red_context, line_red_context, quad_grey_context_old, quad_grey_context_new, quad_grey_context_pan, quad_fuchsia_context, quad_fuchsia_snippets, wav_source, line_glyph, label_source, label_source_new, which_layer, which_species, which_word, which_nohyphen, which_kind, color_picker, circle_radius, dot_size, dot_alpha, zoom_context, zoom_offset, zoomin, zoomout, reset, panleft, panright, allleft, allout, allright, save_indicator, label_text_widgets, label_count_widgets, play, play_callback, video_toggle, video_div, undo, redo, detect, misses, configuration, configuration_file, train, leaveoneout, leaveallout, xvalidate, mistakes, activations, cluster, visualize, accuracy, freeze, classify, ethogram, compare, congruence, status_ticker, file_dialog_source, file_dialog_source, configuration_contents, logs, logs_folder, model, model_file, wavtfcsvfiles, wavtfcsvfiles_string, groundtruth, groundtruth_folder, validationfiles, testfiles, validationfiles_string, testfiles_string, wantedwords, wantedwords_string, labeltypes, labeltypes_string, copy, labelsounds, makepredictions, fixfalsepositives, fixfalsenegatives, generalize, tunehyperparameters, findnovellabels, examineerrors, testdensely, doit, time_sigma_string, time_smooth_ms_string, frequency_n_ms_string, frequency_nw_string, frequency_p_string, frequency_smooth_ms_string, nsteps_string, restore_from_string, save_and_validate_period_string, validate_percentage_string, mini_batch_string, kfold_string, activations_equalize_ratio_string, activations_max_samples_string, pca_fraction_variance_to_retain_string, tsne_perplexity_string, tsne_exaggeration_string, umap_neighbors_string, umap_distance_string, cluster_algorithm, connection_type, precision_recall_ratios_string, context_ms_string, shiftby_ms_string, representation, window_ms_string, stride_ms_string, mel_dct_string, dropout_string, optimizer, learning_rate_string, kernel_sizes_string, last_conv_width_string, nfeatures_string, dilate_after_layer_string, stride_after_layer_string, editconfiguration, file_dialog_string, file_dialog_table, readme_contents, wordcounts, wizard_buttons, action_buttons, parameter_buttons, parameter_textinputs, wizard2actions, action2parameterbuttons, action2parametertextinputs, status_ticker_update, status_ticker_pre, status_ticker_post
 
     bokeh_document = _bokeh_document
+
+    M.cluster_circle_color = _cluster_circle_color
 
     if '#' in _cluster_dot_colormap:
       cluster_dot_palette = ast.literal_eval(_cluster_dot_colormap)
@@ -1035,10 +1041,10 @@ def init(_bokeh_document, _cluster_background_color, _cluster_dot_colormap, _sni
     dot_alpha_cluster = ColumnDataSource(data=dict(da=[M.state["dot_alpha"]]))
 
     cluster_dots = ColumnDataSource(data=dict(dx=[], dy=[], dz=[], dl=[], dc=[]))
-    circle_fuchsia_cluster = ColumnDataSource(data=dict(cx=[], cy=[], cz=[], cr=[]))
+    circle_fuchsia_cluster = ColumnDataSource(data=dict(cx=[], cy=[], cz=[], cr=[], cc=[]))
     p_cluster = ScatterNd(dx='dx', dy='dy', dz='dz', dl='dl', dc='dc',
                           dots_source=cluster_dots,
-                          cx='cx', cy='cy', cz='cz', cr='cr',
+                          cx='cx', cy='cy', cz='cz', cr='cr', cc='cc',
                           circle_fuchsia_source=circle_fuchsia_cluster,
                           ds='ds',
                           dot_size_source=dot_size_cluster,

@@ -1,10 +1,10 @@
 # interactively browse clusters and annotate sounds
  
-# visualize.py --args <audio-tic-rate> <audio-nchannels> <video-frame-rate> <snippets-ms> <nx-snippets> <ny-snippets> <gui-width-pix> <context-width-ms> <context-offset-ms> <cluster-background-color> <cluster-dot-colormap> <snippet-colormap>
+# visualize.py --args <audio-tic-rate> <audio-nchannels> <video-frame-rate> <snippets-ms> <nx-snippets> <ny-snippets> <gui-width-pix> <context-width-ms> <context-offset-ms> <cluster-background-color> <cluster-circle-color> <cluster-dot-colormap> <snippet-colormap>
 # http://<hostname>:<port>/visualize
 
 # e.g.
-# bokeh serve --allow-websocket-origin=`hostname`:5006 --allow-websocket-origin=localhost:5006 --port 5006 --show /opt/users/deepsong/src/visualize.py --args 5000 1 15 40 10 10 8 1200 400 0 #FFFFFF Category10 Greys256 1.0 0.05 Viridis256
+# bokeh serve --allow-websocket-origin=`hostname`:5006 --allow-websocket-origin=localhost:5006 --port 5006 --show /opt/users/deepsong/src/visualize.py --args 5000 1 15 40 10 10 8 1200 400 0 #FFFFFF #FF00FF Category10 Viridis256
 
 import os
 from bokeh.plotting import curdoc
@@ -17,7 +17,7 @@ bokehlog = logging.getLogger("deepsong")
 bokehlog.setLevel(logging.INFO)
 #bokehlog.info(...) 
 
-_, configuration_inarg, audio_tic_rate, audio_nchannels, snippets_ms, nx, ny, nlabels, gui_width_pix, context_width_ms, context_offset_ms, cluster_background_color, cluster_dot_colormap, snippet_colormap = argv
+_, configuration_inarg, audio_tic_rate, audio_nchannels, snippets_ms, nx, ny, nlabels, gui_width_pix, context_width_ms, context_offset_ms, cluster_background_color, cluster_circle_color, cluster_dot_colormap, snippet_colormap = argv
 
 import model as M
 import view as V
@@ -27,7 +27,8 @@ doc = curdoc()
 
 M.init(configuration_inarg, audio_tic_rate, audio_nchannels,
        snippets_ms, nx, ny, nlabels, gui_width_pix, context_width_ms, context_offset_ms)
-V.init(doc, cluster_background_color, cluster_dot_colormap, snippet_colormap)
+V.init(doc, cluster_background_color, cluster_circle_color, cluster_dot_colormap,
+       snippet_colormap)
 C.init(doc)
 
 cluster_buttons = row(V.which_layer, V.which_species, V.which_word,

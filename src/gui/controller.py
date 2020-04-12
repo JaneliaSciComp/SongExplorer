@@ -24,7 +24,7 @@ def generic_parameters_callback():
 
 def layer_callback(new):
     M.ilayer=M.layers.index(new)
-    V.circle_fuchsia_cluster.data.update(cx=[], cy=[], cz=[], cr=[])
+    V.circle_fuchsia_cluster.data.update(cx=[], cy=[], cz=[], cr=[], cc=[])
     V.cluster_update()
     M.xcluster = M.ycluster = M.zcluster = np.nan
     M.isnippet = -1
@@ -147,7 +147,8 @@ def cluster_tap_callback(event):
     V.circle_fuchsia_cluster.data.update(cx=[M.xcluster],
                                          cy=[M.ycluster],
                                          cz=[M.zcluster],
-                                         cr=[M.state["circle_radius"]])
+                                         cr=[M.state["circle_radius"]],
+                                         cc=[M.cluster_circle_color])
     M.isnippet = -1
     V.snippets_update(True)
     V.context_update()
@@ -314,7 +315,7 @@ def snippets_doubletap_callback(event):
 def undo_callback():
     if M.history_idx>0:
         M.history_idx-=1
-        V.circle_fuchsia_cluster.data.update(cx=[], cy=[], cz=[], cr=[])
+        V.circle_fuchsia_cluster.data.update(cx=[], cy=[], cz=[], cr=[], cc=[])
         M.xcluster = M.ycluster = M.zcluster = np.nan
         M.isnippet = -1
         V.snippets_update(True)
@@ -338,7 +339,7 @@ def undo_callback():
 def redo_callback():
     if M.history_idx<len(M.history_stack):
         M.history_idx+=1
-        V.circle_fuchsia_cluster.data.update(cx=[], cy=[], cz=[], cr=[])
+        V.circle_fuchsia_cluster.data.update(cx=[], cy=[], cz=[], cr=[], cc=[])
         M.xcluster = M.ycluster = M.zcluster = np.nan
         M.isnippet = -1
         V.snippets_update(True)
@@ -824,7 +825,7 @@ def visualize_actuate():
     V.which_nohyphen.value = M.nohyphens[M.inohyphen]
     M.ikind = 0
     V.which_kind.value = M.kinds[M.ikind]
-    V.circle_fuchsia_cluster.data.update(cx=[], cy=[], cz=[], cr=[])
+    V.circle_fuchsia_cluster.data.update(cx=[], cy=[], cz=[], cr=[], cc=[])
     V.cluster_update()
     M.xcluster = M.ycluster = M.zcluster = np.nan
     M.isnippet = -1

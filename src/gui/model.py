@@ -11,7 +11,7 @@ bokehlog = logging.getLogger("deepsong")
 
 import view as V
 
-audio_tic_rate, audio_nchannels, snippets_ms, nx, ny, nlabels, gui_width_pix, context_width_ms0, context_offset_ms0, context_width_ms, context_offset_ms, cluster_dot_colors, xcluster, ycluster, zcluster, ndcluster, filter_order, filter_ratio_max, snippet_width_pix, layer, specie, word, nohyphen, kind, nlayers, layers, species, words, nohyphens, kinds, snippets_gap_ms, snippets_tic, snippets_gap_tic, tic2pix, snippets_decimate_by, snippets_pix, snippets_gap_pix, context_width_tic, context_offset_tic, isnippet, xsnippet, ysnippet, file_nframes, context_midpoint_tic, context_decimate_by, panned_sample, ipanned_quad, ilabel, annotated_samples, annotated_starts_sorted, annotated_stops, iannotated_stops_sorted, annotated_csvfiles_all, nrecent_annotations, clustered_samples, clustered_activations, clustered_starts_sorted, clustered_stops, iclustered_stops_sorted, deepsong_starttime, history_stack, history_idx, wizard, action, function, statepath, state, file_dialog_root, file_dialog_filter, nearest_samples, status_ticker_queue = [None]*71
+audio_tic_rate, audio_nchannels, snippets_ms, nx, ny, nlabels, gui_width_pix, context_width_ms0, context_offset_ms0, context_width_ms, context_offset_ms, cluster_circle_color, cluster_dot_colors, xcluster, ycluster, zcluster, ndcluster, filter_order, filter_ratio_max, snippet_width_pix, layer, specie, word, nohyphen, kind, nlayers, layers, species, words, nohyphens, kinds, snippets_gap_ms, snippets_tic, snippets_gap_tic, tic2pix, snippets_decimate_by, snippets_pix, snippets_gap_pix, context_width_tic, context_offset_tic, isnippet, xsnippet, ysnippet, file_nframes, context_midpoint_tic, context_decimate_by, panned_sample, ipanned_quad, ilabel, annotated_samples, annotated_starts_sorted, annotated_stops, iannotated_stops_sorted, annotated_csvfiles_all, nrecent_annotations, clustered_samples, clustered_activations, clustered_starts_sorted, clustered_stops, iclustered_stops_sorted, deepsong_starttime, history_stack, history_idx, wizard, action, function, statepath, state, file_dialog_root, file_dialog_filter, nearest_samples, status_ticker_queue = [None]*72
 
 def parse_model_file(filepath):
     head, check_point_str = os.path.split(filepath)
@@ -199,7 +199,7 @@ def finalize_annotation(redraw_snippets=True):
 def init(_configuration_inarg, _audio_tic_rate, _audio_nchannels,
          _snippets_ms, _nx, _ny, _nlabels, _gui_width_pix,
          _context_width_ms, _context_offset_ms):
-    global audio_tic_rate, audio_nchannels, snippets_ms, nx, ny, nlabels, gui_width_pix, context_width_ms0, context_offset_ms0, ccontext_width_ms, context_offset_ms, cluster_dot_colors, xcluster, ycluster, zcluster, ndcluster, filter_order, filter_ratio_max, snippet_width_pix, ilayer, ispecies, iword, inohyphen, ikind, nlayers, layers, species, words, nohyphens, kinds, snippets_gap_ms, snippets_tic, snippets_gap_tic, tic2pix, snippets_decimate_by, snippets_pix, snippets_gap_pix, context_width_tic, context_offset_tic, isnippet, xsnippet, ysnippet, file_nframes, context_midpoint_tic, context_decimate_by, panned_sample, ipanned_quad, ilabel, annotated_samples, annotated_starts_sorted, annotated_stops, iannotated_stops_sorted, annotated_csvfiles_all, nrecent_annotations, clustered_samples, clustered_activations, clustered_starts_sorted, clustered_stops, iclustered_stops_sorted, deepsong_starttime, history_stack, history_idx, wizard, action, function, statepath, state, file_dialog_root, file_dialog_filter, nearest_samples, status_ticker_queue
+    global audio_tic_rate, audio_nchannels, snippets_ms, nx, ny, nlabels, gui_width_pix, context_width_ms0, context_offset_ms0, context_width_ms, context_offset_ms, cluster_circle_color, cluster_dot_colors, xcluster, ycluster, zcluster, ndcluster, filter_order, filter_ratio_max, snippet_width_pix, ilayer, ispecies, iword, inohyphen, ikind, nlayers, layers, species, words, nohyphens, kinds, snippets_gap_ms, snippets_tic, snippets_gap_tic, tic2pix, snippets_decimate_by, snippets_pix, snippets_gap_pix, context_width_tic, context_offset_tic, isnippet, xsnippet, ysnippet, file_nframes, context_midpoint_tic, context_decimate_by, panned_sample, ipanned_quad, ilabel, annotated_samples, annotated_starts_sorted, annotated_stops, iannotated_stops_sorted, annotated_csvfiles_all, nrecent_annotations, clustered_samples, clustered_activations, clustered_starts_sorted, clustered_stops, iclustered_stops_sorted, deepsong_starttime, history_stack, history_idx, wizard, action, function, statepath, state, file_dialog_root, file_dialog_filter, nearest_samples, status_ticker_queue
 
     audio_tic_rate=int(_audio_tic_rate)
     audio_nchannels=int(_audio_nchannels)
@@ -213,6 +213,7 @@ def init(_configuration_inarg, _audio_tic_rate, _audio_nchannels,
     context_width_ms=float(_context_width_ms)
     context_offset_ms=float(_context_offset_ms)
 
+    cluster_circle_color = ''
     cluster_dot_colors = {}
 
     xcluster = ycluster = zcluster = np.nan
