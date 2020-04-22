@@ -31,7 +31,7 @@ bokehlog = logging.getLogger("deepsong")
 import model as M
 import controller as C
 
-bokeh_document, cluster_dot_palette, snippet_palette, p_cluster, cluster_dots, p_snippets, label_sources, label_sources_new, wav_sources, line_glyphs, quad_grey_snippets, dot_size_cluster, dot_alpha_cluster, circle_fuchsia_cluster, p_context, p_line_red_context, line_red_context, quad_grey_context_old, quad_grey_context_new, quad_grey_context_pan, quad_fuchsia_context, quad_fuchsia_snippets, wav_source, line_glyph, label_source, label_source_new, which_layer, which_species, which_word, which_nohyphen, which_kind, color_picker, circle_radius, dot_size, dot_alpha, zoom_context, zoom_offset, zoomin, zoomout, reset, panleft, panright, allleft, allout, allright, save_indicator, label_text_widgets, label_count_widgets, play, play_callback, video_toggle, video_div, undo, redo, detect, misses, configuration, configuration_file, train, leaveoneout, leaveallout, xvalidate, mistakes, activations, cluster, visualize, accuracy, freeze, classify, ethogram, compare, congruence, status_ticker, file_dialog_source, file_dialog_source, configuration_contents, logs, logs_folder, model, model_file, wavtfcsvfiles, wavtfcsvfiles_string, groundtruth, groundtruth_folder, validationfiles, testfiles, validationfiles_string, testfiles_string, wantedwords, wantedwords_string, labeltypes, labeltypes_string, copy, labelsounds, makepredictions, fixfalsepositives, fixfalsenegatives, generalize, tunehyperparameters, findnovellabels, examineerrors, testdensely, doit, time_sigma_string, time_smooth_ms_string, frequency_n_ms_string, frequency_nw_string, frequency_p_string, frequency_smooth_ms_string, nsteps_string, restore_from_string, save_and_validate_period_string, validate_percentage_string, mini_batch_string, kfold_string, activations_equalize_ratio_string, activations_max_samples_string, pca_fraction_variance_to_retain_string, tsne_perplexity_string, tsne_exaggeration_string, umap_neighbors_string, umap_distance_string, cluster_algorithm, connection_type, precision_recall_ratios_string, context_ms_string, shiftby_ms_string, representation, window_ms_string, stride_ms_string, mel_dct_string, dropout_string, optimizer, learning_rate_string, kernel_sizes_string, last_conv_width_string, nfeatures_string, dilate_after_layer_string, stride_after_layer_string, editconfiguration, file_dialog_string, file_dialog_table, readme_contents, wordcounts, wizard_buttons, action_buttons, parameter_buttons, parameter_textinputs, wizard2actions, action2parameterbuttons, action2parametertextinputs = [None]*151
+bokeh_document, cluster_dot_palette, snippet_palette, p_cluster, cluster_dots, p_snippets, label_sources, label_sources_new, wav_sources, line_glyphs, quad_grey_snippets, dot_size_cluster, dot_alpha_cluster, circle_fuchsia_cluster, p_context, p_line_red_context, line_red_context, quad_grey_context_old, quad_grey_context_new, quad_grey_context_pan, quad_fuchsia_context, quad_fuchsia_snippets, wav_source, line_glyph, label_source, label_source_new, which_layer, which_species, which_word, which_nohyphen, which_kind, color_picker, circle_radius, dot_size, dot_alpha, zoom_context, zoom_offset, zoomin, zoomout, reset, panleft, panright, allleft, allout, allright, save_indicator, label_count_widgets, label_text_widgets, play, play_callback, video_toggle, video_div, undo, redo, detect, misses, configuration, configuration_file, train, leaveoneout, leaveallout, xvalidate, mistakes, activations, cluster, visualize, accuracy, freeze, classify, ethogram, compare, congruence, status_ticker, file_dialog_source, file_dialog_source, configuration_contents, logs, logs_folder, model, model_file, wavtfcsvfiles, wavtfcsvfiles_string, groundtruth, groundtruth_folder, validationfiles, testfiles, validationfiles_string, testfiles_string, wantedwords, wantedwords_string, labeltypes, labeltypes_string, prevalences, prevalences_string, copy, labelsounds, makepredictions, fixfalsepositives, fixfalsenegatives, generalize, tunehyperparameters, findnovellabels, examineerrors, testdensely, doit, time_sigma_string, time_smooth_ms_string, frequency_n_ms_string, frequency_nw_string, frequency_p_string, frequency_smooth_ms_string, nsteps_string, restore_from_string, save_and_validate_period_string, validate_percentage_string, mini_batch_string, kfold_string, activations_equalize_ratio_string, activations_max_samples_string, pca_fraction_variance_to_retain_string, tsne_perplexity_string, tsne_exaggeration_string, umap_neighbors_string, umap_distance_string, cluster_algorithm, connection_type, precision_recall_ratios_string, context_ms_string, shiftby_ms_string, representation, window_ms_string, stride_ms_string, mel_dct_string, dropout_string, optimizer, learning_rate_string, kernel_sizes_string, last_conv_width_string, nfeatures_string, dilate_after_layer_string, stride_after_layer_string, editconfiguration, file_dialog_string, file_dialog_table, readme_contents, wordcounts, wizard_buttons, action_buttons, parameter_buttons, parameter_textinputs, wizard2actions, action2parameterbuttons, action2parametertextinputs = [None]*153
 
 class ScatterNd(LayoutDOM):
 
@@ -879,6 +879,12 @@ def _groundtruth_update():
     groundtruth.disabled=True
     buttons_update()
 
+def wantedwords_update_other():
+    wantedwords = [x.value for x in label_text_widgets if x.value!='']
+    if 'other' not in wantedwords:
+        wantedwords.append('other')
+    wantedwords_string.value=str.join(',',wantedwords)
+
 def buttons_update():
     for button in wizard_buttons:
         button.button_type="success" if button==M.wizard else "default"
@@ -895,19 +901,6 @@ def buttons_update():
         wavtfcsvfiles.label='wav,tf,csv files'
     for button in parameter_buttons:
         button.disabled=False if button in action2parameterbuttons[M.action] else True
-    if M.wizard==findnovellabels:
-        wantedwords = [x.value for x in label_text_widgets if x.value!='']
-        for i in range(M.audio_nchannels):
-            i_str = str(i) if M.audio_nchannels>1 else ''
-            if 'time'+i_str not in wantedwords:
-                wantedwords.append('time'+i_str)
-            if 'frequency'+i_str not in wantedwords:
-                wantedwords.append('frequency'+i_str)
-        wantedwords_string.value=str.join(',',wantedwords)
-        if M.action==train:
-            labeltypes_string.value="annotated"
-        elif M.action==activations:
-            labeltypes_string.value="annotated,detected"
     okay=True if M.action else False
     for textinput in parameter_textinputs:
         if textinput in action2parametertextinputs[M.action]:
@@ -938,7 +931,9 @@ def buttons_update():
             else:
                 textinput.disabled=False
             if textinput.disabled==False and textinput.value=='' and \
-                    textinput not in [testfiles_string, restore_from_string]:
+                    textinput not in [testfiles_string, restore_from_string] and \
+                    (M.action!=classify or \
+                     textinput not in [wantedwords_string, prevalences_string]):
                 okay=False
         else:
             textinput.disabled=True
@@ -1024,7 +1019,7 @@ def status_ticker_update():
     status_ticker.text = status_ticker_pre+newtext+status_ticker_post
 
 def init(_bokeh_document, _cluster_background_color, _cluster_circle_color, _cluster_dot_colormap, _snippet_colormap):
-    global bokeh_document, cluster_dot_palette, snippet_palette, p_cluster, cluster_dots, p_cluster_dots, precomputed_dots, p_snippets, label_sources, label_sources_new, wav_sources, line_glyphs, quad_grey_snippets, dot_size_cluster, dot_alpha_cluster, circle_fuchsia_cluster, p_context, p_line_red_context, line_red_context, quad_grey_context_old, quad_grey_context_new, quad_grey_context_pan, quad_fuchsia_context, quad_fuchsia_snippets, wav_source, line_glyph, label_source, label_source_new, which_layer, which_species, which_word, which_nohyphen, which_kind, color_picker, circle_radius, dot_size, dot_alpha, zoom_context, zoom_offset, zoomin, zoomout, reset, panleft, panright, allleft, allout, allright, save_indicator, label_text_widgets, label_count_widgets, play, play_callback, video_toggle, video_div, undo, redo, detect, misses, configuration, configuration_file, train, leaveoneout, leaveallout, xvalidate, mistakes, activations, cluster, visualize, accuracy, freeze, classify, ethogram, compare, congruence, status_ticker, file_dialog_source, file_dialog_source, configuration_contents, logs, logs_folder, model, model_file, wavtfcsvfiles, wavtfcsvfiles_string, groundtruth, groundtruth_folder, validationfiles, testfiles, validationfiles_string, testfiles_string, wantedwords, wantedwords_string, labeltypes, labeltypes_string, copy, labelsounds, makepredictions, fixfalsepositives, fixfalsenegatives, generalize, tunehyperparameters, findnovellabels, examineerrors, testdensely, doit, time_sigma_string, time_smooth_ms_string, frequency_n_ms_string, frequency_nw_string, frequency_p_string, frequency_smooth_ms_string, nsteps_string, restore_from_string, save_and_validate_period_string, validate_percentage_string, mini_batch_string, kfold_string, activations_equalize_ratio_string, activations_max_samples_string, pca_fraction_variance_to_retain_string, tsne_perplexity_string, tsne_exaggeration_string, umap_neighbors_string, umap_distance_string, cluster_algorithm, connection_type, precision_recall_ratios_string, context_ms_string, shiftby_ms_string, representation, window_ms_string, stride_ms_string, mel_dct_string, dropout_string, optimizer, learning_rate_string, kernel_sizes_string, last_conv_width_string, nfeatures_string, dilate_after_layer_string, stride_after_layer_string, editconfiguration, file_dialog_string, file_dialog_table, readme_contents, wordcounts, wizard_buttons, action_buttons, parameter_buttons, parameter_textinputs, wizard2actions, action2parameterbuttons, action2parametertextinputs, status_ticker_update, status_ticker_pre, status_ticker_post
+    global bokeh_document, cluster_dot_palette, snippet_palette, p_cluster, cluster_dots, p_cluster_dots, precomputed_dots, p_snippets, label_sources, label_sources_new, wav_sources, line_glyphs, quad_grey_snippets, dot_size_cluster, dot_alpha_cluster, circle_fuchsia_cluster, p_context, p_line_red_context, line_red_context, quad_grey_context_old, quad_grey_context_new, quad_grey_context_pan, quad_fuchsia_context, quad_fuchsia_snippets, wav_source, line_glyph, label_source, label_source_new, which_layer, which_species, which_word, which_nohyphen, which_kind, color_picker, circle_radius, dot_size, dot_alpha, zoom_context, zoom_offset, zoomin, zoomout, reset, panleft, panright, allleft, allout, allright, save_indicator, label_count_widgets, label_text_widgets, play, play_callback, video_toggle, video_div, undo, redo, detect, misses, configuration, configuration_file, train, leaveoneout, leaveallout, xvalidate, mistakes, activations, cluster, visualize, accuracy, freeze, classify, ethogram, compare, congruence, status_ticker, file_dialog_source, file_dialog_source, configuration_contents, logs, logs_folder, model, model_file, wavtfcsvfiles, wavtfcsvfiles_string, groundtruth, groundtruth_folder, validationfiles, testfiles, validationfiles_string, testfiles_string, wantedwords, wantedwords_string, labeltypes, labeltypes_string, prevalences, prevalences_string, copy, labelsounds, makepredictions, fixfalsepositives, fixfalsenegatives, generalize, tunehyperparameters, findnovellabels, examineerrors, testdensely, doit, time_sigma_string, time_smooth_ms_string, frequency_n_ms_string, frequency_nw_string, frequency_p_string, frequency_smooth_ms_string, nsteps_string, restore_from_string, save_and_validate_period_string, validate_percentage_string, mini_batch_string, kfold_string, activations_equalize_ratio_string, activations_max_samples_string, pca_fraction_variance_to_retain_string, tsne_perplexity_string, tsne_exaggeration_string, umap_neighbors_string, umap_distance_string, cluster_algorithm, connection_type, precision_recall_ratios_string, context_ms_string, shiftby_ms_string, representation, window_ms_string, stride_ms_string, mel_dct_string, dropout_string, optimizer, learning_rate_string, kernel_sizes_string, last_conv_width_string, nfeatures_string, dilate_after_layer_string, stride_after_layer_string, editconfiguration, file_dialog_string, file_dialog_table, readme_contents, wordcounts, wizard_buttons, action_buttons, parameter_buttons, parameter_textinputs, wizard2actions, action2parameterbuttons, action2parametertextinputs, status_ticker_update, status_ticker_pre, status_ticker_post
 
     bokeh_document = _bokeh_document
 
@@ -1220,19 +1215,20 @@ def init(_bokeh_document, _cluster_background_color, _cluster_circle_color, _clu
 
     save_indicator = Button(label='0', width=40)
 
-    label_text_callbacks=[]
-    label_text_widgets=[]
     label_count_callbacks=[]
     label_count_widgets=[]
+    label_text_callbacks=[]
+    label_text_widgets=[]
 
     for i in range(M.nlabels):
+        label_count_callbacks.append(lambda i=i: C.label_count_callback(i))
+        label_count_widgets.append(Button(label='0', css_classes=['hide-label'], width=40))
+        label_count_widgets[-1].on_click(label_count_callbacks[-1])
+
         label_text_callbacks.append(lambda a,o,n,i=i: C.label_text_callback(n,i))
         label_text_widgets.append(TextInput(value=M.state['labels'][i],
                                             css_classes=['hide-label']))
         label_text_widgets[-1].on_change("value", label_text_callbacks[-1])
-        label_count_callbacks.append(lambda i=i: C.label_count_callback(i))
-        label_count_widgets.append(Button(label='0', css_classes=['hide-label'], width=40))
-        label_count_widgets[-1].on_click(label_count_callbacks[-1])
 
     C.label_count_callback(M.ilabel)
 
@@ -1257,12 +1253,6 @@ def init(_bokeh_document, _cluster_background_color, _cluster_circle_color, _clu
 
     misses = Button(label='misses')
     misses.on_click(lambda: C.action_callback(misses, C.misses_actuate))
-
-    configuration = Button(label='configuration:', width=110)
-    configuration.on_click(C.configuration_button_callback)
-
-    configuration_file = TextInput(value=M.state['configuration'], title="", disabled=False)
-    configuration_file.on_change('value', C.configuration_text_callback)
 
     train = Button(label='train')
     train.on_click(lambda: C.action_callback(train, C.train_actuate))
@@ -1297,7 +1287,7 @@ def init(_bokeh_document, _cluster_background_color, _cluster_circle_color, _clu
     freeze.on_click(lambda: C.action_callback(freeze, C.freeze_actuate))
 
     classify = Button(label='classify')
-    classify.on_click(lambda: C.action_callback(classify, C.classify_actuate))
+    classify.on_click(C.classify_callback)
 
     ethogram = Button(label='ethogram')
     ethogram.on_click(lambda: C.action_callback(ethogram, C.ethogram_actuate))
@@ -1327,6 +1317,12 @@ def init(_bokeh_document, _cluster_background_color, _cluster_circle_color, _clu
                                   height=660, width=M.gui_width_pix//2-10, \
                                   index_position=None,
                                   fit_columns=False)
+
+    configuration = Button(label='configuration:', width=110)
+    configuration.on_click(C.configuration_button_callback)
+
+    configuration_file = TextInput(value=M.state['configuration'], title="", disabled=False)
+    configuration_file.on_change('value', C.configuration_text_callback)
 
     configuration_contents = TextAreaInput(rows=46, max_length=50000, \
                                         disabled=True, css_classes=['fixedwidth'])
@@ -1372,35 +1368,40 @@ def init(_bokeh_document, _cluster_background_color, _cluster_circle_color, _clu
     labeltypes_string = TextInput(value=M.state['labeltypes'], title="", disabled=False)
     labeltypes_string.on_change('value', lambda a,o,n: C.generic_parameters_callback())
 
+    prevalences = Button(label='prevalences:', width=110)
+    prevalences.on_click(C.prevalences_callback)
+    prevalences_string = TextInput(value=M.state['prevalences'], title="", disabled=False)
+    prevalences_string.on_change('value', lambda a,o,n: C.generic_parameters_callback())
+
     copy = Button(label='copy')
     copy.on_click(C.copy_callback)
 
     labelsounds = Button(label='label sounds')
-    labelsounds.on_click(C.labelsounds_callback)
+    labelsounds.on_click(lambda: C.wizard_callback(labelsounds))
 
     makepredictions = Button(label='make predictions')
-    makepredictions.on_click(C.makepredictions_callback)
+    makepredictions.on_click(lambda: C.wizard_callback(makepredictions))
 
     fixfalsepositives = Button(label='fix false positives')
-    fixfalsepositives.on_click(C.fixfalsepositives_callback)
+    fixfalsepositives.on_click(lambda: C.wizard_callback(fixfalsepositives))
 
     fixfalsenegatives = Button(label='fix false negatives')
-    fixfalsenegatives.on_click(C.fixfalsenegatives_callback)
+    fixfalsenegatives.on_click(lambda: C.wizard_callback(fixfalsenegatives))
 
     generalize = Button(label='test generalization')
-    generalize.on_click(C.generalize_callback)
+    generalize.on_click(lambda: C.wizard_callback(generalize))
 
     tunehyperparameters = Button(label='tune h-parameters')
-    tunehyperparameters.on_click(C.tunehyperparameters_callback)
+    tunehyperparameters.on_click(lambda: C.wizard_callback(tunehyperparameters))
 
     findnovellabels = Button(label='find novel labels')
-    findnovellabels.on_click(C.findnovellabels_callback)
+    findnovellabels.on_click(lambda: C.wizard_callback(findnovellabels))
 
     examineerrors = Button(label='examine errors')
-    examineerrors.on_click(C.examineerrors_callback)
+    examineerrors.on_click(lambda: C.wizard_callback(examineerrors))
 
     testdensely = Button(label='test densely')
-    testdensely .on_click(C.testdensely_callback)
+    testdensely .on_click(lambda: C.wizard_callback(testdensely))
 
     doit = Button(label='do it!', disabled=True)
     doit.on_click(C.doit_callback)
@@ -1634,7 +1635,8 @@ def init(_bokeh_document, _cluster_background_color, _cluster_circle_color, _clu
         validationfiles,
         testfiles,
         wantedwords,
-        labeltypes])
+        labeltypes,
+        prevalences])
 
     parameter_textinputs = set([
         configuration_file,
@@ -1646,6 +1648,7 @@ def init(_bokeh_document, _cluster_background_color, _cluster_circle_color, _clu
         testfiles_string,
         wantedwords_string,
         labeltypes_string,
+        prevalences_string,
 
         time_sigma_string,
         time_smooth_ms_string,
@@ -1708,7 +1711,7 @@ def init(_bokeh_document, _cluster_background_color, _cluster_circle_color, _clu
             visualize: [groundtruth],
             accuracy: [configuration, logs],
             freeze: [configuration, logs, model],
-            classify: [configuration, logs, model, wavtfcsvfiles],
+            classify: [configuration, logs, model, wavtfcsvfiles, wantedwords, prevalences],
             ethogram: [configuration, model, wavtfcsvfiles],
             misses: [configuration, wavtfcsvfiles],
             compare: [configuration, logs],
@@ -1727,7 +1730,7 @@ def init(_bokeh_document, _cluster_background_color, _cluster_circle_color, _clu
             visualize: [groundtruth_folder],
             accuracy: [configuration_file, logs_folder, precision_recall_ratios_string],
             freeze: [configuration_file, context_ms_string, representation, window_ms_string, stride_ms_string, mel_dct_string, kernel_sizes_string, last_conv_width_string, nfeatures_string, dilate_after_layer_string, stride_after_layer_string, connection_type, logs_folder, model_file],
-            classify: [configuration_file, context_ms_string, shiftby_ms_string, representation, stride_ms_string, logs_folder, model_file, wavtfcsvfiles_string],
+            classify: [configuration_file, context_ms_string, shiftby_ms_string, representation, stride_ms_string, logs_folder, model_file, wavtfcsvfiles_string, wantedwords_string, prevalences_string],
             ethogram: [configuration_file, model_file, wavtfcsvfiles_string],
             misses: [configuration_file, wavtfcsvfiles_string],
             compare: [configuration_file, logs_folder],

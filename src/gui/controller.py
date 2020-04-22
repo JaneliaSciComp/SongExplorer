@@ -365,6 +365,11 @@ def action_callback(thisaction, thisactuate):
     M.function=thisactuate
     V.buttons_update()
 
+def classify_callback():
+    labels_file = os.path.dirname(V.model_file.value)
+    wantedwords_update(os.path.join(labels_file, "vgg_labels.txt"))
+    action_callback(V.classify, classify_actuate)
+
 def actuate_monitor(displaystring, results, idx, isrunningfun, isdonefun, succeededfun):
     M.status_ticker_queue = {k:v for k,v in M.status_ticker_queue.items() if v!="succeeded"}
     M.status_ticker_queue[displaystring] = "pending"
@@ -542,7 +547,7 @@ def _validation_test_files(files_string, comma=True):
             wavfiles = set(df.loc[df[3]=="annotated"][0])
             return [','.join(wavfiles)] if comma else list(wavfiles)
     elif files_string.lower().endswith('.wav'):
-        return [files_string] if comma else split(files_string,',')
+        return [files_string] if comma else files_string.split(',')
     elif files_string!='':
         with open(files_string, "r") as fid:
             wavfiles = fid.readlines()
@@ -953,10 +958,13 @@ def classify_actuate():
     for wavfile in V.wavtfcsvfiles_string.value.split(','):
         currtime = time.time()
         logdir, model, check_point = M.parse_model_file(V.model_file.value)
-        run(["classify.sh", V.configuration_file.value, V.context_ms_string.value, \
-             V.shiftby_ms_string.value, V.representation.value, \
-             V.stride_ms_string.value, \
-             logdir, model, check_point, wavfile])
+        cmd = ["classify.sh", V.configuration_file.value, V.context_ms_string.value, \
+               V.shiftby_ms_string.value, V.representation.value, \
+               V.stride_ms_string.value, \
+               logdir, model, check_point, wavfile]
+        if V.prevalences_string.value!='':
+            cmd += [V.wantedwords_string.value, V.prevalences_string.value]
+        run(cmd)
         displaystring = "classify "+os.path.basename(wavfile)
         tflogfile = wavfile[:-4]+'-classify-tf.log'
         wavlogfile = wavfile[:-4]+'-classify-wav.log'
@@ -1142,13 +1150,28 @@ def validationfiles_callback():
 def testfiles_callback():
   V.testfiles_string.value = _validation_test_files_callback()
 
+def wantedwords_update(labels_file):
+    with open(labels_file, "r") as fid:
+        labels = fid.readlines()
+    V.wantedwords_string.value = str.join(',',[x.strip() for x in labels])
+
 def wantedwords_callback():
     assert len(V.file_dialog_source.selected.indices)==1
     idx = V.file_dialog_source.selected.indices[0]
     labels_file = os.path.join(M.file_dialog_root, V.file_dialog_source.data['names'][idx])
-    with open(labels_file, "r") as fid:
-        labels = fid.readlines()
-    V.wantedwords_string.value = str.join(',',[x.strip() for x in labels])
+    wantedwords_update(labels_file)
+
+def prevalences_callback():
+    assert len(V.file_dialog_source.selected.indices)==1
+    idx = V.file_dialog_source.selected.indices[0]
+    classify_wav_log = os.path.join(M.file_dialog_root, V.file_dialog_source.data['names'][idx])
+    with open(classify_wav_log,'r') as fid:
+        for line in fid:
+            if "prevalences: " in line:
+                m=re.search('prevalences: \[(.*)\]', line)
+                prevalences = m.group(1)
+                break
+    V.prevalences_string.value = prevalences.replace(' ',',')
 
 def copy_callback():
     assert len(V.file_dialog_source.selected.indices)==1
@@ -1240,101 +1263,64 @@ def copy_callback():
                 V.stride_ms_string.value = m.group(1)
                 break
     
-def labelsounds_callback():
-    M.wizard=None if M.wizard is V.labelsounds else V.labelsounds
+def wizard_callback(wizard):
+    M.wizard=None if M.wizard is wizard else wizard
     M.action=None
-    wantedwords=[]
-    for i in range(M.audio_nchannels):
-        i_str = str(i) if M.audio_nchannels>1 else ''
-        wantedwords.append("time"+i_str+",frequency"+i_str)
-    V.wantedwords_string.value=','.join(wantedwords)
-    V.labeltypes_string.value="detected"
-    V.nsteps_string.value="0"
-    V.save_and_validate_period_string.value="0"
-    V.validate_percentage_string.value="0"
+    if M.wizard==V.labelsounds:
+        wantedwords=[]
+        for i in range(M.audio_nchannels):
+            i_str = str(i) if M.audio_nchannels>1 else ''
+            wantedwords.append("time"+i_str+",frequency"+i_str)
+        wantedwords_string.value=','.join(wantedwords)
+        V.labeltypes_string.value="detected"
+        nsteps_string.value="0"
+        save_and_validate_period_string.value="0"
+        validate_percentage_string.value="0"
+    elif M.wizard==V.makepredictions:
+        V.wantedwords_update_other()
+        V.labeltypes_string.value="annotated"
+    elif M.wizard==V.fixfalsepositives:
+        V.wantedwords_update_other()
+        V.labeltypes_string.value="annotated,predicted"
+    elif M.wizard==V.fixfalsenegatives:
+        V.wantedwords_update_other()
+        V.labeltypes_string.value="annotated,missed"
+    elif M.wizard==V.generalize:
+        V.wantedwords_update_other()
+        V.labeltypes_string.value="annotated"
+    elif M.wizard==V.tunehyperparameters:
+        V.wantedwords_update_other()
+        V.labeltypes_string.value="annotated"
+    elif M.wizard==V.examineerrors:
+        V.labeltypes_string.value="detected,mistaken"
+    elif M.wizard==V.testdensely:
+        V.wantedwords_update_other()
+        V.labeltypes_string.value="annotated"
+    elif M.wizard==V.findnovellabels:
+        wantedwords = [x.value for x in label_text_widgets if x.value!='']
+        for i in range(M.audio_nchannels):
+            i_str = str(i) if M.audio_nchannels>1 else ''
+            if 'time'+i_str not in wantedwords:
+                wantedwords.append('time'+i_str)
+            if 'frequency'+i_str not in wantedwords:
+                wantedwords.append('frequency'+i_str)
+        wantedwords_string.value=str.join(',',wantedwords)
+        if M.action==train:
+            V.labeltypes_string.value="annotated"
+        elif M.action==activations:
+            V.labeltypes_string.value="annotated,detected"
     V.buttons_update()
   
-def makepredictions_callback():
-    M.wizard=None if M.wizard is V.makepredictions else V.makepredictions
-    M.action=None
-    wantedwords = [x.value for x in V.label_text_widgets if x.value!='']
-    if 'other' not in wantedwords:
-        wantedwords.append('other')
-    V.wantedwords_string.value=str.join(',',wantedwords)
-    V.labeltypes_string.value="annotated"
-    V.buttons_update()
-  
-def fixfalsepositives_callback():
-    M.wizard=None if M.wizard is V.fixfalsepositives else V.fixfalsepositives
-    M.action=None
-    wantedwords = [x.value for x in V.label_text_widgets if x.value!='']
-    if 'other' not in wantedwords:
-        wantedwords.append('other')
-    V.wantedwords_string.value=str.join(',',wantedwords)
-    V.labeltypes_string.value="annotated,predicted"
-    V.buttons_update()
-    
-def fixfalsenegatives_callback():
-    M.wizard=None if M.wizard is V.fixfalsenegatives else V.fixfalsenegatives
-    M.action=None
-    wantedwords = [x.value for x in V.label_text_widgets if x.value!='']
-    if 'other' not in wantedwords:
-        wantedwords.append('other')
-    V.wantedwords_string.value=str.join(',',wantedwords)
-    V.labeltypes_string.value="annotated,missed"
-    V.buttons_update()
-  
-def generalize_callback():
-    M.wizard=None if M.wizard is V.generalize else V.generalize
-    M.action=None
-    wantedwords = [x.value for x in V.label_text_widgets if x.value!='']
-    if 'other' not in wantedwords:
-        wantedwords.append('other')
-    V.wantedwords_string.value=str.join(',',wantedwords)
-    V.labeltypes_string.value="annotated"
-    V.buttons_update()
-  
-def tunehyperparameters_callback():
-    M.wizard=None if M.wizard is V.tunehyperparameters else V.tunehyperparameters
-    M.action=None
-    wantedwords = [x.value for x in V.label_text_widgets if x.value!='']
-    if 'other' not in wantedwords:
-        wantedwords.append('other')
-    V.wantedwords_string.value=str.join(',',wantedwords)
-    V.labeltypes_string.value="annotated"
-    V.buttons_update()
-  
-def findnovellabels_callback():
-    M.wizard=None if M.wizard is V.findnovellabels else V.findnovellabels
-    M.action=None
-    V.buttons_update()
-  
-def examineerrors_callback():
-    M.wizard=None if M.wizard is V.examineerrors else V.examineerrors
-    M.action=None
-    V.labeltypes_string.value="detected,mistaken"
-    V.buttons_update()
-  
-def testdensely_callback():
-    M.wizard=None if M.wizard is V.testdensely else V.testdensely
-    M.action=None
-    wantedwords = [x.value for x in V.label_text_widgets if x.value!='']
-    if 'other' not in wantedwords:
-        wantedwords.append('other')
-    V.wantedwords_string.value=str.join(',',wantedwords)
-    V.labeltypes_string.value="annotated"
-    V.buttons_update()
+def _doit_callback():
+    M.function()
+    V.doit.button_type="default"
+    V.doit.disabled=True
   
 def doit_callback():
     V.doit.button_type="warning"
     V.doit.disabled=True
     bokeh_document.add_next_tick_callback(_doit_callback)
 
-def _doit_callback():
-    M.function()
-    V.doit.button_type="default"
-    V.doit.disabled=True
-  
 def editconfiguration_callback():
     if V.editconfiguration.button_type=="default":
         V.editconfiguration.button_type="danger"

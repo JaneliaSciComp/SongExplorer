@@ -2,10 +2,10 @@
 
 # generate per-class probabilities
 
-# classify.sh <config-file> <context_ms> <shiftby_ms> <representation> <stride_ms> <logdir> <model> <check-point> <wavfile>
+# classify.sh <config-file> <context_ms> <shiftby_ms> <representation> <stride_ms> <logdir> <model> <check-point> <wavfile> [<labels> <prevalences>]
 
 # e.g.
-# $DEEPSONG_BIN classify.sh `pwd`/configuration.sh 204.8 0.0 waveform 1.6 `pwd`/trained-classifier train_1 50 `pwd`/groundtruth-data/round1/20161207T102314_ch1_p1.wav
+# $DEEPSONG_BIN classify.sh `pwd`/configuration.sh 204.8 0.0 waveform 1.6 `pwd`/trained-classifier train_1 50 `pwd`/groundtruth-data/round1/20161207T102314_ch1_p1.wav mel-pulse,mel-sine,ambient 0.1,0.1,0.8
 
 config_file=$1
 context_ms=$2
@@ -16,6 +16,13 @@ logdir=$6
 model=$7
 check_point=$8
 wavfile=$9
+if [[ $# == 11 ]] ; then
+  labels=${10}
+  prevalences=${11}
+else
+  labels=
+  prevalences=
+fi
 
 source $config_file
 if [ "$representation" == "waveform" ] ; then
@@ -59,7 +66,7 @@ cmd_tf="date; \
         date"
 echo $cmd_tf
 
-expr_wav="$DIR/probabilities.py $logdir $model $tffile $context_ms $shiftby_ms $stride_ms"
+expr_wav="$DIR/probabilities.py $logdir $model $tffile $context_ms $shiftby_ms $stride_ms $labels $prevalences"
 
 cmd_wav="date; hostname; $expr_wav; sync; date"
 echo $cmd_wav

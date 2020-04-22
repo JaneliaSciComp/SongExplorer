@@ -31,6 +31,7 @@ def save_state_callback():
                    'testfiles': V.testfiles_string.value,
                    'wantedwords': V.wantedwords_string.value,
                    'labeltypes': V.labeltypes_string.value,
+                   'prevalences': V.prevalences_string.value,
                    'time_sigma': V.time_sigma_string.value,
                    'time_smooth_ms': V.time_smooth_ms_string.value,
                    'frequency_n_ms': V.frequency_n_ms_string.value,
@@ -291,6 +292,7 @@ def init(_configuration_inarg, _audio_tic_rate, _audio_nchannels,
                        'testfiles':'', \
                        'wantedwords':'', \
                        'labeltypes':'', \
+                       'prevalences':'', \
                        'time_sigma':'6', \
                        'time_smooth_ms':'6.4', \
                        'frequency_n_ms':'25.6', \
