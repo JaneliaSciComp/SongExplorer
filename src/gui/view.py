@@ -31,7 +31,7 @@ bokehlog = logging.getLogger("deepsong")
 import model as M
 import controller as C
 
-bokeh_document, cluster_dot_palette, snippet_palette, p_cluster, cluster_dots, p_snippets, label_sources, label_sources_new, wav_sources, line_glyphs, quad_grey_snippets, dot_size_cluster, dot_alpha_cluster, circle_fuchsia_cluster, p_context, p_line_red_context, line_red_context, quad_grey_context_old, quad_grey_context_new, quad_grey_context_pan, quad_fuchsia_context, quad_fuchsia_snippets, wav_source, line_glyph, label_source, label_source_new, which_layer, which_species, which_word, which_nohyphen, which_kind, color_picker, circle_radius, dot_size, dot_alpha, zoom_context, zoom_offset, zoomin, zoomout, reset, panleft, panright, allleft, allout, allright, save_indicator, label_count_widgets, label_text_widgets, play, play_callback, video_toggle, video_div, undo, redo, detect, misses, configuration, configuration_file, train, leaveoneout, leaveallout, xvalidate, mistakes, activations, cluster, visualize, accuracy, freeze, classify, ethogram, compare, congruence, status_ticker, file_dialog_source, file_dialog_source, configuration_contents, logs, logs_folder, model, model_file, wavtfcsvfiles, wavtfcsvfiles_string, groundtruth, groundtruth_folder, validationfiles, testfiles, validationfiles_string, testfiles_string, wantedwords, wantedwords_string, labeltypes, labeltypes_string, prevalences, prevalences_string, copy, labelsounds, makepredictions, fixfalsepositives, fixfalsenegatives, generalize, tunehyperparameters, findnovellabels, examineerrors, testdensely, doit, time_sigma_string, time_smooth_ms_string, frequency_n_ms_string, frequency_nw_string, frequency_p_string, frequency_smooth_ms_string, nsteps_string, restore_from_string, save_and_validate_period_string, validate_percentage_string, mini_batch_string, kfold_string, activations_equalize_ratio_string, activations_max_samples_string, pca_fraction_variance_to_retain_string, tsne_perplexity_string, tsne_exaggeration_string, umap_neighbors_string, umap_distance_string, cluster_algorithm, connection_type, precision_recall_ratios_string, context_ms_string, shiftby_ms_string, representation, window_ms_string, stride_ms_string, mel_dct_string, dropout_string, optimizer, learning_rate_string, kernel_sizes_string, last_conv_width_string, nfeatures_string, dilate_after_layer_string, stride_after_layer_string, editconfiguration, file_dialog_string, file_dialog_table, readme_contents, wordcounts, wizard_buttons, action_buttons, parameter_buttons, parameter_textinputs, wizard2actions, action2parameterbuttons, action2parametertextinputs = [None]*153
+bokeh_document, cluster_dot_palette, snippet_palette, p_cluster, cluster_dots, p_snippets, label_sources, label_sources_new, wav_sources, line_glyphs, quad_grey_snippets, dot_size_cluster, dot_alpha_cluster, circle_fuchsia_cluster, p_context, p_line_red_context, line_red_context, quad_grey_context_old, quad_grey_context_new, quad_grey_context_pan, quad_fuchsia_context, quad_fuchsia_snippets, wav_source, line_glyph, label_source, label_source_new, which_layer, which_species, which_word, which_nohyphen, which_kind, color_picker, circle_radius, dot_size, dot_alpha, zoom_context, zoom_offset, zoomin, zoomout, reset, panleft, panright, allleft, allout, allright, save_indicator, label_count_widgets, label_text_widgets, play, play_callback, video_toggle, video_div, undo, redo, detect, misses, configuration_file, train, leaveoneout, leaveallout, xvalidate, mistakes, activations, cluster, visualize, accuracy, freeze, classify, ethogram, compare, congruence, status_ticker, file_dialog_source, file_dialog_source, configuration_contents, logs, logs_folder, model, model_file, wavtfcsvfiles, wavtfcsvfiles_string, groundtruth, groundtruth_folder, validationfiles, testfiles, validationfiles_string, testfiles_string, wantedwords, wantedwords_string, labeltypes, labeltypes_string, prevalences, prevalences_string, copy, labelsounds, makepredictions, fixfalsepositives, fixfalsenegatives, generalize, tunehyperparameters, findnovellabels, examineerrors, testdensely, doit, time_sigma_string, time_smooth_ms_string, frequency_n_ms_string, frequency_nw_string, frequency_p_string, frequency_smooth_ms_string, nsteps_string, restore_from_string, save_and_validate_period_string, validate_percentage_string, mini_batch_string, kfold_string, activations_equalize_ratio_string, activations_max_samples_string, pca_fraction_variance_to_retain_string, tsne_perplexity_string, tsne_exaggeration_string, umap_neighbors_string, umap_distance_string, cluster_algorithm, connection_type, precision_recall_ratios_string, context_ms_string, shiftby_ms_string, representation, window_ms_string, stride_ms_string, mel_dct_string, dropout_string, optimizer, learning_rate_string, kernel_sizes_string, last_conv_width_string, nfeatures_string, dilate_after_layer_string, stride_after_layer_string, editconfiguration, file_dialog_string, file_dialog_table, readme_contents, wordcounts, wizard_buttons, action_buttons, parameter_buttons, parameter_textinputs, wizard2actions, action2parameterbuttons, action2parametertextinputs = [None]*152
 
 class ScatterNd(LayoutDOM):
 
@@ -859,8 +859,8 @@ def save_update(n):
         save_indicator.button_type="danger"
 
 def configuration_contents_update():
-    if configuration_file.value:
-        with open(configuration_file.value, 'r') as fid:
+    if M.configuration_file:
+        with open(M.configuration_file, 'r') as fid:
             configuration_contents.value = fid.read()
 
 def model_file_update(attr, old, new):
@@ -1019,7 +1019,7 @@ def status_ticker_update():
     status_ticker.text = status_ticker_pre+newtext+status_ticker_post
 
 def init(_bokeh_document, _cluster_background_color, _cluster_circle_color, _cluster_dot_colormap, _snippet_colormap):
-    global bokeh_document, cluster_dot_palette, snippet_palette, p_cluster, cluster_dots, p_cluster_dots, precomputed_dots, p_snippets, label_sources, label_sources_new, wav_sources, line_glyphs, quad_grey_snippets, dot_size_cluster, dot_alpha_cluster, circle_fuchsia_cluster, p_context, p_line_red_context, line_red_context, quad_grey_context_old, quad_grey_context_new, quad_grey_context_pan, quad_fuchsia_context, quad_fuchsia_snippets, wav_source, line_glyph, label_source, label_source_new, which_layer, which_species, which_word, which_nohyphen, which_kind, color_picker, circle_radius, dot_size, dot_alpha, zoom_context, zoom_offset, zoomin, zoomout, reset, panleft, panright, allleft, allout, allright, save_indicator, label_count_widgets, label_text_widgets, play, play_callback, video_toggle, video_div, undo, redo, detect, misses, configuration, configuration_file, train, leaveoneout, leaveallout, xvalidate, mistakes, activations, cluster, visualize, accuracy, freeze, classify, ethogram, compare, congruence, status_ticker, file_dialog_source, file_dialog_source, configuration_contents, logs, logs_folder, model, model_file, wavtfcsvfiles, wavtfcsvfiles_string, groundtruth, groundtruth_folder, validationfiles, testfiles, validationfiles_string, testfiles_string, wantedwords, wantedwords_string, labeltypes, labeltypes_string, prevalences, prevalences_string, copy, labelsounds, makepredictions, fixfalsepositives, fixfalsenegatives, generalize, tunehyperparameters, findnovellabels, examineerrors, testdensely, doit, time_sigma_string, time_smooth_ms_string, frequency_n_ms_string, frequency_nw_string, frequency_p_string, frequency_smooth_ms_string, nsteps_string, restore_from_string, save_and_validate_period_string, validate_percentage_string, mini_batch_string, kfold_string, activations_equalize_ratio_string, activations_max_samples_string, pca_fraction_variance_to_retain_string, tsne_perplexity_string, tsne_exaggeration_string, umap_neighbors_string, umap_distance_string, cluster_algorithm, connection_type, precision_recall_ratios_string, context_ms_string, shiftby_ms_string, representation, window_ms_string, stride_ms_string, mel_dct_string, dropout_string, optimizer, learning_rate_string, kernel_sizes_string, last_conv_width_string, nfeatures_string, dilate_after_layer_string, stride_after_layer_string, editconfiguration, file_dialog_string, file_dialog_table, readme_contents, wordcounts, wizard_buttons, action_buttons, parameter_buttons, parameter_textinputs, wizard2actions, action2parameterbuttons, action2parametertextinputs, status_ticker_update, status_ticker_pre, status_ticker_post
+    global bokeh_document, cluster_dot_palette, snippet_palette, p_cluster, cluster_dots, p_cluster_dots, precomputed_dots, p_snippets, label_sources, label_sources_new, wav_sources, line_glyphs, quad_grey_snippets, dot_size_cluster, dot_alpha_cluster, circle_fuchsia_cluster, p_context, p_line_red_context, line_red_context, quad_grey_context_old, quad_grey_context_new, quad_grey_context_pan, quad_fuchsia_context, quad_fuchsia_snippets, wav_source, line_glyph, label_source, label_source_new, which_layer, which_species, which_word, which_nohyphen, which_kind, color_picker, circle_radius, dot_size, dot_alpha, zoom_context, zoom_offset, zoomin, zoomout, reset, panleft, panright, allleft, allout, allright, save_indicator, label_count_widgets, label_text_widgets, play, play_callback, video_toggle, video_div, undo, redo, detect, misses, configuration_file, train, leaveoneout, leaveallout, xvalidate, mistakes, activations, cluster, visualize, accuracy, freeze, classify, ethogram, compare, congruence, status_ticker, file_dialog_source, file_dialog_source, configuration_contents, logs, logs_folder, model, model_file, wavtfcsvfiles, wavtfcsvfiles_string, groundtruth, groundtruth_folder, validationfiles, testfiles, validationfiles_string, testfiles_string, wantedwords, wantedwords_string, labeltypes, labeltypes_string, prevalences, prevalences_string, copy, labelsounds, makepredictions, fixfalsepositives, fixfalsenegatives, generalize, tunehyperparameters, findnovellabels, examineerrors, testdensely, doit, time_sigma_string, time_smooth_ms_string, frequency_n_ms_string, frequency_nw_string, frequency_p_string, frequency_smooth_ms_string, nsteps_string, restore_from_string, save_and_validate_period_string, validate_percentage_string, mini_batch_string, kfold_string, activations_equalize_ratio_string, activations_max_samples_string, pca_fraction_variance_to_retain_string, tsne_perplexity_string, tsne_exaggeration_string, umap_neighbors_string, umap_distance_string, cluster_algorithm, connection_type, precision_recall_ratios_string, context_ms_string, shiftby_ms_string, representation, window_ms_string, stride_ms_string, mel_dct_string, dropout_string, optimizer, learning_rate_string, kernel_sizes_string, last_conv_width_string, nfeatures_string, dilate_after_layer_string, stride_after_layer_string, editconfiguration, file_dialog_string, file_dialog_table, readme_contents, wordcounts, wizard_buttons, action_buttons, parameter_buttons, parameter_textinputs, wizard2actions, action2parameterbuttons, action2parametertextinputs, status_ticker_update, status_ticker_pre, status_ticker_post
 
     bokeh_document = _bokeh_document
 
@@ -1314,17 +1314,11 @@ def init(_bokeh_document, _cluster_background_color, _cluster_circle_color, _clu
     ]
     file_dialog_table = DataTable(source=file_dialog_source, \
                                   columns=file_dialog_columns, \
-                                  height=660, width=M.gui_width_pix//2-10, \
+                                  height=730, width=M.gui_width_pix//2-10, \
                                   index_position=None,
                                   fit_columns=False)
 
-    configuration = Button(label='configuration:', width=110)
-    configuration.on_click(C.configuration_button_callback)
-
-    configuration_file = TextInput(value=M.state['configuration'], title="", disabled=False)
-    configuration_file.on_change('value', C.configuration_text_callback)
-
-    configuration_contents = TextAreaInput(rows=46, max_length=50000, \
+    configuration_contents = TextAreaInput(rows=48, max_length=50000, \
                                         disabled=True, css_classes=['fixedwidth'])
     configuration_contents_update()
     configuration_contents.on_change('value', C.configuration_textarea_callback)
@@ -1627,7 +1621,6 @@ def init(_bokeh_document, _cluster_background_color, _cluster_circle_color, _clu
         congruence])
 
     parameter_buttons = set([
-        configuration,
         logs,
         model,
         wavtfcsvfiles,
@@ -1639,7 +1632,6 @@ def init(_bokeh_document, _cluster_background_color, _cluster_circle_color, _clu
         prevalences])
 
     parameter_textinputs = set([
-        configuration_file,
         logs_folder,
         model_file,
         wavtfcsvfiles_string,
@@ -1700,39 +1692,39 @@ def init(_bokeh_document, _cluster_background_color, _cluster_circle_color, _clu
             None: action_buttons }
 
     action2parameterbuttons = {
-            detect: [configuration,wavtfcsvfiles],
-            train: [configuration, logs, groundtruth, wantedwords, testfiles, labeltypes],
-            leaveoneout: [configuration, logs, groundtruth, validationfiles, testfiles, wantedwords, labeltypes],
-            leaveallout: [configuration, logs, groundtruth, validationfiles, testfiles, wantedwords, labeltypes],
-            xvalidate: [configuration, logs, groundtruth, testfiles, wantedwords, labeltypes],
-            mistakes: [configuration, groundtruth],
-            activations: [configuration, logs, model, groundtruth, wantedwords, labeltypes],
-            cluster: [configuration, groundtruth],
+            detect: [wavtfcsvfiles],
+            train: [logs, groundtruth, wantedwords, testfiles, labeltypes],
+            leaveoneout: [logs, groundtruth, validationfiles, testfiles, wantedwords, labeltypes],
+            leaveallout: [logs, groundtruth, validationfiles, testfiles, wantedwords, labeltypes],
+            xvalidate: [logs, groundtruth, testfiles, wantedwords, labeltypes],
+            mistakes: [groundtruth],
+            activations: [logs, model, groundtruth, wantedwords, labeltypes],
+            cluster: [groundtruth],
             visualize: [groundtruth],
-            accuracy: [configuration, logs],
-            freeze: [configuration, logs, model],
-            classify: [configuration, logs, model, wavtfcsvfiles, wantedwords, prevalences],
-            ethogram: [configuration, model, wavtfcsvfiles],
-            misses: [configuration, wavtfcsvfiles],
-            compare: [configuration, logs],
-            congruence: [configuration, groundtruth, validationfiles, testfiles],
+            accuracy: [logs],
+            freeze: [logs, model],
+            classify: [logs, model, wavtfcsvfiles, wantedwords, prevalences],
+            ethogram: [model, wavtfcsvfiles],
+            misses: [wavtfcsvfiles],
+            compare: [logs],
+            congruence: [groundtruth, validationfiles, testfiles],
             None: parameter_buttons }
 
     action2parametertextinputs = {
-            detect: [configuration_file, wavtfcsvfiles_string, time_sigma_string, time_smooth_ms_string, frequency_n_ms_string, frequency_nw_string, frequency_p_string, frequency_smooth_ms_string],
-            train: [configuration_file, context_ms_string, shiftby_ms_string, representation, window_ms_string, stride_ms_string, mel_dct_string, dropout_string, optimizer, learning_rate_string, kernel_sizes_string, last_conv_width_string, nfeatures_string, dilate_after_layer_string, stride_after_layer_string, connection_type, logs_folder, groundtruth_folder, testfiles_string, wantedwords_string, labeltypes_string, nsteps_string, restore_from_string, save_and_validate_period_string, validate_percentage_string, mini_batch_string],
-            leaveoneout: [configuration_file, context_ms_string, shiftby_ms_string, representation, window_ms_string, stride_ms_string, mel_dct_string, dropout_string, optimizer, learning_rate_string, kernel_sizes_string, last_conv_width_string, nfeatures_string, dilate_after_layer_string, stride_after_layer_string, connection_type, logs_folder, groundtruth_folder, validationfiles_string, testfiles_string, wantedwords_string, labeltypes_string, nsteps_string, restore_from_string, save_and_validate_period_string, mini_batch_string],
-            leaveallout: [configuration_file, context_ms_string, shiftby_ms_string, representation, window_ms_string, stride_ms_string, mel_dct_string, dropout_string, optimizer, learning_rate_string, kernel_sizes_string, last_conv_width_string, nfeatures_string, dilate_after_layer_string, stride_after_layer_string, connection_type, logs_folder, groundtruth_folder, validationfiles_string, testfiles_string, wantedwords_string, labeltypes_string, nsteps_string, restore_from_string, save_and_validate_period_string, mini_batch_string],
-            xvalidate: [configuration_file, context_ms_string, shiftby_ms_string, representation, window_ms_string, stride_ms_string, mel_dct_string, dropout_string, optimizer, learning_rate_string, kernel_sizes_string, last_conv_width_string, nfeatures_string, dilate_after_layer_string, stride_after_layer_string, connection_type, logs_folder, groundtruth_folder, testfiles_string, wantedwords_string, labeltypes_string, nsteps_string, restore_from_string, save_and_validate_period_string, mini_batch_string, kfold_string],
-            mistakes: [configuration_file, groundtruth_folder],
-            activations: [configuration_file, context_ms_string, shiftby_ms_string, representation, window_ms_string, stride_ms_string, mel_dct_string, kernel_sizes_string, last_conv_width_string, nfeatures_string, dilate_after_layer_string, stride_after_layer_string, connection_type, logs_folder, model_file, groundtruth_folder, wantedwords_string, labeltypes_string, activations_equalize_ratio_string, activations_max_samples_string, mini_batch_string],
-            cluster: [configuration_file, groundtruth_folder, cluster_algorithm, pca_fraction_variance_to_retain_string, tsne_perplexity_string, tsne_exaggeration_string, umap_neighbors_string, umap_distance_string],
+            detect: [wavtfcsvfiles_string, time_sigma_string, time_smooth_ms_string, frequency_n_ms_string, frequency_nw_string, frequency_p_string, frequency_smooth_ms_string],
+            train: [context_ms_string, shiftby_ms_string, representation, window_ms_string, stride_ms_string, mel_dct_string, dropout_string, optimizer, learning_rate_string, kernel_sizes_string, last_conv_width_string, nfeatures_string, dilate_after_layer_string, stride_after_layer_string, connection_type, logs_folder, groundtruth_folder, testfiles_string, wantedwords_string, labeltypes_string, nsteps_string, restore_from_string, save_and_validate_period_string, validate_percentage_string, mini_batch_string],
+            leaveoneout: [context_ms_string, shiftby_ms_string, representation, window_ms_string, stride_ms_string, mel_dct_string, dropout_string, optimizer, learning_rate_string, kernel_sizes_string, last_conv_width_string, nfeatures_string, dilate_after_layer_string, stride_after_layer_string, connection_type, logs_folder, groundtruth_folder, validationfiles_string, testfiles_string, wantedwords_string, labeltypes_string, nsteps_string, restore_from_string, save_and_validate_period_string, mini_batch_string],
+            leaveallout: [context_ms_string, shiftby_ms_string, representation, window_ms_string, stride_ms_string, mel_dct_string, dropout_string, optimizer, learning_rate_string, kernel_sizes_string, last_conv_width_string, nfeatures_string, dilate_after_layer_string, stride_after_layer_string, connection_type, logs_folder, groundtruth_folder, validationfiles_string, testfiles_string, wantedwords_string, labeltypes_string, nsteps_string, restore_from_string, save_and_validate_period_string, mini_batch_string],
+            xvalidate: [context_ms_string, shiftby_ms_string, representation, window_ms_string, stride_ms_string, mel_dct_string, dropout_string, optimizer, learning_rate_string, kernel_sizes_string, last_conv_width_string, nfeatures_string, dilate_after_layer_string, stride_after_layer_string, connection_type, logs_folder, groundtruth_folder, testfiles_string, wantedwords_string, labeltypes_string, nsteps_string, restore_from_string, save_and_validate_period_string, mini_batch_string, kfold_string],
+            mistakes: [groundtruth_folder],
+            activations: [context_ms_string, shiftby_ms_string, representation, window_ms_string, stride_ms_string, mel_dct_string, kernel_sizes_string, last_conv_width_string, nfeatures_string, dilate_after_layer_string, stride_after_layer_string, connection_type, logs_folder, model_file, groundtruth_folder, wantedwords_string, labeltypes_string, activations_equalize_ratio_string, activations_max_samples_string, mini_batch_string],
+            cluster: [groundtruth_folder, cluster_algorithm, pca_fraction_variance_to_retain_string, tsne_perplexity_string, tsne_exaggeration_string, umap_neighbors_string, umap_distance_string],
             visualize: [groundtruth_folder],
-            accuracy: [configuration_file, logs_folder, precision_recall_ratios_string],
-            freeze: [configuration_file, context_ms_string, representation, window_ms_string, stride_ms_string, mel_dct_string, kernel_sizes_string, last_conv_width_string, nfeatures_string, dilate_after_layer_string, stride_after_layer_string, connection_type, logs_folder, model_file],
-            classify: [configuration_file, context_ms_string, shiftby_ms_string, representation, stride_ms_string, logs_folder, model_file, wavtfcsvfiles_string, wantedwords_string, prevalences_string],
-            ethogram: [configuration_file, model_file, wavtfcsvfiles_string],
-            misses: [configuration_file, wavtfcsvfiles_string],
-            compare: [configuration_file, logs_folder],
-            congruence: [configuration_file, groundtruth_folder, validationfiles_string, testfiles_string],
+            accuracy: [logs_folder, precision_recall_ratios_string],
+            freeze: [context_ms_string, representation, window_ms_string, stride_ms_string, mel_dct_string, kernel_sizes_string, last_conv_width_string, nfeatures_string, dilate_after_layer_string, stride_after_layer_string, connection_type, logs_folder, model_file],
+            classify: [context_ms_string, shiftby_ms_string, representation, stride_ms_string, logs_folder, model_file, wavtfcsvfiles_string, wantedwords_string, prevalences_string],
+            ethogram: [model_file, wavtfcsvfiles_string],
+            misses: [wavtfcsvfiles_string],
+            compare: [logs_folder],
+            congruence: [groundtruth_folder, validationfiles_string, testfiles_string],
             None: parameter_textinputs }

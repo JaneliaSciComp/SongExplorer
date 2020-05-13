@@ -17,7 +17,7 @@ bokehlog = logging.getLogger("deepsong")
 bokehlog.setLevel(logging.INFO)
 #bokehlog.info(...) 
 
-_, configuration_inarg, audio_tic_rate, audio_nchannels, snippets_ms, nx, ny, nlabels, gui_width_pix, context_width_ms, context_offset_ms, cluster_background_color, cluster_circle_color, cluster_dot_colormap, snippet_colormap = argv
+_, configuration_file, audio_tic_rate, audio_nchannels, snippets_ms, nx, ny, nlabels, gui_width_pix, context_width_ms, context_offset_ms, cluster_background_color, cluster_circle_color, cluster_dot_colormap, snippet_colormap = argv
 
 import model as M
 import view as V
@@ -25,7 +25,7 @@ import controller as C
 
 doc = curdoc()
 
-M.init(configuration_inarg, audio_tic_rate, audio_nchannels,
+M.init(configuration_file, audio_tic_rate, audio_nchannels,
        snippets_ms, nx, ny, nlabels, gui_width_pix, context_width_ms, context_offset_ms)
 V.init(doc, cluster_background_color, cluster_circle_color, cluster_dot_colormap,
        snippet_colormap)
@@ -93,8 +93,6 @@ main_content = row(column(cluster_buttons,
                            column(V.compare, width=M.gui_width_pix//16+4),
                            column(V.congruence, width=M.gui_width_pix//16-11)),
                        V.status_ticker,
-                       row(V.configuration,
-                           column(V.configuration_file, width=M.gui_width_pix-120)),
                        row(V.logs, column(V.logs_folder, width=M.gui_width_pix-120)),
                        row(V.model, column(V.model_file, width=M.gui_width_pix-120)),
                        row(V.wavtfcsvfiles,

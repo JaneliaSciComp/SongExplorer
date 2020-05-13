@@ -461,7 +461,7 @@ def detect_actuate():
     results = [None] * len(wavfiles)
     for (i,wavfile) in enumerate(wavfiles):
         currtime = time.time()
-        run(["detect.sh", V.configuration_file.value, wavfile, \
+        run(["detect.sh", M.configuration_file, wavfile, \
              V.time_sigma_string.value, V.time_smooth_ms_string.value, \
              V.frequency_n_ms_string.value, V.frequency_nw_string.value, \
              V.frequency_p_string.value, V.frequency_smooth_ms_string.value])
@@ -488,7 +488,7 @@ def misses_succeeded(wavfile, reftime):
 
 def misses_actuate():
     currtime = time.time()
-    run(["misses.sh", V.configuration_file.value, V.wavtfcsvfiles_string.value])
+    run(["misses.sh", M.configuration_file, V.wavtfcsvfiles_string.value])
     csvfile1 = V.wavtfcsvfiles_string.value.split(',')[0]
     with open(csvfile1) as fid:
       csvreader = csv.reader(fid)
@@ -648,7 +648,7 @@ def train_actuate():
     M.save_annotations()
     test_files = _validation_test_files(V.testfiles_string.value)[0]
     currtime = time.time()
-    run(["train.sh", V.configuration_file.value, \
+    run(["train.sh", M.configuration_file, \
          V.context_ms_string.value, V.shiftby_ms_string.value, \
          V.representation.value, V.window_ms_string.value, \
          *V.mel_dct_string.value.split(','), V.stride_ms_string.value, \
@@ -701,7 +701,7 @@ def leaveout_actuate(comma):
     validation_files = list(filter(lambda x: not any([y!='' and y in x for y in test_files.split(',')]),
             _validation_test_files(V.validationfiles_string.value, comma)))
     currtime = time.time()
-    run(["generalize.sh", V.configuration_file.value, V.context_ms_string.value, \
+    run(["generalize.sh", M.configuration_file, V.context_ms_string.value, \
          V.shiftby_ms_string.value, V.representation.value, V.window_ms_string.value, \
          *V.mel_dct_string.value.split(','), V.stride_ms_string.value, \
          V.dropout_string.value, V.optimizer.value, \
@@ -725,7 +725,7 @@ def leaveout_actuate(comma):
 def xvalidate_actuate():
     test_files = _validation_test_files(V.testfiles_string.value)[0]
     currtime = time.time()
-    run(["xvalidate.sh", V.configuration_file.value, V.context_ms_string.value, \
+    run(["xvalidate.sh", M.configuration_file, V.context_ms_string.value, \
          V.shiftby_ms_string.value, V.representation.value, V.window_ms_string.value, \
          *V.mel_dct_string.value.split(','), V.stride_ms_string.value, \
          V.dropout_string.value, V.optimizer.value, \
@@ -752,7 +752,7 @@ def mistakes_succeeded(groundtruthdir, reftime):
 
 def mistakes_actuate():
     currtime = time.time()
-    run(["mistakes.sh", V.configuration_file.value, V.groundtruth_folder.value])
+    run(["mistakes.sh", M.configuration_file, V.groundtruth_folder.value])
     displaystring = "mistakes "+os.path.basename(V.groundtruth_folder.value.rstrip('/'))
     logfile = os.path.join(V.groundtruth_folder.value, "mistakes.log")
     threading.Thread(target=actuate_monitor, args=(displaystring, None, None, \
@@ -773,7 +773,7 @@ def activations_cluster_succeeded(kind, groundtruthdir, reftime):
 def activations_actuate():
     currtime = time.time()
     logdir, model, check_point = M.parse_model_file(V.model_file.value)
-    run(["activations.sh", V.configuration_file.value, V.context_ms_string.value, \
+    run(["activations.sh", M.configuration_file, V.context_ms_string.value, \
          V.shiftby_ms_string.value, V.representation.value, V.window_ms_string.value, \
          *V.mel_dct_string.value.split(','), V.stride_ms_string.value, \
          V.kernel_sizes_string.value, V.last_conv_width_string.value, \
@@ -797,16 +797,16 @@ def cluster_actuate():
     currtime = time.time()
     algorithm, ndims = V.cluster_algorithm.value.split(' ')
     if algorithm == "PCA":
-        run(["cluster.sh", V.configuration_file.value, V.groundtruth_folder.value, \
+        run(["cluster.sh", M.configuration_file, V.groundtruth_folder.value, \
              V.pca_fraction_variance_to_retain_string.value, \
              algorithm, ndims])
     elif algorithm == "t-SNE":
-        run(["cluster.sh", V.configuration_file.value, V.groundtruth_folder.value, \
+        run(["cluster.sh", M.configuration_file, V.groundtruth_folder.value, \
              V.pca_fraction_variance_to_retain_string.value, \
              algorithm, ndims, \
              V.tsne_perplexity_string.value, V.tsne_exaggeration_string.value])
     elif algorithm == "UMAP":
-        run(["cluster.sh", V.configuration_file.value, V.groundtruth_folder.value, \
+        run(["cluster.sh", M.configuration_file, V.groundtruth_folder.value, \
              V.pca_fraction_variance_to_retain_string.value, \
              algorithm, ndims, \
              V.umap_neighbors_string.value, V.umap_distance_string.value])
@@ -894,7 +894,7 @@ def accuracy_succeeded(logdir, reftime):
 
 def accuracy_actuate():
     currtime = time.time()
-    run(["accuracy.sh", V.configuration_file.value, V.logs_folder.value, \
+    run(["accuracy.sh", M.configuration_file, V.logs_folder.value, \
          V.precision_recall_ratios_string.value])
     displaystring = "accuracy "+os.path.basename(V.logs_folder.value.rstrip('/'))
     logfile = os.path.join(V.logs_folder.value, "accuracy.log")
@@ -919,7 +919,7 @@ def freeze_actuate():
     for ckpt in V.model_file.value.split(','):
       currtime = time.time()
       logdir, model, check_point = M.parse_model_file(ckpt)
-      run(["freeze.sh", V.configuration_file.value, V.context_ms_string.value, \
+      run(["freeze.sh", M.configuration_file, V.context_ms_string.value, \
            V.representation.value, V.window_ms_string.value, \
            V.stride_ms_string.value, *V.mel_dct_string.value.split(','), \
            V.kernel_sizes_string.value, \
@@ -958,7 +958,7 @@ def classify_actuate():
     for wavfile in V.wavtfcsvfiles_string.value.split(','):
         currtime = time.time()
         logdir, model, check_point = M.parse_model_file(V.model_file.value)
-        cmd = ["classify.sh", V.configuration_file.value, V.context_ms_string.value, \
+        cmd = ["classify.sh", M.configuration_file, V.context_ms_string.value, \
                V.shiftby_ms_string.value, V.representation.value, \
                V.stride_ms_string.value, \
                logdir, model, check_point, wavfile]
@@ -995,7 +995,7 @@ def ethogram_actuate():
         logdir, model, check_point = M.parse_model_file(V.model_file.value)
         if tffile.lower().endswith('.wav'):
             tffile = os.path.splitext(tffile)[0]+'.tf'
-        run(["ethogram.sh", V.configuration_file.value, \
+        run(["ethogram.sh", M.configuration_file, \
              logdir, model, check_point, tffile])
         displaystring = "ethogram "+os.path.basename(tffile)
         logfile = tffile[:-3]+'-ethogram.log'
@@ -1023,7 +1023,7 @@ def compare_succeeded(logdirprefix, reftime):
 
 def compare_actuate():
     currtime = time.time()
-    run(["compare.sh", V.configuration_file.value, V.logs_folder.value])
+    run(["compare.sh", M.configuration_file, V.logs_folder.value])
     displaystring = "compare "+os.path.basename(V.logs_folder.value.rstrip('/'))
     logfile = V.logs_folder.value+'-compare.log'
     threading.Thread(target=actuate_monitor, args=(displaystring, None, None, \
@@ -1070,7 +1070,7 @@ def congruence_actuate():
     test_files = _validation_test_files(V.testfiles_string.value, False)
     all_files = validation_files + test_files
     all_files.remove('')
-    run(["congruence.sh", V.configuration_file.value,
+    run(["congruence.sh", M.configuration_file,
          V.groundtruth_folder.value, ','.join(all_files)])
     displaystring = "congruence "+os.path.basename(all_files[0])
     logfile = os.path.join(V.groundtruth_folder.value,'congruence.log')
@@ -1081,20 +1081,8 @@ def congruence_actuate():
                      lambda l=V.groundtruth_folder.value, t=currtime,
                             r=regex_files: congruence_succeeded(l, t, r))).start()
 
-def configuration_button_callback():
-    assert len(V.file_dialog_source.selected.indices)==1
-    idx = V.file_dialog_source.selected.indices[0]
-    configuration_file.value = os.path.join(M.file_dialog_root, \
-                                            V.file_dialog_source.data['names'][idx])
-    V.configuration_contents_update()
-
-def configuration_text_callback(attr, old, new):
-    M.save_state_callback()
-    V.configuration_contents_update()
-    V.buttons_update()
-
 def configuration_textarea_callback(attr, old, new):
-    with open(V.configuration_file.value, 'w') as fid:
+    with open(M.configuration_file, 'w') as fid:
         fid.write(V.configuration_contents.value)
     V.editconfiguration.button_type="default"
     V.configuration_contents.disabled=True
