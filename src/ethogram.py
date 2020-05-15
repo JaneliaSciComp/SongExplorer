@@ -29,6 +29,13 @@ with open(os.path.join(logdir,model,'vgg_labels.txt'), 'r') as fid:
 
 tfpath, tfname = os.path.split(tffile)
 tfname_noext = os.path.splitext(tfname)[0]
+if os.path.isfile(os.path.join(tfpath,tfname_noext+'.wav')):
+  wavname = tfname_noext+'.wav'
+elif os.path.isfile(os.path.join(tfpath,tfname_noext+'.WAV')):
+  wavname = tfname_noext+'.WAV'
+else:
+  print('cannot find corresponding WAV file')
+  exit()
 
 precision_recall_ratios=None
 thresholds=[]
@@ -86,7 +93,7 @@ for ithreshold in range(len(precision_recall_ratios)):
   filename=os.path.join(tfpath, tfname_noext+'-predicted-'+precision_recall_ratios[ithreshold]+'pr.csv')
   with open(filename,'w') as fid:
     csvwriter = csv.writer(fid)
-    csvwriter.writerows(zip(cycle([tfname_noext+'.wav']), \
+    csvwriter.writerows(zip(cycle([wavname]), \
                             start_tics[isort], \
                             stop_tics[isort], \
                             cycle(['predicted']),features[isort]))
