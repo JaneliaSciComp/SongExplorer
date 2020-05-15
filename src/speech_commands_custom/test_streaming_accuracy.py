@@ -111,6 +111,7 @@ def read_wav_file(filename):
 def main(_):
   label_list = read_label_file(FLAGS.labels)
   sample_rate, data = read_wav_file(FLAGS.wav)
+  print('sample rate is '+str(sample_rate))
 
   all_found_words = []
   data_samples = data.shape[0]
