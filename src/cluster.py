@@ -2,11 +2,11 @@
 
 # reduce dimensionality of internal activation states
 
-# cluster.py <groundtruth-directory> <pca-fraction-variance-to-retain> <pca-batch_size> <cluster-algorithm> <cluster-num-dimensions> <cluster-parallelize> [ <tsne-perplexity> <tsne-exaggeration> | <umap-n-neighbors> <umap-min-distance> ]
+# cluster.py <groundtruth-directory> <which-layers-to-cluster> <pca-fraction-variance-to-retain> <pca-batch_size> <cluster-algorithm> <cluster-num-dimensions> <cluster-parallelize> [ <tsne-perplexity> <tsne-exaggeration> | <umap-n-neighbors> <umap-min-distance> ]
 
 # e.g.
-# cluster.py `pwd`/groundtruth-data 0.99 5 tsne 2 1 30 12.0
-# cluster.py `pwd`/groundtruth-data 1 5 umap 3 0 10 0.1
+# cluster.py `pwd`/groundtruth-data 3 0.99 5 tsne 2 1 30 12.0
+# cluster.py `pwd`/groundtruth-data 0,1,2,3,4 1 5 umap 3 0 10 0.1
 
 import os
 import numpy as np
@@ -17,13 +17,16 @@ from umap import UMAP
 from sklearn.manifold import TSNE
 from natsort import natsorted
 
-_, groundtruth_directory, pca_fraction_variance_to_retain, pca_batch_size, cluster_algorithm, cluster_ndims, cluster_parallelize  = argv[:7]
+_, groundtruth_directory, these_layers, pca_fraction_variance_to_retain, pca_batch_size, cluster_algorithm, cluster_ndims, cluster_parallelize = argv[:8]
 print('groundtruth_directory: '+groundtruth_directory)
+print('these_layers: '+these_layers)
 print('pca_fraction_variance_to_retain: '+pca_fraction_variance_to_retain)
 print('pca_batch_size: '+pca_batch_size)
 print('cluster_algorithm: '+cluster_algorithm)
 print('cluster_ndims: '+cluster_ndims)
 print('cluster_parallelize: '+cluster_parallelize)
+these_layers = [int(x) for x in these_layers.split(',')]
+assert len(these_layers)>0
 pca_fraction_variance_to_retain = float(pca_fraction_variance_to_retain)
 pca_batch_size = int(pca_batch_size)
 cluster_algorithm = cluster_algorithm.lower()
@@ -32,13 +35,13 @@ cluster_parallelize = bool(int(cluster_parallelize))
 if cluster_algorithm=="pca":
   None
 elif cluster_algorithm=="t-sne":
-  tsne_perplexity, tsne_exaggeration = argv[7:]
+  tsne_perplexity, tsne_exaggeration = argv[8:]
   print('tsne_perplexity: '+tsne_perplexity)
   print('tsne_exaggeration: '+tsne_exaggeration)
   tsne_perplexity = int(tsne_perplexity)
   tsne_exaggeration = float(tsne_exaggeration)
 elif cluster_algorithm=="umap":
-  umap_n_neighbors, umap_min_distance = argv[7:]
+  umap_n_neighbors, umap_min_distance = argv[8:]
   print('umap_n_neighbors: '+umap_n_neighbors)
   print('umap_min_distance: '+umap_min_distance)
   umap_n_neighbors = int(umap_n_neighbors)
@@ -70,6 +73,8 @@ for kind in kinds:
 
 activations_flattened = [None]*nlayers
 for ilayer in range(nlayers):
+  if ilayer not in these_layers:
+    continue
   nsamples = np.shape(activations[ilayer])[0]
   activations_flattened[ilayer] = np.reshape(activations[ilayer],(nsamples,-1))
   print(np.shape(activations_flattened[ilayer]))
@@ -81,6 +86,8 @@ if pca_fraction_variance_to_retain<1:
 
   activations_scaled = [None]*nlayers
   for ilayer in range(nlayers):
+    if ilayer not in these_layers:
+      continue
     mu = np.mean(activations_flattened[ilayer], axis=0)
     sigma = np.std(activations_flattened[ilayer], axis=0)
     activations_scaled[ilayer] = (activations_flattened[ilayer]-mu)/sigma
@@ -102,6 +109,8 @@ if pca_fraction_variance_to_retain<1:
   fig = plt.figure()
   ax = fig.add_subplot(111)
   for ilayer in range(nlayers):
+    if ilayer not in these_layers:
+      continue
     cumsum = np.cumsum(fits_pca[ilayer].explained_variance_ratio_)
     ncomponents[ilayer] = np.where(cumsum>pca_fraction_variance_to_retain)[0][0]
     line, = ax.plot(cumsum)
@@ -128,21 +137,27 @@ elif cluster_algorithm=="t-sne":
   print("reducing dimensionality with t-SNE...")
 
   def do_cluster(ilayer):
-    return None, TSNE(n_components=cluster_ndims, verbose=3, \
-                      perplexity=tsne_perplexity, \
-                      early_exaggeration=tsne_exaggeration \
-                     ).fit_transform(activations_tocluster[ilayer])
+    if ilayer in these_layers:
+      return None, TSNE(n_components=cluster_ndims, verbose=3, \
+                        perplexity=tsne_perplexity, \
+                        early_exaggeration=tsne_exaggeration \
+                       ).fit_transform(activations_tocluster[ilayer])
+    else:
+      return None, None
 
 
 elif cluster_algorithm=="umap":
   print("reducing dimensionality with UMAP...")
 
   def do_cluster(ilayer):
-    fit = UMAP(n_components=cluster_ndims, verbose=3, \
-               n_neighbors=umap_n_neighbors, \
-               min_dist=umap_min_distance \
-              ).fit(activations_tocluster[ilayer])
-    return fit, fit.transform(activations_tocluster[ilayer])
+    if ilayer in these_layers:
+      fit = UMAP(n_components=cluster_ndims, verbose=3, \
+                 n_neighbors=umap_n_neighbors, \
+                 min_dist=umap_min_distance \
+                ).fit(activations_tocluster[ilayer])
+      return fit, fit.transform(activations_tocluster[ilayer])
+    else:
+      return None, None
 
 
 if cluster_parallelize:
@@ -154,6 +169,8 @@ else:
   fits = [None]*nlayers
   activations_clustered = [None]*nlayers
   for ilayer in range(nlayers):
+    if ilayer not in these_layers:
+      continue
     print('layer '+str(ilayer))
     fit, activation_clustered = do_cluster(ilayer)
     fits[ilayer] = fit

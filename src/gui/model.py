@@ -22,7 +22,7 @@ def parse_model_file(filepath):
 
 def save_state_callback():
     with open(statepath, 'w') as fid:
-        yaml.dump({'logs': V.logs_folder.value,
+       yaml.dump({'logs': V.logs_folder.value,
                    'model': V.model_file.value,
                    'wavtfcsvfiles': V.wavtfcsvfiles_string.value,
                    'groundtruth': V.groundtruth_folder.value,
@@ -55,6 +55,7 @@ def save_state_callback():
                    'umap_neighbors': V.umap_neighbors_string.value,
                    'umap_distance': V.umap_distance_string.value,
                    'cluster_algorithm': V.cluster_algorithm.value,
+                   'cluster_these_layers': [x for x in V.cluster_these_layers.value],
                    'connection_type': V.connection_type.value,
                    'precision_recall_ratios': V.precision_recall_ratios_string.value,
                    'context_ms': V.context_ms_string.value,
@@ -315,6 +316,7 @@ def init(_configuration_file, _audio_tic_rate, _audio_nchannels,
                        'umap_neighbors':'10', \
                        'umap_distance':'0.1', \
                        'cluster_algorithm':'UMAP 3D', \
+                       'cluster_these_layers':['0'], \
                        'connection_type':'plain', \
                        'precision_recall_ratios':'0.5,1,2', \
                        'context_ms':'204.8', \

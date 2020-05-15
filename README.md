@@ -583,15 +583,17 @@ threshold, or vice versa.  Output are three files in the ground-truth directory
 beginning with "hidden":  the two ending in ".log" report any errors, and
 "hidden.npz" contains the actual data in binary format.
 
-Now cluster the hidden state activations with the `Cluster` button.
-Choose to do so using either UMAP ([McInnes, Healy, and Melville
-(2018)](https://arxiv.org/abs/1802.03426)) or t-SNE ([van der Maaten and
-Hinton (2008)](http://www.jmlr.org/papers/v9/vandermaaten08a.html)) or PCA.
-Each are controlled by separate parameters, a description of which can be
-found in the aforementioned articles.  Output are two or three files in the
-ground-truth directory beginning with "cluster":  a ".log" file with errors
-and a ".npz" file with binary data as before, plus a PDF file showing the
-results of the principal components analysis (PCA) that precedes t-SNE.
+Now cluster the hidden state activations with the `Cluster` button.  Choose to
+do so using either UMAP ([McInnes, Healy, and Melville
+(2018)](https://arxiv.org/abs/1802.03426)) or t-SNE ([van der Maaten and Hinton
+(2008)](http://www.jmlr.org/papers/v9/vandermaaten08a.html)) or PCA.  Each are
+controlled by separate parameters, a description of which can be found in the
+aforementioned articles.  You'll also need to choose which network layer to
+cluster.  At this point, choose just the input layer.  Output are two or three
+files in the ground-truth directory beginning with "cluster":  a ".log" file
+with errors and a ".npz" file with binary data as before, plus a PDF file
+showing the results of the principal components analysis (PCA) that precedes
+t-SNE.
 
 Finally, click on the `Visualize` button to render the clusters in
 two-dimensional space in the left-most panel.  You can choose to display

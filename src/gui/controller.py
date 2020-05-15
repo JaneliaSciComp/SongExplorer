@@ -103,7 +103,8 @@ def color_picker_callback(new):
     
 def circle_radius_callback(attr, old, new):
     M.state["circle_radius"]=new
-    V.circle_fuchsia_cluster.data.update(cr=[M.state["circle_radius"]])
+    if len(V.circle_fuchsia_cluster.data['cx'])==1:
+        V.circle_fuchsia_cluster.data.update(cr=[M.state["circle_radius"]])
     M.save_state_callback()
     V.snippets_update(True)
     M.isnippet = -1
@@ -768,6 +769,7 @@ def activations_cluster_succeeded(kind, groundtruthdir, reftime):
     npzfile = os.path.join(groundtruthdir, kind+".npz")
     if not npzfile_succeeded(npzfile, reftime):
         return False
+    V.cluster_these_layers_update()
     return True
 
 def activations_actuate():
@@ -796,17 +798,24 @@ def activations_actuate():
 def cluster_actuate():
     currtime = time.time()
     algorithm, ndims = V.cluster_algorithm.value.split(' ')
+    these_layers = ','.join([x for x in V.cluster_these_layers.value])
     if algorithm == "PCA":
-        run(["cluster.sh", M.configuration_file, V.groundtruth_folder.value, \
+        run(["cluster.sh", M.configuration_file, \
+             V.groundtruth_folder.value, \
+             these_layers, \
              V.pca_fraction_variance_to_retain_string.value, \
              algorithm, ndims])
     elif algorithm == "t-SNE":
-        run(["cluster.sh", M.configuration_file, V.groundtruth_folder.value, \
+        run(["cluster.sh", M.configuration_file, \
+             V.groundtruth_folder.value, \
+             these_layers, \
              V.pca_fraction_variance_to_retain_string.value, \
              algorithm, ndims, \
              V.tsne_perplexity_string.value, V.tsne_exaggeration_string.value])
     elif algorithm == "UMAP":
-        run(["cluster.sh", M.configuration_file, V.groundtruth_folder.value, \
+        run(["cluster.sh", M.configuration_file, \
+             V.groundtruth_folder.value, \
+             these_layers, \
              V.pca_fraction_variance_to_retain_string.value, \
              algorithm, ndims, \
              V.umap_neighbors_string.value, V.umap_distance_string.value])
@@ -975,7 +984,10 @@ def classify_actuate():
                                 classify_succeeded(m, w, t))).start()
 
 def ethogram_succeeded(modeldir, ckpt, tffile, reftime):
-    with open(os.path.join(modeldir, 'thresholds.ckpt-'+str(ckpt)+'.csv')) as fid:
+    thresholds_file = os.path.join(modeldir, 'thresholds.ckpt-'+str(ckpt)+'.csv')
+    if not os.path.exists(thresholds_file):
+        return False
+    with open(thresholds_file) as fid:
         csvreader = csv.reader(fid)
         row1 = next(csvreader)
     precision_recalls = row1[1:]
@@ -983,7 +995,7 @@ def ethogram_succeeded(modeldir, ckpt, tffile, reftime):
         if not recent_file_exists(os.path.join(os.path.dirname(tffile), \
                                                tffile[:-3]+'-predicted-'+x+'pr.csv'), \
                                   reftime, True):
-           return False
+            return False
     return True
 
 def ethogram_actuate():

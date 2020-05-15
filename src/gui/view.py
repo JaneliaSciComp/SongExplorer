@@ -1,5 +1,5 @@
 import os
-from bokeh.models.widgets import RadioButtonGroup, TextInput, Button, Div, DateFormatter, TextAreaInput, Select, NumberFormatter, Slider, Toggle, ColorPicker
+from bokeh.models.widgets import RadioButtonGroup, TextInput, Button, Div, DateFormatter, TextAreaInput, Select, NumberFormatter, Slider, Toggle, ColorPicker, MultiSelect
 from bokeh.models import ColumnDataSource, TableColumn, DataTable, LayoutDOM
 from bokeh.plotting import figure
 from bokeh.transform import linear_cmap
@@ -31,7 +31,7 @@ bokehlog = logging.getLogger("deepsong")
 import model as M
 import controller as C
 
-bokeh_document, cluster_dot_palette, snippet_palette, p_cluster, cluster_dots, p_snippets, label_sources, label_sources_new, wav_sources, line_glyphs, quad_grey_snippets, dot_size_cluster, dot_alpha_cluster, circle_fuchsia_cluster, p_context, p_line_red_context, line_red_context, quad_grey_context_old, quad_grey_context_new, quad_grey_context_pan, quad_fuchsia_context, quad_fuchsia_snippets, wav_source, line_glyph, label_source, label_source_new, which_layer, which_species, which_word, which_nohyphen, which_kind, color_picker, circle_radius, dot_size, dot_alpha, zoom_context, zoom_offset, zoomin, zoomout, reset, panleft, panright, allleft, allout, allright, save_indicator, label_count_widgets, label_text_widgets, play, play_callback, video_toggle, video_div, undo, redo, detect, misses, configuration_file, train, leaveoneout, leaveallout, xvalidate, mistakes, activations, cluster, visualize, accuracy, freeze, classify, ethogram, compare, congruence, status_ticker, file_dialog_source, file_dialog_source, configuration_contents, logs, logs_folder, model, model_file, wavtfcsvfiles, wavtfcsvfiles_string, groundtruth, groundtruth_folder, validationfiles, testfiles, validationfiles_string, testfiles_string, wantedwords, wantedwords_string, labeltypes, labeltypes_string, prevalences, prevalences_string, copy, labelsounds, makepredictions, fixfalsepositives, fixfalsenegatives, generalize, tunehyperparameters, findnovellabels, examineerrors, testdensely, doit, time_sigma_string, time_smooth_ms_string, frequency_n_ms_string, frequency_nw_string, frequency_p_string, frequency_smooth_ms_string, nsteps_string, restore_from_string, save_and_validate_period_string, validate_percentage_string, mini_batch_string, kfold_string, activations_equalize_ratio_string, activations_max_samples_string, pca_fraction_variance_to_retain_string, tsne_perplexity_string, tsne_exaggeration_string, umap_neighbors_string, umap_distance_string, cluster_algorithm, connection_type, precision_recall_ratios_string, context_ms_string, shiftby_ms_string, representation, window_ms_string, stride_ms_string, mel_dct_string, dropout_string, optimizer, learning_rate_string, kernel_sizes_string, last_conv_width_string, nfeatures_string, dilate_after_layer_string, stride_after_layer_string, editconfiguration, file_dialog_string, file_dialog_table, readme_contents, wordcounts, wizard_buttons, action_buttons, parameter_buttons, parameter_textinputs, wizard2actions, action2parameterbuttons, action2parametertextinputs = [None]*152
+bokeh_document, cluster_dot_palette, snippet_palette, p_cluster, cluster_dots, p_snippets, label_sources, label_sources_new, wav_sources, line_glyphs, quad_grey_snippets, dot_size_cluster, dot_alpha_cluster, circle_fuchsia_cluster, p_context, p_line_red_context, line_red_context, quad_grey_context_old, quad_grey_context_new, quad_grey_context_pan, quad_fuchsia_context, quad_fuchsia_snippets, wav_source, line_glyph, label_source, label_source_new, which_layer, which_species, which_word, which_nohyphen, which_kind, color_picker, circle_radius, dot_size, dot_alpha, zoom_context, zoom_offset, zoomin, zoomout, reset, panleft, panright, allleft, allout, allright, save_indicator, label_count_widgets, label_text_widgets, play, play_callback, video_toggle, video_div, undo, redo, detect, misses, configuration_file, train, leaveoneout, leaveallout, xvalidate, mistakes, activations, cluster, visualize, accuracy, freeze, classify, ethogram, compare, congruence, status_ticker, file_dialog_source, file_dialog_source, configuration_contents, logs, logs_folder, model, model_file, wavtfcsvfiles, wavtfcsvfiles_string, groundtruth, groundtruth_folder, validationfiles, testfiles, validationfiles_string, testfiles_string, wantedwords, wantedwords_string, labeltypes, labeltypes_string, prevalences, prevalences_string, copy, labelsounds, makepredictions, fixfalsepositives, fixfalsenegatives, generalize, tunehyperparameters, findnovellabels, examineerrors, testdensely, doit, time_sigma_string, time_smooth_ms_string, frequency_n_ms_string, frequency_nw_string, frequency_p_string, frequency_smooth_ms_string, nsteps_string, restore_from_string, save_and_validate_period_string, validate_percentage_string, mini_batch_string, kfold_string, activations_equalize_ratio_string, activations_max_samples_string, pca_fraction_variance_to_retain_string, tsne_perplexity_string, tsne_exaggeration_string, umap_neighbors_string, umap_distance_string, cluster_algorithm, cluster_these_layers, connection_type, precision_recall_ratios_string, context_ms_string, shiftby_ms_string, representation, window_ms_string, stride_ms_string, mel_dct_string, dropout_string, optimizer, learning_rate_string, kernel_sizes_string, last_conv_width_string, nfeatures_string, dilate_after_layer_string, stride_after_layer_string, editconfiguration, file_dialog_string, file_dialog_table, readme_contents, wordcounts, wizard_buttons, action_buttons, parameter_buttons, parameter_textinputs, wizard2actions, action2parameterbuttons, action2parametertextinputs = [None]*153
 
 class ScatterNd(LayoutDOM):
 
@@ -359,7 +359,9 @@ def cluster_initialize(newcolors=True):
     M.clustered_starts_sorted = [x['ticks'][0] for x in M.clustered_samples]
     isort = np.argsort(M.clustered_starts_sorted)
     for i in range(len(M.clustered_activations)):
-        M.clustered_activations[i] = M.clustered_activations[i][isort,:]
+        if M.clustered_activations[i] is not None:
+            layer0 = i
+            M.clustered_activations[i] = M.clustered_activations[i][isort,:]
     M.clustered_samples = [M.clustered_samples[x] for x in isort]
     M.clustered_starts_sorted = [M.clustered_starts_sorted[x] for x in isort]
 
@@ -367,10 +369,10 @@ def cluster_initialize(newcolors=True):
     M.iclustered_stops_sorted = np.argsort(M.clustered_stops)
 
     cluster_isnotnan = [not np.isnan(x[0]) and not np.isnan(x[1]) \
-                        for x in M.clustered_activations[0]]
+                        for x in M.clustered_activations[layer0]]
 
-    M.nlayers=len(M.clustered_activations)
-    M.ndcluster = np.shape(M.clustered_activations[0])[1]
+    M.nlayers = len(M.clustered_activations)
+    M.ndcluster = np.shape(M.clustered_activations[layer0])[1]
     cluster_dots.data.update(dx=[], dy=[], dz=[], dl=[], dc=[])
     circle_fuchsia_cluster.data.update(cx=[], cy=[], cz=[], cr=[], cc=[])
 
@@ -393,28 +395,20 @@ def cluster_initialize(newcolors=True):
         M.cluster_dot_colors = { l:c for l,c in zip(allcombos+ M.nohyphens[1:],
                                                     cycle(cluster_dot_palette)) }
 
-    p_cluster_xmax = [np.iinfo(np.int64).min]*M.nlayers
-    p_cluster_xmin = [np.iinfo(np.int64).max]*M.nlayers
-    p_cluster_ymax = [np.iinfo(np.int64).min]*M.nlayers
-    p_cluster_ymin = [np.iinfo(np.int64).max]*M.nlayers
-    p_cluster_zmax = [np.iinfo(np.int64).min]*M.nlayers
-    p_cluster_zmin = [np.iinfo(np.int64).max]*M.nlayers
+    p_cluster_xmin, p_cluster_xmax = [0]*M.nlayers, [0]*M.nlayers
+    p_cluster_ymin, p_cluster_ymax = [0]*M.nlayers, [0]*M.nlayers
+    p_cluster_zmin, p_cluster_zmax = [0]*M.nlayers, [0]*M.nlayers
     precomputed_dots = [None]*M.nlayers
     for ilayer in range(M.nlayers):
         precomputed_dots[ilayer] = [None]*len(M.species)
-        p_cluster_xmin[ilayer] = np.minimum(p_cluster_xmin[ilayer], \
-                                            np.min(M.clustered_activations[ilayer][:,0]))
-        p_cluster_xmax[ilayer] = np.maximum(p_cluster_xmax[ilayer], \
-                                            np.max(M.clustered_activations[ilayer][:,0]))
-        p_cluster_ymin[ilayer] = np.minimum(p_cluster_ymin[ilayer], \
-                                            np.min(M.clustered_activations[ilayer][:,1]))
-        p_cluster_ymax[ilayer] = np.maximum(p_cluster_ymax[ilayer], \
-                                            np.max(M.clustered_activations[ilayer][:,1]))
-        if M.ndcluster==3:
-            p_cluster_zmin[ilayer] = np.minimum(p_cluster_zmin[ilayer], \
-                                                np.min(M.clustered_activations[ilayer][:,2]))
-            p_cluster_zmax[ilayer] = np.maximum(p_cluster_zmax[ilayer], \
-                                                np.max(M.clustered_activations[ilayer][:,2]))
+        if M.clustered_activations[ilayer] is not None:
+            p_cluster_xmin[ilayer] = np.min(M.clustered_activations[ilayer][:,0])
+            p_cluster_xmax[ilayer] = np.max(M.clustered_activations[ilayer][:,0])
+            p_cluster_ymin[ilayer] = np.min(M.clustered_activations[ilayer][:,1])
+            p_cluster_ymax[ilayer] = np.max(M.clustered_activations[ilayer][:,1])
+            if M.ndcluster==3:
+                p_cluster_zmin[ilayer] = np.min(M.clustered_activations[ilayer][:,2])
+                p_cluster_zmax[ilayer] = np.max(M.clustered_activations[ilayer][:,2])
         for (ispecies,specie) in enumerate(M.species):
             precomputed_dots[ilayer][ispecies] = [None]*len(M.words)
             for (iword,word) in enumerate(M.words):
@@ -424,6 +418,8 @@ def cluster_initialize(newcolors=True):
                             [None]*len(M.kinds)
                     for (ikind,kind) in enumerate(M.kinds):
                         if inohyphen!=0 and (ispecies!=0 or iword!=0):
+                            continue
+                        if M.clustered_activations[ilayer] is None:
                             continue
                         bidx = np.logical_and([specie in x['label'] and \
                                                word in x['label'] and \
@@ -472,7 +468,14 @@ def cluster_update():
     if precomputed_dots == None:
         return
     selected_dots = precomputed_dots[M.ilayer][M.ispecies][M.iword][M.inohyphen][M.ikind]
-    if selected_dots is not None:
+    if selected_dots is None:
+        kwargs = dict(dx=[0,0,0,0,0,0,0,0],
+                      dy=[0,0,0,0,0,0,0,0],
+                      dz=[0,0,0,0,0,0,0,0],
+                      dl=['', '', '', '', '', '', '', ''],
+                      dc=['#ffffff00', '#ffffff00', '#ffffff00', '#ffffff00',
+                          '#ffffff00', '#ffffff00', '#ffffff00', '#ffffff00'])
+    else:
         kwargs = dict(dx=[*selected_dots['x'],
                           p_cluster_xmin[M.ilayer], p_cluster_xmin[M.ilayer],
                           p_cluster_xmin[M.ilayer], p_cluster_xmin[M.ilayer],
@@ -492,14 +495,12 @@ def cluster_update():
                       dc=[*selected_dots['c'],
                           '#ffffff00', '#ffffff00', '#ffffff00', '#ffffff00',
                           '#ffffff00', '#ffffff00', '#ffffff00', '#ffffff00'])
-        cluster_dots.data.update(**kwargs)
-    else:
-        cluster_dots.data.update(dx=[], dy=[], dz=[], dl=[], dc=[])
+    cluster_dots.data.update(**kwargs)
     extent = min(p_cluster_xmax[M.ilayer] - p_cluster_xmin[M.ilayer],
                  p_cluster_ymax[M.ilayer] - p_cluster_ymin[M.ilayer])
     if M.ndcluster==3:
         extent = min(extent, p_cluster_zmax[M.ilayer] - p_cluster_zmin[M.ilayer])
-    circle_radius.end = extent
+    circle_radius.end = max(np.finfo(np.float32).eps, extent)
     circle_radius.step = extent/100
     #npoints = np.shape(M.clustered_activations[M.ilayer])[0]
     #dot_size.value = max(1, round(100 * extent / np.sqrt(npoints)))
@@ -532,7 +533,8 @@ def snippets_update(redraw_wavs):
     origin = [M.xcluster,M.ycluster]
     if M.ndcluster==3:
         origin.append(M.zcluster)
-    distance = np.linalg.norm(M.clustered_activations[M.ilayer][isubset,:] - origin, \
+    distance = [] if M.clustered_activations[M.ilayer] is None else \
+               np.linalg.norm(M.clustered_activations[M.ilayer][isubset,:] - origin, \
                               axis=1)
     isort = np.argsort(distance)
     songs, labels, labels_new, scales = [], [], [], []
@@ -867,17 +869,30 @@ def model_file_update(attr, old, new):
     M.save_state_callback()
     buttons_update()
 
-def groundtruth_update():
-    groundtruth.button_type="warning"
-    groundtruth.disabled=True
-    bokeh_document.add_next_tick_callback(_groundtruth_update)
+def cluster_these_layers_update():
+    if os.path.isfile(os.path.join(groundtruth_folder.value,'activations.npz')):
+        npzfile = np.load(os.path.join(groundtruth_folder.value,'activations.npz'),
+                          allow_pickle=True)
+        nlayers = len(list(filter(lambda x: x.startswith('arr_'), npzfile.files)))
+        cluster_these_layers.options = [("0", "input"),
+                                        *[(str(i), "hidden #"+str(i)) \
+                                          for i in range(1,nlayers-1)],
+                                        (str(nlayers-1), "output")]
+    else:
+        cluster_these_layers.options = []
 
 def _groundtruth_update():
     wordcounts_update()
+    cluster_these_layers_update()
     M.save_state_callback()
     groundtruth.button_type="default"
     groundtruth.disabled=True
     buttons_update()
+
+def groundtruth_update():
+    groundtruth.button_type="warning"
+    groundtruth.disabled=True
+    bokeh_document.add_next_tick_callback(_groundtruth_update)
 
 def wantedwords_update_other():
     wantedwords = [x.value for x in label_text_widgets if x.value!='']
@@ -1019,7 +1034,7 @@ def status_ticker_update():
     status_ticker.text = status_ticker_pre+newtext+status_ticker_post
 
 def init(_bokeh_document, _cluster_background_color, _cluster_circle_color, _cluster_dot_colormap, _snippet_colormap):
-    global bokeh_document, cluster_dot_palette, snippet_palette, p_cluster, cluster_dots, p_cluster_dots, precomputed_dots, p_snippets, label_sources, label_sources_new, wav_sources, line_glyphs, quad_grey_snippets, dot_size_cluster, dot_alpha_cluster, circle_fuchsia_cluster, p_context, p_line_red_context, line_red_context, quad_grey_context_old, quad_grey_context_new, quad_grey_context_pan, quad_fuchsia_context, quad_fuchsia_snippets, wav_source, line_glyph, label_source, label_source_new, which_layer, which_species, which_word, which_nohyphen, which_kind, color_picker, circle_radius, dot_size, dot_alpha, zoom_context, zoom_offset, zoomin, zoomout, reset, panleft, panright, allleft, allout, allright, save_indicator, label_count_widgets, label_text_widgets, play, play_callback, video_toggle, video_div, undo, redo, detect, misses, configuration_file, train, leaveoneout, leaveallout, xvalidate, mistakes, activations, cluster, visualize, accuracy, freeze, classify, ethogram, compare, congruence, status_ticker, file_dialog_source, file_dialog_source, configuration_contents, logs, logs_folder, model, model_file, wavtfcsvfiles, wavtfcsvfiles_string, groundtruth, groundtruth_folder, validationfiles, testfiles, validationfiles_string, testfiles_string, wantedwords, wantedwords_string, labeltypes, labeltypes_string, prevalences, prevalences_string, copy, labelsounds, makepredictions, fixfalsepositives, fixfalsenegatives, generalize, tunehyperparameters, findnovellabels, examineerrors, testdensely, doit, time_sigma_string, time_smooth_ms_string, frequency_n_ms_string, frequency_nw_string, frequency_p_string, frequency_smooth_ms_string, nsteps_string, restore_from_string, save_and_validate_period_string, validate_percentage_string, mini_batch_string, kfold_string, activations_equalize_ratio_string, activations_max_samples_string, pca_fraction_variance_to_retain_string, tsne_perplexity_string, tsne_exaggeration_string, umap_neighbors_string, umap_distance_string, cluster_algorithm, connection_type, precision_recall_ratios_string, context_ms_string, shiftby_ms_string, representation, window_ms_string, stride_ms_string, mel_dct_string, dropout_string, optimizer, learning_rate_string, kernel_sizes_string, last_conv_width_string, nfeatures_string, dilate_after_layer_string, stride_after_layer_string, editconfiguration, file_dialog_string, file_dialog_table, readme_contents, wordcounts, wizard_buttons, action_buttons, parameter_buttons, parameter_textinputs, wizard2actions, action2parameterbuttons, action2parametertextinputs, status_ticker_update, status_ticker_pre, status_ticker_post
+    global bokeh_document, cluster_dot_palette, snippet_palette, p_cluster, cluster_dots, p_cluster_dots, precomputed_dots, p_snippets, label_sources, label_sources_new, wav_sources, line_glyphs, quad_grey_snippets, dot_size_cluster, dot_alpha_cluster, circle_fuchsia_cluster, p_context, p_line_red_context, line_red_context, quad_grey_context_old, quad_grey_context_new, quad_grey_context_pan, quad_fuchsia_context, quad_fuchsia_snippets, wav_source, line_glyph, label_source, label_source_new, which_layer, which_species, which_word, which_nohyphen, which_kind, color_picker, circle_radius, dot_size, dot_alpha, zoom_context, zoom_offset, zoomin, zoomout, reset, panleft, panright, allleft, allout, allright, save_indicator, label_count_widgets, label_text_widgets, play, play_callback, video_toggle, video_div, undo, redo, detect, misses, configuration_file, train, leaveoneout, leaveallout, xvalidate, mistakes, activations, cluster, visualize, accuracy, freeze, classify, ethogram, compare, congruence, status_ticker, file_dialog_source, file_dialog_source, configuration_contents, logs, logs_folder, model, model_file, wavtfcsvfiles, wavtfcsvfiles_string, groundtruth, groundtruth_folder, validationfiles, testfiles, validationfiles_string, testfiles_string, wantedwords, wantedwords_string, labeltypes, labeltypes_string, prevalences, prevalences_string, copy, labelsounds, makepredictions, fixfalsepositives, fixfalsenegatives, generalize, tunehyperparameters, findnovellabels, examineerrors, testdensely, doit, time_sigma_string, time_smooth_ms_string, frequency_n_ms_string, frequency_nw_string, frequency_p_string, frequency_smooth_ms_string, nsteps_string, restore_from_string, save_and_validate_period_string, validate_percentage_string, mini_batch_string, kfold_string, activations_equalize_ratio_string, activations_max_samples_string, pca_fraction_variance_to_retain_string, tsne_perplexity_string, tsne_exaggeration_string, umap_neighbors_string, umap_distance_string, cluster_algorithm, cluster_these_layers, connection_type, precision_recall_ratios_string, context_ms_string, shiftby_ms_string, representation, window_ms_string, stride_ms_string, mel_dct_string, dropout_string, optimizer, learning_rate_string, kernel_sizes_string, last_conv_width_string, nfeatures_string, dilate_after_layer_string, stride_after_layer_string, editconfiguration, file_dialog_string, file_dialog_table, readme_contents, wordcounts, wizard_buttons, action_buttons, parameter_buttons, parameter_textinputs, wizard2actions, action2parameterbuttons, action2parametertextinputs, status_ticker_update, status_ticker_pre, status_ticker_post
 
     bokeh_document = _bokeh_document
 
@@ -1516,6 +1531,12 @@ def init(_bokeh_document, _cluster_background_color, _cluster_circle_color, _clu
                                         "UMAP 2D", "UMAP 3D"])
     cluster_algorithm.on_change('value', lambda a,o,n: C.generic_parameters_callback())
 
+    cluster_these_layers = MultiSelect(title='layers', height=108, \
+                                       value=M.state['cluster_these_layers'], \
+                                       options=[])
+    cluster_these_layers.on_change('value', lambda a,o,n: C.generic_parameters_callback())
+    cluster_these_layers_update()
+
     connection_type = Select(title="connection", height=50, \
                              value=M.state['connection_type'], \
                              options=["plain", "residual"])
@@ -1662,6 +1683,7 @@ def init(_bokeh_document, _cluster_background_color, _cluster_circle_color, _clu
         umap_neighbors_string,
         umap_distance_string,
         cluster_algorithm,
+        cluster_these_layers,
         connection_type,
         precision_recall_ratios_string,
         context_ms_string,
@@ -1718,7 +1740,7 @@ def init(_bokeh_document, _cluster_background_color, _cluster_circle_color, _clu
             xvalidate: [context_ms_string, shiftby_ms_string, representation, window_ms_string, stride_ms_string, mel_dct_string, dropout_string, optimizer, learning_rate_string, kernel_sizes_string, last_conv_width_string, nfeatures_string, dilate_after_layer_string, stride_after_layer_string, connection_type, logs_folder, groundtruth_folder, testfiles_string, wantedwords_string, labeltypes_string, nsteps_string, restore_from_string, save_and_validate_period_string, mini_batch_string, kfold_string],
             mistakes: [groundtruth_folder],
             activations: [context_ms_string, shiftby_ms_string, representation, window_ms_string, stride_ms_string, mel_dct_string, kernel_sizes_string, last_conv_width_string, nfeatures_string, dilate_after_layer_string, stride_after_layer_string, connection_type, logs_folder, model_file, groundtruth_folder, wantedwords_string, labeltypes_string, activations_equalize_ratio_string, activations_max_samples_string, mini_batch_string],
-            cluster: [groundtruth_folder, cluster_algorithm, pca_fraction_variance_to_retain_string, tsne_perplexity_string, tsne_exaggeration_string, umap_neighbors_string, umap_distance_string],
+            cluster: [groundtruth_folder, cluster_algorithm, cluster_these_layers, pca_fraction_variance_to_retain_string, tsne_perplexity_string, tsne_exaggeration_string, umap_neighbors_string, umap_distance_string],
             visualize: [groundtruth_folder],
             accuracy: [logs_folder, precision_recall_ratios_string],
             freeze: [context_ms_string, representation, window_ms_string, stride_ms_string, mel_dct_string, kernel_sizes_string, last_conv_width_string, nfeatures_string, dilate_after_layer_string, stride_after_layer_string, connection_type, logs_folder, model_file],
