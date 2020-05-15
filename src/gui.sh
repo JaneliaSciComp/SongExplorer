@@ -21,7 +21,14 @@ if [ "$thishost" == '(none)' ] ; then
     thishost=${thishost% }
 fi
 echo $thishost:$port
-thisip=$(hostname -i)
+read -a theseips <<< $(hostname -i)
+
+allow_websocket=--allow-websocket-origin=${thishost}:$port
+allow_websocket=${allow_websocket}' '--allow-websocket-origin=localhost:$port
+for thisip in ${theseips[*]} ; do
+    [[ $thisip == *':'* ]] && continue
+    allow_websocket=${allow_websocket}' '--allow-websocket-origin=$thisip:$port
+done
 
 trap "local_njobs=\`hetero njobs\`; \
       if [[ \\\$\? && (( \"\$local_njobs\" > 0 )) ]] ; then \
@@ -74,9 +81,7 @@ if [[ -n "$server_ipaddr" ]] ; then
 fi
 
 bokeh serve \
-      --allow-websocket-origin=${thishost}:$port \
-      --allow-websocket-origin=${thisip}:$port \
-      --allow-websocket-origin=localhost:$port \
+      $allow_websocket \
       --show $DIR/gui \
       --port $port \
       --args $configuration_file $audio_tic_rate $audio_nchannels $gui_snippet_ms $gui_nx_snippets $gui_ny_snippets $gui_nlabels $gui_gui_width_pix $gui_context_width_ms $gui_context_offset_ms $gui_cluster_background_color $gui_cluster_circle_color $gui_cluster_dot_colormap $gui_snippet_colormap
