@@ -930,13 +930,13 @@ def buttons_update():
                         if representation.value=='mel-cepstrum' else True
             elif textinput==pca_fraction_variance_to_retain_string:
                 pca_fraction_variance_to_retain_string.disabled=False \
-                        if cluster_algorithm.value[:5] in ['t-SNE','UMAP '] else True
+                        if cluster_algorithm.value[:5] in ['tSNE','UMAP '] else True
             elif textinput==tsne_perplexity_string:
                 tsne_perplexity_string.disabled=False \
-                        if cluster_algorithm.value.startswith('t-SNE') else True
+                        if cluster_algorithm.value.startswith('tSNE') else True
             elif textinput==tsne_exaggeration_string:
                 tsne_exaggeration_string.disabled=False \
-                        if cluster_algorithm.value.startswith('t-SNE') else True
+                        if cluster_algorithm.value.startswith('tSNE') else True
             elif textinput==umap_neighbors_string:
                 umap_neighbors_string.disabled=False \
                         if cluster_algorithm.value.startswith('UMAP') else True
@@ -1033,19 +1033,19 @@ def status_ticker_update():
         newtext = ''
     status_ticker.text = status_ticker_pre+newtext+status_ticker_post
 
-def init(_bokeh_document, _cluster_background_color, _cluster_circle_color, _cluster_dot_colormap, _snippet_colormap):
+def init(_bokeh_document):
     global bokeh_document, cluster_dot_palette, snippet_palette, p_cluster, cluster_dots, p_cluster_dots, precomputed_dots, p_snippets, label_sources, label_sources_new, wav_sources, line_glyphs, quad_grey_snippets, dot_size_cluster, dot_alpha_cluster, circle_fuchsia_cluster, p_context, p_line_red_context, line_red_context, quad_grey_context_old, quad_grey_context_new, quad_grey_context_pan, quad_fuchsia_context, quad_fuchsia_snippets, wav_source, line_glyph, label_source, label_source_new, which_layer, which_species, which_word, which_nohyphen, which_kind, color_picker, circle_radius, dot_size, dot_alpha, zoom_context, zoom_offset, zoomin, zoomout, reset, panleft, panright, allleft, allout, allright, save_indicator, label_count_widgets, label_text_widgets, play, play_callback, video_toggle, video_div, undo, redo, detect, misses, configuration_file, train, leaveoneout, leaveallout, xvalidate, mistakes, activations, cluster, visualize, accuracy, freeze, classify, ethogram, compare, congruence, status_ticker, file_dialog_source, file_dialog_source, configuration_contents, logs, logs_folder, model, model_file, wavtfcsvfiles, wavtfcsvfiles_string, groundtruth, groundtruth_folder, validationfiles, testfiles, validationfiles_string, testfiles_string, wantedwords, wantedwords_string, labeltypes, labeltypes_string, prevalences, prevalences_string, copy, labelsounds, makepredictions, fixfalsepositives, fixfalsenegatives, generalize, tunehyperparameters, findnovellabels, examineerrors, testdensely, doit, time_sigma_string, time_smooth_ms_string, frequency_n_ms_string, frequency_nw_string, frequency_p_string, frequency_smooth_ms_string, nsteps_string, restore_from_string, save_and_validate_period_string, validate_percentage_string, mini_batch_string, kfold_string, activations_equalize_ratio_string, activations_max_samples_string, pca_fraction_variance_to_retain_string, tsne_perplexity_string, tsne_exaggeration_string, umap_neighbors_string, umap_distance_string, cluster_algorithm, cluster_these_layers, connection_type, precision_recall_ratios_string, context_ms_string, shiftby_ms_string, representation, window_ms_string, stride_ms_string, mel_dct_string, dropout_string, optimizer, learning_rate_string, kernel_sizes_string, last_conv_width_string, nfeatures_string, dilate_after_layer_string, stride_after_layer_string, editconfiguration, file_dialog_string, file_dialog_table, readme_contents, wordcounts, wizard_buttons, action_buttons, parameter_buttons, parameter_textinputs, wizard2actions, action2parameterbuttons, action2parametertextinputs, status_ticker_update, status_ticker_pre, status_ticker_post
 
     bokeh_document = _bokeh_document
 
-    M.cluster_circle_color = _cluster_circle_color
+    M.cluster_circle_color = M.cluster_circle_color
 
-    if '#' in _cluster_dot_colormap:
-      cluster_dot_palette = ast.literal_eval(_cluster_dot_colormap)
+    if '#' in M.cluster_dot_colormap:
+      cluster_dot_palette = ast.literal_eval(M.cluster_dot_colormap)
     else:
-      cluster_dot_palette = getattr(palettes, _cluster_dot_colormap)
+      cluster_dot_palette = getattr(palettes, M.cluster_dot_colormap)
 
-    snippet_palette = getattr(palettes, _snippet_colormap)
+    snippet_palette = getattr(palettes, M.snippet_colormap)
 
     dot_size_cluster = ColumnDataSource(data=dict(ds=[M.state["dot_size"]]))
     dot_alpha_cluster = ColumnDataSource(data=dict(da=[M.state["dot_alpha"]]))
@@ -1527,7 +1527,7 @@ def init(_bokeh_document, _cluster_background_color, _cluster_circle_color, _clu
     cluster_algorithm = Select(title="cluster", height=50, \
                                value=M.state['cluster_algorithm'], \
                                options=["PCA 2D", "PCA 3D", \
-                                        "t-SNE 2D", "t-SNE 3D", \
+                                        "tSNE 2D", "tSNE 3D", \
                                         "UMAP 2D", "UMAP 3D"])
     cluster_algorithm.on_change('value', lambda a,o,n: C.generic_parameters_callback())
 

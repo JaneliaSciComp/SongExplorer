@@ -2,41 +2,40 @@
 
 # train a neural network with the annotations
 
-# train.sh <config-file> <context-ms> <shiftby-ms> <representation> <window-ms> <mel> <dct> <stride-ms> <dropout> <optimizer> <learning-rate> <kernel-sizes> <last-conv-width> <nfeatures> <dilate-after-layer> <stride-after-layer> <connection-type> <logdir> <model> <path-to-groundtruth> <word1>,<word2>,...,<wordN> <label-types> <nsteps> <restore-from> <save-and-test-interval> <validation-percentage> <mini-batch> <testing-files>
+# train.sh <context-ms> <shiftby-ms> <representation> <window-ms> <mel> <dct> <stride-ms> <dropout> <optimizer> <learning-rate> <kernel-sizes> <last-conv-width> <nfeatures> <dilate-after-layer> <stride-after-layer> <connection-type> <logdir> <model> <path-to-groundtruth> <word1>,<word2>,...,<wordN> <label-types> <nsteps> <restore-from> <save-and-test-interval> <validation-percentage> <mini-batch> <testing-files> <audio-tic-rate> <audio-nchannels>
 
 # e.g.
-# $DEEPSONG_BIN train.sh `pwd`/configuration.sh 204.8 0.0 waveform 6.4 7 7 1.6 0.5 adam 0.0002 5,3,3 130 256,256,256 65535 65535 plain `pwd`/trained-classifier 1 `pwd`/groundtruth-data mel-sine,mel-pulse,ambient,other annotated 50 '' 10 40 32 ""
+# $DEEPSONG_BIN train.sh 204.8 0.0 waveform 6.4 7 7 1.6 0.5 adam 0.0002 5,3,3 130 256,256,256 65535 65535 plain `pwd`/trained-classifier 1 `pwd`/groundtruth-data mel-sine,mel-pulse,ambient,other annotated 50 '' 10 40 32 "" 5000 1
 
-config_file=$1
-context_ms=$2
-shiftby_ms=$3
-representation=$4
-window_ms=$5
-mel=$6
-dct=$7
-stride_ms=$8
-dropout=$9
-optimizer=${10}
-learning_rate=${11}
-kernel_sizes=${12}
-last_conv_width=${13}
-nfeatures=${14}
-dilate_after_layer=${15}
-stride_after_layer=${16}
-connection_type=${17}
-logdir=${18}
-model=${19}
-data_dir=${20}
-wanted_words=${21}
-labels_touse=${22}
-nsteps=${23}
-restore_from=${24}
-save_and_test_interval=${25}
-validation_percentage=${26}
-mini_batch=${27}
-testing_files=${28}
-
-source $config_file
+context_ms=$1
+shiftby_ms=$2
+representation=$3
+window_ms=$4
+mel=$5
+dct=$6
+stride_ms=$7
+dropout=$8
+optimizer=$9
+learning_rate=${10}
+kernel_sizes=${11}
+last_conv_width=${12}
+nfeatures=${13}
+dilate_after_layer=${14}
+stride_after_layer=${15}
+connection_type=${16}
+logdir=${17}
+model=${18}
+data_dir=${19}
+wanted_words=${20}
+labels_touse=${21}
+nsteps=${22}
+restore_from=${23}
+save_and_test_interval=${24}
+validation_percentage=${25}
+mini_batch=${26}
+testing_files=${27}
+audio_tic_rate=${28}
+audio_nchannels=${29}
 
 DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
 
@@ -95,12 +94,11 @@ expr="/usr/bin/python3 $DIR/speech_commands_custom/train.py \
 
 cmd="date; \
      hostname; \
+     echo $CUDA_VISIBLE_DEVICES; \
      nvidia-smi; \
      $expr $redirect $logdir/train_${model}.log; \
      sync; \
      date"
 echo $cmd
 
-logfile=$logdir/train${model}.log
-
-train_it "$cmd" "$logfile"
+eval "$cmd"

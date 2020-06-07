@@ -17,7 +17,7 @@ bokehlog = logging.getLogger("deepsong")
 bokehlog.setLevel(logging.INFO)
 #bokehlog.info(...) 
 
-_, configuration_file, audio_tic_rate, audio_nchannels, snippets_ms, nx, ny, nlabels, gui_width_pix, context_width_ms, context_offset_ms, cluster_background_color, cluster_circle_color, cluster_dot_colormap, snippet_colormap = argv
+_, configuration_file = argv
 
 import model as M
 import view as V
@@ -25,10 +25,8 @@ import controller as C
 
 doc = curdoc()
 
-M.init(configuration_file, audio_tic_rate, audio_nchannels,
-       snippets_ms, nx, ny, nlabels, gui_width_pix, context_width_ms, context_offset_ms)
-V.init(doc, cluster_background_color, cluster_circle_color, cluster_dot_colormap,
-       snippet_colormap)
+M.init(configuration_file)
+V.init(doc)
 C.init(doc)
 
 cluster_buttons = row(V.which_layer, V.which_species, V.which_word,

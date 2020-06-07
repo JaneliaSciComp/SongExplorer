@@ -1,0 +1,131 @@
+# this file must be valid python and bash code, hence the .pysh extension
+
+# DeepSong must be restarted for changes to take effect
+
+# sampling rate of and number of channels in the WAV files
+audio_tic_rate=2500
+audio_nchannels=1
+
+# specs of the 'local' computer
+local_ncpu_cores=12
+local_ngpu_cards=1
+local_ngigabytes_memory=32
+
+# specs of the 'server' computer
+server_ipaddr=""
+server_ncpu_cores=0
+server_ngpu_cards=0
+server_ngigabytes_memory=0
+
+# GUI
+#gui_cluster_dot_colormap="Category10_10"
+# https://graphicdesign.stackexchange.com/questions/3682/where-can-i-find-a-large-palette-set-of-contrasting-colors-for-coloring-many-d
+gui_cluster_circle_color="#f0a3ff"
+gui_cluster_dot_colormap="('#0075dc','#993f00','#4c005c','#191919','#005c31','#2bce48','#ffcc99','#808080','#94ffb5','#8f7c00','#9dcc00','#c20088','#003380','#ffa405','#ffa8bb','#426600','#ff0010','#5ef1f2','#00998f','#e0ff66','#740aff','#990000','#ffff80','#ffff00','#ff5005')"
+gui_snippet_colormap="Viridis256"
+gui_snippet_ms=40
+gui_snippet_nx=10
+gui_snippet_ny=10
+gui_nlabels=8
+gui_gui_width_pix=1250
+gui_context_width_ms=400
+gui_context_offset_ms=0
+
+# on what computer to do the computation
+default_where="local"
+
+# action buttons
+
+detect_where=default_where
+detect_local_resources="1 0 32"
+detect_cluster_flags="-n 2 -W 60"
+
+misses_where=default_where
+misses_local_resources="1 0 1"
+misses_cluster_flags="-W 60"
+
+train_gpu=1
+train_where=default_where
+train_local_resources_gpu="2 1 1"
+train_local_resources_cpu="12 0 1"
+train_cluster_flags_gpu="-n 2 -W 10080 -gpu 'num=1' -q gpu_rtx"
+train_cluster_flags_cpu="-n 12 -W 10080"
+
+generalize_gpu=1
+generalize_where=default_where
+generalize_local_resources_gpu="2 1 1"
+generalize_local_resources_cpu="24 0 1"
+generalize_cluster_flags_gpu="-n 2 -W 10080 -gpu 'num=1:mode=shared' -q gpu_rtx"
+generalize_cluster_flags_cpu="-n 24 -W 10080"
+
+xvalidate_gpu=1
+xvalidate_where=default_where
+xvalidate_local_resources_gpu="2 1 1"
+xvalidate_local_resources_cpu="24 0 1"
+xvalidate_cluster_flags_gpu="-n 2 -W 10080 -gpu 'num=1:mode=shared' -q gpu_rtx"
+xvalidate_cluster_flags_cpu="-n 24 -W 10080"
+
+mistakes_where=default_where
+mistakes_local_resources="1 0 1"
+mistakes_cluster_flags="-n 1 -W 60"
+
+activations_gpu=False
+activations_where=default_where
+activations_local_resources_gpu="1 1 1"
+activations_local_resources_cpu="12 0 1"
+activations_cluster_flags_gpu="-W 60 -gpu 'num=1' -q gpu_short"
+activations_cluster_flags_cpu="-n 24 -W 60"
+
+cluster_where=default_where
+cluster_local_resources="8 0 1"
+cluster_cluster_flags="-n 8 -W 60"
+
+accuracy_where=default_where
+accuracy_local_resources="2 0 1"
+accuracy_cluster_flags="-W 60 -n 2"
+
+freeze_where=default_where
+freeze_local_resources="1 0 0"
+freeze_cluster_flags="-W 60"
+
+classify_gpu=False
+classify_where=default_where
+classify1_local_resources_gpu="2 1 1"
+classify1_local_resources_cpu="12 0 1"
+classify1_cluster_flags_gpu="-n 2 -W 60 -gpu 'num=1' -q gpu_rtx"
+classify1_cluster_flags_cpu="-n 8 -W 60"
+classify2_local_resources="1 0 1"
+classify2_cluster_flags="-W 60"
+
+ethogram_where=default_where
+ethogram_local_resources="1 0 1"
+ethogram_cluster_flags="-W 60"
+
+compare_where=default_where
+compare_local_resources="1 0 1"
+compare_cluster_flags="-W 60"
+
+congruence_where=default_where
+congruence_local_resources="12 0 1"
+congruence_cluster_flags="-n 16 -W 120"
+
+# used by `generalize` and `xvalidate` to simultaneously train multiple models on one GPU
+models_per_job=1
+
+# use incremental PCA to conserve memory when clustering if >0
+pca_batch_size=0 
+
+# paralellizing is faster but requires more RAM
+cluster_parallelize=0
+accuracy_parallelize=1
+congruence_parallelize=1
+
+# how many points to use for the precision-recall and sensitivity-specificity curves
+accuracy_nprobabilities=50
+
+# used by freeze and classify to specify how many `window`s to process in parallel
+# must be an integer multiple of the effective downsampling achieved by `stride after`
+nstrides=64
+
+# used by developers to specifiy the location of writable code files
+source_path=""

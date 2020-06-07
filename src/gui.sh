@@ -39,13 +39,13 @@ trap "local_njobs=\`hetero njobs\`; \
           hetero stop; \
       fi; \
       if [[ -n \"$server_ipaddr\" ]] ; then \
-        server_njobs=\`ssh $server_ipaddr \"$server_export $DEEPSONG_BIN hetero njobs\"\`; \
+        server_njobs=\`ssh $server_ipaddr \"export SINGULARITYENV_PREPEND_PATH=$source_path; $DEEPSONG_BIN hetero njobs\"\`; \
         if [[ \\\$\? && (( \"\$server_njobs\" > 0 )) ]] ; then \
             echo WARNING: jobs are still queued on the server; \
             echo to kill them execute \\\`ssh $server_ipaddr \\\$DEEPSONG_BIN hetero stop force\\\`; \
             echo to stop DeepSong\'s scheduler, wait until they are done and execute \\\`ssh $server_ipaddr \\\$DEEPSONG_BIN hetero stop\\\`; \
         else \
-            ssh $server_ipaddr \"$server_export $DEEPSONG_BIN hetero stop\"; \
+            ssh $server_ipaddr \"export SINGULARITYENV_PREPEND_PATH=$source_path; $DEEPSONG_BIN hetero stop\"; \
         fi; \
       fi" INT TERM KILL STOP HUP
 
@@ -63,10 +63,10 @@ elif [[ "$hetero_nslots" != "$local_ncpu_cores $local_ngpu_cards $local_ngigabyt
 fi
 
 if [[ -n "$server_ipaddr" ]] ; then
-    hetero_nslots=`ssh $server_ipaddr "$server_export $DEEPSONG_BIN hetero nslots"`
+    hetero_nslots=`ssh $server_ipaddr "export SINGULARITYENV_PREPEND_PATH=$source_path; $DEEPSONG_BIN hetero nslots"`
     hetero_isrunning=$?
     if [[ "$hetero_isrunning" != 0 ]] ; then
-        ssh $server_ipaddr "$server_export $DEEPSONG_BIN hetero start \
+        ssh $server_ipaddr "export SINGULARITYENV_PREPEND_PATH=$source_path; $DEEPSONG_BIN hetero start \
                             $server_ncpu_cores $server_ngpu_cards $server_ngigabytes_memory" &
     elif [[ "$hetero_nslots" != "$server_ncpu_cores $server_ngpu_cards $server_ngigabytes_memory" ]] ; then
 
@@ -84,4 +84,4 @@ bokeh serve \
       $allow_websocket \
       --show $DIR/gui \
       --port $port \
-      --args $configuration_file $audio_tic_rate $audio_nchannels $gui_snippet_ms $gui_nx_snippets $gui_ny_snippets $gui_nlabels $gui_gui_width_pix $gui_context_width_ms $gui_context_offset_ms $gui_cluster_background_color $gui_cluster_circle_color $gui_cluster_dot_colormap $gui_snippet_colormap
+      --args $configuration_file

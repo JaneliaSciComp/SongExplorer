@@ -34,7 +34,7 @@ cluster_ndims = int(cluster_ndims)
 cluster_parallelize = bool(int(cluster_parallelize))
 if cluster_algorithm=="pca":
   None
-elif cluster_algorithm=="t-sne":
+elif cluster_algorithm=="tsne":
   tsne_perplexity, tsne_exaggeration = argv[8:]
   print('tsne_perplexity: '+tsne_perplexity)
   print('tsne_exaggeration: '+tsne_exaggeration)
@@ -133,7 +133,7 @@ if cluster_algorithm=="pca":
     return activations_tocluster[ilayer][:,:cluster_ndims]
 
 
-elif cluster_algorithm=="t-sne":
+elif cluster_algorithm=="tsne":
   print("reducing dimensionality with t-SNE...")
 
   def do_cluster(ilayer):

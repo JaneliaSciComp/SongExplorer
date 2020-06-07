@@ -1,5 +1,5 @@
 import os
-from subprocess import run
+from subprocess import run, PIPE, STDOUT, Popen
 import pandas as pd
 from datetime import datetime
 import numpy as np
@@ -17,6 +17,124 @@ bokehlog = logging.getLogger("deepsong")
 
 import model as M
 import view as V
+
+def generic_it(cmd, logfile, where, localargs, localdeps, clusterflags, *args):
+    args = ["\'\'" if x=="" else x for x in args]
+    if where == "local":
+        p = run(["hetero", "submit",
+                 "{ export CUDA_VISIBLE_DEVICES=$QUEUE1; "+cmd+" "+' '.join(args)+"; } &> "+logfile,
+                 *localargs.split(' '), localdeps],
+                stdout=PIPE, stderr=STDOUT)
+        jobinfo = p.stdout.decode('ascii').rstrip()
+        bokehlog.info(jobinfo)
+    elif where == "server":
+        p = run(["ssh", M.server_ipaddr, "export SINGULARITYENV_PREPEND_PATH="+M.source_path+";",
+                 "$DEEPSONG_BIN", "hetero", "submit",
+                 "\"{ export CUDA_VISIBLE_DEVICES=\$QUEUE1; "+cmd+" "+' '.join(args)+"; } &> "+logfile+"\"",
+                 *localargs.split(' '), localdeps],
+                stdout=PIPE, stderr=STDOUT)
+        jobinfo=p.stdout.decode('ascii').rstrip()
+        bokehlog.info(jobinfo)
+    elif where == "cluster":
+        pe = Popen(["echo",
+                    "export SINGULARITYENV_PREPEND_PATH="+M.source_path+";",
+                    os.environ["DEEPSONG_BIN"]+" "+cmd+" "+' '.join(args)],
+                   stdout=PIPE)
+        ps = Popen(["ssh", "login1", "bsub",
+                    "-Ne",
+                    "-P stern",
+                    #"-J ${logfile//,/}.job",
+                    clusterflags,
+                    "-oo "+logfile],
+                   stdin=pe.stdout, stdout=PIPE, stderr=STDOUT)
+        pe.stdout.close()
+        jobinfo=ps.communicate()[0].decode('ascii').rstrip()
+        bokehlog.info(jobinfo)
+    return jobinfo
+
+def detect_it(logfile, *args):
+    generic_it("detect.sh", logfile, M.detect_where,
+               M.detect_local_resources, "", M.detect_cluster_flags, *args)
+
+def misses_it(logfile, *args):
+    generic_it("misses.sh", logfile, M.misses_where,
+               M.misses_local_resources, "", M.misses_cluster_flags, *args)
+
+def train_it(logfile, *args):
+    if M.train_gpu == 1:
+        generic_it("train.sh", logfile, M.train_where,
+                   M.train_local_resources_gpu, "", M.train_cluster_flags_gpu, *args)
+    else:
+        generic_it("train.sh", logfile, M.train_where,
+                   M.train_local_resources_cpu, "", M.train_cluster_flags_cpu, *args)
+
+def generalize_it(logfile, *args):
+    if M.generalize_gpu == 1:
+        generic_it("generalize.sh", logfile, M.generalize_where,
+                   M.generalize_local_resources_gpu, "", M.generalize_cluster_flags_gpu, *args)
+    else:
+        generic_it("generalize.sh", logfile, M.generalize_where,
+                   M.generalize_local_resources_cpu, "", M.generalize_cluster_flags_cpu, *args)
+
+def xvalidate_it(logfile, *args):
+    if M.xvalidate_gpu == 1:
+        generic_it("xvalidate.sh", logfile, M.xvalidate_where,
+                   M.xvalidate_local_resources_gpu, "", M.xvalidate_cluster_flags_gpu, *args)
+    else:
+        generic_it("xvalidate.sh", logfile, M.xvalidate_where,
+                   M.xvalidate_local_resources_cpu, "", M.xvalidate_cluster_flags_cpu, *args)
+
+def mistakes_it(logfile, *args):
+    generic_it("mistakes.sh", logfile, M.mistakes_where,
+               M.mistakes_local_resources, "", M.mistakes_cluster_flags, *args)
+
+def activations_it(logfile, *args):
+    if M.activations_gpu:
+        generic_it("activations.sh", logfile, M.activations_where,
+                   M.activations_local_resources_gpu, "", M.activations_cluster_flags_gpu, *args)
+    else:
+        generic_it("activations.sh", logfile, M.activations_where,
+                   M.activations_local_resources_cpu, "", M.activations_cluster_flags_cpu, *args)
+
+def cluster_it(logfile, *args):
+    generic_it("cluster.sh", logfile, M.cluster_where,
+               M.cluster_local_resources, "", M.cluster_cluster_flags, *args)
+
+def accuracy_it(logfile, *args):
+    generic_it("accuracy.sh", logfile, M.accuracy_where,
+               M.accuracy_local_resources, "", M.accuracy_cluster_flags, *args)
+
+def freeze_it(logfile, *args):
+    generic_it("freeze.sh", logfile, M.freeze_where,
+               M.freeze_local_resources, "", M.freeze_cluster_flags, *args)
+
+def classify_it(logfile1, logfile2, *args):
+    p = run(["date", "+%s"], stdout=PIPE, stderr=STDOUT)
+    currtime = p.stdout.decode('ascii').rstrip()
+    if M.classify_gpu:
+        jobinfo = generic_it("classify1.sh", logfile1, M.classify_where,
+                             M.classify1_local_resources_gpu, "", M.classify1_cluster_flags_gpu,
+                             *args)
+    else:
+        jobinfo = generic_it("classify1.sh", logfile1, M.classify_where,
+                             M.classify1_local_resources_gpu, "", M.classify1_cluster_flags_gpu,
+                             *args)
+    jobid = re.search('([0-9]+)',jobinfo).group(1) if M.classify_where=="cluster" else jobinfo
+    generic_it("classify2.sh", logfile2, M.classify_where,
+               M.classify2_local_resources, "'hetero job "+jobid+"'",
+               M.classify2_cluster_flags+" -w \"done("+jobid+")\"", *args)
+
+def ethogram_it(logfile, *args):
+    generic_it("ethogram.sh", logfile, M.ethogram_where,
+               M.ethogram_local_resources, "", M.ethogram_cluster_flags, *args)
+
+def compare_it(logfile, *args):
+    generic_it("compare.sh", logfile, M.compare_where,
+               M.compare_local_resources, "", M.compare_cluster_flags, *args)
+
+def congruence_it(logfile, *args):
+    generic_it("congruence.sh", logfile, M.congruence_where,
+               M.congruence_local_resources, "", M.congruence_cluster_flags, *args)
 
 def generic_parameters_callback():
     M.save_state_callback()
@@ -462,12 +580,14 @@ def detect_actuate():
     results = [None] * len(wavfiles)
     for (i,wavfile) in enumerate(wavfiles):
         currtime = time.time()
-        run(["detect.sh", M.configuration_file, wavfile, \
-             V.time_sigma_string.value, V.time_smooth_ms_string.value, \
-             V.frequency_n_ms_string.value, V.frequency_nw_string.value, \
-             V.frequency_p_string.value, V.frequency_smooth_ms_string.value])
+        logfile = os.path.splitext(wavfile)[0]+'-detect.log'
+        detect_it(logfile,
+                  wavfile, \
+                  V.time_sigma_string.value, V.time_smooth_ms_string.value, \
+                  V.frequency_n_ms_string.value, V.frequency_nw_string.value, \
+                  V.frequency_p_string.value, V.frequency_smooth_ms_string.value, \
+                  str(M.audio_tic_rate), str(M.audio_nchannels))
         displaystring = "detect "+os.path.basename(wavfile)
-        logfile = wavfile[:-4]+'-detect.log'
         threads[i] = threading.Thread(target=actuate_monitor, args=( \
                          displaystring, \
                          results, i, \
@@ -489,16 +609,16 @@ def misses_succeeded(wavfile, reftime):
 
 def misses_actuate():
     currtime = time.time()
-    run(["misses.sh", M.configuration_file, V.wavtfcsvfiles_string.value])
     csvfile1 = V.wavtfcsvfiles_string.value.split(',')[0]
+    basepath = os.path.dirname(csvfile1)
     with open(csvfile1) as fid:
       csvreader = csv.reader(fid)
       row1 = next(csvreader)
     wavfile = row1[0]
     displaystring = "misses "+wavfile
-    basepath = os.path.dirname(csvfile1)
     noext = os.path.join(basepath, os.path.splitext(wavfile)[0])
     logfile = noext+'-misses.log'
+    misses_it(logfile, V.wavtfcsvfiles_string.value)
     threads = [None]
     results = [None]
     threads[0] = threading.Thread(target=actuate_monitor, args=( \
@@ -649,7 +769,8 @@ def train_actuate():
     M.save_annotations()
     test_files = _validation_test_files(V.testfiles_string.value)[0]
     currtime = time.time()
-    run(["train.sh", M.configuration_file, \
+    logfile = os.path.join(V.logs_folder.value, "train1.log")
+    train_it(logfile,
          V.context_ms_string.value, V.shiftby_ms_string.value, \
          V.representation.value, V.window_ms_string.value, \
          *V.mel_dct_string.value.split(','), V.stride_ms_string.value, \
@@ -661,9 +782,9 @@ def train_actuate():
          V.groundtruth_folder.value, V.wantedwords_string.value, \
          V.labeltypes_string.value, V.nsteps_string.value, V.restore_from_string.value, \
          V.save_and_validate_period_string.value, \
-         V.validate_percentage_string.value, V.mini_batch_string.value, test_files])
+         V.validate_percentage_string.value, V.mini_batch_string.value, test_files, \
+         str(M.audio_tic_rate), str(M.audio_nchannels))
     displaystring = "train "+os.path.basename(V.logs_folder.value.rstrip('/'))
-    logfile = os.path.join(V.logs_folder.value, "train1.log")
     threads = [None]
     results = [None]
     threads[0] = threading.Thread(target=actuate_monitor, args=( \
@@ -699,24 +820,34 @@ def generalize_xvalidate_finished(lastlogfile, reftime):
 
 def leaveout_actuate(comma):
     test_files = _validation_test_files(V.testfiles_string.value)[0]
-    validation_files = list(filter(lambda x: not any([y!='' and y in x for y in test_files.split(',')]),
+    validation_files = list(filter(
+            lambda x: not any([y!='' and y in x for y in test_files.split(',')]),
             _validation_test_files(V.validationfiles_string.value, comma)))
     currtime = time.time()
-    run(["generalize.sh", M.configuration_file, V.context_ms_string.value, \
-         V.shiftby_ms_string.value, V.representation.value, V.window_ms_string.value, \
-         *V.mel_dct_string.value.split(','), V.stride_ms_string.value, \
-         V.dropout_string.value, V.optimizer.value, \
-         V.learning_rate_string.value, V.kernel_sizes_string.value, \
-         V.last_conv_width_string.value, V.nfeatures_string.value, \
-         V.dilate_after_layer_string.value, V.stride_after_layer_string.value, \
-         V.connection_type.value, \
-         V.logs_folder.value, V.groundtruth_folder.value, \
-         V.wantedwords_string.value, V.labeltypes_string.value, \
-         V.nsteps_string.value, V.restore_from_string.value, V.save_and_validate_period_string.value, \
-         V.mini_batch_string.value, test_files, *validation_files])
+    for ivalidation_file in range(0, len(validation_files), M.models_per_job):
+        logfile = os.path.join(V.logs_folder.value, "generalize"+str(1+ivalidation_file)+".log")
+        generalize_it(logfile,
+                      V.context_ms_string.value, \
+                      V.shiftby_ms_string.value, V.representation.value, \
+                      V.window_ms_string.value, \
+                      *V.mel_dct_string.value.split(','), V.stride_ms_string.value, \
+                      V.dropout_string.value, V.optimizer.value, \
+                      V.learning_rate_string.value, V.kernel_sizes_string.value, \
+                      V.last_conv_width_string.value, V.nfeatures_string.value, \
+                      V.dilate_after_layer_string.value, V.stride_after_layer_string.value, \
+                      V.connection_type.value, \
+                      V.logs_folder.value, V.groundtruth_folder.value, \
+                      V.wantedwords_string.value, V.labeltypes_string.value, \
+                      V.nsteps_string.value, V.restore_from_string.value, \
+                      V.save_and_validate_period_string.value, \
+                      V.mini_batch_string.value, test_files, \
+                      str(M.audio_tic_rate), str(M.audio_nchannels), \
+                      str(ivalidation_file),
+                      *validation_files[ivalidation_file:ivalidation_file+M.models_per_job])
     displaystring = "generalize "+os.path.basename(V.logs_folder.value.rstrip('/'))
     logfile1 = os.path.join(V.logs_folder.value, "generalize1.log")
-    logfileN = os.path.join(V.logs_folder.value, "generalize"+str(len(validation_files))+".log")
+    logfileN = os.path.join(V.logs_folder.value,
+                            "generalize"+str(len(validation_files) % M.models_per_job)+".log")
     threading.Thread(target=actuate_monitor, args=(displaystring, None, None, \
                      lambda l=logfile1, t=currtime: recent_file_exists(l, t, False), \
                      lambda l=logfileN, t=currtime: generalize_xvalidate_finished(l, t), \
@@ -726,22 +857,29 @@ def leaveout_actuate(comma):
 def xvalidate_actuate():
     test_files = _validation_test_files(V.testfiles_string.value)[0]
     currtime = time.time()
-    run(["xvalidate.sh", M.configuration_file, V.context_ms_string.value, \
-         V.shiftby_ms_string.value, V.representation.value, V.window_ms_string.value, \
-         *V.mel_dct_string.value.split(','), V.stride_ms_string.value, \
-         V.dropout_string.value, V.optimizer.value, \
-         V.learning_rate_string.value, V.kernel_sizes_string.value, \
-         V.last_conv_width_string.value, V.nfeatures_string.value, \
-         V.dilate_after_layer_string.value, V.stride_after_layer_string.value, \
-         V.connection_type.value, \
-         V.logs_folder.value, V.groundtruth_folder.value, \
-         V.wantedwords_string.value, V.labeltypes_string.value, \
-         V.nsteps_string.value, V.restore_from_string.value, \
-         V.save_and_validate_period_string.value, \
-         V.mini_batch_string.value, V.kfold_string.value, test_files])
+    for ifold in range(1, 1+int(V.kfold_string.value), M.models_per_job):
+        logfile = os.path.join(V.logs_folder.value, "xvalidate"+str(ifold)+".log")
+        xvalidate_it(logfile,
+                     V.context_ms_string.value, \
+                     V.shiftby_ms_string.value, V.representation.value, \
+                     V.window_ms_string.value, \
+                     *V.mel_dct_string.value.split(','), V.stride_ms_string.value, \
+                     V.dropout_string.value, V.optimizer.value, \
+                     V.learning_rate_string.value, V.kernel_sizes_string.value, \
+                     V.last_conv_width_string.value, V.nfeatures_string.value, \
+                     V.dilate_after_layer_string.value, V.stride_after_layer_string.value, \
+                     V.connection_type.value, \
+                     V.logs_folder.value, V.groundtruth_folder.value, \
+                     V.wantedwords_string.value, V.labeltypes_string.value, \
+                     V.nsteps_string.value, V.restore_from_string.value, \
+                     V.save_and_validate_period_string.value, \
+                     V.mini_batch_string.value, test_files, \
+                     str(M.audio_tic_rate), str(M.audio_nchannels), V.kfold_string.value, \
+                     ','.join([str(x) for x in range(ifold,ifold+M.models_per_job)]))
     displaystring = "xvalidate "+os.path.basename(V.logs_folder.value.rstrip('/'))
     logfile1 = os.path.join(V.logs_folder.value, "xvalidate1.log")
-    logfileN = os.path.join(V.logs_folder.value, "xvalidate"+V.kfold_string.value+".log")
+    logfileN = os.path.join(V.logs_folder.value,
+                            "xvalidate"+str(int(V.kfold_string.value) % M.models_per_job)+".log")
     threading.Thread(target=actuate_monitor, args=(displaystring, None, None, \
                      lambda l=logfile1, t=currtime: recent_file_exists(l, t, False), \
                      lambda l=logfileN, t=currtime: generalize_xvalidate_finished(l, t), \
@@ -753,9 +891,9 @@ def mistakes_succeeded(groundtruthdir, reftime):
 
 def mistakes_actuate():
     currtime = time.time()
-    run(["mistakes.sh", M.configuration_file, V.groundtruth_folder.value])
-    displaystring = "mistakes "+os.path.basename(V.groundtruth_folder.value.rstrip('/'))
     logfile = os.path.join(V.groundtruth_folder.value, "mistakes.log")
+    mistakes_it(logfile, V.groundtruth_folder.value)
+    displaystring = "mistakes "+os.path.basename(V.groundtruth_folder.value.rstrip('/'))
     threading.Thread(target=actuate_monitor, args=(displaystring, None, None, \
                      lambda l=logfile, t=currtime: recent_file_exists(l, t, False), \
                      lambda l=logfile: contains_two_timestamps(l), \
@@ -775,20 +913,24 @@ def activations_cluster_succeeded(kind, groundtruthdir, reftime):
 def activations_actuate():
     currtime = time.time()
     logdir, model, check_point = M.parse_model_file(V.model_file.value)
-    run(["activations.sh", M.configuration_file, V.context_ms_string.value, \
-         V.shiftby_ms_string.value, V.representation.value, V.window_ms_string.value, \
-         *V.mel_dct_string.value.split(','), V.stride_ms_string.value, \
-         V.kernel_sizes_string.value, V.last_conv_width_string.value, \
-         V.nfeatures_string.value, V.dilate_after_layer_string.value, \
-         V.stride_after_layer_string.value, \
-         V.connection_type.value, \
-         logdir, model, check_point, V.groundtruth_folder.value, \
-         V.wantedwords_string.value, V.labeltypes_string.value, \
-         V.activations_equalize_ratio_string.value, V.activations_max_samples_string.value, \
-         V.mini_batch_string.value])
+    logfile = os.path.join(V.groundtruth_folder.value, "activations.log")
+    activations_it(logfile, \
+                   V.context_ms_string.value, \
+                   V.shiftby_ms_string.value, V.representation.value, \
+                   V.window_ms_string.value, \
+                   *V.mel_dct_string.value.split(','), V.stride_ms_string.value, \
+                   V.kernel_sizes_string.value, V.last_conv_width_string.value, \
+                   V.nfeatures_string.value, V.dilate_after_layer_string.value, \
+                   V.stride_after_layer_string.value, \
+                   V.connection_type.value, \
+                   logdir, model, check_point, V.groundtruth_folder.value, \
+                   V.wantedwords_string.value, V.labeltypes_string.value, \
+                   V.activations_equalize_ratio_string.value, \
+                   V.activations_max_samples_string.value, \
+                   V.mini_batch_string.value, \
+                   str(M.audio_tic_rate), str(M.audio_nchannels))
     displaystring = "activations "+os.path.join(os.path.basename(logdir), \
                                            model, "ckpt-"+check_point)
-    logfile = os.path.join(V.groundtruth_folder.value, "activations.log")
     threading.Thread(target=actuate_monitor, args=(displaystring, None, None, \
                      lambda l=logfile, t=currtime: recent_file_exists(l, t, False), \
                      lambda l=logfile: contains_two_timestamps(l), \
@@ -799,28 +941,31 @@ def cluster_actuate():
     currtime = time.time()
     algorithm, ndims = V.cluster_algorithm.value.split(' ')
     these_layers = ','.join([x for x in V.cluster_these_layers.value])
-    if algorithm == "PCA":
-        run(["cluster.sh", M.configuration_file, \
-             V.groundtruth_folder.value, \
-             these_layers, \
-             V.pca_fraction_variance_to_retain_string.value, \
-             algorithm, ndims])
-    elif algorithm == "t-SNE":
-        run(["cluster.sh", M.configuration_file, \
-             V.groundtruth_folder.value, \
-             these_layers, \
-             V.pca_fraction_variance_to_retain_string.value, \
-             algorithm, ndims, \
-             V.tsne_perplexity_string.value, V.tsne_exaggeration_string.value])
-    elif algorithm == "UMAP":
-        run(["cluster.sh", M.configuration_file, \
-             V.groundtruth_folder.value, \
-             these_layers, \
-             V.pca_fraction_variance_to_retain_string.value, \
-             algorithm, ndims, \
-             V.umap_neighbors_string.value, V.umap_distance_string.value])
-    displaystring = "cluster "+os.path.basename(V.groundtruth_folder.value.rstrip('/'))
     logfile = os.path.join(V.groundtruth_folder.value, "cluster.log")
+    if algorithm == "PCA":
+        cluster_it(logfile,
+                   V.groundtruth_folder.value, \
+                   these_layers, \
+                   V.pca_fraction_variance_to_retain_string.value, \
+                   str(M.pca_batch_size), \
+                   algorithm, ndims, str(M.cluster_parallelize))
+    elif algorithm == "tSNE":
+        cluster_it(logfile,
+                   V.groundtruth_folder.value, \
+                   these_layers, \
+                   V.pca_fraction_variance_to_retain_string.value, \
+                   str(M.pca_batch_size), \
+                   algorithm, ndims, str(M.cluster_parallelize), \
+                   V.tsne_perplexity_string.value, V.tsne_exaggeration_string.value)
+    elif algorithm == "UMAP":
+        cluster_it(logfile,
+                   V.groundtruth_folder.value, \
+                   these_layers, \
+                   V.pca_fraction_variance_to_retain_string.value, \
+                   str(M.pca_batch_size), \
+                   algorithm, ndims, str(M.cluster_parallelize), \
+                   V.umap_neighbors_string.value, V.umap_distance_string.value)
+    displaystring = "cluster "+os.path.basename(V.groundtruth_folder.value.rstrip('/'))
     threading.Thread(target=actuate_monitor, args=(displaystring, None, None, \
                      lambda l=logfile, t=currtime: recent_file_exists(l, t, False), \
                      lambda l=logfile: contains_two_timestamps(l), \
@@ -903,10 +1048,12 @@ def accuracy_succeeded(logdir, reftime):
 
 def accuracy_actuate():
     currtime = time.time()
-    run(["accuracy.sh", M.configuration_file, V.logs_folder.value, \
-         V.precision_recall_ratios_string.value])
-    displaystring = "accuracy "+os.path.basename(V.logs_folder.value.rstrip('/'))
     logfile = os.path.join(V.logs_folder.value, "accuracy.log")
+    accuracy_it(logfile,
+                V.logs_folder.value, \
+                V.precision_recall_ratios_string.value, \
+                str(M.accuracy_nprobabilities), str(M.accuracy_parallelize))
+    displaystring = "accuracy "+os.path.basename(V.logs_folder.value.rstrip('/'))
     threading.Thread(target=actuate_monitor, args=(displaystring, None, None, \
                      lambda l=logfile, t=currtime: recent_file_exists(l, t, False), \
                      lambda l=logfile: contains_two_timestamps(l), \
@@ -928,18 +1075,20 @@ def freeze_actuate():
     for ckpt in V.model_file.value.split(','):
       currtime = time.time()
       logdir, model, check_point = M.parse_model_file(ckpt)
-      run(["freeze.sh", M.configuration_file, V.context_ms_string.value, \
-           V.representation.value, V.window_ms_string.value, \
-           V.stride_ms_string.value, *V.mel_dct_string.value.split(','), \
-           V.kernel_sizes_string.value, \
-           V.last_conv_width_string.value, V.nfeatures_string.value, \
-           V.dilate_after_layer_string.value, \
-           V.stride_after_layer_string.value, \
-           V.connection_type.value, \
-           logdir, model, check_point])
+      logfile = os.path.join(logdir, model, "freeze.ckpt-"+str(check_point)+".log")
+      freeze_it(logfile,
+                V.context_ms_string.value, \
+                V.representation.value, V.window_ms_string.value, \
+                V.stride_ms_string.value, *V.mel_dct_string.value.split(','), \
+                V.kernel_sizes_string.value, \
+                V.last_conv_width_string.value, V.nfeatures_string.value, \
+                V.dilate_after_layer_string.value, \
+                V.stride_after_layer_string.value, \
+                V.connection_type.value, \
+                logdir, model, check_point, str(M.nstrides), \
+                str(M.audio_tic_rate), str(M.audio_nchannels))
       displaystring = "freeze "+os.path.join(os.path.basename(logdir), \
                                              model, "ckpt-"+check_point)
-      logfile = os.path.join(logdir, model, "freeze.ckpt-"+str(check_point)+".log")
       threading.Thread(target=actuate_monitor, args=(displaystring, None, None, \
                        lambda l=logfile, t=currtime: recent_file_exists(l, t, False), \
                        lambda l=logfile: contains_two_timestamps(l), \
@@ -967,19 +1116,21 @@ def classify_actuate():
     for wavfile in V.wavtfcsvfiles_string.value.split(','):
         currtime = time.time()
         logdir, model, check_point = M.parse_model_file(V.model_file.value)
-        cmd = ["classify.sh", M.configuration_file, V.context_ms_string.value, \
-               V.shiftby_ms_string.value, V.representation.value, \
-               V.stride_ms_string.value, \
-               logdir, model, check_point, wavfile]
+        logfile0 = os.path.splitext(wavfile)[0]+'-classify'
+        logfile1 = logfile0+'1.log'
+        logfile2 = logfile0+'2.log'
+        args = [logfile1, logfile2,
+                V.context_ms_string.value, \
+                V.shiftby_ms_string.value, V.representation.value, \
+                V.stride_ms_string.value, \
+                logdir, model, check_point, wavfile, str(M.audio_tic_rate), str(M.nstrides)]
         if V.prevalences_string.value!='':
-            cmd += [V.wantedwords_string.value, V.prevalences_string.value]
-        run(cmd)
+            args += [V.wantedwords_string.value, V.prevalences_string.value]
+        classify_it(*args)
         displaystring = "classify "+os.path.basename(wavfile)
-        tflogfile = wavfile[:-4]+'-classify-tf.log'
-        wavlogfile = wavfile[:-4]+'-classify-wav.log'
         threading.Thread(target=actuate_monitor, args=(displaystring, None, None, \
-                         lambda l=tflogfile, t=currtime: recent_file_exists(l, t, False), \
-                         lambda w=wavlogfile, t=currtime: classify_isdone(w, t), \
+                         lambda l=logfile1, t=currtime: recent_file_exists(l, t, False), \
+                         lambda w=logfile2, t=currtime: classify_isdone(w, t), \
                          lambda m=os.path.join(logdir, model), w=wavfile, t=currtime: \
                                 classify_succeeded(m, w, t))).start()
 
@@ -1007,10 +1158,10 @@ def ethogram_actuate():
         logdir, model, check_point = M.parse_model_file(V.model_file.value)
         if tffile.lower().endswith('.wav'):
             tffile = os.path.splitext(tffile)[0]+'.tf'
-        run(["ethogram.sh", M.configuration_file, \
-             logdir, model, check_point, tffile])
-        displaystring = "ethogram "+os.path.basename(tffile)
         logfile = tffile[:-3]+'-ethogram.log'
+        ethogram_it(logfile,
+                    logdir, model, check_point, tffile, str(M.audio_tic_rate))
+        displaystring = "ethogram "+os.path.basename(tffile)
         threads[i] = threading.Thread(target=actuate_monitor, args=( \
                          displaystring, \
                          results, i, \
@@ -1035,9 +1186,9 @@ def compare_succeeded(logdirprefix, reftime):
 
 def compare_actuate():
     currtime = time.time()
-    run(["compare.sh", M.configuration_file, V.logs_folder.value])
-    displaystring = "compare "+os.path.basename(V.logs_folder.value.rstrip('/'))
     logfile = V.logs_folder.value+'-compare.log'
+    compare_it(logfile, V.logs_folder.value)
+    displaystring = "compare "+os.path.basename(V.logs_folder.value.rstrip('/'))
     threading.Thread(target=actuate_monitor, args=(displaystring, None, None, \
                      lambda l=logfile, t=currtime: recent_file_exists(l, t, False), \
                      lambda l=logfile: contains_two_timestamps(l), \
@@ -1082,10 +1233,11 @@ def congruence_actuate():
     test_files = _validation_test_files(V.testfiles_string.value, False)
     all_files = validation_files + test_files
     all_files.remove('')
-    run(["congruence.sh", M.configuration_file,
-         V.groundtruth_folder.value, ','.join(all_files)])
-    displaystring = "congruence "+os.path.basename(all_files[0])
     logfile = os.path.join(V.groundtruth_folder.value,'congruence.log')
+    congruence_it(logfile,
+                  V.groundtruth_folder.value, ','.join(all_files),
+                  str(M.congruence_parallelize))
+    displaystring = "congruence "+os.path.basename(all_files[0])
     regex_files = '('+'|'.join([os.path.splitext(x)[0] for x in all_files])+')*csv'
     threading.Thread(target=actuate_monitor, args=(displaystring, None, None, \
                      lambda l=logfile, t=currtime: recent_file_exists(l, t, False), \
@@ -1271,11 +1423,11 @@ def wizard_callback(wizard):
         for i in range(M.audio_nchannels):
             i_str = str(i) if M.audio_nchannels>1 else ''
             wantedwords.append("time"+i_str+",frequency"+i_str)
-        wantedwords_string.value=','.join(wantedwords)
+        V.wantedwords_string.value=','.join(wantedwords)
         V.labeltypes_string.value="detected"
-        nsteps_string.value="0"
-        save_and_validate_period_string.value="0"
-        validate_percentage_string.value="0"
+        V.nsteps_string.value="0"
+        V.save_and_validate_period_string.value="0"
+        V.validate_percentage_string.value="0"
     elif M.wizard==V.makepredictions:
         V.wantedwords_update_other()
         V.labeltypes_string.value="annotated"
@@ -1297,17 +1449,17 @@ def wizard_callback(wizard):
         V.wantedwords_update_other()
         V.labeltypes_string.value="annotated"
     elif M.wizard==V.findnovellabels:
-        wantedwords = [x.value for x in label_text_widgets if x.value!='']
+        wantedwords = [x.value for x in V.label_text_widgets if x.value!='']
         for i in range(M.audio_nchannels):
             i_str = str(i) if M.audio_nchannels>1 else ''
             if 'time'+i_str not in wantedwords:
                 wantedwords.append('time'+i_str)
             if 'frequency'+i_str not in wantedwords:
                 wantedwords.append('frequency'+i_str)
-        wantedwords_string.value=str.join(',',wantedwords)
-        if M.action==train:
+        V.wantedwords_string.value=str.join(',',wantedwords)
+        if M.action==V.train:
             V.labeltypes_string.value="annotated"
-        elif M.action==activations:
+        elif M.action==V.activations:
             V.labeltypes_string.value="annotated,detected"
     V.buttons_update()
   

@@ -2,24 +2,20 @@
 
 # generate Venn diagrams of false positives and false negatives
  
-# congruence.sh <config-file> <path-to-groundtruth> <wavfiles-with-dense-annotations-and-predictions>
+# congruence.sh <path-to-groundtruth> <wavfiles-with-dense-annotations-and-predictions> <parallelize>
 
 # e.g.
-# $DEEPSONG_BIN congruence.sh `pwd`/configuration.sh `pwd`/groundtruth-data PS_20130625111709_ch3_p2.wav,PS_20130625111709_ch3_p3.wav
+# $DEEPSONG_BIN congruence.sh `pwd`/groundtruth-data PS_20130625111709_ch3_p2.wav,PS_20130625111709_ch3_p3.wav 1
 
-config_file=$1
-data_dir=$2
-wav_files=$3
-
-source $config_file
+data_dir=$1
+wav_files=$2
+parallelize=$3
 
 DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
 
-expr="$DIR/congruence.py $data_dir $wav_files $congruence_parallelize"
+expr="$DIR/congruence.py $data_dir $wav_files $parallelize"
 
 cmd="date; hostname; $expr; sync; date"
 echo $cmd
 
-logfile=$data_dir/congruence.log
-
-congruence_it "$cmd" "$logfile"
+eval "$cmd"

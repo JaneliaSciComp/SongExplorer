@@ -2,29 +2,30 @@
 
 # prepare the best network to use as a classifier
 
-# freeze.sh <config-file> <context_ms> <representation> <window_ms> <stride_ms> <mel> <dct> <kernel_sizes> <last_conv_width> <nfeatures> <dilate-after-layer> <stride-after-layer> <connection-type> <logdir> <model> <check-point>
+# freeze.sh <context-ms> <representation> <window-ms> <stride-ms> <mel> <dct> <kernel-sizes> <last-conv-width> <nfeatures> <dilate-after-layer> <stride-after-layer> <connection-type> <logdir> <model> <check-point> <nstrides> <audio-tic-rate> <audio-nchannels>
 
 # e.g.
-# $DEEPSONG_BIN freeze.sh `pwd`/configuration.sh 204.8 waveform 6.4 1.6 7 7 5,3,3 130 256,256,256 65535 65535 plain `pwd`/trained-classifier 1k 50
+# $DEEPSONG_BIN freeze.sh 204.8 waveform 6.4 1.6 7 7 5,3,3 130 256,256,256 65535 65535 plain `pwd`/trained-classifier 1k 50 65536 5000 1
 
-config_file=$1
-context_ms=$2
-representation=$3
-window_ms=$4
-stride_ms=$5
-mel=$6
-dct=$7
-kernel_sizes=$8
-last_conv_width=$9
-nfeatures=${10}
-dilate_after_layer=${11}
-stride_after_layer=${12}
-connection_type=${13}
-logdir=${14}
-model=${15}
-check_point=${16}
+context_ms=$1
+representation=$2
+window_ms=$3
+stride_ms=$4
+mel=$5
+dct=$6
+kernel_sizes=$7
+last_conv_width=$8
+nfeatures=$9
+dilate_after_layer=${10}
+stride_after_layer=${11}
+connection_type=${12}
+logdir=${13}
+model=${14}
+check_point=${15}
+nstrides=${16}
+audio_tic_rate=${17}
+audio_nchannels=${18}
 
-source $config_file
 if [ "$representation" == "waveform" ] ; then
   stride_ms=`dc -e "16 k 1000 $audio_tic_rate / p"`
 fi
@@ -66,6 +67,4 @@ cmd="date; \
      date"
 echo $cmd
 
-logfile=$logdir/$model/freeze.ckpt-${check_point}.log
-
-freeze_it "$cmd" "$logfile"
+eval "$cmd"

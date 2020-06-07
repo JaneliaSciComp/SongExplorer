@@ -11,7 +11,8 @@ bokehlog = logging.getLogger("deepsong")
 
 import view as V
 
-configuration_file, audio_tic_rate, audio_nchannels, snippets_ms, nx, ny, nlabels, gui_width_pix, context_width_ms0, context_offset_ms0, context_width_ms, context_offset_ms, cluster_circle_color, cluster_dot_colors, xcluster, ycluster, zcluster, ndcluster, filter_order, filter_ratio_max, snippet_width_pix, layer, specie, word, nohyphen, kind, nlayers, layers, species, words, nohyphens, kinds, snippets_gap_ms, snippets_tic, snippets_gap_tic, tic2pix, snippets_decimate_by, snippets_pix, snippets_gap_pix, context_width_tic, context_offset_tic, isnippet, xsnippet, ysnippet, file_nframes, context_midpoint_tic, context_decimate_by, panned_sample, ipanned_quad, ilabel, annotated_samples, annotated_starts_sorted, annotated_stops, iannotated_stops_sorted, annotated_csvfiles_all, nrecent_annotations, clustered_samples, clustered_activations, clustered_starts_sorted, clustered_stops, iclustered_stops_sorted, deepsong_starttime, history_stack, history_idx, wizard, action, function, statepath, state, file_dialog_root, file_dialog_filter, nearest_samples, status_ticker_queue = [None]*73
+configuration_file, audio_tic_rate, audio_nchannels, snippets_ms, nx, ny, nlabels, gui_width_pix, context_width_ms0, context_offset_ms0, context_width_ms, context_offset_ms, cluster_dot_colors, xcluster, ycluster, zcluster, ndcluster, filter_order, filter_ratio_max, snippet_width_pix, layer, specie, word, nohyphen, kind, nlayers, layers, species, words, nohyphens, kinds, snippets_gap_ms, snippets_tic, snippets_gap_tic, tic2pix, snippets_decimate_by, snippets_pix, snippets_gap_pix, context_width_tic, context_offset_tic, isnippet, xsnippet, ysnippet, file_nframes, context_midpoint_tic, context_decimate_by, panned_sample, ipanned_quad, ilabel, annotated_samples, annotated_starts_sorted, annotated_stops, iannotated_stops_sorted, annotated_csvfiles_all, nrecent_annotations, clustered_samples, clustered_activations, clustered_starts_sorted, clustered_stops, iclustered_stops_sorted, deepsong_starttime, history_stack, history_idx, wizard, action, function, statepath, state, file_dialog_root, file_dialog_filter, nearest_samples, status_ticker_queue, server_ipaddr, source_path, cluster_circle_color, cluster_dot_colormap, snippet_colormap = [None]*77
+detect_where, detect_local_resources, detect_cluster_flags, misses_where, misses_local_resources, misses_cluster_flags, train_gpu, train_where, train_local_resources_gpu, train_cluster_flags_gpu, train_local_resources_cpu, train_cluster_flags_cpu, models_per_job, generalize_gpu, generalize_where, generalize_local_resources_gpu, generalize_cluster_flags_gpu, generalize_local_resources_cpu, generalize_cluster_flags_cpu, xvalidate_gpu, xvalidate_where, xvalidate_local_resources_gpu, xvalidate_cluster_flags_gpu, xvalidate_local_resources_cpu, xvalidate_cluster_flags_cpu, mistakes_where, mistakes_local_resources, mistakes_cluster_flags, activations_gpu, activations_where, activations_local_resources_gpu, activations_cluster_flags_gpu, activations_local_resources_cpu, activations_cluster_flags_cpu, cluster_where, cluster_local_resources, cluster_cluster_flags, accuracy_where, accuracy_local_resources, accuracy_cluster_flags, freeze_where, freeze_local_resources, freeze_cluster_flags, classify_gpu, classify_where, classify1_local_resources_gpu, classify1_cluster_flags_gpu, classify1_local_resources_cpu, classify1_cluster_flags_cpu, classify2_local_resources, classify2_cluster_flags, ethogram_where, ethogram_local_resources, ethogram_cluster_flags, compare_where, compare_local_resources, compare_cluster_flags, congruence_where, congruence_local_resources, congruence_cluster_flags, pca_batch_size, cluster_parallelize, accuracy_parallelize, congruence_parallelize, accuracy_nprobabilities, nstrides = [None]*66
 
 def parse_model_file(filepath):
     head, check_point_str = os.path.split(filepath)
@@ -197,25 +198,28 @@ def finalize_annotation(redraw_snippets=True):
         V.snippets_update(False)
     V.context_update(redraw_snippets)
 
-def init(_configuration_file, _audio_tic_rate, _audio_nchannels,
-         _snippets_ms, _nx, _ny, _nlabels, _gui_width_pix,
-         _context_width_ms, _context_offset_ms):
-    global configuration_file, audio_tic_rate, audio_nchannels, snippets_ms, nx, ny, nlabels, gui_width_pix, context_width_ms0, context_offset_ms0, context_width_ms, context_offset_ms, cluster_circle_color, cluster_dot_colors, xcluster, ycluster, zcluster, ndcluster, filter_order, filter_ratio_max, snippet_width_pix, ilayer, ispecies, iword, inohyphen, ikind, nlayers, layers, species, words, nohyphens, kinds, snippets_gap_ms, snippets_tic, snippets_gap_tic, tic2pix, snippets_decimate_by, snippets_pix, snippets_gap_pix, context_width_tic, context_offset_tic, isnippet, xsnippet, ysnippet, file_nframes, context_midpoint_tic, context_decimate_by, panned_sample, ipanned_quad, ilabel, annotated_samples, annotated_starts_sorted, annotated_stops, iannotated_stops_sorted, annotated_csvfiles_all, nrecent_annotations, clustered_samples, clustered_activations, clustered_starts_sorted, clustered_stops, iclustered_stops_sorted, deepsong_starttime, history_stack, history_idx, wizard, action, function, statepath, state, file_dialog_root, file_dialog_filter, nearest_samples, status_ticker_queue
+def init(_configuration_file):
+    global configuration_file, audio_tic_rate, audio_nchannels, snippets_ms, nx, ny, nlabels, gui_width_pix, context_width_ms0, context_offset_ms0, context_width_ms, context_offset_ms, cluster_dot_colors, xcluster, ycluster, zcluster, ndcluster, filter_order, filter_ratio_max, snippet_width_pix, ilayer, ispecies, iword, inohyphen, ikind, nlayers, layers, species, words, nohyphens, kinds, snippets_gap_ms, snippets_tic, snippets_gap_tic, tic2pix, snippets_decimate_by, snippets_pix, snippets_gap_pix, context_width_tic, context_offset_tic, isnippet, xsnippet, ysnippet, file_nframes, context_midpoint_tic, context_decimate_by, panned_sample, ipanned_quad, ilabel, annotated_samples, annotated_starts_sorted, annotated_stops, iannotated_stops_sorted, annotated_csvfiles_all, nrecent_annotations, clustered_samples, clustered_activations, clustered_starts_sorted, clustered_stops, iclustered_stops_sorted, deepsong_starttime, history_stack, history_idx, wizard, action, function, statepath, state, file_dialog_root, file_dialog_filter, nearest_samples, status_ticker_queue, server_ipaddr, source_path, cluster_circle_color, cluster_dot_colormap, snippet_colormap
+    global detect_where, detect_local_resources, detect_cluster_flags, misses_where, misses_local_resources, misses_cluster_flags, train_gpu, train_where, train_local_resources_gpu, train_cluster_flags_gpu, train_local_resources_cpu, train_cluster_flags_cpu, models_per_job, generalize_gpu, generalize_where, generalize_local_resources_gpu, generalize_cluster_flags_gpu, generalize_local_resources_cpu, generalize_cluster_flags_cpu, xvalidate_gpu, xvalidate_where, xvalidate_local_resources_gpu, xvalidate_cluster_flags_gpu, xvalidate_local_resources_cpu, xvalidate_cluster_flags_cpu, mistakes_where, mistakes_local_resources, mistakes_cluster_flags, activations_gpu, activations_where, activations_local_resources_gpu, activations_cluster_flags_gpu, activations_local_resources_cpu, activations_cluster_flags_cpu, cluster_where, cluster_local_resources, cluster_cluster_flags, accuracy_where, accuracy_local_resources, accuracy_cluster_flags, freeze_where, freeze_local_resources, freeze_cluster_flags, classify_gpu, classify_where, classify1_local_resources_gpu, classify1_cluster_flags_gpu, classify1_local_resources_cpu, classify1_cluster_flags_cpu, classify2_local_resources, classify2_cluster_flags, ethogram_where, ethogram_local_resources, ethogram_cluster_flags, compare_where, compare_local_resources, compare_cluster_flags, congruence_where, congruence_local_resources, congruence_cluster_flags, pca_batch_size, cluster_parallelize, accuracy_parallelize, congruence_parallelize, accuracy_nprobabilities, nstrides
+
+    exec(open(_configuration_file).read(), globals())
 
     configuration_file = _configuration_file
-    audio_tic_rate=int(_audio_tic_rate)
-    audio_nchannels=int(_audio_nchannels)
-    snippets_ms=float(_snippets_ms)
-    nx=int(_nx)
-    ny=int(_ny)
-    nlabels=int(_nlabels)
-    gui_width_pix=int(_gui_width_pix)
-    context_width_ms0=float(_context_width_ms)
-    context_offset_ms0=float(_context_offset_ms)
-    context_width_ms=float(_context_width_ms)
-    context_offset_ms=float(_context_offset_ms)
+    audio_tic_rate=int(audio_tic_rate)
+    audio_nchannels=int(audio_nchannels)
+    snippets_ms=float(gui_snippet_ms)
+    nx=int(gui_snippet_nx)
+    ny=int(gui_snippet_ny)
+    nlabels=int(gui_nlabels)
+    gui_width_pix=int(gui_gui_width_pix)
+    context_width_ms0=float(gui_context_width_ms)
+    context_offset_ms0=float(gui_context_offset_ms)
+    context_width_ms=float(gui_context_width_ms)
+    context_offset_ms=float(gui_context_offset_ms)
 
-    cluster_circle_color = ''
+    cluster_dot_colormap = gui_cluster_dot_colormap
+    snippet_colormap = gui_snippet_colormap
+    cluster_circle_color = gui_cluster_circle_color
     cluster_dot_colors = {}
 
     xcluster = ycluster = zcluster = np.nan
