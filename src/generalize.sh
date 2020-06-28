@@ -2,10 +2,10 @@
 
 # train several networks withholding different subsets of the recordings to test upon
 
-# generalize.sh <context-ms> <shiftby-ms> <representation> <window-ms> <mel> <dct> <stride_ms> <dropout> <optimizer> <learning-rate> <kernel-sizes> <last-conv-width> <nfeatures> <dilate-after-layer> <stride-after-layer> <connection-type> <logdir> <path-to-groundtruth> <word1>,<word2>,...,<wordN> <label-types> <nsteps> <restore-from> <save-and-test-interval> <mini-batch> <testing-files> <audio-tic-rate> <audio-nchannels> <ioffset> <subset1> [<subset2> [<subset3>]...]
+# generalize.sh <context-ms> <shiftby-ms> <representation> <window-ms> <mel> <dct> <stride_ms> <dropout> <optimizer> <learning-rate> <kernel-sizes> <last-conv-width> <nfeatures> <dilate-after-layer> <stride-after-layer> <connection-type> <logdir> <path-to-groundtruth> <word1>,<word2>,...,<wordN> <label-types> <nsteps> <restore-from> <save-and-test-interval> <mini-batch> <testing-files> <audio-tic-rate> <audio-nchannels> <batch-seed> <weights-seed> <ioffset> <subset1> [<subset2> [<subset3>]...]
 
 # e.g.
-# $DEEPSONG_BIN generalize.sh 204.8 0.0 6.4 7 7 1.6 0.5 adam 0.0002 5,3,3 130 256,256,256 65535 65535 plain `pwd`/leave-one-out `pwd`/groundtruth-data mel-pulse,mel-sine,ambient,other annotated 50 '' 10 32 "" 5000 1 3 20161207T102314_ch1_p1.wav,20161207T102314_ch1_p2.wav,20161207T102314_ch1_p3.wav PS_20130625111709_ch3_p1.wav,PS_20130625111709_ch3_p2.wav,PS_20130625111709_ch3_p3.wav
+# $DEEPSONG_BIN generalize.sh 204.8 0.0 6.4 7 7 1.6 0.5 adam 0.0002 5,3,3 130 256,256,256 65535 65535 plain `pwd`/leave-one-out `pwd`/groundtruth-data mel-pulse,mel-sine,ambient,other annotated 50 '' 10 32 "" 5000 1 -1 -1 3 20161207T102314_ch1_p1.wav,20161207T102314_ch1_p2.wav,20161207T102314_ch1_p3.wav PS_20130625111709_ch3_p1.wav,PS_20130625111709_ch3_p2.wav,PS_20130625111709_ch3_p3.wav
 
 context_ms=$1
 shiftby_ms=$2
@@ -34,9 +34,11 @@ mini_batch=${24}
 testing_files=${25}
 audio_tic_rate=${26}
 audio_nchannels=${27}
-ioffset=${28}
+batch_seed=${28}
+weights_seed=${29}
+ioffset=${30}
 
-shift 28
+shift 30
 
 DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
 
@@ -71,8 +73,8 @@ while (( $# > 0 )) ; do
           --window_size_ms=$window_ms \
           --window_stride_ms=$stride_ms \
           --learning_rate=$learning_rate \
-          --random_seed_batch=-1 \
-          --random_seed_weights=-1 \
+          --random_seed_batch=$batch_seed \
+          --random_seed_weights=$weights_seed \
           --background_frequency=0.0 \
           --silence_percentage=0.0 \
           --unknown_percentage=0.0 \

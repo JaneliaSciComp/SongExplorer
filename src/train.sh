@@ -2,10 +2,10 @@
 
 # train a neural network with the annotations
 
-# train.sh <context-ms> <shiftby-ms> <representation> <window-ms> <mel> <dct> <stride-ms> <dropout> <optimizer> <learning-rate> <kernel-sizes> <last-conv-width> <nfeatures> <dilate-after-layer> <stride-after-layer> <connection-type> <logdir> <model> <path-to-groundtruth> <word1>,<word2>,...,<wordN> <label-types> <nsteps> <restore-from> <save-and-test-interval> <validation-percentage> <mini-batch> <testing-files> <audio-tic-rate> <audio-nchannels>
+# train.sh <context-ms> <shiftby-ms> <representation> <window-ms> <mel> <dct> <stride-ms> <dropout> <optimizer> <learning-rate> <kernel-sizes> <last-conv-width> <nfeatures> <dilate-after-layer> <stride-after-layer> <connection-type> <logdir> <model> <path-to-groundtruth> <word1>,<word2>,...,<wordN> <label-types> <nsteps> <restore-from> <save-and-test-interval> <validation-percentage> <mini-batch> <testing-files> <audio-tic-rate> <audio-nchannels> <batch-seed> <weights-seed>
 
 # e.g.
-# $DEEPSONG_BIN train.sh 204.8 0.0 waveform 6.4 7 7 1.6 0.5 adam 0.0002 5,3,3 130 256,256,256 65535 65535 plain `pwd`/trained-classifier 1 `pwd`/groundtruth-data mel-sine,mel-pulse,ambient,other annotated 50 '' 10 40 32 "" 5000 1
+# $DEEPSONG_BIN train.sh 204.8 0.0 waveform 6.4 7 7 1.6 0.5 adam 0.0002 5,3,3 130 256,256,256 65535 65535 plain `pwd`/trained-classifier 1 `pwd`/groundtruth-data mel-sine,mel-pulse,ambient,other annotated 50 '' 10 40 32 "" 5000 1 -1 -1
 
 context_ms=$1
 shiftby_ms=$2
@@ -36,6 +36,8 @@ mini_batch=${26}
 testing_files=${27}
 audio_tic_rate=${28}
 audio_nchannels=${29}
+batch_seed=${30}
+weights_seed=${31}
 
 DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
 
@@ -65,8 +67,8 @@ expr="/usr/bin/python3 $DIR/speech_commands_custom/train.py \
       --window_size_ms=$window_ms \
       --window_stride_ms=$stride_ms \
       --learning_rate=${learning_rate} \
-      --random_seed_batch=-1 \
-      --random_seed_weights=-1 \
+      --random_seed_batch=$batch_seed \
+      --random_seed_weights=$weights_seed \
       --background_frequency=0.0 \
       --silence_percentage=0.0 \
       --unknown_percentage=0.0 \

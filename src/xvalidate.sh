@@ -2,10 +2,10 @@
 
 # train several networks on different subsets of the annotations
 
-# xvalidate.sh <context-ms> <shiftby-ms> <representation> <window-ms> <mel> <dct> <stride_ms> <dropout> <optimizer> <learning-rate> <kernel-sizes> <last-conv-width> <nfeatures> <dilate-after-layer> <stride-after-layer> <connection-type> <logdir> <path-to-groundtruth> <word1>,<word2>,...,<wordN> <label-types> <nsteps> <restore-from> <save-and-test-interval> <mini-batch> <testing-files> <audio-tic-rate> <audio-nchannels> <kfold> <ifolds>
+# xvalidate.sh <context-ms> <shiftby-ms> <representation> <window-ms> <mel> <dct> <stride_ms> <dropout> <optimizer> <learning-rate> <kernel-sizes> <last-conv-width> <nfeatures> <dilate-after-layer> <stride-after-layer> <connection-type> <logdir> <path-to-groundtruth> <word1>,<word2>,...,<wordN> <label-types> <nsteps> <restore-from> <save-and-test-interval> <mini-batch> <testing-files> <audio-tic-rate> <audio-nchannels> <batch-seed> <weights-seed> <kfold> <ifolds>
 
 # e.g.
-# $DEEPSONG_BIN xvalidate.sh 204.8 0.0 6.4 7 7 1.6 0.5 adam 0.0002 5,3,3 130 256,256,256 65535 65535 plain `pwd`/cross-validate `pwd`/groundtruth-data mel-pulse,mel-sine,ambient,other annotated 50 '' 10 32 "" 5000 1 8 1,2
+# $DEEPSONG_BIN xvalidate.sh 204.8 0.0 6.4 7 7 1.6 0.5 adam 0.0002 5,3,3 130 256,256,256 65535 65535 plain `pwd`/cross-validate `pwd`/groundtruth-data mel-pulse,mel-sine,ambient,other annotated 50 '' 10 32 "" 5000 1 -1 -1 8 1,2
 
 context_ms=$1
 shiftby_ms=$2
@@ -34,8 +34,10 @@ mini_batch=${24}
 testing_files=${25}
 audio_tic_rate=${26}
 audio_nchannels=${27}
-kfold=${28}
-ifolds=${29}
+batch_seed=${28}
+weights_seed=${29}
+kfold=${30}
+ifolds=${31}
 
 DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
 
@@ -74,8 +76,8 @@ while [[ $ifolds =~ .*,.* ]] ; do
           --window_size_ms=$window_ms \
           --window_stride_ms=$stride_ms \
           --learning_rate=$learning_rate \
-          --random_seed_batch=-1 \
-          --random_seed_weights=-1 \
+          --random_seed_batch=$batch_seed \
+          --random_seed_weights=$weights_seed \
           --background_frequency=0.0 \
           --silence_percentage=0.0 \
           --unknown_percentage=0.0 \

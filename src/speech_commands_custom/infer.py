@@ -116,7 +116,7 @@ def main(_):
       FLAGS.subsample_word,
       FLAGS.partition_word, FLAGS.partition_n, FLAGS.partition_training_files.split(','),
       FLAGS.partition_validation_files.split(','),
-      FLAGS.random_seed_batch,
+      -1,
       FLAGS.testing_equalize_ratio, FLAGS.testing_max_samples,
       model_settings)
 
@@ -346,16 +346,6 @@ if __name__ == '__main__':
       type=int,
       default=[110],
       help='The length of the final conv1d layer in the vgg model.  Must be even.')
-  parser.add_argument(
-      '--random_seed_batch',
-      type=int,
-      default=59185,
-      help='Randomize mini-batch selection if -1; otherwise use supplied number as seed.')
-  parser.add_argument(
-      '--random_seed_weights',
-      type=int,
-      default=59185,
-      help='Randomize weight initialization if -1; otherwise use supplied number as seed.')
   parser.add_argument(
       '--dilate_after_layer',
       type=int,

@@ -783,7 +783,8 @@ def train_actuate():
          V.labeltypes_string.value, V.nsteps_string.value, V.restore_from_string.value, \
          V.save_and_validate_period_string.value, \
          V.validate_percentage_string.value, V.mini_batch_string.value, test_files, \
-         str(M.audio_tic_rate), str(M.audio_nchannels))
+         str(M.audio_tic_rate), str(M.audio_nchannels), \
+         V.batch_seed_string.value, V.weights_seed_string.value)
     displaystring = "train "+os.path.basename(V.logs_folder.value.rstrip('/'))
     threads = [None]
     results = [None]
@@ -842,6 +843,7 @@ def leaveout_actuate(comma):
                       V.save_and_validate_period_string.value, \
                       V.mini_batch_string.value, test_files, \
                       str(M.audio_tic_rate), str(M.audio_nchannels), \
+                      V.batch_seed_string.value, V.weights_seed_string.value, \
                       str(ivalidation_file),
                       *validation_files[ivalidation_file:ivalidation_file+M.models_per_job])
     displaystring = "generalize "+os.path.basename(V.logs_folder.value.rstrip('/'))
@@ -874,7 +876,9 @@ def xvalidate_actuate():
                      V.nsteps_string.value, V.restore_from_string.value, \
                      V.save_and_validate_period_string.value, \
                      V.mini_batch_string.value, test_files, \
-                     str(M.audio_tic_rate), str(M.audio_nchannels), V.kfold_string.value, \
+                     str(M.audio_tic_rate), str(M.audio_nchannels), \
+                     V.batch_seed_string.value, V.weights_seed_string.value, \
+                     V.kfold_string.value, \
                      ','.join([str(x) for x in range(ifold,ifold+M.models_per_job)]))
     displaystring = "xvalidate "+os.path.basename(V.logs_folder.value.rstrip('/'))
     logfile1 = os.path.join(V.logs_folder.value, "xvalidate1.log")
@@ -1356,6 +1360,12 @@ def copy_callback():
             elif "dropout_prob" in line:
                 m=re.search('dropout_prob = (.*)', line)
                 V.dropout_string.value = m.group(1)
+            elif "random_seed_batch" in line:
+                m=re.search('random_seed_batch = (.*)', line)
+                V.batch_seed_string.value = m.group(1)
+            elif "random_seed_weights" in line:
+                m=re.search('random_seed_weights = (.*)', line)
+                V.weights_seed_string.value = m.group(1)
             elif "eval_step_interval" in line:
                 m=re.search('eval_step_interval = (\d+)', line)
                 V.save_and_validate_period_string.value = m.group(1)
