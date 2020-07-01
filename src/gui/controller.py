@@ -18,23 +18,34 @@ bokehlog = logging.getLogger("deepsong")
 import model as M
 import view as V
 
-def generic_it(cmd, logfile, where, localargs, localdeps, clusterflags, *args):
+def generic_actuate(cmd, logfile, where, localargs, localdeps, clusterflags, *args):
     args = ["\'\'" if x=="" else x for x in args]
+    if V.waitfor.active:
+        if localdeps=="":
+            localdeps = ""
+            for job in M.waitfor_job:
+                localdeps += "hetero job "+job+" || "
+            localdeps = localdeps[:-4]
+        if " -w \"done(" not in clusterflags:
+            clusterflags = " -w "
+            for job in M.waitfor_job:
+               clusterflags += "\"done("+job+")\"&&"
+            clusterflags = clusterflags[:-2]
     if where == "local":
         p = run(["hetero", "submit",
                  "{ export CUDA_VISIBLE_DEVICES=$QUEUE1; "+cmd+" "+' '.join(args)+"; } &> "+logfile,
                  *localargs.split(' '), localdeps],
                 stdout=PIPE, stderr=STDOUT)
-        jobinfo = p.stdout.decode('ascii').rstrip()
-        bokehlog.info(jobinfo)
+        jobid = p.stdout.decode('ascii').rstrip()
+        bokehlog.info(jobid)
     elif where == "server":
         p = run(["ssh", M.server_ipaddr, "export SINGULARITYENV_PREPEND_PATH="+M.source_path+";",
                  "$DEEPSONG_BIN", "hetero", "submit",
                  "\"{ export CUDA_VISIBLE_DEVICES=\$QUEUE1; "+cmd+" "+' '.join(args)+"; } &> "+logfile+"\"",
-                 *localargs.split(' '), localdeps],
+                 *localargs.split(' '), "'"+localdeps+"'"],
                 stdout=PIPE, stderr=STDOUT)
-        jobinfo=p.stdout.decode('ascii').rstrip()
-        bokehlog.info(jobinfo)
+        jobid = p.stdout.decode('ascii').rstrip()
+        bokehlog.info(jobid)
     elif where == "cluster":
         pe = Popen(["echo",
                     "export SINGULARITYENV_PREPEND_PATH="+M.source_path+";",
@@ -48,93 +59,10 @@ def generic_it(cmd, logfile, where, localargs, localdeps, clusterflags, *args):
                     "-oo "+logfile],
                    stdin=pe.stdout, stdout=PIPE, stderr=STDOUT)
         pe.stdout.close()
-        jobinfo=ps.communicate()[0].decode('ascii').rstrip()
+        jobinfo = ps.communicate()[0].decode('ascii').rstrip()
+        jobid = re.search('([0-9]+)',jobinfo).group(1)
         bokehlog.info(jobinfo)
-    return jobinfo
-
-def detect_it(logfile, *args):
-    generic_it("detect.sh", logfile, M.detect_where,
-               M.detect_local_resources, "", M.detect_cluster_flags, *args)
-
-def misses_it(logfile, *args):
-    generic_it("misses.sh", logfile, M.misses_where,
-               M.misses_local_resources, "", M.misses_cluster_flags, *args)
-
-def train_it(logfile, *args):
-    if M.train_gpu == 1:
-        generic_it("train.sh", logfile, M.train_where,
-                   M.train_local_resources_gpu, "", M.train_cluster_flags_gpu, *args)
-    else:
-        generic_it("train.sh", logfile, M.train_where,
-                   M.train_local_resources_cpu, "", M.train_cluster_flags_cpu, *args)
-
-def generalize_it(logfile, *args):
-    if M.generalize_gpu == 1:
-        generic_it("generalize.sh", logfile, M.generalize_where,
-                   M.generalize_local_resources_gpu, "", M.generalize_cluster_flags_gpu, *args)
-    else:
-        generic_it("generalize.sh", logfile, M.generalize_where,
-                   M.generalize_local_resources_cpu, "", M.generalize_cluster_flags_cpu, *args)
-
-def xvalidate_it(logfile, *args):
-    if M.xvalidate_gpu == 1:
-        generic_it("xvalidate.sh", logfile, M.xvalidate_where,
-                   M.xvalidate_local_resources_gpu, "", M.xvalidate_cluster_flags_gpu, *args)
-    else:
-        generic_it("xvalidate.sh", logfile, M.xvalidate_where,
-                   M.xvalidate_local_resources_cpu, "", M.xvalidate_cluster_flags_cpu, *args)
-
-def mistakes_it(logfile, *args):
-    generic_it("mistakes.sh", logfile, M.mistakes_where,
-               M.mistakes_local_resources, "", M.mistakes_cluster_flags, *args)
-
-def activations_it(logfile, *args):
-    if M.activations_gpu:
-        generic_it("activations.sh", logfile, M.activations_where,
-                   M.activations_local_resources_gpu, "", M.activations_cluster_flags_gpu, *args)
-    else:
-        generic_it("activations.sh", logfile, M.activations_where,
-                   M.activations_local_resources_cpu, "", M.activations_cluster_flags_cpu, *args)
-
-def cluster_it(logfile, *args):
-    generic_it("cluster.sh", logfile, M.cluster_where,
-               M.cluster_local_resources, "", M.cluster_cluster_flags, *args)
-
-def accuracy_it(logfile, *args):
-    generic_it("accuracy.sh", logfile, M.accuracy_where,
-               M.accuracy_local_resources, "", M.accuracy_cluster_flags, *args)
-
-def freeze_it(logfile, *args):
-    generic_it("freeze.sh", logfile, M.freeze_where,
-               M.freeze_local_resources, "", M.freeze_cluster_flags, *args)
-
-def classify_it(logfile1, logfile2, *args):
-    p = run(["date", "+%s"], stdout=PIPE, stderr=STDOUT)
-    currtime = p.stdout.decode('ascii').rstrip()
-    if M.classify_gpu:
-        jobinfo = generic_it("classify1.sh", logfile1, M.classify_where,
-                             M.classify1_local_resources_gpu, "", M.classify1_cluster_flags_gpu,
-                             *args)
-    else:
-        jobinfo = generic_it("classify1.sh", logfile1, M.classify_where,
-                             M.classify1_local_resources_gpu, "", M.classify1_cluster_flags_gpu,
-                             *args)
-    jobid = re.search('([0-9]+)',jobinfo).group(1) if M.classify_where=="cluster" else jobinfo
-    generic_it("classify2.sh", logfile2, M.classify_where,
-               M.classify2_local_resources, "'hetero job "+jobid+"'",
-               M.classify2_cluster_flags+" -w \"done("+jobid+")\"", *args)
-
-def ethogram_it(logfile, *args):
-    generic_it("ethogram.sh", logfile, M.ethogram_where,
-               M.ethogram_local_resources, "", M.ethogram_cluster_flags, *args)
-
-def compare_it(logfile, *args):
-    generic_it("compare.sh", logfile, M.compare_where,
-               M.compare_local_resources, "", M.compare_cluster_flags, *args)
-
-def congruence_it(logfile, *args):
-    generic_it("congruence.sh", logfile, M.congruence_where,
-               M.congruence_local_resources, "", M.congruence_cluster_flags, *args)
+    return jobid
 
 def generic_parameters_callback():
     M.save_state_callback()
@@ -578,16 +506,20 @@ def detect_actuate():
     wavfiles = V.wavtfcsvfiles_string.value.split(',')
     threads = [None] * len(wavfiles)
     results = [None] * len(wavfiles)
+    jobids = []
     for (i,wavfile) in enumerate(wavfiles):
         currtime = time.time()
         logfile = os.path.splitext(wavfile)[0]+'-detect.log'
-        detect_it(logfile,
-                  wavfile, \
-                  V.time_sigma_string.value, V.time_smooth_ms_string.value, \
-                  V.frequency_n_ms_string.value, V.frequency_nw_string.value, \
-                  V.frequency_p_string.value, V.frequency_smooth_ms_string.value, \
-                  str(M.audio_tic_rate), str(M.audio_nchannels))
-        displaystring = "detect "+os.path.basename(wavfile)
+        jobid = generic_actuate("detect.sh", logfile, \
+                                M.detect_where, M.detect_local_resources, "",
+                                M.detect_cluster_flags,
+                                wavfile, \
+                                V.time_sigma_string.value, V.time_smooth_ms_string.value, \
+                                V.frequency_n_ms_string.value, V.frequency_nw_string.value, \
+                                V.frequency_p_string.value, V.frequency_smooth_ms_string.value,
+                                str(M.audio_tic_rate), str(M.audio_nchannels))
+        jobids.append(jobid)
+        displaystring = "DETECT "+os.path.basename(wavfile)+" ("+jobid+")"
         threads[i] = threading.Thread(target=actuate_monitor, args=( \
                          displaystring, \
                          results, i, \
@@ -595,6 +527,8 @@ def detect_actuate():
                          lambda l=logfile: contains_two_timestamps(l), \
                          lambda w=wavfile, t=currtime: detect_succeeded(w, t)))
         threads[i].start()
+    M.waitfor_job = jobids
+    V.waitfor_update()
     threading.Thread(target=actuate_finalize, \
                      args=(threads, results, V.wordcounts_update)).start()
 
@@ -615,10 +549,15 @@ def misses_actuate():
       csvreader = csv.reader(fid)
       row1 = next(csvreader)
     wavfile = row1[0]
-    displaystring = "misses "+wavfile
     noext = os.path.join(basepath, os.path.splitext(wavfile)[0])
     logfile = noext+'-misses.log'
-    misses_it(logfile, V.wavtfcsvfiles_string.value)
+    jobid = generic_actuate("misses.sh", logfile, \
+                            M.misses_where, M.misses_local_resources, "",
+                            M.misses_cluster_flags, \
+                            V.wavtfcsvfiles_string.value)
+    displaystring = "MISSES "+wavfile+" ("+jobid+")"
+    M.waitfor_job = jobid
+    V.waitfor_update()
     threads = [None]
     results = [None]
     threads[0] = threading.Thread(target=actuate_monitor, args=( \
@@ -770,22 +709,32 @@ def train_actuate():
     test_files = _validation_test_files(V.testfiles_string.value)[0]
     currtime = time.time()
     logfile = os.path.join(V.logs_folder.value, "train1.log")
-    train_it(logfile,
-         V.context_ms_string.value, V.shiftby_ms_string.value, \
-         V.representation.value, V.window_ms_string.value, \
-         *V.mel_dct_string.value.split(','), V.stride_ms_string.value, \
-         V.dropout_string.value, V.optimizer.value, V.learning_rate_string.value, \
-         V.kernel_sizes_string.value, V.last_conv_width_string.value, \
-         V.nfeatures_string.value, V.dilate_after_layer_string.value, \
-         V.stride_after_layer_string.value, \
-         V.connection_type.value, V.logs_folder.value, '1', \
-         V.groundtruth_folder.value, V.wantedwords_string.value, \
-         V.labeltypes_string.value, V.nsteps_string.value, V.restore_from_string.value, \
-         V.save_and_validate_period_string.value, \
-         V.validate_percentage_string.value, V.mini_batch_string.value, test_files, \
-         str(M.audio_tic_rate), str(M.audio_nchannels), \
-         V.batch_seed_string.value, V.weights_seed_string.value)
-    displaystring = "train "+os.path.basename(V.logs_folder.value.rstrip('/'))
+    args = [V.context_ms_string.value, V.shiftby_ms_string.value, \
+            V.representation.value, V.window_ms_string.value, \
+            *V.mel_dct_string.value.split(','), V.stride_ms_string.value, \
+            V.dropout_string.value, V.optimizer.value, V.learning_rate_string.value, \
+            V.kernel_sizes_string.value, V.last_conv_width_string.value, \
+            V.nfeatures_string.value, V.dilate_after_layer_string.value, \
+            V.stride_after_layer_string.value, \
+            V.connection_type.value, V.logs_folder.value, '1', \
+            V.groundtruth_folder.value, V.wantedwords_string.value, \
+            V.labeltypes_string.value, V.nsteps_string.value, V.restore_from_string.value, \
+            V.save_and_validate_period_string.value, \
+            V.validate_percentage_string.value, V.mini_batch_string.value, test_files, \
+            str(M.audio_tic_rate), str(M.audio_nchannels), \
+            V.batch_seed_string.value, V.weights_seed_string.value]
+    if M.train_gpu == 1:
+        jobid = generic_actuate("train.sh", logfile, M.train_where,
+                                M.train_local_resources_gpu, "", M.train_cluster_flags_gpu,
+                                *args)
+    else:
+        jobid = generic_actuate("train.sh", logfile, M.train_where,
+                                M.train_local_resources_cpu, "", M.train_cluster_flags_cpu,
+                                *args)
+    displaystring = "TRAIN "+os.path.basename(V.logs_folder.value.rstrip('/'))+ \
+                    " ("+jobid+")"
+    M.waitfor_job = jobid
+    V.waitfor_update()
     threads = [None]
     results = [None]
     threads[0] = threading.Thread(target=actuate_monitor, args=( \
@@ -825,28 +774,42 @@ def leaveout_actuate(comma):
             lambda x: not any([y!='' and y in x for y in test_files.split(',')]),
             _validation_test_files(V.validationfiles_string.value, comma)))
     currtime = time.time()
+    jobids = []
     for ivalidation_file in range(0, len(validation_files), M.models_per_job):
         logfile = os.path.join(V.logs_folder.value, "generalize"+str(1+ivalidation_file)+".log")
-        generalize_it(logfile,
-                      V.context_ms_string.value, \
-                      V.shiftby_ms_string.value, V.representation.value, \
-                      V.window_ms_string.value, \
-                      *V.mel_dct_string.value.split(','), V.stride_ms_string.value, \
-                      V.dropout_string.value, V.optimizer.value, \
-                      V.learning_rate_string.value, V.kernel_sizes_string.value, \
-                      V.last_conv_width_string.value, V.nfeatures_string.value, \
-                      V.dilate_after_layer_string.value, V.stride_after_layer_string.value, \
-                      V.connection_type.value, \
-                      V.logs_folder.value, V.groundtruth_folder.value, \
-                      V.wantedwords_string.value, V.labeltypes_string.value, \
-                      V.nsteps_string.value, V.restore_from_string.value, \
-                      V.save_and_validate_period_string.value, \
-                      V.mini_batch_string.value, test_files, \
-                      str(M.audio_tic_rate), str(M.audio_nchannels), \
-                      V.batch_seed_string.value, V.weights_seed_string.value, \
-                      str(ivalidation_file),
-                      *validation_files[ivalidation_file:ivalidation_file+M.models_per_job])
-    displaystring = "generalize "+os.path.basename(V.logs_folder.value.rstrip('/'))
+        args = [V.context_ms_string.value, \
+                V.shiftby_ms_string.value, V.representation.value, \
+                V.window_ms_string.value, \
+                *V.mel_dct_string.value.split(','), V.stride_ms_string.value, \
+                V.dropout_string.value, V.optimizer.value, \
+                V.learning_rate_string.value, V.kernel_sizes_string.value, \
+                V.last_conv_width_string.value, V.nfeatures_string.value, \
+                V.dilate_after_layer_string.value, V.stride_after_layer_string.value, \
+                V.connection_type.value, \
+                V.logs_folder.value, V.groundtruth_folder.value, \
+                V.wantedwords_string.value, V.labeltypes_string.value, \
+                V.nsteps_string.value, V.restore_from_string.value, \
+                V.save_and_validate_period_string.value, \
+                V.mini_batch_string.value, test_files, \
+                str(M.audio_tic_rate), str(M.audio_nchannels), \
+                V.batch_seed_string.value, V.weights_seed_string.value, \
+                str(ivalidation_file),
+                *validation_files[ivalidation_file:ivalidation_file+M.models_per_job]]
+        if M.generalize_gpu == 1:
+            jobid = generic_actuate("generalize.sh", logfile, M.generalize_where,
+                                    M.generalize_local_resources_gpu, "", \
+                                    M.generalize_cluster_flags_gpu, \
+                                    *args)
+        else:
+            jobid = generic_actuate("generalize.sh", logfile, M.generalize_where,
+                                    M.generalize_local_resources_cpu, "", \
+                                    M.generalize_cluster_flags_cpu, \
+                                    *args)
+        jobids.append(jobid)
+    displaystring = "GENERALIZE "+os.path.basename(V.logs_folder.value.rstrip('/'))+ \
+                    " ("+','.join([str(x) for x in jobids])+")"
+    M.waitfor_job = jobids
+    V.waitfor_update()
     logfile1 = os.path.join(V.logs_folder.value, "generalize1.log")
     logfileN = os.path.join(V.logs_folder.value,
                             "generalize"+str(len(validation_files) % M.models_per_job)+".log")
@@ -859,28 +822,43 @@ def leaveout_actuate(comma):
 def xvalidate_actuate():
     test_files = _validation_test_files(V.testfiles_string.value)[0]
     currtime = time.time()
+    jobids = []
     for ifold in range(1, 1+int(V.kfold_string.value), M.models_per_job):
         logfile = os.path.join(V.logs_folder.value, "xvalidate"+str(ifold)+".log")
-        xvalidate_it(logfile,
-                     V.context_ms_string.value, \
-                     V.shiftby_ms_string.value, V.representation.value, \
-                     V.window_ms_string.value, \
-                     *V.mel_dct_string.value.split(','), V.stride_ms_string.value, \
-                     V.dropout_string.value, V.optimizer.value, \
-                     V.learning_rate_string.value, V.kernel_sizes_string.value, \
-                     V.last_conv_width_string.value, V.nfeatures_string.value, \
-                     V.dilate_after_layer_string.value, V.stride_after_layer_string.value, \
-                     V.connection_type.value, \
-                     V.logs_folder.value, V.groundtruth_folder.value, \
-                     V.wantedwords_string.value, V.labeltypes_string.value, \
-                     V.nsteps_string.value, V.restore_from_string.value, \
-                     V.save_and_validate_period_string.value, \
-                     V.mini_batch_string.value, test_files, \
-                     str(M.audio_tic_rate), str(M.audio_nchannels), \
-                     V.batch_seed_string.value, V.weights_seed_string.value, \
-                     V.kfold_string.value, \
-                     ','.join([str(x) for x in range(ifold,ifold+M.models_per_job)]))
-    displaystring = "xvalidate "+os.path.basename(V.logs_folder.value.rstrip('/'))
+        args = [V.context_ms_string.value, \
+                V.shiftby_ms_string.value, V.representation.value, \
+                V.window_ms_string.value, \
+                *V.mel_dct_string.value.split(','), V.stride_ms_string.value, \
+                V.dropout_string.value, V.optimizer.value, \
+                V.learning_rate_string.value, V.kernel_sizes_string.value, \
+                V.last_conv_width_string.value, V.nfeatures_string.value, \
+                V.dilate_after_layer_string.value, V.stride_after_layer_string.value, \
+                V.connection_type.value, \
+                V.logs_folder.value, V.groundtruth_folder.value, \
+                V.wantedwords_string.value, V.labeltypes_string.value, \
+                V.nsteps_string.value, V.restore_from_string.value, \
+                V.save_and_validate_period_string.value, \
+                V.mini_batch_string.value, test_files, \
+                str(M.audio_tic_rate), str(M.audio_nchannels), \
+                V.batch_seed_string.value, V.weights_seed_string.value, \
+                V.kfold_string.value, \
+                ','.join([str(x) for x in range(ifold,ifold+M.models_per_job)])]
+        if M.xvalidate_gpu == 1:
+            jobid = generic_actuate("xvalidate.sh", logfile, M.xvalidate_where,
+                                    M.xvalidate_local_resources_gpu, "", \
+                                    M.xvalidate_cluster_flags_gpu, \
+                                    *args)
+        else:
+            jobid = generic_actuate("xvalidate.sh", logfile, M.xvalidate_where,
+                                    M.xvalidate_local_resources_cpu, "", \
+                                    M.xvalidate_cluster_flags_cpu, \
+                                    *args)
+        jobids.append(jobid)
+
+    displaystring = "XVALIDATE "+os.path.basename(V.logs_folder.value.rstrip('/'))+ \
+                    " ("+','.join([str(x) for x in jobids])+")"
+    M.waitfor_job = jobids
+    V.waitfor_update()
     logfile1 = os.path.join(V.logs_folder.value, "xvalidate1.log")
     logfileN = os.path.join(V.logs_folder.value,
                             "xvalidate"+str(int(V.kfold_string.value) % M.models_per_job)+".log")
@@ -896,8 +874,14 @@ def mistakes_succeeded(groundtruthdir, reftime):
 def mistakes_actuate():
     currtime = time.time()
     logfile = os.path.join(V.groundtruth_folder.value, "mistakes.log")
-    mistakes_it(logfile, V.groundtruth_folder.value)
-    displaystring = "mistakes "+os.path.basename(V.groundtruth_folder.value.rstrip('/'))
+    jobid = generic_actuate("mistakes.sh", logfile,
+                            M.mistakes_where, M.mistakes_local_resources, "",
+                            M.mistakes_cluster_flags,
+                            V.groundtruth_folder.value)
+    displaystring = "MISTAKES "+os.path.basename(V.groundtruth_folder.value.rstrip('/'))+ \
+                    " ("+jobid+")"
+    M.waitfor_job = jobid
+    V.waitfor_update()
     threading.Thread(target=actuate_monitor, args=(displaystring, None, None, \
                      lambda l=logfile, t=currtime: recent_file_exists(l, t, False), \
                      lambda l=logfile: contains_two_timestamps(l), \
@@ -918,23 +902,36 @@ def activations_actuate():
     currtime = time.time()
     logdir, model, check_point = M.parse_model_file(V.model_file.value)
     logfile = os.path.join(V.groundtruth_folder.value, "activations.log")
-    activations_it(logfile, \
-                   V.context_ms_string.value, \
-                   V.shiftby_ms_string.value, V.representation.value, \
-                   V.window_ms_string.value, \
-                   *V.mel_dct_string.value.split(','), V.stride_ms_string.value, \
-                   V.kernel_sizes_string.value, V.last_conv_width_string.value, \
-                   V.nfeatures_string.value, V.dilate_after_layer_string.value, \
-                   V.stride_after_layer_string.value, \
-                   V.connection_type.value, \
-                   logdir, model, check_point, V.groundtruth_folder.value, \
-                   V.wantedwords_string.value, V.labeltypes_string.value, \
-                   V.activations_equalize_ratio_string.value, \
-                   V.activations_max_samples_string.value, \
-                   V.mini_batch_string.value, \
-                   str(M.audio_tic_rate), str(M.audio_nchannels))
-    displaystring = "activations "+os.path.join(os.path.basename(logdir), \
-                                           model, "ckpt-"+check_point)
+    args = [V.context_ms_string.value, \
+            V.shiftby_ms_string.value, V.representation.value, \
+            V.window_ms_string.value, \
+            *V.mel_dct_string.value.split(','), V.stride_ms_string.value, \
+            V.kernel_sizes_string.value, V.last_conv_width_string.value, \
+            V.nfeatures_string.value, V.dilate_after_layer_string.value, \
+            V.stride_after_layer_string.value, \
+            V.connection_type.value, \
+            logdir, model, check_point, V.groundtruth_folder.value, \
+            V.wantedwords_string.value, V.labeltypes_string.value, \
+            V.activations_equalize_ratio_string.value, \
+            V.activations_max_samples_string.value, \
+            V.mini_batch_string.value, \
+            str(M.audio_tic_rate), str(M.audio_nchannels)]
+    if M.activations_gpu:
+        jobid = generic_actuate("activations.sh", logfile, M.activations_where,
+                                M.activations_local_resources_gpu, "",
+                                M.activations_cluster_flags_gpu,
+                                *args)
+    else:
+        jobid = generic_actuate("activations.sh", logfile, M.activations_where,
+                                M.activations_local_resources_cpu, "",
+                                M.activations_cluster_flags_cpu,
+                                *args)
+
+    displaystring = "ACTIVATIONS " + \
+                    os.path.join(os.path.basename(logdir), model, "ckpt-"+check_point) + \
+                    " ("+jobid+")"
+    M.waitfor_job = jobid
+    V.waitfor_update()
     threading.Thread(target=actuate_monitor, args=(displaystring, None, None, \
                      lambda l=logfile, t=currtime: recent_file_exists(l, t, False), \
                      lambda l=logfile: contains_two_timestamps(l), \
@@ -946,30 +943,24 @@ def cluster_actuate():
     algorithm, ndims = V.cluster_algorithm.value.split(' ')
     these_layers = ','.join([x for x in V.cluster_these_layers.value])
     logfile = os.path.join(V.groundtruth_folder.value, "cluster.log")
-    if algorithm == "PCA":
-        cluster_it(logfile,
-                   V.groundtruth_folder.value, \
-                   these_layers, \
-                   V.pca_fraction_variance_to_retain_string.value, \
-                   str(M.pca_batch_size), \
-                   algorithm, ndims, str(M.cluster_parallelize))
-    elif algorithm == "tSNE":
-        cluster_it(logfile,
-                   V.groundtruth_folder.value, \
-                   these_layers, \
-                   V.pca_fraction_variance_to_retain_string.value, \
-                   str(M.pca_batch_size), \
-                   algorithm, ndims, str(M.cluster_parallelize), \
-                   V.tsne_perplexity_string.value, V.tsne_exaggeration_string.value)
+    args = [V.groundtruth_folder.value, \
+            these_layers, \
+            V.pca_fraction_variance_to_retain_string.value, \
+            str(M.pca_batch_size), \
+            algorithm, ndims, str(M.cluster_parallelize)]
+    if algorithm == "tSNE":
+        args.extend([V.tsne_perplexity_string.value, V.tsne_exaggeration_string.value])
     elif algorithm == "UMAP":
-        cluster_it(logfile,
-                   V.groundtruth_folder.value, \
-                   these_layers, \
-                   V.pca_fraction_variance_to_retain_string.value, \
-                   str(M.pca_batch_size), \
-                   algorithm, ndims, str(M.cluster_parallelize), \
-                   V.umap_neighbors_string.value, V.umap_distance_string.value)
-    displaystring = "cluster "+os.path.basename(V.groundtruth_folder.value.rstrip('/'))
+        args.extend([V.umap_neighbors_string.value, V.umap_distance_string.value])
+    jobid = generic_actuate("cluster.sh", logfile,
+                            M.cluster_where, M.cluster_local_resources, "",
+                            M.cluster_cluster_flags,
+                            *args)
+
+    displaystring = "CLUSTER "+os.path.basename(V.groundtruth_folder.value.rstrip('/'))+ \
+                    " ("+jobid+")"
+    M.waitfor_job = jobid
+    V.waitfor_update()
     threading.Thread(target=actuate_monitor, args=(displaystring, None, None, \
                      lambda l=logfile, t=currtime: recent_file_exists(l, t, False), \
                      lambda l=logfile: contains_two_timestamps(l), \
@@ -1053,11 +1044,16 @@ def accuracy_succeeded(logdir, reftime):
 def accuracy_actuate():
     currtime = time.time()
     logfile = os.path.join(V.logs_folder.value, "accuracy.log")
-    accuracy_it(logfile,
-                V.logs_folder.value, \
-                V.precision_recall_ratios_string.value, \
-                str(M.accuracy_nprobabilities), str(M.accuracy_parallelize))
-    displaystring = "accuracy "+os.path.basename(V.logs_folder.value.rstrip('/'))
+    jobid = generic_actuate("accuracy.sh", logfile,
+                            M.accuracy_where, M.accuracy_local_resources, "",
+                            M.accuracy_cluster_flags,
+                            V.logs_folder.value, \
+                            V.precision_recall_ratios_string.value, \
+                            str(M.accuracy_nprobabilities), str(M.accuracy_parallelize))
+    displaystring = "ACCURACY "+os.path.basename(V.logs_folder.value.rstrip('/'))+ \
+                    " ("+jobid+")"
+    M.waitfor_job = jobid
+    V.waitfor_update()
     threading.Thread(target=actuate_monitor, args=(displaystring, None, None, \
                      lambda l=logfile, t=currtime: recent_file_exists(l, t, False), \
                      lambda l=logfile: contains_two_timestamps(l), \
@@ -1076,28 +1072,35 @@ def freeze_succeeded(modeldir, ckpt, reftime):
     return True
 
 def freeze_actuate():
+    jobids = []
     for ckpt in V.model_file.value.split(','):
-      currtime = time.time()
-      logdir, model, check_point = M.parse_model_file(ckpt)
-      logfile = os.path.join(logdir, model, "freeze.ckpt-"+str(check_point)+".log")
-      freeze_it(logfile,
-                V.context_ms_string.value, \
-                V.representation.value, V.window_ms_string.value, \
-                V.stride_ms_string.value, *V.mel_dct_string.value.split(','), \
-                V.kernel_sizes_string.value, \
-                V.last_conv_width_string.value, V.nfeatures_string.value, \
-                V.dilate_after_layer_string.value, \
-                V.stride_after_layer_string.value, \
-                V.connection_type.value, \
-                logdir, model, check_point, str(M.nstrides), \
-                str(M.audio_tic_rate), str(M.audio_nchannels))
-      displaystring = "freeze "+os.path.join(os.path.basename(logdir), \
-                                             model, "ckpt-"+check_point)
-      threading.Thread(target=actuate_monitor, args=(displaystring, None, None, \
-                       lambda l=logfile, t=currtime: recent_file_exists(l, t, False), \
-                       lambda l=logfile: contains_two_timestamps(l), \
-                       lambda m=os.path.join(logdir, model), c=check_point, t=currtime: \
-                              freeze_succeeded(m, c, t))).start()
+        currtime = time.time()
+        logdir, model, check_point = M.parse_model_file(ckpt)
+        logfile = os.path.join(logdir, model, "freeze.ckpt-"+str(check_point)+".log")
+        jobid = generic_actuate("freeze.sh", logfile,
+                                M.freeze_where, M.freeze_local_resources, "",
+                                M.freeze_cluster_flags,
+                                V.context_ms_string.value, \
+                                V.representation.value, V.window_ms_string.value, \
+                                V.stride_ms_string.value, *V.mel_dct_string.value.split(','), \
+                                V.kernel_sizes_string.value, \
+                                V.last_conv_width_string.value, V.nfeatures_string.value, \
+                                V.dilate_after_layer_string.value, \
+                                V.stride_after_layer_string.value, \
+                                V.connection_type.value, \
+                                logdir, model, check_point, str(M.nstrides), \
+                                str(M.audio_tic_rate), str(M.audio_nchannels))
+        displaystring = "FREEZE " + \
+                        os.path.join(os.path.basename(logdir), model, "ckpt-"+check_point) + \
+                        " ("+jobid+")"
+        jobids.append(jobid)
+        threading.Thread(target=actuate_monitor, args=(displaystring, None, None, \
+                         lambda l=logfile, t=currtime: recent_file_exists(l, t, False), \
+                         lambda l=logfile: contains_two_timestamps(l), \
+                         lambda m=os.path.join(logdir, model), c=check_point, t=currtime: \
+                                freeze_succeeded(m, c, t))).start()
+    M.waitfor_job = jobids
+    V.waitfor_update()
 
 def classify_isdone(wavlogfile, reftime):
     return recent_file_exists(wavlogfile, reftime, False) and \
@@ -1117,26 +1120,42 @@ def classify_succeeded(modeldir, wavfile, reftime):
     return True
 
 def classify_actuate():
+    jobids = []
     for wavfile in V.wavtfcsvfiles_string.value.split(','):
         currtime = time.time()
         logdir, model, check_point = M.parse_model_file(V.model_file.value)
         logfile0 = os.path.splitext(wavfile)[0]+'-classify'
         logfile1 = logfile0+'1.log'
         logfile2 = logfile0+'2.log'
-        args = [logfile1, logfile2,
-                V.context_ms_string.value, \
+        args = [V.context_ms_string.value, \
                 V.shiftby_ms_string.value, V.representation.value, \
                 V.stride_ms_string.value, \
                 logdir, model, check_point, wavfile, str(M.audio_tic_rate), str(M.nstrides)]
         if V.prevalences_string.value!='':
             args += [V.wantedwords_string.value, V.prevalences_string.value]
-        classify_it(*args)
-        displaystring = "classify "+os.path.basename(wavfile)
+        p = run(["date", "+%s"], stdout=PIPE, stderr=STDOUT)
+        if M.classify_gpu:
+            jobid = generic_actuate("classify1.sh", logfile1, M.classify_where,
+                                      M.classify1_local_resources_gpu, "",
+                                      M.classify1_cluster_flags_gpu,
+                                      *args)
+        else:
+            jobid = generic_actuate("classify1.sh", logfile1, M.classify_where,
+                                      M.classify1_local_resources_gpu, "",
+                                      M.classify1_cluster_flags_gpu,
+                                      *args)
+        jobid = generic_actuate("classify2.sh", logfile2, M.classify_where,
+                                M.classify2_local_resources, "hetero job "+jobid,
+                                M.classify2_cluster_flags+" -w \"done("+jobid+")\"", *args)
+        displaystring = "CLASSIFY "+os.path.basename(wavfile)+" ("+jobid+")"
+        jobids.append(jobid)
         threading.Thread(target=actuate_monitor, args=(displaystring, None, None, \
                          lambda l=logfile1, t=currtime: recent_file_exists(l, t, False), \
                          lambda w=logfile2, t=currtime: classify_isdone(w, t), \
                          lambda m=os.path.join(logdir, model), w=wavfile, t=currtime: \
                                 classify_succeeded(m, w, t))).start()
+    M.waitfor_job = jobids
+    V.waitfor_update()
 
 def ethogram_succeeded(modeldir, ckpt, tffile, reftime):
     thresholds_file = os.path.join(modeldir, 'thresholds.ckpt-'+str(ckpt)+'.csv')
@@ -1157,15 +1176,18 @@ def ethogram_actuate():
     tffiles = V.wavtfcsvfiles_string.value.split(',')
     threads = [None] * len(tffiles)
     results = [None] * len(tffiles)
+    jobids = []
     for (i,tffile) in enumerate(tffiles):
         currtime = time.time()
         logdir, model, check_point = M.parse_model_file(V.model_file.value)
         if tffile.lower().endswith('.wav'):
             tffile = os.path.splitext(tffile)[0]+'.tf'
         logfile = tffile[:-3]+'-ethogram.log'
-        ethogram_it(logfile,
-                    logdir, model, check_point, tffile, str(M.audio_tic_rate))
-        displaystring = "ethogram "+os.path.basename(tffile)
+        jobid = generic_actuate("ethogram.sh", logfile, M.ethogram_where,
+                                M.ethogram_local_resources, "", M.ethogram_cluster_flags,
+                                logdir, model, check_point, tffile, str(M.audio_tic_rate))
+        displaystring = "ETHOGRAM "+os.path.basename(tffile)+" ("+jobid+")"
+        jobids.append(jobid)
         threads[i] = threading.Thread(target=actuate_monitor, args=( \
                          displaystring, \
                          results, i, \
@@ -1174,6 +1196,8 @@ def ethogram_actuate():
                          lambda m=os.path.join(logdir, model), c=check_point, \
                                 l=tffile, t=currtime: ethogram_succeeded(m, c, l, t)))
         threads[i].start()
+    M.waitfor_job = jobids
+    V.waitfor_update()
     threading.Thread(target=actuate_finalize, \
                      args=(threads, results, V.wordcounts_update)).start()
 
@@ -1191,8 +1215,14 @@ def compare_succeeded(logdirprefix, reftime):
 def compare_actuate():
     currtime = time.time()
     logfile = V.logs_folder.value+'-compare.log'
-    compare_it(logfile, V.logs_folder.value)
-    displaystring = "compare "+os.path.basename(V.logs_folder.value.rstrip('/'))
+    jobid = generic_actuate("compare.sh", logfile,
+                            M.compare_where, M.compare_local_resources, "",
+                            M.compare_cluster_flags,
+                            V.logs_folder.value)
+    displaystring = "COMPARE "+os.path.basename(V.logs_folder.value.rstrip('/'))+ \
+                    " ("+jobid+")"
+    M.waitfor_job = jobid
+    V.waitfor_update()
     threading.Thread(target=actuate_monitor, args=(displaystring, None, None, \
                      lambda l=logfile, t=currtime: recent_file_exists(l, t, False), \
                      lambda l=logfile: contains_two_timestamps(l), \
@@ -1238,16 +1268,26 @@ def congruence_actuate():
     all_files = validation_files + test_files
     all_files.remove('')
     logfile = os.path.join(V.groundtruth_folder.value,'congruence.log')
-    congruence_it(logfile,
-                  V.groundtruth_folder.value, ','.join(all_files),
-                  str(M.congruence_parallelize))
-    displaystring = "congruence "+os.path.basename(all_files[0])
+    jobid = generic_actuate("congruence.sh", logfile,
+                            M.congruence_where, M.congruence_local_resources, "", \
+                            M.congruence_cluster_flags,
+                            V.groundtruth_folder.value, ','.join(all_files),
+                            str(M.congruence_parallelize))
+    displaystring = "CONGRUENCE "+os.path.basename(all_files[0])+" ("+jobid+")"
+    M.waitfor_job = jobid
+    V.waitfor_update()
     regex_files = '('+'|'.join([os.path.splitext(x)[0] for x in all_files])+')*csv'
     threading.Thread(target=actuate_monitor, args=(displaystring, None, None, \
                      lambda l=logfile, t=currtime: recent_file_exists(l, t, False), \
                      lambda l=logfile: contains_two_timestamps(l), \
                      lambda l=V.groundtruth_folder.value, t=currtime,
                             r=regex_files: congruence_succeeded(l, t, r))).start()
+
+def waitfor_callback(arg):
+    if V.waitfor.active:
+        V.waitfor.button_type="warning"
+    else:
+        V.waitfor.button_type="default"
 
 def configuration_textarea_callback(attr, old, new):
     with open(M.configuration_file, 'w') as fid:
