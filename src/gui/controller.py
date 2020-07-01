@@ -420,16 +420,19 @@ def classify_callback():
 def actuate_monitor(displaystring, results, idx, isrunningfun, isdonefun, succeededfun):
     M.status_ticker_queue = {k:v for k,v in M.status_ticker_queue.items() if v!="succeeded"}
     M.status_ticker_queue[displaystring] = "pending"
-    bokeh_document.add_next_tick_callback(V.status_ticker_update)
+    if bokeh_document: 
+        bokeh_document.add_next_tick_callback(V.status_ticker_update)
     while not isrunningfun():
         time.sleep(3)
     M.status_ticker_queue[displaystring] = "running"
-    bokeh_document.add_next_tick_callback(V.status_ticker_update)
+    if bokeh_document: 
+        bokeh_document.add_next_tick_callback(V.status_ticker_update)
     while not isdonefun():
         time.sleep(3)
     for sec in [3,10,30,100,300,1000]:
         M.status_ticker_queue[displaystring] = "succeeded" if succeededfun() else "failed"
-        bokeh_document.add_next_tick_callback(V.status_ticker_update)
+        if bokeh_document: 
+            bokeh_document.add_next_tick_callback(V.status_ticker_update)
         if M.status_ticker_queue[displaystring] == "succeeded":
             if results:
                 results[idx]=True
@@ -441,7 +444,7 @@ def actuate_monitor(displaystring, results, idx, isrunningfun, isdonefun, succee
 def actuate_finalize(threads, results, finalizefun):
     for i in range(len(threads)):
         threads[i].join()
-    if any(results):
+    if any(results) and bokeh_document: 
         bokeh_document.add_next_tick_callback(finalizefun)
 
 def recent_file_exists(thisfile, reftime, verbose):
@@ -473,7 +476,8 @@ def logfile_succeeded(logfile, reftime):
         for line in fid:
             # https://github.com/tensorflow/tensorflow/issues/37689
             if 'Error' in line or ('E tensorflow' in line and \
-                                   not "failed call to cuInit" in line):
+                                   not "failed call to cuInit" in line and \
+                                   not "kernel version" in line):
                 bokehlog.info("ERROR: "+logfile+" contains Errors.")
                 return False
     return True
@@ -546,8 +550,8 @@ def misses_actuate():
     csvfile1 = V.wavtfcsvfiles_string.value.split(',')[0]
     basepath = os.path.dirname(csvfile1)
     with open(csvfile1) as fid:
-      csvreader = csv.reader(fid)
-      row1 = next(csvreader)
+        csvreader = csv.reader(fid)
+        row1 = next(csvreader)
     wavfile = row1[0]
     noext = os.path.join(basepath, os.path.splitext(wavfile)[0])
     logfile = noext+'-misses.log'
@@ -561,11 +565,11 @@ def misses_actuate():
     threads = [None]
     results = [None]
     threads[0] = threading.Thread(target=actuate_monitor, args=( \
-                     displaystring, \
-                     results, 0, \
-                     lambda l=logfile, t=currtime: recent_file_exists(l, t, False), \
-                     lambda l=logfile: contains_two_timestamps(l), \
-                     lambda w=os.path.join(basepath, wavfile), t=currtime: misses_succeeded(w, t)))
+             displaystring, \
+             results, 0, \
+             lambda l=logfile, t=currtime: recent_file_exists(l, t, False), \
+             lambda l=logfile: contains_two_timestamps(l), \
+             lambda w=os.path.join(basepath, wavfile), t=currtime: misses_succeeded(w, t)))
     threads[0].start()
     threading.Thread(target=actuate_finalize, \
                      args=(threads, results, V.wordcounts_update)).start()
@@ -617,13 +621,12 @@ def _validation_test_files(files_string, comma=True):
         return ['']
 
 def _train_succeeded(logdir, kind, model, reftime):
-    logfile = os.path.join(logdir, kind+"_"+model+".log")
-    if not logfile_succeeded(logfile, reftime):
+    train_dir = os.path.join(logdir, kind+"_"+model)
+    if not logfile_succeeded(train_dir+".log", reftime):
         return False
     if not os.path.isdir(os.path.join(logdir, "summaries_"+model)):
         bokehlog.info("ERROR: summaries_"+model+"/ does not exist.")
         return False
-    train_dir = os.path.join(logdir, kind+"_"+model)
     if not os.path.isdir(train_dir):
         bokehlog.info("ERROR: "+train_dir+"/ does not exist.")
         return False
@@ -634,9 +637,6 @@ def _train_succeeded(logdir, kind, model, reftime):
     eval_step_interval = save_step_interval = how_many_training_steps = None
     with open(train_dir+".log") as fid:
         for line in fid:
-            if 'Error' in line:
-                bokehlog.info("ERROR: "+train_dir+".log contains Errors.")
-                return False
             if "eval_step_interval" in line:
                 m=re.search('eval_step_interval = (\d+)',line)
                 eval_step_interval = int(m.group(1))
@@ -709,6 +709,7 @@ def train_actuate():
     test_files = _validation_test_files(V.testfiles_string.value)[0]
     currtime = time.time()
     logfile = os.path.join(V.logs_folder.value, "train1.log")
+    os.makedirs(V.logs_folder.value, exist_ok=True)
     args = [V.context_ms_string.value, V.shiftby_ms_string.value, \
             V.representation.value, V.window_ms_string.value, \
             *V.mel_dct_string.value.split(','), V.stride_ms_string.value, \
@@ -775,6 +776,7 @@ def leaveout_actuate(comma):
             _validation_test_files(V.validationfiles_string.value, comma)))
     currtime = time.time()
     jobids = []
+    os.makedirs(V.logs_folder.value, exist_ok=True)
     for ivalidation_file in range(0, len(validation_files), M.models_per_job):
         logfile = os.path.join(V.logs_folder.value, "generalize"+str(1+ivalidation_file)+".log")
         args = [V.context_ms_string.value, \
@@ -823,6 +825,7 @@ def xvalidate_actuate():
     test_files = _validation_test_files(V.testfiles_string.value)[0]
     currtime = time.time()
     jobids = []
+    os.makedirs(V.logs_folder.value, exist_ok=True)
     for ifold in range(1, 1+int(V.kfold_string.value), M.models_per_job):
         logfile = os.path.join(V.logs_folder.value, "xvalidate"+str(ifold)+".log")
         args = [V.context_ms_string.value, \
@@ -869,7 +872,10 @@ def xvalidate_actuate():
                             generalize_xvalidate_succeeded("xvalidate", l, t))).start()
 
 def mistakes_succeeded(groundtruthdir, reftime):
-    pass
+    logfile = os.path.join(groundtruthdir, "mistakes.log")
+    if not logfile_succeeded(logfile, reftime):
+        return False
+    return True
 
 def mistakes_actuate():
     currtime = time.time()
@@ -1113,9 +1119,7 @@ def classify_succeeded(modeldir, wavfile, reftime):
     with open(os.path.join(modeldir, 'vgg_labels.txt'), 'r') as fid:
         labels = fid.read().splitlines()
     for x in labels:
-        if not recent_file_exists(os.path.join(os.path.dirname(wavfile), \
-                                               wavfile[:-4]+'-'+x+'.wav'), \
-                                  reftime, True):
+        if not recent_file_exists(wavfile[:-4]+'-'+x+'.wav', reftime, True):
             return False
     return True
 
@@ -1166,9 +1170,7 @@ def ethogram_succeeded(modeldir, ckpt, tffile, reftime):
         row1 = next(csvreader)
     precision_recalls = row1[1:]
     for x in precision_recalls:
-        if not recent_file_exists(os.path.join(os.path.dirname(tffile), \
-                                               tffile[:-3]+'-predicted-'+x+'pr.csv'), \
-                                  reftime, True):
+        if not recent_file_exists(tffile[:-3]+'-predicted-'+x+'pr.csv', reftime, True):
             return False
     return True
 
