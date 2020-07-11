@@ -50,7 +50,6 @@ dilate_after_layer=65535
 stride_after_layer=65535
 connection_type=plain
 logdir=scratch/sh/untrained-classifier
-model=1
 data_dir=scratch/sh/groundtruth-data
 wanted_words=time,frequency
 labels_touse=detected
@@ -62,21 +61,22 @@ mini_batch=32
 testing_files=''
 batch_seed=1
 weights_seed=1
+ireplicates=1
 mkdir $logdir
 train.sh \
       $context_ms $shiftby_ms $representation $window_ms $mel $dct $stride_ms $dropout \
       $optimizer $learning_rate $kernel_sizes $last_conv_width $nfeatures \
       $dilate_after_layer $stride_after_layer $connection_type \
-      $logdir $model $data_dir $wanted_words $labels_touse \
+      $logdir $data_dir $wanted_words $labels_touse \
       $nsteps "$restore_from" $save_and_test_interval $validation_percentage \
       $mini_batch "$testing_files" \
       $audio_tic_rate $audio_nchannels \
-      $batch_seed $weights_seed \
+      $batch_seed $weights_seed $ireplicates \
       &> $logdir/train1.log
 
 check_file_exists $logdir/train1.log
-check_file_exists $logdir/train_1.log
-check_file_exists $logdir/train_1/vgg.ckpt-$nsteps.index
+check_file_exists $logdir/train_1r.log
+check_file_exists $logdir/train_1r/vgg.ckpt-$nsteps.index
 
 check_point=$nsteps
 equalize_ratio=1000
@@ -85,7 +85,7 @@ activations.sh \
       $context_ms $shiftby_ms $representation $window_ms $mel $dct $stride_ms \
       $kernel_sizes $last_conv_width $nfeatures \
       $dilate_after_layer $stride_after_layer $connection_type \
-      $logdir train_$model $check_point \
+      $logdir train_${ireplicates}r $check_point \
       $data_dir $wanted_words $labels_touse \
       $equalize_ratio $max_samples $mini_batch \
       $audio_tic_rate $audio_nchannels \
@@ -126,17 +126,17 @@ train.sh \
       $context_ms $shiftby_ms $representation $window_ms $mel $dct $stride_ms $dropout \
       $optimizer $learning_rate $kernel_sizes $last_conv_width $nfeatures \
       $dilate_after_layer $stride_after_layer $connection_type \
-      $logdir $model $data_dir $wanted_words $labels_touse \
+      $logdir $data_dir $wanted_words $labels_touse \
       $nsteps "$restore_from" $save_and_test_interval $validation_percentage \
       $mini_batch "$testing_files" \
       $audio_tic_rate $audio_nchannels \
-      $batch_seed $weights_seed \
+      $batch_seed $weights_seed $ireplicates \
       &> $logdir/train1.log
 
 check_file_exists $logdir/train1.log
-check_file_exists $logdir/train_1.log
-check_file_exists $logdir/train_1/vgg.ckpt-$nsteps.index
-check_file_exists $logdir/train_1/logits.validation.ckpt-$nsteps.npz
+check_file_exists $logdir/train_1r.log
+check_file_exists $logdir/train_1r/vgg.ckpt-$nsteps.index
+check_file_exists $logdir/train_1r/logits.validation.ckpt-$nsteps.npz
 
 precision_recall_ratios=0.5,1.0,2.0
 accuracy.sh $logdir $precision_recall_ratios \
@@ -145,9 +145,9 @@ accuracy.sh $logdir $precision_recall_ratios \
 
 check_file_exists $logdir/accuracy.log
 check_file_exists $logdir/accuracy.pdf
-check_file_exists $logdir/train_1/precision-recall.ckpt-$nsteps.pdf
-check_file_exists $logdir/train_1/probability-density.ckpt-$nsteps.pdf
-check_file_exists $logdir/train_1/thresholds.ckpt-$nsteps.csv
+check_file_exists $logdir/train_1r/precision-recall.ckpt-$nsteps.pdf
+check_file_exists $logdir/train_1r/probability-density.ckpt-$nsteps.pdf
+check_file_exists $logdir/train_1r/thresholds.ckpt-$nsteps.csv
 check_file_exists $logdir/train-loss.pdf
 check_file_exists $logdir/validation-F1.pdf
 for word in $(echo $wanted_words | sed "s/,/ /g") ; do
@@ -159,11 +159,12 @@ freeze.sh \
       $context_ms $representation $window_ms $stride_ms $mel $dct \
       $kernel_sizes $last_conv_width $nfeatures \
       $dilate_after_layer $stride_after_layer $connection_type \
-      $logdir train_$model $check_point $nstrides \
-      $audio_tic_rate $audio_nchannels &> $logdir/train_$model/freeze.ckpt-$check_point.log
+      $logdir train_${ireplicates}r $check_point $nstrides \
+      $audio_tic_rate $audio_nchannels \
+      &> $logdir/train_${ireplicates}r/freeze.ckpt-$check_point.log
 
-check_file_exists $logdir/train_$model/freeze.ckpt-$check_point.log
-check_file_exists $logdir/train_$model/frozen-graph.ckpt-$check_point.pb
+check_file_exists $logdir/train_${ireplicates}r/freeze.ckpt-$check_point.log
+check_file_exists $logdir/train_${ireplicates}r/frozen-graph.ckpt-$check_point.pb
 
 mkdir scratch/sh/groundtruth-data/round2
 cp /opt/deepsong/data/20161207T102314_ch1.wav scratch/sh/groundtruth-data/round2
@@ -171,7 +172,7 @@ cp /opt/deepsong/data/20161207T102314_ch1.wav scratch/sh/groundtruth-data/round2
 wavpath_noext=scratch/sh/groundtruth-data/round2/20161207T102314_ch1
 classify1.sh \
       $context_ms '' $representation $stride_ms \
-      $logdir train_$model $check_point \
+      $logdir train_${ireplicates}r $check_point \
       ${wavpath_noext}.wav \
       $audio_tic_rate $nstrides &> ${wavpath_noext}-classify1.log
 
@@ -180,7 +181,7 @@ check_file_exists ${wavpath_noext}-classify1.log
 
 classify2.sh \
       $context_ms $shiftby_ms $representation $stride_ms \
-      $logdir train_$model $check_point \
+      $logdir train_${ireplicates}r $check_point \
       ${wavpath_noext}.wav $audio_tic_rate '' \
       &> ${wavpath_noext}-classify2.log
 
@@ -190,7 +191,7 @@ for word in $(echo $wanted_words | sed "s/,/ /g") ; do
 done
 
 ethogram.sh \
-      $logdir train_$model $check_point \
+      $logdir train_${ireplicates}r $check_point \
       $wavpath_noext $audio_tic_rate \
       &> ${wavpath_noext}-ethogram.log
 
@@ -224,7 +225,7 @@ count_lines_with_word ${wavpath_noext}-missed.csv other 2171
 mkdir $data_dir/round1/cluster
 mv $data_dir/{activations,cluster}* $data_dir/round1/cluster
 
-model=train_$model
+model=train_${ireplicates}r
 labels_touse=annotated,missed
 equalize_ratio=1000
 max_samples=10000
@@ -365,7 +366,6 @@ check_file_exists $data_dir/mistakes.log
 check_file_exists $data_dir/round1/PS_20130625111709_ch3-mistakes.csv
 
 logdir=scratch/sh/trained-classifier2
-model=1
 labels_touse=annotated
 nsteps=100
 validation_percentage=20
@@ -374,17 +374,17 @@ train.sh \
       $context_ms $shiftby_ms $representation $window_ms $mel $dct $stride_ms $dropout \
       $optimizer $learning_rate $kernel_sizes $last_conv_width $nfeatures \
       $dilate_after_layer $stride_after_layer $connection_type \
-      $logdir $model $data_dir $wanted_words $labels_touse \
+      $logdir $data_dir $wanted_words $labels_touse \
       $nsteps "$restore_from" $save_and_test_interval $validation_percentage \
       $mini_batch "$testing_files" \
       $audio_tic_rate $audio_nchannels \
-      $batch_seed $weights_seed \
+      $batch_seed $weights_seed $ireplicates \
       &> $logdir/train1.log
 
 check_file_exists $logdir/train1.log
-check_file_exists $logdir/train_1.log
-check_file_exists $logdir/train_1/vgg.ckpt-$nsteps.index
-check_file_exists $logdir/train_1/logits.validation.ckpt-$nsteps.npz
+check_file_exists $logdir/train_1r.log
+check_file_exists $logdir/train_1r/vgg.ckpt-$nsteps.index
+check_file_exists $logdir/train_1r/logits.validation.ckpt-$nsteps.npz
 
 precision_recall_ratios=1.0
 accuracy.sh $logdir $precision_recall_ratios \
@@ -393,9 +393,9 @@ accuracy.sh $logdir $precision_recall_ratios \
 
 check_file_exists $logdir/accuracy.log
 check_file_exists $logdir/accuracy.pdf
-check_file_exists $logdir/train_1/precision-recall.ckpt-$nsteps.pdf
-check_file_exists $logdir/train_1/probability-density.ckpt-$nsteps.pdf
-check_file_exists $logdir/train_1/thresholds.ckpt-$nsteps.csv
+check_file_exists $logdir/train_1r/precision-recall.ckpt-$nsteps.pdf
+check_file_exists $logdir/train_1r/probability-density.ckpt-$nsteps.pdf
+check_file_exists $logdir/train_1r/thresholds.ckpt-$nsteps.csv
 check_file_exists $logdir/train-loss.pdf
 check_file_exists $logdir/validation-F1.pdf
 for word in $(echo $wanted_words | sed "s/,/ /g") ; do
@@ -406,11 +406,12 @@ freeze.sh \
       $context_ms $representation $window_ms $stride_ms $mel $dct \
       $kernel_sizes $last_conv_width $nfeatures \
       $dilate_after_layer $stride_after_layer $connection_type \
-      $logdir train_$model $check_point $nstrides \
-      $audio_tic_rate $audio_nchannels &> $logdir/train_$model/freeze.ckpt-$check_point.log
+      $logdir train_${ireplicates}r $check_point $nstrides \
+      $audio_tic_rate $audio_nchannels \
+      &> $logdir/train_${ireplicates}r/freeze.ckpt-$check_point.log
 
-check_file_exists $logdir/train_$model/freeze.ckpt-$check_point.log
-check_file_exists $logdir/train_$model/frozen-graph.ckpt-$check_point.pb
+check_file_exists $logdir/train_${ireplicates}r/freeze.ckpt-$check_point.log
+check_file_exists $logdir/train_${ireplicates}r/frozen-graph.ckpt-$check_point.pb
 
 mkdir scratch/sh/groundtruth-data/congruence
 cp /opt/deepsong/data/20190122T093303a-7.wav scratch/sh/groundtruth-data/congruence
@@ -418,7 +419,7 @@ cp /opt/deepsong/data/20190122T093303a-7.wav scratch/sh/groundtruth-data/congrue
 wavpath_noext=scratch/sh/groundtruth-data/congruence/20190122T093303a-7
 classify1.sh \
       $context_ms '' $representation $stride_ms \
-      $logdir train_$model $check_point ${wavpath_noext}.wav \
+      $logdir train_${ireplicates}r $check_point ${wavpath_noext}.wav \
       $audio_tic_rate $nstrides \
       &> ${wavpath_noext}-classify1.log
 
@@ -427,7 +428,7 @@ check_file_exists ${wavpath_noext}.tf
 
 classify2.sh \
       $context_ms $shiftby_ms $representation $stride_ms \
-      $logdir train_$model $check_point \
+      $logdir train_${ireplicates}r $check_point \
       ${wavpath_noext}.wav $audio_tic_rate '' \
       &> ${wavpath_noext}-classify2.log
 
@@ -437,7 +438,7 @@ for word in $(echo $wanted_words | sed "s/,/ /g") ; do
 done
 
 ethogram.sh \
-      $logdir train_$model $check_point \
+      $logdir train_${ireplicates}r $check_point \
       ${wavpath_noext}.wav $audio_tic_rate \
       &> ${wavpath_noext}-ethogram.log
 

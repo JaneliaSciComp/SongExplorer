@@ -96,16 +96,19 @@ V.mini_batch_string.value = "32"
 V.testing_files = ""
 V.batch_seed_string.value = "1"
 V.weights_seed_string.value = "1"
+V.replicates_string.value = "1"
 C.train_actuate()
 
 wait_for_job()
 
 check_file_exists(os.path.join(V.logs_folder.value, "train1.log"))
-check_file_exists(os.path.join(V.logs_folder.value, "train_1.log"))
+check_file_exists(os.path.join(V.logs_folder.value, "train_1r.log"))
 check_file_exists(os.path.join(V.logs_folder.value,
-                               "train_1","vgg.ckpt-"+V.nsteps_string.value+".index"))
+                               "train_1r","vgg.ckpt-"+V.nsteps_string.value+".index"))
 
-V.model_file.value = "scratch/py/untrained-classifier/train_1/vgg.ckpt-0.meta"
+V.model_file.value = os.path.join("scratch", "py", "untrained-classifier",
+                                  "train_"+V.replicates_string.value+"r",
+                                  "vgg.ckpt-"+V.nsteps_string.value+".meta")
 V.activations_equalize_ratio_string.value = "1000"
 V.activations_max_samples_string.value = "10000"
 C.activations_actuate()
@@ -144,10 +147,10 @@ C.train_actuate()
 wait_for_job()
 
 check_file_exists(os.path.join(V.logs_folder.value, "train1.log"))
-check_file_exists(os.path.join(V.logs_folder.value, "train_1.log"))
-check_file_exists(os.path.join(V.logs_folder.value, "train_1",
+check_file_exists(os.path.join(V.logs_folder.value, "train_1r.log"))
+check_file_exists(os.path.join(V.logs_folder.value, "train_1r",
                                "vgg.ckpt-"+V.nsteps_string.value+".index"))
-check_file_exists(os.path.join(V.logs_folder.value, "train_1",
+check_file_exists(os.path.join(V.logs_folder.value, "train_1r",
                                "logits.validation.ckpt-"+V.nsteps_string.value+".npz"))
 
 V.precision_recall_ratios_string.value = "0.5,1.0,2.0"
@@ -157,26 +160,26 @@ wait_for_job()
 
 check_file_exists(os.path.join(V.logs_folder.value, "accuracy.log"))
 check_file_exists(os.path.join(V.logs_folder.value, "accuracy.pdf"))
-check_file_exists(os.path.join(V.logs_folder.value, "train_1",
+check_file_exists(os.path.join(V.logs_folder.value, "train_1r",
                                "precision-recall.ckpt-"+V.nsteps_string.value+".pdf"))
-check_file_exists(os.path.join(V.logs_folder.value, "train_1",
+check_file_exists(os.path.join(V.logs_folder.value, "train_1r",
                                "probability-density.ckpt-"+V.nsteps_string.value+".pdf"))
-check_file_exists(os.path.join(V.logs_folder.value, "train_1",
+check_file_exists(os.path.join(V.logs_folder.value, "train_1r",
                                "thresholds.ckpt-"+V.nsteps_string.value+".csv"))
 check_file_exists(os.path.join(V.logs_folder.value, "train-loss.pdf"))
 check_file_exists(os.path.join(V.logs_folder.value, "validation-F1.pdf"))
 for word in V.wantedwords_string.value.split(','):
   check_file_exists(os.path.join(V.logs_folder.value, "validation-PvR-"+word+".pdf"))
 
-V.model_file.value = os.path.join(V.logs_folder.value, "train_1",
+V.model_file.value = os.path.join(V.logs_folder.value, "train_"+V.replicates_string.value+"r",
                                   "vgg.ckpt-"+V.nsteps_string.value+".meta")
 C.freeze_actuate()
 
 wait_for_job()
 
-check_file_exists(os.path.join(V.logs_folder.value, "train_1",
+check_file_exists(os.path.join(V.logs_folder.value, "train_1r",
                                "freeze.ckpt-"+V.nsteps_string.value+".log"))
-check_file_exists(os.path.join(V.logs_folder.value, "train_1",
+check_file_exists(os.path.join(V.logs_folder.value, "train_1r",
                                "frozen-graph.ckpt-"+V.nsteps_string.value+".pb"))
 
 os.makedirs("scratch/py/groundtruth-data/round2")
@@ -231,7 +234,8 @@ for file in glob.glob(os.path.join(V.groundtruth_folder.value, "activations*")):
 for file in glob.glob(os.path.join(V.groundtruth_folder.value, "cluster*")):
     shutil.move(file, os.path.join(V.groundtruth_folder.value, "round1", "cluster"))
 
-V.model_file.value = os.path.join("scratch/py", "trained-classifier1", "train_1", \
+V.model_file.value = os.path.join("scratch", "py", "trained-classifier1", \
+                                  "train_"+V.replicates_string.value+"r", \
                                   "vgg.ckpt-"+V.nsteps_string.value+".meta")
 V.labeltypes_string.value = "annotated,missed"
 V.activations_equalize_ratio_string.value = "1000"
@@ -362,10 +366,10 @@ C.train_actuate()
 wait_for_job()
 
 check_file_exists(os.path.join(V.logs_folder.value, "train1.log"))
-check_file_exists(os.path.join(V.logs_folder.value, "train_1.log"))
-check_file_exists(os.path.join(V.logs_folder.value, "train_1",
+check_file_exists(os.path.join(V.logs_folder.value, "train_1r.log"))
+check_file_exists(os.path.join(V.logs_folder.value, "train_1r",
                                "vgg.ckpt-"+V.nsteps_string.value+".index"))
-check_file_exists(os.path.join(V.logs_folder.value, "train_1",
+check_file_exists(os.path.join(V.logs_folder.value, "train_1r",
                                "logits.validation.ckpt-"+V.nsteps_string.value+".npz"))
 
 V.precision_recall_ratios_string.value = "1.0"
@@ -375,26 +379,26 @@ wait_for_job()
 
 check_file_exists(os.path.join(V.logs_folder.value, "accuracy.log"))
 check_file_exists(os.path.join(V.logs_folder.value, "accuracy.pdf"))
-check_file_exists(os.path.join(V.logs_folder.value, "train_1",
+check_file_exists(os.path.join(V.logs_folder.value, "train_1r",
                                "precision-recall.ckpt-"+V.nsteps_string.value+".pdf"))
-check_file_exists(os.path.join(V.logs_folder.value, "train_1",
+check_file_exists(os.path.join(V.logs_folder.value, "train_1r",
                                "probability-density.ckpt-"+V.nsteps_string.value+".pdf"))
-check_file_exists(os.path.join(V.logs_folder.value, "train_1",
+check_file_exists(os.path.join(V.logs_folder.value, "train_1r",
                                "thresholds.ckpt-"+V.nsteps_string.value+".csv"))
 check_file_exists(os.path.join(V.logs_folder.value, "train-loss.pdf"))
 check_file_exists(os.path.join(V.logs_folder.value, "validation-F1.pdf"))
 for word in V.wantedwords_string.value.split(','):
   check_file_exists(os.path.join(V.logs_folder.value, "validation-PvR-"+word+".pdf"))
 
-V.model_file.value = os.path.join(V.logs_folder.value, "train_1",
+V.model_file.value = os.path.join(V.logs_folder.value, "train_"+V.replicates_string.value+"r",
                                   "vgg.ckpt-"+V.nsteps_string.value+".meta")
 C.freeze_actuate()
 
 wait_for_job()
 
-check_file_exists(os.path.join(V.logs_folder.value, "train_1",
+check_file_exists(os.path.join(V.logs_folder.value, "train_1r",
                                "freeze.ckpt-"+V.nsteps_string.value+".log"))
-check_file_exists(os.path.join(V.logs_folder.value, "train_1",
+check_file_exists(os.path.join(V.logs_folder.value, "train_1r",
                                "frozen-graph.ckpt-"+V.nsteps_string.value+".pb"))
 
 os.mkdir("scratch/py/groundtruth-data/congruence")

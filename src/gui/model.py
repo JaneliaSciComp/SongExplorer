@@ -66,6 +66,7 @@ def save_state_callback():
                    'mel&dct': V.mel_dct_string.value,
                    'stride_ms': V.stride_ms_string.value,
                    'dropout': V.dropout_string.value,
+                   'replicates': V.replicates_string.value,
                    'batch_seed': V.batch_seed_string.value,
                    'weights_seed': V.weights_seed_string.value,
                    'optimizer': V.optimizer.value,
@@ -332,8 +333,9 @@ def init(_configuration_file):
                        'mel&dct':'7,7', \
                        'stride_ms':'1.6', \
                        'dropout':'0.5', \
-                       'batch_seed':'-1 ', \
-                       'weights_seed':'-1 ', \
+                       'replicates':'1', \
+                       'batch_seed':'-1', \
+                       'weights_seed':'-1', \
                        'optimizer':'adam', \
                        'learning_rate':'0.0002', \
                        'kernel_sizes':'5,3,3', \
