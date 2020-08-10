@@ -51,12 +51,10 @@ def generic_actuate(cmd, logfile, where, localargs, localdeps, clusterflags, *ar
                     "export SINGULARITYENV_PREPEND_PATH="+M.source_path+";",
                     os.environ["DEEPSONG_BIN"]+" "+cmd+" "+' '.join(args)],
                    stdout=PIPE)
-        ps = Popen(["ssh", "login1", "bsub",
-                    "-Ne",
-                    "-P stern",
+        ps = Popen(["ssh", M.cluster_ipaddr, M.cluster_cmd,
                     #"-J ${logfile//,/}.job",
                     clusterflags,
-                    "-oo "+logfile],
+                    M.cluster_logfile_flag+" "+logfile],
                    stdin=pe.stdout, stdout=PIPE, stderr=STDOUT)
         pe.stdout.close()
         jobinfo = ps.communicate()[0].decode('ascii').rstrip()

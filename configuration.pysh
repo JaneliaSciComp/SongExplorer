@@ -17,6 +17,11 @@ server_ncpu_cores=0
 server_ngpu_cards=0
 server_ngigabytes_memory=0
 
+# specs of the 'cluster'
+cluster_ipaddr=""
+cluster_cmd=""
+cluster_logfile_flag=""
+
 # GUI
 #gui_cluster_dot_colormap="Category10_10"
 # https://graphicdesign.stackexchange.com/questions/3682/where-can-i-find-a-large-palette-set-of-contrasting-colors-for-coloring-many-d
