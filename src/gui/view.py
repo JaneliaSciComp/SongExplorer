@@ -935,7 +935,7 @@ def buttons_update():
                         if representation.value=='mel-cepstrum' else True
             elif textinput==pca_fraction_variance_to_retain_string:
                 pca_fraction_variance_to_retain_string.disabled=False \
-                        if cluster_algorithm.value[:5] in ['tSNE','UMAP '] else True
+                        if cluster_algorithm.value[:4] in ['tSNE','UMAP'] else True
             elif textinput==tsne_perplexity_string:
                 tsne_perplexity_string.disabled=False \
                         if cluster_algorithm.value.startswith('tSNE') else True

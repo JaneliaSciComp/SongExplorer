@@ -81,7 +81,7 @@ for ilayer in range(nlayers):
 
 
 fits_pca = [None]*nlayers
-if pca_fraction_variance_to_retain<1:
+if pca_fraction_variance_to_retain<1 or cluster_algorithm=="pca":
   print("reducing dimensionality with PCA...")
 
   activations_scaled = [None]*nlayers
@@ -104,7 +104,6 @@ if pca_fraction_variance_to_retain<1:
   import matplotlib.pyplot as plt
   #plt.ion()
 
-  ncomponents = [None]*nlayers
   activations_kept = [None]*nlayers
   fig = plt.figure()
   ax = fig.add_subplot(111)
@@ -112,11 +111,15 @@ if pca_fraction_variance_to_retain<1:
     if ilayer not in these_layers:
       continue
     cumsum = np.cumsum(fits_pca[ilayer].explained_variance_ratio_)
-    ncomponents[ilayer] = np.where(cumsum>pca_fraction_variance_to_retain)[0][0]
+    ncomponents = np.where(cumsum>=pca_fraction_variance_to_retain)[0][0]
     line, = ax.plot(cumsum)
-    line.set_label('layer '+str(ilayer)+', n='+str(ncomponents[-1]))
     activations_transformed = fits_pca[ilayer].transform(activations_scaled[ilayer])
-    activations_kept[ilayer] = activations_transformed[:,0:ncomponents[ilayer]]
+    if cluster_algorithm=="pca":
+      line.set_label('layer '+str(ilayer)+', n='+str(np.shape(activations_transformed)[1]))
+      activations_kept[ilayer] = activations_transformed
+    else:
+      line.set_label('layer '+str(ilayer)+', n='+str(ncomponents+1))
+      activations_kept[ilayer] = activations_transformed[:,0:ncomponents+1]
 
   ax.set_ylabel('cumsum explained variance')
   ax.set_xlabel('# of components')
@@ -130,7 +133,7 @@ else:
 
 if cluster_algorithm=="pca":
   def do_cluster(ilayer):
-    return activations_tocluster[ilayer][:,:cluster_ndims]
+    return None, activations_tocluster[ilayer][:,:cluster_ndims]
 
 
 elif cluster_algorithm=="tsne":
