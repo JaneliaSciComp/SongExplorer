@@ -142,21 +142,18 @@ plt.close()
 
 summed_confusion_matrices={}
 confusion_matrices={}
-accuracies={}
-row_normalized_confusion_matrices={}
-col_normalized_confusion_matrices={}
-col_normalized_summed_confusion_matrices={}
-row_normalized_summed_confusion_matrices={}
+recall_confusion_matrices={}
+precision_confusion_matrices={}
+recall_summed_matrices={}
+precision_summed_matrices={}
 summed_accuracies={}
 words=[]
 
 for logdir in logdirs:
   kind = next(iter(validation_time[logdir].keys())).split('_')[0]
-  summed_confusion_matrices[logdir], confusion_matrices[logdir], \
-              accuracies[logdir], thiswords = \
-          sum_confusion_matrices(os.path.join(basename,logdir), \
-                                 kind, \
-                                 idx_time=idx_time[logdir] if same_time else None)
+  summed_confusion_matrices[logdir], confusion_matrices[logdir], thiswords = \
+          parse_confusion_matrices(os.path.join(basename,logdir), kind, \
+                                   idx_time=idx_time[logdir] if same_time else None)
   if words:
     assert set(words)==set(thiswords)
   else:
@@ -170,22 +167,21 @@ for logdir in logdirs:
                                       for j in idx] for i in idx] \
                                   for k in confusion_matrices[logdir].keys()}
 
-  row_normalized_confusion_matrices[logdir]={}
-  col_normalized_confusion_matrices[logdir]={}
+  recall_confusion_matrices[logdir]={}
+  precision_confusion_matrices[logdir]={}
   for model in confusion_matrices[logdir].keys():
-    row_normalized_confusion_matrices[logdir][model], \
-              col_normalized_confusion_matrices[logdir][model] = \
+    recall_confusion_matrices[logdir][model], \
+              precision_confusion_matrices[logdir][model], _ = \
           normalize_confusion_matrix(confusion_matrices[logdir][model])
 
-  row_normalized_summed_confusion_matrices[logdir], \
-              col_normalized_summed_confusion_matrices[logdir] = \
+  recall_summed_matrices[logdir], \
+              precision_summed_matrices[logdir], _ = \
           normalize_confusion_matrix(summed_confusion_matrices[logdir])
-  summed_accuracies[logdir] = 100 * np.trace(row_normalized_summed_confusion_matrices[logdir]) / \
-                    len(row_normalized_summed_confusion_matrices[logdir])
+  summed_accuracies[logdir] = 100 * np.trace(recall_summed_matrices[logdir]) / \
+                    len(recall_summed_matrices[logdir])
 
 plot_confusion_matrices(summed_confusion_matrices,
-                        col_normalized_summed_confusion_matrices,
-                        row_normalized_summed_confusion_matrices,
+                        precision_summed_matrices, recall_summed_matrices,
                         words, summed_accuracies, natsorted(logdirs),
                         numbers=len(words)<10)
 plt.savefig(logdirs_prefix+'-compare-confusion-matrices.pdf')
@@ -199,31 +195,35 @@ fig = plt.figure(figsize=(scale*ncols, scale*3/4*nrows))
 minprecision=1.0
 minrecall=1.0
 for logdir in logdirs:
-  for model in row_normalized_confusion_matrices[logdir].keys():
+  for model in recall_confusion_matrices[logdir].keys():
     for iword in range(len(words)):
       minprecision = min(minprecision,
-                         col_normalized_confusion_matrices[logdir][model][iword][iword])
+                         precision_confusion_matrices[logdir][model][iword][iword])
       minrecall = min(minrecall,
-                      row_normalized_confusion_matrices[logdir][model][iword][iword])
+                      recall_confusion_matrices[logdir][model][iword][iword])
 
 for (ilogdir,logdir) in enumerate(natsorted(logdirs)):
   ax = fig.add_subplot(nrows, ncols, ilogdir+1)
-  for (iword,word) in enumerate(words):
-    for model in row_normalized_confusion_matrices[logdir].keys():
-      color = cm.viridis((len(word)-iword)/len(word))
-      line, = ax.plot(row_normalized_confusion_matrices[logdir][model][iword][iword],
-                      col_normalized_confusion_matrices[logdir][model][iword][iword],
-                      'o', markerfacecolor=color, markeredgecolor='k')
-    line.set_label(word)
+  model0=list(recall_confusion_matrices[logdir].keys())[0]
+  for model in recall_confusion_matrices[logdir].keys():
+    ax.set_prop_cycle(None)
+    for (iword,word) in enumerate(words):
+      line, = ax.plot(recall_confusion_matrices[logdir][model][iword][iword],
+                      precision_confusion_matrices[logdir][model][iword][iword],
+                      'o', markeredgecolor='k')
+      if ilogdir==0 and model==model0:
+        line.set_label(word)
   ax.set_xlim(left=minrecall, right=1)
   ax.set_ylim(bottom=minprecision, top=1)
   if ilogdir//ncols==nrows-1:
     ax.set_xlabel('Recall')
   if ilogdir%ncols==0:
     ax.set_ylabel('Precision')
-  if ilogdir//ncols==nrows-1 and ilogdir%ncols==0:
-    ax.legend(loc='lower left')
+  if ilogdir==len(logdirs)-1:
+    lgd = fig.legend(bbox_to_anchor=(1.0,0.0), loc='lower left')
   ax.set_title(logdir+"   "+str(round(summed_accuracies[logdir],1))+"%")
 
-plt.savefig(logdirs_prefix+'-compare-precision-recall.pdf')
+fig.tight_layout()
+plt.savefig(logdirs_prefix+'-compare-precision-recall.pdf',
+            bbox_extra_artists=(lgd,), bbox_inches='tight')
 plt.close()

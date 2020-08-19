@@ -37,25 +37,20 @@ def parse_confusion_matrix(logfile, nwanted_words, which_one=0, test=False):
   confusion_string = confusion_string.decode("ascii")
   confusion_matrix = confusion_string2matrix(confusion_string)
   nannotations = [sum(x) for x in confusion_matrix]
-  equalized_confusion_matrix = [[x/n if n>0 else np.nan for x in cm]
-                                for (cm,n) in zip(confusion_matrix,nannotations)]
-  accuracy = [x[i] for (i,x) in enumerate(equalized_confusion_matrix)]
-  accuracy = 100 * np.nansum(accuracy) / sum([not np.isnan(x) for x in accuracy])
-  return confusion_matrix, accuracy, ast.literal_eval(words_string), nannotations
+  return confusion_matrix, ast.literal_eval(words_string), nannotations
 
 
-def sum_confusion_matrices(logdir, kind, idx_time=None, test=False):
+def parse_confusion_matrices(logdir, kind, idx_time=None, test=False):
   models = list(filter(lambda x: x.startswith(kind+'_') and \
                           os.path.isdir(os.path.join(logdir,x)), os.listdir(logdir)))
   labels_path = os.path.join(logdir,list(models)[0],'vgg_labels.txt')
   nwanted_words = sum(1 for line in open(labels_path))
 
   confusion_matrices={}
-  accuracies={}
   words=[]
   for model in models:
     logfile = os.path.join(logdir, model+'.log')
-    confusion_matrices[model], accuracies[model], thiswords, _ = \
+    confusion_matrices[model], thiswords, _ = \
             parse_confusion_matrix(logfile, \
                                    nwanted_words, \
                                    which_one=1+idx_time[model] if idx_time else 0, \
@@ -68,16 +63,18 @@ def sum_confusion_matrices(logdir, kind, idx_time=None, test=False):
   summed_confusion_matrix = np.zeros((np.shape(confusion_matrices[models[0]])))
   for model in models:
     summed_confusion_matrix += confusion_matrices[model]
-  return summed_confusion_matrix, confusion_matrices, accuracies, words
+  return summed_confusion_matrix, confusion_matrices, words
 
 
 def normalize_confusion_matrix(matrix):
-  row_norm_matrix = [[np.nan if sum(x)==0.0 else y/sum(x) for y in x] for x in matrix]
-  transposed_matrix = list(zip(*matrix))
-  norm_transposed_matrix = [[np.nan if sum(x)==0.0 else y/sum(x) for y in x] \
+  row_norm_matrix = [[np.nan if np.nansum(x)==0.0 else y/np.nansum(x) for y in x]
+                     for x in matrix]
+  transposed_matrix = list(zip(*row_norm_matrix))  # row_norm_matrix here so it is balanced
+  norm_transposed_matrix = [[np.nan if np.nansum(x)==0.0 else y/np.nansum(x) for y in x]
                             for x in transposed_matrix]
   col_norm_matrix = list(zip(*norm_transposed_matrix))
-  return row_norm_matrix, col_norm_matrix
+  accuracy = 100 * np.mean([x[i] for (i,x) in enumerate(row_norm_matrix) if not np.isnan(x[i])])
+  return row_norm_matrix, col_norm_matrix, accuracy
 
 
 def plot_confusion_matrix(ax, abs_matrix, col_matrix, row_matrix, numbers):
@@ -214,13 +211,10 @@ def read_log(frompath, logfile):
           confusion_string+=line
         if "]]" in line:
           confusion_matrix = confusion_string2matrix(confusion_string)
-          row_normalized_confusion_matrix, column_normalized_confusion_matrix = \
+          row_normalized_confusion_matrix, column_normalized_confusion_matrix, accuracy = \
                   normalize_confusion_matrix(confusion_matrix)
           precision = [x[i] for (i,x) in enumerate(column_normalized_confusion_matrix)]
           recall = [x[i] for (i,x) in enumerate(row_normalized_confusion_matrix)]
-          diagonal_elements = [x[i] for (i,x) in enumerate(row_normalized_confusion_matrix)
-                               if not np.isnan(x[i])]
-          accuracy = 100*sum(diagonal_elements)/len(diagonal_elements)
       elif "Validation accuracy" in line:
         validation_precision.append(precision)
         validation_recall.append(recall)
@@ -301,7 +295,7 @@ def plot_time_traces(ax, validation_time, accuracy, ylabel, ltitle, \
   bottom=100
   sortfun = realsorted if real else natsorted
   for (iexpt,expt) in enumerate(sortfun(accuracy.keys(), reverse=reverse)):
-    color = cm.viridis((len(accuracy)-iexpt)/len(accuracy))
+    color = cm.viridis(iexpt/max(1,len(accuracy)-1))
     for model in validation_time[expt].keys():
       line, = ax.plot(np.array(validation_time[expt][model])/60, accuracy[expt][model], \
                       color=color, zorder=iexpt, linewidth=1)

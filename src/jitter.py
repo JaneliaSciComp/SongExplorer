@@ -16,7 +16,7 @@ def jitter_plot(ax, data, orientation='vertical', reverse=False, \
   sortfun = realsorted if real else natsorted
   ldata = sortfun(data.keys(), reverse=reverse)
   for (i,l) in enumerate(ldata):
-    colors.append(cm.viridis((len(ldata)-i)/len(ldata)))
+    colors.append(cm.viridis(i/max(1,len(ldata)-1)))
     x = ldata.index(l)
     d = [x for x in data[l] if x>outlier_crit]
     o = [x for x in data[l] if x<=outlier_crit]
@@ -64,5 +64,5 @@ def jitter_plot(ax, data, orientation='vertical', reverse=False, \
     if len(ioutlier[0])>0:
       ax.scatter(np.full((len(ioutlier[0]),), np.min(ydata[iinlier])-outlier_offset), \
                  xdata[ioutlier], c=cdata[ioutlier], marker='v', zorder=100)
-  #
+
   return ldata

@@ -113,16 +113,16 @@ nrows, ncols = layout(len(keys_to_plot))
 for (iword,word) in enumerate(wanted_words[keys_to_plot[0]]):
   fig = plt.figure(figsize=(6.4*ncols, 4.8*nrows))
   ax = []
-  minp=1
-  minr=1
+  minp=100
+  minr=100
   for (imodel,model) in enumerate(keys_to_plot):
     ax.append(fig.add_subplot(nrows, ncols, imodel+1))
-    precision = [x[iword] for x in validation_precision[model]]
-    recall = [x[iword] for x in validation_recall[model]]
+    precision = [100*x[iword] for x in validation_precision[model]]
+    recall = [100*x[iword] for x in validation_recall[model]]
     minp = min(minp, min(precision))
     minr = min(minr, min(recall))
-    ax[imodel].set_prop_cycle(color=[cm.viridis(1.*i/(len(recall)-1)) \
-                              for i in range(len(recall)-1)])
+    ax[imodel].set_prop_cycle(color=[cm.viridis(1.*i/max(1,len(recall)-2)) \
+                                     for i in range(len(recall)-1)])
     for i in range(len(recall)-1):
       ax[imodel].plot(recall[i:i+2], precision[i:i+2])
     ax[imodel].annotate(str(validation_step[model][0]),
@@ -140,8 +140,8 @@ for (iword,word) in enumerate(wanted_words[keys_to_plot[0]]):
     ax[imodel].set_ylabel('Precision')
     ax[imodel].set_title(model)
   for imodel in range(len(keys_to_plot)):
-    ax[imodel].set_ylim([minp,1])
-    ax[imodel].set_xlim([minr,1])
+    ax[imodel].set_ylim([minp,100])
+    ax[imodel].set_xlim([minr,100])
   fig.tight_layout()
   plt.savefig(os.path.join(logdir,'validation-PvR-'+word+'.pdf'))
   plt.close()
@@ -149,9 +149,6 @@ for (iword,word) in enumerate(wanted_words[keys_to_plot[0]]):
 
 nrows, ncols = layout(len(wanted_words[keys_to_plot[0]]))
 fig = plt.figure(figsize=(6.4*ncols, 4.8*nrows))
-colors = [cm.viridis((len(keys_to_plot)-x)/len(keys_to_plot)) \
-          for x in range(len(keys_to_plot))]
-color_index=natsorted(keys_to_plot)
 lines=[]
 isort = index_natsorted(wanted_words[keys_to_plot[0]])
 for iword in range(len(isort)):
@@ -160,7 +157,7 @@ for iword in range(len(isort)):
     F1 = [2*p[isort[iword]]*r[isort[iword]]/(p[isort[iword]]+r[isort[iword]]) \
           if (p[isort[iword]]+r[isort[iword]])>0 else np.nan \
           for (p,r) in zip(validation_precision[model], validation_recall[model])]
-    line, = ax.plot(validation_step[model], F1, color=colors[color_index.index(model)])
+    line, = ax.plot(validation_step[model], F1)
     if iword==0:
       lines.append(line)
     ax.set_ylim(top=1)
@@ -181,26 +178,24 @@ for iword in range(len(isort)):
                validation_step[model][-1]*step2epoch)
   ax3.set_xlabel('Epoch')
 
-fig.legend(lines, keys_to_plot, loc="lower right")
+lgd = fig.legend(lines, keys_to_plot, ncol=len(keys_to_plot),
+                 bbox_to_anchor=(0.0,-0.02), loc="lower left")
 fig.tight_layout()
-plt.savefig(os.path.join(logdir,'validation-F1.pdf'))
+plt.savefig(os.path.join(logdir,'validation-F1.pdf'),
+            bbox_extra_artists=(lgd,), bbox_inches='tight')
 plt.close()
 
 if not len(validation_accuracy[keys_to_plot[0]]):
     sys.exit()
 
 if len(keys_to_plot)>1:
-  colors = [cm.viridis((len(keys_to_plot)-x)/len(keys_to_plot)) \
-            for x in range(len(keys_to_plot))]
-  color_index=natsorted(keys_to_plot)
   fig = plt.figure(figsize=(6.4*1.5, 4.8))
 
   ax = fig.add_subplot(2,3,1)
   for model in keys_to_plot:
     scaled_validation_time, units = choose_units(validation_time[model])
 
-    line, = ax.plot(validation_step[model], validation_accuracy[model], \
-                    color=colors[color_index.index(model)])
+    line, = ax.plot(validation_step[model], validation_accuracy[model])
     line.set_label(model)
   ax.set_ylim(top=100)
   ax.set_xlabel('Step')
@@ -210,8 +205,7 @@ if len(keys_to_plot)>1:
   ax = fig.add_subplot(2,3,2)
   for model in keys_to_plot:
     ax.plot([x*batch_size[model]/training_set_size[model] \
-             for x in validation_step[model]], validation_accuracy[model], \
-            color=colors[color_index.index(model)])
+             for x in validation_step[model]], validation_accuracy[model])
   ax.set_ylim(top=100)
   ax.set_xlabel('Epoch')
   ax.set_ylabel('Overall accuracy')
@@ -219,8 +213,7 @@ if len(keys_to_plot)>1:
   ax = fig.add_subplot(2,3,3)
   for model in keys_to_plot:
     idx = min(len(scaled_validation_time), len(validation_accuracy[model]))
-    line, = ax.plot(scaled_validation_time[:idx], validation_accuracy[model][:idx], \
-                    color=colors[color_index.index(model)])
+    line, = ax.plot(scaled_validation_time[:idx], validation_accuracy[model][:idx])
     line.set_label(model)
   ax.set_ylim(top=100)
   ax.set_xlabel('Time ('+units+')')
@@ -231,24 +224,21 @@ if len(keys_to_plot)>1:
     epoch = [x*batch_size[model]/training_set_size[model]
              for x in validation_step[model]]
     idx = min(len(scaled_validation_time), len(epoch))
-    ax.plot(scaled_validation_time[:idx], epoch[:idx], \
-            color=colors[color_index.index(model)])
+    ax.plot(scaled_validation_time[:idx], epoch[:idx])
   ax.set_xlabel('Time ('+units+')')
   ax.set_ylabel('Epoch')
 
   ax = fig.add_subplot(2,3,5)
   for model in keys_to_plot:
     idx = min(len(scaled_validation_time), len(validation_step[model]))
-    ax.plot(scaled_validation_time[:idx], validation_step[model][:idx], \
-            color=colors[color_index.index(model)])
+    ax.plot(scaled_validation_time[:idx], validation_step[model][:idx])
   ax.set_xlabel('Time ('+units+')')
   ax.set_ylabel('Step')
 
   ax = fig.add_subplot(2,3,6)
   for model in keys_to_plot:
     line, = ax.plot([x*batch_size[model]/training_set_size[model] \
-                     for x in validation_step[model]], validation_step[model], \
-                    color=colors[color_index.index(model)])
+                     for x in validation_step[model]], validation_step[model])
     line.set_label(model)
   ax.set_xlabel('Epoch')
   ax.set_ylabel('Step')
@@ -259,25 +249,56 @@ if len(keys_to_plot)>1:
   plt.savefig(os.path.join(logdir,'train-overlay.pdf'))
   plt.close()
 
-summed_confusion_matrix, confusion_matrices, accuracies, words = \
-    sum_confusion_matrices(logdir, next(iter(keys_to_plot)).split('_')[0])
+summed_confusion_matrix, confusion_matrices, words = \
+    parse_confusion_matrices(logdir, next(iter(keys_to_plot)).split('_')[0])
 
-row_normalized_confusion_matrices={}
-col_normalized_confusion_matrices={}
+recall_matrices={}
+precision_matrices={}
+accuracies={}
 for model in keys_to_plot:
-  row_normalized_confusion_matrices[model], col_normalized_confusion_matrices[model] = \
+  recall_matrices[model], precision_matrices[model], accuracies[model] = \
         normalize_confusion_matrix(confusion_matrices[model])
 
-row_normalized_summed_confusion_matrix, col_normalized_summed_confusion_matrix = \
+recall_summed_matrix, precision_summed_matrix, accuracy_summed = \
       normalize_confusion_matrix(summed_confusion_matrix)
 
-summed_accuracy = 100 * np.trace(row_normalized_summed_confusion_matrix) / \
-                  len(row_normalized_summed_confusion_matrix)
-
+from mpl_toolkits.axes_grid1 import make_axes_locatable
 
 fig = plt.figure(figsize=(3*6.4, 4.8))
 
-ax = fig.add_subplot(1,3,1)
+ax = plt.subplot(1,3,1)
+plot_confusion_matrix(ax, summed_confusion_matrix, \
+                      precision_summed_matrix, recall_summed_matrix, \
+                      numbers=len(words)<10)
+divider = make_axes_locatable(ax)
+cax = divider.append_axes("right", size="5%", pad=0.1)
+fig.colorbar(cm.ScalarMappable(norm=mpl.colors.Normalize(vmin=0, vmax=100),
+                               cmap=cm.viridis),
+             cax=cax, ticks=[0,100], use_gridspec=True)
+ax.set_xticklabels(words, rotation=40, ha='right')
+ax.set_yticklabels(words)
+ax.invert_yaxis()
+ax.set_xlabel('Classification')
+ax.set_ylabel('Annotation')
+ax.set_title(str(round(accuracy_summed,1))+"%")
+
+ax = plt.subplot(1,3,2)
+for model in keys_to_plot:
+  ax.set_prop_cycle(None)
+  for (iword,word) in enumerate(words):
+    line, = ax.plot(100*recall_matrices[model][iword][iword],
+                    100*precision_matrices[model][iword][iword],
+                    'o', markeredgecolor='k')
+    if model==keys_to_plot[0]:
+      line.set_label(word)
+
+ax.set_xlim(right=100)
+ax.set_ylim(top=100)
+ax.set_xlabel('Recall (%)')
+ax.set_ylabel('Precision (%)')
+ax.legend(loc=(1.05, 0.0))
+
+ax = fig.add_subplot(1,3,3)
 accuracies_ordered = [accuracies[k] for k in keys_to_plot]
 print('models=', keys_to_plot)
 print('accuracies=', accuracies_ordered)
@@ -285,8 +306,8 @@ print('accuracies=', accuracies_ordered)
 x = 1
 y = statistics.mean(accuracies_ordered)
 h = statistics.stdev(accuracies_ordered) if len(accuracies)>1 else 0
-avebox = Rectangle((y-h,-0.25),2*h,len(accuracies)+0.5)
-ax.plot([y,y],[-0.25,len(accuracies)+0.25],'w-')
+avebox = Rectangle((y-h,-0.25),2*h,len(accuracies)-1+0.5)
+ax.plot([y,y],[-0.25,len(accuracies)-1+0.25],'w-')
 pc = PatchCollection([avebox], facecolor='lightgray')
 ax.add_collection(pc)
 
@@ -294,41 +315,14 @@ ax.plot(accuracies_ordered, keys_to_plot, 'k.')
 ax.set_xlabel('Overall accuracy (%)')
 ax.set_ylabel('Model')
 
-ax = plt.subplot(1,3,2)
-plot_confusion_matrix(ax, summed_confusion_matrix, \
-                      col_normalized_summed_confusion_matrix, \
-                      row_normalized_summed_confusion_matrix, \
-                      numbers=len(words)<10)
-ax.set_xticklabels(words, rotation=40, ha='right')
-ax.set_yticklabels(words)
-ax.invert_yaxis()
-ax.set_xlabel('Classification')
-ax.set_ylabel('Annotation')
-ax.set_title(str(round(summed_accuracy,1))+"%")
-
-ax = plt.subplot(1,3,3)
-for (iword,word) in enumerate(words):
-  for model in keys_to_plot:
-    color = cm.viridis((len(word)-iword)/len(word))
-    line, = ax.plot(row_normalized_confusion_matrices[model][iword][iword],
-                    col_normalized_confusion_matrices[model][iword][iword],
-                    'o', markerfacecolor=color, markeredgecolor='k')
-  line.set_label(word)
-
-ax.set_xlim(right=1)
-ax.set_ylim(top=1)
-ax.set_xlabel('Recall')
-ax.set_ylabel('Precision')
-ax.legend(loc='lower left')
-
 fig.tight_layout()
 plt.savefig(os.path.join(logdir,'accuracy.pdf'))
 plt.close()
 
 if len(keys_to_plot)>1:
   plot_confusion_matrices(confusion_matrices,
-                          col_normalized_confusion_matrices,
-                          row_normalized_confusion_matrices,
+                          precision_matrices,
+                          recall_matrices,
                           words, accuracies, keys_to_plot,
                           numbers=len(words)<10)
   plt.savefig(os.path.join(logdir,'confusion-matrices.pdf'))
