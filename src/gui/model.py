@@ -300,11 +300,11 @@ def init(_configuration_file):
                        'wantedwords':'', \
                        'labeltypes':'', \
                        'prevalences':'', \
-                       'time_sigma':'6', \
+                       'time_sigma':'6,3', \
                        'time_smooth_ms':'6.4', \
                        'frequency_n_ms':'25.6', \
                        'frequency_nw':'4', \
-                       'frequency_p':'0.1', \
+                       'frequency_p':'0.1,1.0', \
                        'frequency_smooth_ms':'25.6', \
                        'circle_radius':1, \
                        'dot_size':6, \

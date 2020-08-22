@@ -516,9 +516,12 @@ def detect_actuate():
                                 M.detect_where, M.detect_local_resources, "",
                                 M.detect_cluster_flags,
                                 wavfile, \
-                                V.time_sigma_string.value, V.time_smooth_ms_string.value, \
-                                V.frequency_n_ms_string.value, V.frequency_nw_string.value, \
-                                V.frequency_p_string.value, V.frequency_smooth_ms_string.value,
+                                *V.time_sigma_string.value.split(','), \
+                                V.time_smooth_ms_string.value, \
+                                V.frequency_n_ms_string.value, \
+                                V.frequency_nw_string.value, \
+                                *V.frequency_p_string.value.split(','), \
+                                V.frequency_smooth_ms_string.value,
                                 str(M.audio_tic_rate), str(M.audio_nchannels))
         jobids.append(jobid)
         displaystring = "DETECT "+os.path.basename(wavfile)+" ("+jobid+")"
@@ -1486,7 +1489,7 @@ def wizard_callback(wizard):
         wantedwords=[]
         for i in range(M.audio_nchannels):
             i_str = str(i) if M.audio_nchannels>1 else ''
-            wantedwords.append("time"+i_str+",frequency"+i_str)
+            wantedwords.append("time"+i_str+",frequency"+i_str+",ambient"+i_str)
         V.wantedwords_string.value=','.join(wantedwords)
         V.labeltypes_string.value="detected"
         V.nsteps_string.value="0"

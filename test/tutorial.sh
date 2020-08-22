@@ -15,16 +15,18 @@ mkdir -p scratch/sh/groundtruth-data/round1
 cp /opt/deepsong/data/PS_20130625111709_ch3.wav scratch/sh/groundtruth-data/round1
 
 wavpath_noext=scratch/sh/groundtruth-data/round1/PS_20130625111709_ch3
-time_sigma=6
+time_sigma_signal=6
+time_sigma_noise=3
 time_smooth_ms=6.4
 frequency_n_ms=25.6
 frequency_nw=4
-frequency_p=0.1
+frequency_p_signal=0.1
+frequency_p_noise=1.0
 frequency_smooth_ms=25.6
 detect.sh \
       ${wavpath_noext}.wav \
-      $time_sigma $time_smooth_ms \
-      $frequency_n_ms $frequency_nw $frequency_p $frequency_smooth_ms \
+      $time_sigma_signal $time_sigma_noise $time_smooth_ms \
+      $frequency_n_ms $frequency_nw $frequency_p_signal $frequency_p_noise $frequency_smooth_ms \
       $audio_tic_rate $audio_nchannels \
       &> ${wavpath_noext}-detect.log
 
@@ -32,6 +34,7 @@ check_file_exists ${wavpath_noext}-detect.log
 check_file_exists ${wavpath_noext}-detected.csv
 count_lines_with_word ${wavpath_noext}-detected.csv time 543
 count_lines_with_word ${wavpath_noext}-detected.csv frequency 45
+count_lines_with_word ${wavpath_noext}-detected.csv ambient 1138
 
 context_ms=204.8
 shiftby_ms=0.0
@@ -205,8 +208,8 @@ count_lines_with_word ${wavpath_noext}-predicted-1.0pr.csv ambient 88
 
 detect.sh \
       ${wavpath_noext}.wav \
-      $time_sigma $time_smooth_ms \
-      $frequency_n_ms $frequency_nw $frequency_p $frequency_smooth_ms \
+      $time_sigma_signal $time_sigma_noise $time_smooth_ms \
+      $frequency_n_ms $frequency_nw $frequency_p_signal $frequency_p_noise $frequency_smooth_ms \
       $audio_tic_rate $audio_nchannels \
       &> ${wavpath_noext}-detect.log
 

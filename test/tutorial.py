@@ -33,11 +33,11 @@ run(["hetero", "start",
 
 wavpath_noext = "scratch/py/groundtruth-data/round1/PS_20130625111709_ch3"
 V.wavtfcsvfiles_string.value = wavpath_noext+".wav"
-V.time_sigma_string.value = "6"
+V.time_sigma_string.value = "6,3"
 V.time_smooth_ms_string.value = "6.4"
 V.frequency_n_ms_string.value = "25.6"
 V.frequency_nw_string.value = "4"
-V.frequency_p_string.value = "0.1"
+V.frequency_p_string.value = "0.1,1.0"
 V.frequency_smooth_ms_string.value = "25.6"
 C.detect_actuate()
 
@@ -47,6 +47,7 @@ check_file_exists(wavpath_noext+"-detect.log")
 check_file_exists(wavpath_noext+"-detected.csv")
 count_lines_with_word(wavpath_noext+"-detected.csv", "time", 543)
 count_lines_with_word(wavpath_noext+"-detected.csv", "frequency", 45)
+count_lines_with_word(wavpath_noext+"-detected.csv", "ambient", 1138)
 
 V.context_ms_string.value = "204.8"
 V.shiftby_ms_string.value = "0.0"

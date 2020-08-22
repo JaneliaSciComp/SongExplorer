@@ -17,6 +17,39 @@ from natsort import realsorted
 sys.path.append(os.path.dirname(os.path.realpath(__file__)))
 from jitter import *
 
+def combine_events(events1, events2, logic):
+  max_time1 = np.max([int(x[2]) for x in events1])
+  max_time2 = np.max([int(x[2]) for x in events2])
+  max_time = max(max_time1, max_time2)
+
+  bool1 = np.full((max_time,), False)
+  for event in events1:
+    bool1[int(event[1]):int(event[2])+1] = True
+
+  bool2 = np.full((max_time,), False)
+  for event in events2:
+    bool2[int(event[1]):int(event[2])+1] = True
+
+  bool12 = logic(bool1, bool2)
+
+  diff_bool12 = np.diff(bool12)
+  changes = np.where(diff_bool12)[0]
+  nfeatures = int(np.ceil(len(changes)/2))
+  start_times = np.empty((nfeatures,), dtype=np.int32)
+  stop_times = np.empty((nfeatures,), dtype=np.int32)
+  ifeature = 0
+  ichange = 1
+  while ichange<len(changes):
+    if not bool12[changes[ichange]]:  # starts with word
+       ichange += 1;
+       continue
+    start_times[ifeature] = changes[ichange-1]+1
+    stop_times[ifeature] = changes[ichange]
+    ifeature += 1
+    ichange += 2
+
+  return start_times, stop_times, ifeature
+
 def confusion_string2matrix(arg):
   arg = arg[1:-1]
   arg = arg.replace("\n", ",")
