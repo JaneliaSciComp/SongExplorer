@@ -1264,18 +1264,18 @@ def congruence_succeeded(logdir, reftime, regex_files):
     #    return False
     for subdir in filter(lambda x: os.path.isdir(os.path.join(logdir,x)), \
                          os.listdir(logdir)):
-      listfiles = os.listdir(os.path.join(logdir,subdir))
-      csvfiles = list(filter(lambda x: re.match(regex_files, x), listfiles))
-      if len(csvfiles)==0:
-        continue
-      ndisjoint_everyone = len(list(filter(lambda x: "disjoint-everyone" in x, csvfiles)))
-      for disjointstr in ["disjoint-tic-only", "disjoint-tic-not", \
-                          "disjoint-word-only", "disjoint-word-not"]:
-          n = len(list(filter(lambda x: disjointstr in x, csvfiles)))
-          if n % ndisjoint_everyone != 0:
-              bokehlog.info("ERROR: # of "+k+ \
-                            " CSV files does not match # of disjoint-everyone CSV files.")
-              return False
+        listfiles = os.listdir(os.path.join(logdir,subdir))
+        csvfiles = list(filter(lambda x: re.match(regex_files, x), listfiles))
+        if len(csvfiles)==0:
+          continue
+        ndisjoint_everyone = len(list(filter(lambda x: "disjoint-everyone" in x, csvfiles)))
+        for disjointstr in ["disjoint-tic-only", "disjoint-tic-not", \
+                            "disjoint-word-only", "disjoint-word-not"]:
+            n = len(list(filter(lambda x: disjointstr in x, csvfiles)))
+            if n % ndisjoint_everyone != 0:
+                bokehlog.info("ERROR: # of "+k+ \
+                              " CSV files does not match # of disjoint-everyone CSV files.")
+                return False
     return True
 
 def congruence_actuate():
@@ -1283,7 +1283,8 @@ def congruence_actuate():
     validation_files = _validation_test_files(V.validationfiles_string.value, False)
     test_files = _validation_test_files(V.testfiles_string.value, False)
     all_files = validation_files + test_files
-    all_files.remove('')
+    if '' in all_files:
+        all_files.remove('')
     logfile = os.path.join(V.groundtruth_folder.value,'congruence.log')
     jobid = generic_actuate("congruence.sh", logfile,
                             M.congruence_where, M.congruence_local_resources, "", \
