@@ -1,20 +1,25 @@
+#!/bin/bash
+
 # recapitulate the tutorial via the shell interface
 
-#singularity exec -B /groups /groups/stern/sternlab/behavior/arthurb/deepsong_latest.sif bash -c "./tutorial.sh"
+#${DEEPSONG_BIN/-B/-B /tmp:/opt/deepsong/test/scratch -B} bash -c "test/tutorial.sh"
 
 check_file_exists() { [[ -e $1 ]] || echo ERROR: $1 is missing; }
 count_lines_with_word() {
       (( $(grep $2 $1 | wc -l) == $3 )) || echo ERROR: $1 has wrong $2 count; }
 
-mkdir -p scratch/sh
-cp /opt/deepsong/configuration.pysh scratch/sh
+repo_path=$(dirname $(dirname $(which detect.sh)))
 
-source scratch/sh/configuration.pysh
+mkdir -p $repo_path/test/scratch/sh
+cp $repo_path/configuration.pysh $repo_path/test/scratch/sh
 
-mkdir -p scratch/sh/groundtruth-data/round1
-cp /opt/deepsong/data/PS_20130625111709_ch3.wav scratch/sh/groundtruth-data/round1
+source $repo_path/test/scratch/sh/configuration.pysh
 
-wavpath_noext=scratch/sh/groundtruth-data/round1/PS_20130625111709_ch3
+mkdir -p $repo_path/test/scratch/sh/groundtruth-data/round1
+cp $repo_path/data/PS_20130625111709_ch3.wav \
+   $repo_path/test/scratch/sh/groundtruth-data/round1
+
+wavpath_noext=$repo_path/test/scratch/sh/groundtruth-data/round1/PS_20130625111709_ch3
 time_sigma_signal=6
 time_sigma_noise=3
 time_smooth_ms=6.4
@@ -52,8 +57,8 @@ nfeatures=64,64,64
 dilate_after_layer=65535
 stride_after_layer=65535
 connection_type=plain
-logdir=scratch/sh/untrained-classifier
-data_dir=scratch/sh/groundtruth-data
+logdir=$repo_path/test/scratch/sh/untrained-classifier
+data_dir=$repo_path/test/scratch/sh/groundtruth-data
 wanted_words=time,frequency
 labels_touse=detected
 nsteps=0
@@ -115,11 +120,11 @@ check_file_exists $data_dir/cluster.log
 check_file_exists $data_dir/cluster.npz
 check_file_exists $data_dir/cluster-pca.pdf
 
-cp /opt/deepsong/data/PS_20130625111709_ch3-annotated-person1.csv \
-      scratch/sh/groundtruth-data/round1
+cp $repo_path/data/PS_20130625111709_ch3-annotated-person1.csv \
+   $repo_path/test/scratch/sh/groundtruth-data/round1
 
-logdir=scratch/sh/trained-classifier1
-wanted_words=pulse,sine,ambient
+logdir=$repo_path/test/scratch/sh/trained-classifier1
+wanted_words=mel-pulse,mel-sine,ambient
 labels_touse=annotated
 nsteps=100
 save_and_test_interval=10
@@ -169,10 +174,11 @@ freeze.sh \
 check_file_exists $logdir/train_${ireplicates}r/freeze.ckpt-$check_point.log
 check_file_exists $logdir/train_${ireplicates}r/frozen-graph.ckpt-$check_point.pb
 
-mkdir scratch/sh/groundtruth-data/round2
-cp /opt/deepsong/data/20161207T102314_ch1.wav scratch/sh/groundtruth-data/round2
+mkdir $repo_path/test/scratch/sh/groundtruth-data/round2
+cp $repo_path/data/20161207T102314_ch1.wav \
+   $repo_path/test/scratch/sh/groundtruth-data/round2
 
-wavpath_noext=scratch/sh/groundtruth-data/round2/20161207T102314_ch1
+wavpath_noext=$repo_path/test/scratch/sh/groundtruth-data/round2/20161207T102314_ch1
 classify1.sh \
       $context_ms '' $representation $stride_ms \
       $logdir train_${ireplicates}r $check_point \
@@ -263,10 +269,10 @@ cluster.sh \
 check_file_exists $data_dir/cluster.log
 check_file_exists $data_dir/cluster.npz
 
-cp /opt/deepsong/data/20161207T102314_ch1-annotated-person1.csv \
-      scratch/sh/groundtruth-data/round2
+cp $repo_path/data/20161207T102314_ch1-annotated-person1.csv \
+   $repo_path/test/scratch/sh/groundtruth-data/round2
 
-logdir=scratch/sh/omit-one
+logdir=$repo_path/test/scratch/sh/omit-one
 wavfiles=(PS_20130625111709_ch3.wav 20161207T102314_ch1.wav)
 mkdir $logdir
 ioffsets=$(seq 0 $(dc -e "${#wavfiles[@]} 1 - p"))
@@ -312,7 +318,7 @@ done
 
 nfeaturess=(32,32,32 64,64,64)
 for nfeatures in ${nfeaturess[@]} ; do
-  logdir=scratch/sh/nfeatures-${nfeatures%%,*}
+  logdir=$repo_path/test/scratch/sh/nfeatures-${nfeatures%%,*}
   kfold=2
   ifolds=$(seq 1 $kfold)
   mkdir $logdir
@@ -355,7 +361,7 @@ for nfeatures in ${nfeaturess[@]} ; do
   done
 done
 
-logdirs_prefix=scratch/sh/nfeatures
+logdirs_prefix=$repo_path/test/scratch/sh/nfeatures
 compare.sh $logdirs_prefix &> ${logdirs_prefix}-compare.log
 
 check_file_exists ${logdirs_prefix}-compare.log
@@ -368,7 +374,7 @@ mistakes.sh $data_dir &> $data_dir/mistakes.log
 check_file_exists $data_dir/mistakes.log
 check_file_exists $data_dir/round1/PS_20130625111709_ch3-mistakes.csv
 
-logdir=scratch/sh/trained-classifier2
+logdir=$repo_path/test/scratch/sh/trained-classifier2
 labels_touse=annotated
 nsteps=100
 validation_percentage=20
@@ -416,10 +422,11 @@ freeze.sh \
 check_file_exists $logdir/train_${ireplicates}r/freeze.ckpt-$check_point.log
 check_file_exists $logdir/train_${ireplicates}r/frozen-graph.ckpt-$check_point.pb
 
-mkdir scratch/sh/groundtruth-data/congruence
-cp /opt/deepsong/data/20190122T093303a-7.wav scratch/sh/groundtruth-data/congruence
+mkdir $repo_path/test/scratch/sh/groundtruth-data/congruence
+cp $repo_path/data/20190122T093303a-7.wav \
+   $repo_path/test/scratch/sh/groundtruth-data/congruence
 
-wavpath_noext=scratch/sh/groundtruth-data/congruence/20190122T093303a-7
+wavpath_noext=$repo_path/test/scratch/sh/groundtruth-data/congruence/20190122T093303a-7
 classify1.sh \
       $context_ms '' $representation $stride_ms \
       $logdir train_${ireplicates}r $check_point ${wavpath_noext}.wav \
@@ -450,8 +457,10 @@ for pr in $(echo $precision_recall_ratios | sed "s/,/ /g") ; do
   check_file_exists ${wavpath_noext}-predicted-${pr}pr.csv
 done
 
-cp /opt/deepsong/data/20190122T093303a-7-annotated-person2.csv scratch/sh/groundtruth-data/congruence
-cp /opt/deepsong/data/20190122T093303a-7-annotated-person3.csv scratch/sh/groundtruth-data/congruence
+cp $repo_path/data/20190122T093303a-7-annotated-person2.csv \
+   $repo_path/test/scratch/sh/groundtruth-data/congruence
+cp $repo_path/data/20190122T093303a-7-annotated-person3.csv \
+   $repo_path/test/scratch/sh/groundtruth-data/congruence
 
 wav_file_noext=20190122T093303a-7
 congruence.sh \

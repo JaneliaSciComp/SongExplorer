@@ -1377,7 +1377,7 @@ buttons:
     import os
 
     # load the GUI
-    sys.path.append(os.path.join(os.environ["DEEPSONG_HOME"], "src", "gui"))
+    sys.path.append("/opt/deepsong/src/gui")
     import model as M
     import view as V
     import controller as C
@@ -1412,7 +1412,7 @@ buttons:
     # stop the job scheduler
     run(["hetero", "stop"], stdout=PIPE, stderr=STDOUT)
 
-For more details see the system tests in $DEEPSONG_HOME/test/tutorial.{sh,py}.
+For more details see the system tests in /opt/deepsong/test/tutorial.{sh,py}.
 These two files implement, as bash and python scripts respectively, the entire
 workflow presented in this [Tutorial](#tutorial), from [Detecting
 Sounds](#detecting-sounds) all the way to [Testing Densely](#testing-densely).

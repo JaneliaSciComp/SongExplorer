@@ -31,7 +31,7 @@ Stage: build
     pip3 install tensorflow
 
     # install matplotlib etc
-    apt-get -y install vim python3-tk dc ssh libxml2 nodejs make
+    apt-get -y install vim python3-tk dc ssh libxml2 nodejs make tree
     pip3 install matplotlib scipy natsort scikit-image bokeh nitime sklearn umap-learn matplotlib_venn pandas dictdiffer
     apt-get -y install python3-dev pkg-config
     apt-get -y install libavformat-dev libavcodec-dev libavdevice-dev libavutil-dev libswscale-dev libswresample-dev libavfilter-dev

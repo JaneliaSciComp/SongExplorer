@@ -1,9 +1,13 @@
-def wait_for_job():
+import os
+from subprocess import run, PIPE, STDOUT
+import time
+
+def wait_for_job(status_ticker_queue):
   while True:
     p = run(["hetero", "jobs"], stdout=PIPE, stderr=STDOUT)
     if p.stdout.decode('ascii').rstrip() == "":
-      for key in M.status_ticker_queue.keys():
-        if M.status_ticker_queue[key] == "failed":
+      for key in status_ticker_queue.keys():
+        if status_ticker_queue[key] == "failed":
           print("ERROR: status is 'failed' for '"+key+"'")
       break
     time.sleep(1)
