@@ -5,7 +5,7 @@
 # classify2.py <logdir> <model> <tffile> <context> <shift> <stride> [<labels>, <prevalences>]
 
 # e.g.
-# deepsong classify2.py `pwd`/trained-classifier 1k `pwd`/groundtruth-data/20161207T102314_ch1_p1.tf 204.8 0 1.6 mel-pulse,mel-sine,ambient 0.1,0.1,0.8
+# classify2.py `pwd`/trained-classifier 1k `pwd`/groundtruth-data/20161207T102314_ch1_p1.tf 204.8 0 1.6 mel-pulse,mel-sine,ambient 0.1,0.1,0.8
 
 import sys
 import os

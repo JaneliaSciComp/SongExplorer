@@ -1334,14 +1334,14 @@ def init(_bokeh_document):
     ]
     file_dialog_table = DataTable(source=file_dialog_source, \
                                   columns=file_dialog_columns, \
-                                  height=730, width=M.gui_width_pix//2-10, \
+                                  height=727, width=M.gui_width_pix//2-10, \
                                   index_position=None,
                                   fit_columns=False)
 
     waitfor = Toggle(label='wait for last job', active=False, disabled=True, width=100)
     waitfor.on_click(C.waitfor_callback)
 
-    configuration_contents = TextAreaInput(rows=48, max_length=50000, \
+    configuration_contents = TextAreaInput(rows=46, max_length=50000, \
                                         disabled=True, css_classes=['fixedwidth'])
     configuration_contents_update()
     configuration_contents.on_change('value', C.configuration_textarea_callback)
@@ -1631,7 +1631,7 @@ def init(_bokeh_document):
     with open(os.path.join(os.path.dirname(os.path.realpath(__file__)),'..','..','README.md'), 'r', encoding='utf-8') as fid:
         contents = fid.read()
     html = markdown.markdown(contents, extensions=['tables','toc'])
-    readme_contents = Div(text=html, style={'overflow':'scroll','width':'600px','height':'1390px'})
+    readme_contents = Div(text=html, style={'overflow':'scroll','width':'600px','height':'1397px'})
 
     wordcounts = Div(text="")
     wordcounts_update()
@@ -1729,7 +1729,7 @@ def init(_bokeh_document):
         stride_after_layer_string])
 
     wizard2actions = {
-            labelsounds: [detect,train,activations,cluster,visualize],
+            labelsounds: [detect,train,activations,cluster,visualize,accuracy],
             makepredictions: [train, accuracy, freeze, classify, ethogram],
             fixfalsepositives: [activations, cluster, visualize],
             fixfalsenegatives: [detect, misses, activations, cluster, visualize],
@@ -1737,7 +1737,7 @@ def init(_bokeh_document):
             tunehyperparameters: [xvalidate, accuracy, compare],
             findnovellabels: [detect, train, activations, cluster, visualize],
             examineerrors: [detect, mistakes, activations, cluster, visualize],
-            testdensely: [train, leaveoneout, leaveallout, xvalidate, accuracy, freeze, classify, ethogram, congruence],
+            testdensely: [detect, activations, cluster, visualize, classify, ethogram, congruence],
             None: action_buttons }
 
     action2parameterbuttons = {

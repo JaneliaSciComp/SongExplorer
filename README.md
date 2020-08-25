@@ -144,17 +144,21 @@ Conda recipe to make this easy.
 ## Singularity for Linux, Mac, and Windows ##
 
 Platform-specific installation instructions can be found at
-[Sylabs](https://www.sylabs.io).  DeepSong has been tested with version 3.4.
+[Sylabs](https://www.sylabs.io).  DeepSong has been tested with version 3.4 on
+linux and [3.3 Desktop Beta](https://sylabs.io/singularity-desktop-macos) on
+Mac.
 
 You'll also need to install the CUDA and CUDNN drivers from nvidia.com.
 The latter requires you to register for an account.  DeepSong was tested and
-built with version 10.1.
+built with version 10.2.
 
 Next download the DeepSong image from the cloud.  You can either go to
 [DeepSong's cloud.sylabs.io
 page](https://cloud.sylabs.io/library/_container/5ccca72a800ca26aa6ccf008) and
 click the Download button, or equivalently use the command line (for which you
 might need an access token):
+
+    $ singularity remote login SylabsCloud
 
     $ singularity pull library://bjarthur/default/deepsong:latest
     INFO:    Container is signed
@@ -167,12 +171,11 @@ might need an access token):
 
 Finally, put these definitions in your .bashrc file:
 
-    export DEEPSONG_BIN='singularity exec -B `pwd` --nv <path-to-deepsong_latest.sif>'
-    alias deepsong="$DEEPSONG_BIN gui.sh `pwd`/configuration.sh 5006"
+    export DEEPSONG_BIN="singularity exec [--nv] <path-to-deepsong_latest.sif>"
+    alias deepsong="$DEEPSONG_BIN gui.sh <path-to-configuration.pysh> 5006"
 
-Note that the current directory is mounted in the `export` above with the `-B`
-flag.  If you want to access any other directories, you'll have to add additional
-flags (e.g. `-B /groups:/groups`).
+Add to the DEEPSONG_BIN export any directories you mounted using the `-B` flag
+(e.g. `-B /my/home/directory`).
 
 ## Docker for Windows, Mac, and Linux ##
 
@@ -180,6 +183,8 @@ Platform-specific installation instructions can be found at
 [Docker](http://www.docker.com).  Once you have it installed, download the
 [DeepSong image from
 cloud.docker.com](https://cloud.docker.com/u/bjarthur/repository/docker/bjarthur/deepsong):
+
+    $ docker login
 
     $ docker pull bjarthur/deepsong
     Using default tag: latest
@@ -193,13 +198,12 @@ cloud.docker.com](https://cloud.docker.com/u/bjarthur/repository/docker/bjarthur
 
 Finally, put these definitions in your .bashrc file:
 
-    export DEEPSONG_BIN='docker run -w `pwd` -v `pwd`:`pwd` --env DEEPSONG_BIN \
-        -h=`hostname` -p 5006:5006 bjarthur/deepsong'
-    alias deepsong="$DEEPSONG_BIN gui.sh `pwd`/configuration.sh 5006"
+    export DEEPSONG_BIN="docker run -w `pwd` --env DEEPSONG_BIN \
+        -h=`hostname` -p 5006:5006 bjarthur/deepsong"
+    alias deepsong="$DEEPSONG_BIN gui.sh <path-to-configuration.pysh> 5006"
 
-Note that the current directory is mounted in the `export` above with the
-`-v` flag.  If you want to access any other directories, you'll have to
-add additional flags (e.g. `-v /C:/C`).
+Add to the DEEPSONG_BIN export any directories you mounted using the `-v` flag
+(e.g. `-v /C:/C`).
 
 Should docker ever hang, or run for an interminably long time, and you
 want to kill it, you'll need to open another terminal window and issue the
@@ -222,114 +226,88 @@ The virtual machine that docker runs within is configured by default with only
 ## System Configuration ##
 
 DeepSong is capable of training a classifier and making predictions on
-recordings either locally on the host computer or remotely on a workstation, a
-cluster, or the cloud.  You specify how you want this to work by editing
-"configuration.sh".
+recordings either locally on the host computer, or remotely on a workstation or
+a cluster.  You specify how you want this to work by editing
+"configuration.pysh".
 
-Copy an exemplar configuration file out of the container and into your home
+Copy the exemplar configuration file out of the container and into your home
 directory:
 
-    $ $DEEPSONG_BIN cp /opt/deepsong/configuration.sh .
+    $ $DEEPSONG_BIN cp /opt/deepsong/configuration.pysh .
 
-Inside you'll find many shell variables and functions which control where
-DeepSong does its work:
+Inside you'll find many variables which control where DeepSong does its work:
 
-    $ grep _where= configuration.sh 
-    default_where=local
-    detect_where=$default_where
-    misses_where=$default_where
-    train_where=$default_where
-    generalize_where=$default_where
-    xvalidate_where=$default_where
-    hidden_where=$default_where
-    cluster_where=$default_where
-    accuracy_where=$default_where
-    freeze_where=$default_where
-    classify_where=$default_where
-    ethogram_where=$default_where
-    compare_where=$default_where
-    dense_where=$default_where
-
-    $  grep -A21 GENERIC configuration.sh 
-    # GENERIC HOOK
-    generic_it () {
-        cmd=$1
-        logfile=$2
-        where=$3
-        deepsongbin=$4
-        localargs=$5
-        localdeps=$6
-        clusterflags=$7
-        if [ "$where" == "local" ] ; then
-            hetero submit "{ export CUDA_VISIBLE_DEVICES=\$QUEUE1; $cmd; } &> $logfile" \
-                          $localargs "$localdeps" >${logfile}.job
-        elif [ "$where" == "server" ] ; then
-            ssh c03u14 "$deepsongbin bash -c \"$cmd\" &> $logfile"
-        elif [ "$where" == "cluster" ] ; then
-            ssh login1 bsub \
-                       -P stern \
-                       -J ${logfile}.job \
-                       "$clusterflags" \
-                       -oo $logfile <<<"$deepsongbin bash -c \"$cmd\""
-        fi
-    }
-
-
-    $  grep -A7 train_gpu configuration.sh 
-    train_gpu=1
-    train_where=$default_where
-    train_it () {
-        if [ "$train_gpu" -eq "1" ] ; then
-            generic_it "$1" "$2" "$train_where" \
-                       "2 1 1" "" "-n 2 -W 1440 -gpu \"num=1\" -q gpu_rtx"
-        else
-            generic_it "$1" "$2" "$train_where" \
-                       "12 0 1" "" "-n 24 -W 1440"
-        fi
-    }
+    $ grep _where= configuration.pysh
+    default_where="local"
+    detect_where=default_where
+    misses_where=default_where
+    train_where=default_where
+    generalize_where=default_where
+    xvalidate_where=default_where
+    mistakes_where=default_where
+    activations_where=default_where
+    cluster_where=default_where
+    accuracy_where=default_where
+    freeze_where=default_where
+    classify_where=default_where
+    ethogram_where=default_where
+    compare_where=default_where
+    congruence_where=default_where
 
 Each operation (e.g. detect, train, classify, generalize, etc.) is dispatched
-by an eponymous function ending in `\_it`.  In the example above, `train_it` is
-called when you train a model.  This function hook references a variable called
-`train_where` that is used by `generic_it` to switch between using the "local"
-host computer, a remote "server", or an on-premise "cluster".
+according to these `_where` variables.  DeepSong is shipped with each set to
+"local" via the `default_where` variable at the top of the configuration file.
+This value instructs DeepSong to perform the task on the same machine as used
+for the GUI.  You can change which computer is used to do the actual work
+either globally through this variable, or by configuring the operation specific
+ones later in the file.  Other valid values for these variables are "server"
+for a remote workstation that you can `ssh` into, and "cluster" for an
+on-premise Beowulf-style cluster with a job scheduler.
 
-DeepSong comes with each `_where` variable set to "local" via the
-`default_where` variable at the top of the configuration file.  You can change
-which computer is used either globally through this variable, or by configuring
-the operation specific ones later in the file.
+Note that "configuration.pysh" must be a valid python *and* bash file.  Hence
+the unusual ".pysh" extension.
 
 ## Scheduling Jobs ##
 
-Irrespective of where you want to perform your compute, the aforementioned hook
-functions need to be tailored to your specific resources.  How your compute
-environment needs to be set up also depend on this choice.
+Irrespective of where you want to perform your compute, there are additional
+variables that need to be tailored to your specific resources.
 
 ### Locally ###
 
-When running locally DeepSong uses a job scheduler to manage the resources
-required by different commands.  So that multiple tasks can be performed
-simultaneously without overwhelming your workstation, you must list its
-specifications in "configuration.sh", as well as how much of those resources
-each action maximally requires.
+When running locally DeepSong uses a custom job scheduler to manage the
+resources required by different commands.  So that multiple tasks can be
+performed simultaneously without overwhelming your workstation, you must list
+its specifications in "configuration.pysh":
 
-    $ grep -A4 \'local configuration.sh 
+    $ grep -A4 \'local configuration.pysh
     # specs of the 'local' computer
     local_ncpu_cores=12
     local_ngpu_cards=1
     local_ngigabytes_memory=32
 
-The fifth argument input to the `generic_it` function, called `localargs`,
-controls how many resources are allocated to a job when run locally.
-Specifically, its a string of three integers, which specify the number of CPU
+Similarly, for each kind of task, you must specify how much of those resources
+it requires.  Here, for example, are the settings for training a model locally:
+
+    $ grep -A3 train_gpu configuration.pysh 
+    train_gpu=1
+    train_where=default_where
+    train_local_resources_gpu="2 1 1"
+    train_local_resources_cpu="12 0 1"
+
+Let's break this down.  When training (as well as certain other tasks),
+DeepSong provides the option to use a GPU or not with the `train_gpu` variable.
+Depending on the size of your model, the resources you have access to and their
+associated cost, and how many tasks you want to run in parallel, you might or
+might not want or be able to use one.  The `train_local_resources_{gpu,cpu}`
+variables are each a string of three integers, which specify the number of CPU
 cores, number of GPU cards, and number of gigabytes of memory needed
 respectively.
 
-Training a model in the [Tutorial](#tutorial) below, for example, typically
-needs two CPU cores, one GPU, and a megabyte of memory, and hence the string "2
-1 1" in the fifth position to the first reference to `generic_it` inside the
-`train_it` example above.  Alternatively, if you don't have a GPU, you could
-use an entire CPU with "12 0 1" as in the second reference.
+Training the model in the [Tutorial](#tutorial) below, for example, needs two
+CPU cores, one GPU, and a megabyte of memory, and hence
+`train_local_resources_gpu` is set to the string "2 1 1".  Alternatively, if
+you don't have a GPU, you could use an entire CPU by setting `train_gpu` to 0
+and `train_local_resources_cpu` to "12 0 1".
 
 To assess how much resources your particular workflow requires, use the `top`
 and `nvidia-smi` commands to monitor jobs while they are running.
@@ -391,7 +369,7 @@ The advantage here is that less compute intensive jobs (e.g. freeze, accuracy)
 can be run on your workstation.  In this case:
 
 * Store all DeepSong related files on the share, including the container image,
-"configuration.sh", and all of your data.
+"configuration.pysh", and all of your data.
 
 * Make the remote and local file paths match by creating a symbolic link.
 For example, if on a Mac you use SMB to mount as "/Volumes/sternlab"
@@ -408,19 +386,20 @@ your workstation and the server to point to this same image.
 ~/.ssh:/ssh` to `DEEPSONG_BIN`.
 
 * You might need to use ssh flags `-i /ssh/id_rsa -o "StrictHostKeyChecking
-no"` in "configuration.sh".
+no"` in "configuration.pysh".
 
 If you do not have a shared file system, the DeepSong image and configuration file
 must be separately installed on both computers, and you'll need to do all of
 the compute jobs remotely.
 
-Lastly, update "configuration.sh" with the specification of the server.  As
+Lastly, update "configuration.pysh" with the specification of the server.  As
 when doing compute locally, DeepSong uses a job scheduler on the server to
-manage resources.
+manage resources.  The per-task resources used are the same as specified for
+the local machine in `<task>_local_resources_{gpu,cpu}`.
 
-    $ grep -A5 \'server configuration.sh 
+    $ grep -A5 \'server configuration.pysh
     # specs of the 'server' computer
-    server_ipaddr=c03u14
+    server_ipaddr="c03u14"
     server_ncpu_cores=24
     server_ngpu_cards=4
     server_ngigabytes_memory=256
@@ -446,15 +425,29 @@ to be the same with links.  The environment variables and aliases must also be
 the same.
 
 You'll likely need an RSA key pair, possibly need special `ssh` flags, and
-almost assuredly need to change the `bsub` command and/or its flags.  The best
-person to ask for help here is your system administrator.
+definitely need to specify the IP address of the head node and corresponding
+job submission command and its flags.  The best person to ask for help here is
+your system administrator.
 
-The seventh argument input to `generic_it`, called `clusterflags`, controls how
-many resources are allocated to a job when submitted to a cluster.  Its syntax
-is highly specific to the type of scheduler your cluster uses.  DeepSong comes
-with these arguments set to use the Load Sharing Facility (LSF) from IBM.  You
-could easily change them and the corresponding call to `bsub` in `generic_it`
-to support any cluster scheduler (e.g. SGE, PBS, Slurm, etc.).
+    $ grep -A3 \'cluster configuration.pysh
+    # specs of the 'cluster'
+    cluster_ipaddr="login1"
+    cluster_cmd="bsub -Ne -Pstern"
+    cluster_logfile_flag="-oo"
+
+The syntax used to specify the resources required is unique to the particular
+scheduler your cluster uses and how it is configured.  DeepSong was developed
+and tested using the Load Sharing Facility (LSF) from IBM.  To support any
+cluster scheduler (e.g. SGE, PBS, Slurm, etc.), DeepSong ignores
+`<task>_local_resources_{gpu,cpu}` when `<task_where>` is set to "cluster" and
+uses the variables `<task>_cluster_flags_{gpu,cpu}` instead to provide maximum
+flexibility.  Instead of specifying the cores, GPUs, and RAM needed explicitly,
+you give it the flags that the job submission command uses to allocate those
+same resources.
+
+    $ grep -A5 train_gpu configuration.pysh | tail -n 2
+    train_cluster_flags_gpu="-n 2 -gpu 'num=1' -q gpu_rtx"
+    train_cluster_flags_cpu="-n 12"
 
 
 # Tutorial #
@@ -468,15 +461,24 @@ tutorial we supply you with *Drosophila melanogaster* data sampled at 2500 Hz.
 
 First, let's get some data bundled with DeepSong into your home directory.
 
-    $ $DEEPSONG_BIN ls /opt/deepsong/data
-    20161207T102314_ch1_p1.wav     PS_20130625111709_ch3_p2.wav
-    20161207T102314_ch1_p2.wav     PS_20130625111709_ch3_p3.wav
-    20161207T102314_ch1_p3.wav     my_frozen_graph_1k_0.pb     
-    PS_20130625111709_ch3_p1.wav   vgg_labels.txt              
+    $ $DEEPSONG_BIN ls -1 /opt/deepsong/data
+    20161207T102314_ch1-annotated-person1.csv
+    20161207T102314_ch1.wav*
+    20190122T093303a-7-annotated-person2.csv*
+    20190122T093303a-7-annotated-person3.csv*
+    20190122T093303a-7.wav*
+    20190122T132554a-14-annotated-person2.csv*
+    20190122T132554a-14-annotated-person3.csv*
+    20190122T132554a-14.wav*
+    Antigua_20110313095210_ch26.wav
+    my_frozen_graph_1k_0.pb*
+    PS_20130625111709_ch3-annotated-person1.csv
+    PS_20130625111709_ch3.wav*
+    vgg_labels.txt*
 
     $ mkdir -p groundtruth-data/round1
 
-    $ $DEEPSONG_BIN cp /opt/deepsong/data/PS_20130625111709_ch3_p1.wav \
+    $ $DEEPSONG_BIN cp /opt/deepsong/data/PS_20130625111709_ch3.wav \
           ./groundtruth-data/round1
 
 ## Detecting Sounds ##
@@ -487,18 +489,24 @@ one of these as-of-yet unannotated audio recordings.
 First, start DeepSong's GUI:
 
     $ deepsong
+    arthurb-ws2:5006
+    2020-08-09 09:30:02,377 Starting Bokeh server version 2.0.2 (running on Tornado 6.0.4)
+    2020-08-09 09:30:02,381 User authentication hooks NOT provided (default user enabled)
+    2020-08-09 09:30:02,387 Bokeh app running at: http://localhost:5006/gui
+    2020-08-09 09:30:02,387 Starting Bokeh server with process id: 1189
+    2020-08-09 09:30:15,054 404 GET /favicon.ico (10.60.1.47) 1.15ms
+    2020-08-09 09:30:15,054 WebSocket connection opened
+    2020-08-09 09:30:15,055 ServerConnection created
 
-Then in your favorite internet browser navigate to `http://localhost:5006`.  If
-you are running the DeepSong GUI on a remote computer, replace `localhost` with
-that computer's hostname or IP address:
-
-    $ hostname [-i]
-    arthurb-ws2
+Then in your favorite internet browser navigate to the URL on the first line
+printed to the terminal.  In the output above this is "arthurb-ws2:5006", which
+is my computer's name, but for you it will be different.
 
 On the left you'll see three empty panels (two large squares side by side and
 one wide rectangle underneath) in which the sound recordings are displayed and
 annotated.  In the middle are buttons and text boxes used to train the
-classifier and make predictions with it.  On the right is this instruction
+classifier and make predictions with it, as well as a file browser and a large
+editable text box with "configuration.pysh".  On the right is this instruction
 manual for easy reference.
 
 Click on the `Label Sounds` button and then `Detect`.  All of the parameters
@@ -507,130 +515,145 @@ required parameters are filled in, the `DoIt!` button in the upper right will
 in addition be enabled and turn red.
 
 The first time you use DeepSong all of the parameters will need to be
-specified.  In the File Dialog browser immediately below, navigate to the
-"configuration.sh" file that you copied from the container and then click
-on the `Parameters` button.  Notice that the large text box to the right of the
-`File Dialog` browser now contains the text of this file.  Similarly, navigate
-to the WAV file in the "round1/" directory and click on the `WAV,TF,CSV Files`
-button.  Lastly you'll need to specify the six numeric parameters that control
-the algorithm used to find sounds:  In the time domain, subtract the median,
-take the absolute value, threshold by the median absolute deviation times `time
-σ`, and morphologically close gaps shorter than `time smooth` milliseconds.
-Separately, use multi-taper harmonic analysis ([Thomson, 1982;
+specified.  In the `File Browser`, navigate to the WAV file in the "round1/"
+directory and click on the `WAV,TF,CSV Files` button.  Then specify the eight
+numeric parameters that control the algorithm used to find sounds:  In the time
+domain, subtract the median, take the absolute value, threshold by the median
+absolute deviation times the first number in `time σ`, and morphologically
+close gaps shorter than `time smooth` milliseconds.  Separately, use
+multi-taper harmonic analysis ([Thomson, 1982;
 IEEE](https://ieeexplore.ieee.org/document/1456701)) in the frequency domain to
 create a spectrogram using a window of length `freq N` milliseconds (`freq N` /
-1000 * tic_rate should be a power of two) and twice `freq NW` Slepian tapers,
-multiply the default threshold of the F-test by a factor of `freq ρ`, and open
-islands and close gaps shorter than `freq smooth`.  Sound events are considered
-to be periods of time which pass either of these two criteria.
+1000 * `audio_tic_rate` should be a power of two) and twice `freq NW` Slepian
+tapers, multiply the default threshold of the F-test by the first number in
+`freq ρ`, and open islands and close gaps shorter than `freq smooth`
+milliseconds.  Sound events are considered to be periods of time which pass
+either of these two criteria.  Quiescent intervals are similarly defined as
+those which pass neither the time nor the frequency domain criteria using the
+second number in `time σ` and `freq ρ` text boxes.
 
-Once all the needed parameters are specified, click on the red `DoIt!` button to
-start detecting sounds.  It will turn orange while the job is being
-asynchronously dispatched, and then back to grey.  "detect
-PS_20130625111709_ch3_p1.wav" will appear in the status bar.  It's font will
-initially be grey to indicate that it is pending, then turn black when it is
-running, and finally either blue if it successfully finished or red if it
+Once all the needed parameters are specified, click on the red `DoIt!` button
+to start detecting sounds.  It will turn orange while the job is being
+asynchronously dispatched, and then back to grey.  "DETECT
+PS_20130625111709_ch3.wav (<jobid>)" will appear in the status bar.  It's font
+will initially be grey to indicate that it is pending, then turn black when it
+is running, and finally either blue if it successfully finished or red if it
 failed.
 
 The result is a file of comma-separated values with the start and stop times
 (in tics) of sounds which exceeded a threshold in either the time or frequency
-domain.
+domain, plus intervals which did not exceed either.
 
-    $ head -3 groundtruth-data/round1/PS_20130625111709_ch3_p1-detected.csv
-    PS_20130625111709_ch3_p1.wav,4501,4503,detected,time
-    PS_20130625111709_ch3_p1.wav,4628,4631,detected,time
-    PS_20130625111709_ch3_p1.wav,4807,4810,detected,time
+  $ grep -m 3 time groundtruth-data/round1/PS_20130625111709_ch3-detected.csv
+  PS_20130625111709_ch3.wav,2251,2252,detected,time
+  PS_20130625111709_ch3.wav,2314,2316,detected,time
+  PS_20130625111709_ch3.wav,2404,2405,detected,time
 
-    $ tail -3 groundtruth-data/round1/PS_20130625111709_ch3_p1-detected.csv
-    PS_20130625111709_ch3_p1.wav,945824,946016,detected,frequency
-    PS_20130625111709_ch3_p1.wav,947744,947936,detected,frequency
-    PS_20130625111709_ch3_p1.wav,962720,962912,detected,frequency
+  $ grep -m 3 frequency groundtruth-data/round1/PS_20130625111709_ch3-detected.csv
+  PS_20130625111709_ch3.wav,113872,114032,detected,frequency
+  PS_20130625111709_ch3.wav,158224,158672,detected,frequency
+  PS_20130625111709_ch3.wav,182864,182960,detected,frequency
+
+  $ grep -m 3 ambient groundtruth-data/round1/PS_20130625111709_ch3-detected.csv
+  PS_20130625111709_ch3.wav,388,795,detected,ambient
+  PS_20130625111709_ch3.wav,813,829,detected,ambient
+  PS_20130625111709_ch3.wav,868,2201,detected,ambient
+
 
 ## Visualizing Clusters ##
 
 To cluster these detected sounds we're going to use the same method that we'll
 later use to cluster the hidden state activations of a trained classifier.
 
-Click on the `Train` button to create a randomly initialized network.  Before
-clicking the `DoIt!` button though, change `# steps`, `validate period`, and
-`validation %` to all be 0 and make `restore from` blank.  You'll also need to
-use the `File Dialog` browser to choose directories in which to put the log
-files and to find the ground-truth data.  The latter should point to a folder
-two-levels up in the file hierarchy from the WAV and CSV files (i.e.
-".../groundtruth-data" in this case).  Lastly you'll need to specify
-"time,frequency" as the `wanted words` and "detected" as the `label types` to
-match what is in the CSV file you just created above.  Now press `DoIt!`.
-Output into the log file directory are "train.log", "train_1.log", and
-"train_1/".  The former two files contain error transcripts should any problems
-arise, and the latter folder contains checkpoint files prefixed with
-"vgg.ckpt-" which save the weights of the neural network at regular intervals.
+Click on the `Train` button to create a randomly initialized network.  Then use
+the `File Browser` to choose directories in which to put the log files (e.g.
+"untrained-classifier") and to find the ground-truth data.  The latter should
+point to a folder two-levels up in the file hierarchy from the WAV and CSV
+files (i.e. "groundtruth-data" in this case).  Check to make sure that the
+`Label Types` button automatically set `# steps`, `validate period`, and
+`validation %` to 0, `restore from` to blank, `wanted words` to
+"time,frequency,ambient", and `label types` to "detected".  The rest of the
+fields, most of which specify the network architecture, are filled in with
+default values the first time you ever use DeepSong, and any changes you make
+to them, along with all of the other text fields, are saved to a file named
+"deepsong.state.yml" in the directory specified by "state_dir" in
+"configuration.pysh".  Now press `DoIt!`.  Output into the log directory are
+"train1.log", "train_1r.log", and "train_1r/".  The former two files contain
+error transcripts should any problems arise, and the latter folder contains
+checkpoint files prefixed with "vgg.ckpt-" which save the weights of the neural
+network at regular intervals.
 
 Use the `Activations` button to save the input to the neural network as well as
 its hidden state activations and output logits by mock-classifying these
 detected sounds with this untrained network.  You'll need to tell it which
 model to use by selecting the last checkpoint file in the untrained
-classifier's log files with the `File Dialog` browser
-(".../groundtruth-data/train_1/vgg.ckpt-0" in this case).  The time and amount
+classifier's log files with the `File Browser` (i.e.
+"untrained-classifier/train_1r/vgg.ckpt-0" in this case).  The time and amount
 of memory this takes depends directly on the number and dimensionality of
 detected sounds.  To limit the problem to a manageable size one can use `max
 samples` to randomly choose a subset of samples to cluster.  (The `time σ` and
 `freq ρ` variables can also be used limit how many sound events were detected
-in the first place.)  The `Activations` button also limits the relative proportion
-of each `wanted word` to `equalize ratio`.  In the case of "detected" `label
-types` you'll want to set this to a large number, as it does not matter if the
-number of samples which pass the "time" threshold far exceeds the "frequency"
-threshold, or vice versa.  Output are three files in the ground-truth directory
-beginning with "hidden":  the two ending in ".log" report any errors, and
-"hidden.npz" contains the actual data in binary format.
+in the first place.)  The `Activations` button also limits the relative
+proportion of each `wanted word` to `equalize ratio`.  In the case of
+"detected" `label types` you'll want to set this to a large number, as it does
+not matter if the number of samples which pass the "time" threshold far exceeds
+the "frequency" threshold, or vice versa.  Output are three files in the
+ground-truth directory: "activations.log", "activations-samples.log", and
+"activations.npz".  The two ending in ".log" report any errors, and the ".npz"
+file contains the actual data in binary format.
 
-Now cluster the hidden state activations with the `Cluster` button.  Choose to
-do so using either UMAP ([McInnes, Healy, and Melville
-(2018)](https://arxiv.org/abs/1802.03426)) or t-SNE ([van der Maaten and Hinton
-(2008)](http://www.jmlr.org/papers/v9/vandermaaten08a.html)) or PCA.  Each are
-controlled by separate parameters, a description of which can be found in the
-aforementioned articles.  You'll also need to choose which network layer to
-cluster.  At this point, choose just the input layer.  Output are two or three
-files in the ground-truth directory beginning with "cluster":  a ".log" file
-with errors and a ".npz" file with binary data as before, plus a PDF file
-showing the results of the principal components analysis (PCA) that precedes
-t-SNE.
+Now reduce the dimensionality of the hidden state activations to either two or
+three dimensions with the `Cluster` button.  Choose to do so using either UMAP
+([McInnes, Healy, and Melville (2018)](https://arxiv.org/abs/1802.03426)),
+t-SNE ([van der Maaten and Hinton
+(2008)](http://www.jmlr.org/papers/v9/vandermaaten08a.html)), or PCA.  UMAP and
+t-SNE are each controlled by separate parameters (`neighbors` and `distance`,
+and `perplexity` and `exaggeration` respectively), a description of which can
+be found in the aforementioned articles.  UMAP and t-SNE can also be optionally
+preceded by PCA, in which case you'll need to specify the fraction of
+coefficients to retain using `PCA fraction`.  You'll also need to choose which
+network layer to cluster.  At this point, choose just the input layer.  Output
+are two or three files in the ground-truth directory: "cluster.log" contains
+any errors, "cluster.npz" contains binary data, and "cluster-pca.pdf" shows the
+results of the principal components analysis (PCA) if one was performed.
 
-Finally, click on the `Visualize` button to render the clusters in
-two-dimensional space in the left-most panel.  You can choose to display
-them with a scatter of semi-transparent circles, or a hexagonally-binned
-density map, by clicking on the `hexs` or `dots` buttons, respectively.
-Nominally there should be some structure to the clusters based on just
-the waveforms alone.  This structure will become much more pronounced after
-a model is trained with annotated data.
+Finally, click on the `Visualize` button to render the clusters in the
+left-most panel.  Adjust the size and transparency of the markers using the
+`Dot Size` and `Dot Alpha` sliders respectively.  Nominally there should be
+some structure to the clusters based on just the raw data alone.  This
+structure will become much more pronounced after a model is trained with
+annotated data.
 
 To browse through your recordings, click on one of the more dense areas and a
-fuchsia circle will appear.  In the right panel are now displayed snippets of
-detected waveforms which are nominally similar to one another.  They will each
-be labeled "detected time" or "detected frequency" to indicate which threshold
-criterion they passed and that they were detected (as opposed to annotated,
-predicted, or missed; see below).  The color is the scale bar-- yellow is loud
-and purple is quiet.  Clicking on a snippet will show it in greater temporal
-context in the wide panel below.  Pan and zoom with the buttons labeled `<`,
-`>`, `+`, `-`, and `0`.  The size of the fuchsia circle can be adjusted with
-the `circle radius` variable, and the size of the hexagons with `hex size`.
-The `Play` button can be used to listen to the sound, and if the `Video` button
-is selected and a movie with the same root basename exists alongside the
-corresponding WAV file, it will be displayed as well.
+fuchsia circle (or sphere if the clustering was done in 3D) will appear.  In
+the right panel are now displayed snippets of detected waveforms which are
+within that circle.  The size of the circle can be adjusted with the `Circle
+Radius` slider and the number of snippets displayed with `gui_snippet_n{x,y}`
+in "configuration.pysh".  Nominally the snippets are all similar to one another
+since they are neighbors in the clustered space.  They will each be labeled
+"detected time", "detected frequency", or "detected ambient" to indicate which
+threshold criterion they passed and that they were detected (as opposed to
+annotated, predicted, or missed; see below).  The color is the scale bar--
+yellow is loud and purple is quiet.  Clicking on a snippet will show it in
+greater temporal context in the wide panel below.  Pan and zoom with the
+buttons labeled with arrows.  The `Play` button can be used to listen to the
+sound, and if the `Video` button is selected and a movie with the same root
+basename exists alongside the corresponding WAV file, it will be displayed as
+well.
 
 ## Manually Annotating ##
 
 To record a manual annotation, first pick a waveform snippet that contains an
-unambiguous example of a particular word.  In addition to looking at the
-waveform shape, you can also listen to it with the `Play` button.  Type the
-word's name into one of the text boxes at the bottom left and hit return to
-activate the corresponding counter to its left.  Hopefully the gray box in the
-upper half of the wide context window nicely demarcates the temporal extent of
-the word.  If so, all you have to do is to double click either the grey box
-itself, or the corresponding snippet above, and it will be extended to the
-bottom half and your chosen label will be applied.  If not, either double-click
-or click-and-drag in the bottom half of the wide context window to create a
-custom time span for a new annotation.  In all cases, annotations can be
-deleted by double clicking any of the gray boxes.
+unambiguous example of a particular word.  Type the word's name into one of the
+text boxes to the right of the pan and zoom controls and hit return to activate
+the corresponding counter to its left.  Hopefully the gray box in the upper
+half of the wide context window nicely demarcates the temporal extent of the
+word.  If so, all you have to do is to double click either the grey box itself,
+or the corresponding snippet above, and it will be extended to the bottom half
+and your chosen label will be applied.  If not, either double-click or
+click-and-drag in the bottom half of the wide context window to create a custom
+time span for a new annotation.  In all cases, annotations can be deleted by
+double clicking any of the gray boxes.
 
 For this tutorial, choose the words "mel-pulse", "mel-sine", "ambient", and
 "other".  We use the syntax "A-B" here, where A is the species (mel
@@ -649,26 +672,28 @@ an "-annotated.csv" file in the ground-truth folder.
     groundtruth-data
     ├── cluster.npz
     ├── cluster.log
-    ├── hidden.npz
-    ├── hidden.log
-    ├── hidden-samples.log
+    ├── activations.npz
+    ├── activations.log
+    ├── activations-samples.log
     └── round1
-        ├── PS_20130625111709_ch3_p1-annotated.csv
-        ├── PS_20130625111709_ch3_p1-detected.csv
-        ├── PS_20130625111709_ch3_p1-threshold.log
-        └── PS_20130625111709_ch3_p1.wav
+        ├── PS_20130625111709_ch3-annotated.csv
+        ├── PS_20130625111709_ch3-detected.csv
+        ├── PS_20130625111709_ch3-detect.log
+        └── PS_20130625111709_ch3.wav
 
-    $ tail -5 groundtruth-data/round1/PS_20130625111709_ch3_p1-annotated.csv
-    PS_20130625111709_ch3_p1.wav,771616,775264,annotated,mel-sine
-    PS_20130625111709_ch3_p1.wav,864544,870112,annotated,mel-sine
-    PS_20130625111709_ch3_p1.wav,898016,910276,annotated,ambient
-    PS_20130625111709_ch3_p1.wav,943493,943523,annotated,mel-pulse
-    PS_20130625111709_ch3_p1.wav,943665,943692,annotated,mel-pulse
+    $ tail -5 groundtruth-data/round1/PS_20130625111709_ch3-annotated.csv
+    PS_20130625111709_ch3.wav,470151,470719,annotated,mel-sine
+    PS_20130625111709_ch3.wav,471673,471673,annotated,mel-pulse
+    PS_20130625111709_ch3.wav,471752,471752,annotated,mel-pulse
+    PS_20130625111709_ch3.wav,471839,471839,annotated,mel-pulse
+    PS_20130625111709_ch3.wav,492342,498579,annotated,ambient
 
-Now train a classifier on your annotations using the `Train` button.  Fifty steps
+Now train a classifier on your annotations using the `Train` button.  Choose a
+`Logs Folder` as before (e.g. "trained-classifier1").  One hundred steps
 suffices for this amount of ground truth.  So we can accurately monitor the
 progress, withhold 40% of the annotations to validate on, and do so every 10
-steps.  You'll also need to change the `wanted words` variable to
+steps.  Enter these values into the `# steps`, `validate %`, and `validate
+period` variables.  You'll also need to change the `wanted words` variable to
 "mel-pulse,mel-sine,ambient,other" and `label types` to "annotated" so that it
 will ignore the detected annotations in the ground-truth directory.  It's
 important to include "other" as a wanted word here, even if you haven't labeled
@@ -681,7 +706,7 @@ With small data sets the network should just take a minute or so to train.
 As your example set grows, you might want to monitor the training progress
 as it goes:
 
-    $ watch tail trained-classifier/train_1.log
+    $ watch tail trained-classifier1/train_1r.log
     Every 2.0s: tail trained-classifier1/train_1.log      Mon Apr 22 14:37:31 2019
 
     INFO:tensorflow:Elapsed 39.697532, Step #9: accuracy 75.8%, cross entropy 0.947476
@@ -704,53 +729,88 @@ the validation accuracy should become well above chance.
 ## Quantifying Accuracy ##
 
 Measure the classifier's performance using the `Accuracy` button.  Output are the
-following charts and tables in the logs folder and the `train_*` subdirectories
+following charts and tables in the logs folder and the `train_1r` subdirectory
 therein:
 
-* "train-loss.pdf" shows the training and validation accuracies, and loss
-value, as a function of the number of training steps and wall-clock time.
+* "train-loss.pdf" shows the loss value and training and validation accuracies
+as a function of the number of training steps, wall-clock time, and epochs.
 Should the curves not quite plateau, choose a checkpoint to `restore from`,
 increase `# steps`, and train some more.  If you've changed any of the
 parameters, you'll need to first reset them as they were, which is made easy by
 selecting one of the original log files and pressing the `Copy` button.
 
-* "train-overlay.pdf" shows the same validation accuracy overlayed across all
-cross-validation folds or leave-one-out models.  This is the best place to make
-sure that the validation accuracy has not plateaued before the first epoch of
-data has been train upon.
+* "accuracy.pdf" shows a confusion matrix in the left panel.  Each annotation
+is placed in this two-dimensional grid according to the label it was manually
+assigned and the label it was automatically predicted to be.  For a perfect
+classifier this matrix would be diagonal-- that is, only the fuchsia numbers in
+the upper left to lower right boxes would be non-zero.  The number in the upper
+right triangle in each square is the number of annotations in this square
+divided by the number of annotations in this row.  For boxes along the diagonal
+it indicates the recall, or sensitivity, for that word, which is the percentage
+of true positives among all real events (true positives plus false negatives).
+Similarly in the lower left is the precision, or positive predictive value--
+the percentage of true positives among all (both true and false) positives.  It
+is calculated by dividing the numbers in the upper right corner of each box
+by the sum of the corresponding column.  In the title is the overall accuracy,
+which is calculated as the average of the upper right numbers along the diagonal.
 
-* "confusion-matrices.pdf" shows which word each annotation was classified as,
-separately for each cross-validation fold or leave-one-out model.  The upper
-right triangle in each square is normalized to the row and is called the
-recall, while the lower left is to the column-normalized precision.
+In the middle panel of "accuracy.pdf" is the precision and recall for each word
+plotted separately.  For a perfect classifier they would all be 100.  These are
+simply the values in the corners of the boxes along the diagonal of the
+confusion matrix.
+
+The right panel of "accuracy.pdf" shows the overall accuracy.  The fuchsia
+numbers along the diagonal of the confusion matrix are first divided by the
+number of annotations for the corresponding word (equivalent to the sum of the
+corresponding row) and then averaged.  In this case there will only be one
+point plotted, but in [Measuring Generalization](#measuring-generalization) and
+[Searching Hyperparameters](#searching-hyperparameters) we'll train multiple
+models, and each will have it's own point here calculated from their individual
+confusion matrices.
 
 * "validation-F1.pdf" plots the F1 score (the product divided by the sum of the
 precision and recall) over time for each of the `wanted words` separately.
 Check here to make sure that the accuracy of each word has converged.
 
-* "accuracy.pdf" has plots showing the final accuracy for each model, the sum
-of the confusion matrices across all models, and the final precision and recall
-for each word and all models.
+* "validation-PvR-<word>.pdf" plots, separately for each word, the trajectory
+of the precision versus recall curve over number of training steps.
 
-* "precision-recall.pdf" and "sensitivity-specificity.pdf" show how the ratio
-of false positives to false negatives changes as the threshold used to call an
-event changes.  The areas underneath these curves are widely-cited metrics of
+* "train_1r/precision-recall.ckpt-<>.pdf" and
+"train_1r/sensitivity-specificity.ckpt-<>.pdf" show how the ratio of false
+positives to false negatives changes as the threshold used to call an event
+changes.  The areas underneath these curves are widely-cited metrics of
 performance.
 
-* "thresholds.csv" lists the word-specific probability thresholds that one can
-use to achieve a specified precision-recall ratio.  This file is used when
+* "train_1r/probability-density.ckpt-<>.pdf" shows, separately for each word,
+histograms of the values of the classifier's output taps across all of that
+word's annotations.  The difference between a given word's probability
+distribution and the second most probable word can be used as a measure of the
+classifier's confidence.
+
+* "train_1r/thresholds.ckpt-<>.csv" lists the word-specific probability
+thresholds that one can use to achieve a specified precision-recall ratio.  Use
+the `P/Rs` variable to specify which ratios to include.  This file is used when
 creating ethograms ([see Making Predictions](#making-predictions)).
 
-* "probability-density.pdf" shows, separately for each word, histograms of the
-values of the classifier's output taps across all of that word's annotations.
-The difference between a given word's probability distribution and the second
-most probable word can be used as a measure of the classifier's confidence.
+* The CSV files in the "train_1r/predictions.ckpt-<>" directory list the
+specific annotations in the withheld validation set which were mis-classified
+(plus those that were correct).  The WAV files and time stamps therein can be
+used to look for patterns in the raw data ([see Examining
+Errors](#examining-errors)).
 
-* The CSV files in the "predictions/" directory list the specific annotations
-which were mis-classified (plus those that were correct).  The WAV files and
-time stamps therein can be used to look for patterns in the raw data ([see
-Examining Errors](#examining-errors)).
+At this point in the tutorial we have just trained a single model, but DeepSong
+does have workflows were multiple models are saved to a single `Logs Folder`
+(e.g. if `replicates` is >1, or if `Omit One`, `Omit All`, or `X-Validate` is
+used).  In these cases, the left panel of "accuracy.pdf" will show the sum of
+the confusion matrix across all models, the right panel will have a gray box
+showing the mean and standard deviation of the overall accuracy across all
+models, and two additional files will be produced:
 
+* "train-overlay.pdf" shows the same validation accuracies as in "train-loss.pdf"
+overlayed across all replicates, leave-one-out models, or cross-validation folds.
+
+* "confusion-matrices.pdf" shows the individual confusion matrices for each
+replicate, model, or fold.
 
 ## Making Predictions ##
 
@@ -763,46 +823,50 @@ First let's get some more data bundled with DeepSong into your home directory:
 
     $ mkdir groundtruth-data/round2
 
-    $ $DEEPSONG_BIN cp /opt/deepsong/data/20161207T102314_ch1_p1.wav \
+    $ $DEEPSONG_BIN cp /opt/deepsong/data/20161207T102314_ch1.wav \
             groundtruth-data/round2
 
-Then use the `Freeze` button to save the classifier's neural network graph
-structure and weight parameters into the single file that TensorFlow needs for
-inference.  You'll need to choose a checkpoint to use with the File Dialog
-browser as before.  Output into the log files directory are two ".log" files
-for errors, and a file ending with ".pb" containing the binary data.  This latter
-PB file can in future be chosen as the model instead of a checkpoint file.
+Click on the `Make Predictions` button to disable the irrelevant actions and
+fields.  Then use the `Freeze` button to save the classifier's neural network
+graph structure and weight parameters into the single file that TensorFlow
+needs for inference.  You'll need to choose a checkpoint to use with the File
+Browser as you did before when saving the activations (i.e.
+"trained-classifier1/train_1r/vgg.ckpt-100" in this case).  Output into the log
+files directory are "freeze.ckpt-<>.log" and "frozen-graph.ckpt-<>.log" files
+for errors, and "frozen-graph.ckpt-<>.pb" containing the binary data.  This
+latter PB file can in future be chosen as the model instead of a checkpoint
+file.
 
 Now use the `Classify` button to generate probabilities over time for each
-annotated word.  Specify which recordings using the `File Dialog` browser and
+annotated word.  Specify which recordings using the `File Browser` and
 the `WAV,TF,CSV Files` button.  These are first stored in a file ending in
 ".tf", and then converted to WAV files for easy viewing.
 
     $ ls groundtruth-data/round2/
-    20161207T102314_ch1_p1-ambient.wav    20161207T102314_ch1_p1-other.wav
-    20161207T102314_ch1_p1-classify.log   20161207T102314_ch1_p1.tf
-    20161207T102314_ch1_p1-mel-pulse.wav  20161207T102314_ch1_p1.wav
-    20161207T102314_ch1_p1-mel-sine.wav
+    20161207T102314_ch1-ambient.wav    20161207T102314_ch1-other.wav
+    20161207T102314_ch1-classify.log   20161207T102314_ch1.tf
+    20161207T102314_ch1-mel-pulse.wav  20161207T102314_ch1.wav
+    20161207T102314_ch1-mel-sine.wav
 
 Discretize these probabilities using thresholds based on a set of
 precision-recall ratios using the `Ethogram` button.  The ratios used are those
 in the "thresholds.csv" file in the log files folder, which is created by the
-`Accuracy` button and controlled by the `P/Rs` variable.  You'll need to specify
-which ".tf" files to threshold using the `File Dialog` browser and the `WAV,TF,CSV`
-button.
+`Accuracy` button and controlled by the `P/Rs` variable at the time you
+quantified the accuracy.  You'll need to specify which ".tf" files to threshold
+using the `File Browser` and the `WAV,TF,CSV` button.
 
     $ ls -t1 groundtruth-data/round2/ | head -4
-    20161207T102314_ch1_p1-ethogram.log
-    20161207T102314_ch1_p1-predicted-0.5pr.csv
-    20161207T102314_ch1_p1-predicted-1.0pr.csv
-    20161207T102314_ch1_p1-predicted-2.0pr.csv
+    20161207T102314_ch1-ethogram.log
+    20161207T102314_ch1-predicted-0.5pr.csv
+    20161207T102314_ch1-predicted-1.0pr.csv
+    20161207T102314_ch1-predicted-2.0pr.csv
 
-    $ head -5 groundtruth-data/round2/20161207T102314_ch1_p1-predicted-1.0pr.csv 
-    20161207T102314_ch1_p1.wav,19976,20008,predicted,mel-pulse
-    20161207T102314_ch1_p1.wav,20072,20152,predicted,mel-sine
-    20161207T102314_ch1_p1.wav,20176,20232,predicted,mel-pulse
-    20161207T102314_ch1_p1.wav,20256,20336,predicted,mel-sine
-    20161207T102314_ch1_p1.wav,20360,20416,predicted,mel-pulse
+    $ head -5 groundtruth-data/round2/20161207T102314_ch1-predicted-1.0pr.csv 
+    20161207T102314_ch1.wav,19976,20008,predicted,mel-pulse
+    20161207T102314_ch1.wav,20072,20152,predicted,mel-sine
+    20161207T102314_ch1.wav,20176,20232,predicted,mel-pulse
+    20161207T102314_ch1.wav,20256,20336,predicted,mel-sine
+    20161207T102314_ch1.wav,20360,20416,predicted,mel-pulse
 
 The resulting CSV files are in the same format as those generated when we
 detected sounds in the time and frequency domains as well as when we manually
@@ -825,27 +889,26 @@ A precision-recall ratio of one means these two types of errors occur at
 equal rates.  Your experimental design drives this choice.
 
 Let's manually check whether our classifier in hand accurately calls sounds
-using these thresholds.  First, click on the `Fix False Positives` button to
-disable the irrelevant actions and fields.  Then choose one of the predicted
-CSV files that has a good mix of the labels and either delete or move outside
-of the ground-truth directory the other ones.  Double check that the `label
-types` variable was auto-populated with "annotated,predicted".  Not having
-"detected" in this field ensures that "detected.csv" files in the ground-truth
-folder is ignored.  Finally, cluster and visualize the neural network's hidden
-state activations as we did before using the `Activations`, `Cluster`, and
-`Visualize` buttons.  This time though choose to cluster just the last hidden
-layer.  So that words with few samples are not obscured by those with many,
-randomly subsample the latter by setting `equalize ratio` to a small integer
-when saving the hidden state activations.
+using these thresholds.  First, click on the `Fix False Positives` button.
+Then choose one of the predicted CSV files that has a good mix of the labels
+and either delete or move outside of the ground-truth directory the others.
+Double check that the `label types` variable was auto-populated with
+"annotated,predicted".  Not having "detected" in this field ensures that
+"detected.csv" files in the ground-truth folder are ignored.  Finally, cluster
+and visualize the neural network's hidden state activations as we did before
+using the `Activations`, `Cluster`, and `Visualize` buttons.  This time though
+choose to cluster just the last hidden layer.  So that words with few samples
+are not obscured by those with many, randomly subsample the latter by setting
+`equalize ratio` to a small integer when saving the hidden state activations.
 
 Now let's correct the mistakes!  Select `predicted` and `ambient` from the
-`kind` and `no hyphen` pull-down menus, respectively, and then on a dense part
-of the density map.  Optionally adjust the `circle radius` and `hex size`
-variables.  Were the classifier perfect, all the snippets now displayed would
-look like background noise.  Click on the ones that don't and manually annotate
-them appropriately.  Similarly select `mel-` and `-pulse` from the `species`
-and `word` pull-down menus and correct any mistakes, and then `mel-` and
-`-sine`.
+`kind` and `no hyphen` pull-down menus, respectively, and then click on a dense
+part of the density map.  Optionally adjust the `dot size`, `dot alpha`, and
+`circle radius` sliders.  Were the classifier perfect, all the snippets now
+displayed would look like background noise.  Click on the ones that don't and
+manually annotate them appropriately.  Similarly select `mel-` and `-pulse`
+from the `species` and `word` pull-down menus and correct any mistakes, and
+then `mel-` and `-sine`.
 
 Keep in mind that the only words which show up in the clusters are those that
 exceed the chosen threshold.  Any mistakes you find in the snippets are hence
@@ -862,20 +925,21 @@ To systematically label missed sounds, first click on the `Fix False Negatives`
 button.  Then detect sounds in the recording you just classified, using the
 `Detect` button as before, and create a list of the subset of these sounds which
 were not assigned a label using the `Misses` button.  For the latter, you'll need
-to specify both the detected and predicted CSV files with the `File Dialog`
-browser and the `WAV,TF,CSV` button.  The result is another CSV file, this time
+to specify both the detected and predicted CSV files with the `File Browser`
+and the `WAV,TF,CSV` button.  The result is another CSV file, this time
 ending in "missed.csv":
 
-    $ head -5 groundtruth-data/round2/20161207T102314_ch1_p1-missed.csv 
-    20161207T102314_ch1_p1.wav,12849,13367,missed,other
-    20161207T102314_ch1_p1.wav,13425,13727,missed,other
-    20161207T102314_ch1_p1.wav,16105,18743,missed,other
-    20161207T102314_ch1_p1.wav,18817,18848,missed,other
-    20161207T102314_ch1_p1.wav,19360,19936,missed,other
+    $ head -5 groundtruth-data/round2/20161207T102314_ch1-missed.csv 
+    20161207T102314_ch1.wav,12849,13367,missed,other
+    20161207T102314_ch1.wav,13425,13727,missed,other
+    20161207T102314_ch1.wav,16105,18743,missed,other
+    20161207T102314_ch1.wav,18817,18848,missed,other
+    20161207T102314_ch1.wav,19360,19936,missed,other
 
 Now visualize the hidden state activations--  Double check that the `label
-types` variable was auto-populated with "annotated,missed", and then press the
-`Activations`, `Cluster`, and `Visualize` buttons in turn.
+types` variable was auto-populated with "annotated,missed" by the `Fix False
+Negatives` button, and then use the `Activations`, `Cluster`, and `Visualize`
+buttons in turn.
 
 Examine the false negatives by selecting `missed` in the `kind` pull-down menu
 and click on a dense cluster.  Were the classifier perfect, none of the
@@ -912,9 +976,10 @@ quantify accuracy.  Since the learning curves generally don't converge until
 the entire data set has been sampled many times over, set `# steps` to be
 several fold greater than the number of annotations (shown in the table near
 the labels) divided by the `mini-batch` size, and check that it actually
-converges with the "train-loss.pdf" "validation-F1.pdf" figures generated by
-the `Accuracy` button.  If the accuracy converges before an entire epoch
-has been trained upon, use a smaller `learning rate`.
+converges with the "train-loss.pdf", "validation-F1.pdf", and
+"validation-PvR-<word>.pdf" figures generated by the `Accuracy` button.  If the
+accuracy converges before an entire epoch has been trained upon, use a smaller
+`learning rate`.
 
 As the wall-clock time spent training is generally shorter with larger
 mini-batches, set it as high as the memory in your GPU will permit.  Multiples
@@ -930,9 +995,11 @@ quantitatively measure your model's ability to generalize by leaving entire
 recordings out for validation ([see Measuring
 Generalization](#measuring-generalization)), and/or using cross validation (see
 [Searching Hyperparameters](#searching-hyperparameters)).  Then train a single
-model with nearly all of your annotations for use in your experiments.  Report
-its accuracy on an entirely separate set of densely-annotated test data([see
-Testing Densely](#testing-densely)).
+model with nearly all of your annotations for use in your experiments.
+Optionally, use `replicates` to train multiple models with different batch
+orderings and/or initial weights to measure the variance.  Report accuracy on
+an entirely separate set of densely-annotated test data([see Testing
+Densely](#testing-densely)).
 
 ## Double Checking Annotations
 
@@ -943,18 +1010,21 @@ to correct it.
 Sometimes though, mistakes might slip into the ground truth and a model is
 trained with them.  These latter mistakes can be corrected in a fashion similar
 to correcting false positives and false negatives.  Simply cluster the hidden
-state activations as before making sure that "annotated" is in `label types`.
-Then click on `annotated` and select one of your labels (e.g.  `mel-` and
-`-pulse`).  If you want to change the label of an annotation, simply choose the
-correct label in one of the text boxes below and then double click on either
-the snippet itself or the corresponding gray box in the upper half of the wide
-context window.  If you want to remove the annotation entirely, choose a label
-with an empty text box and double-click.  In both cases, the entry in the
-original "annotated.csv" file is removed, and in the former case a new entry is
-created in the current "annotated.csv" file.  Should you make a mistake while
-correcting a mistake, simply `Undo` it, or double click it again.  In this
-case, the original CSV entry remains deleted and the new one removed from the
-current "annotated.csv" file.
+state activations using the `Activations`, `Cluster`, and `Visualize` buttons
+as before making sure that "annotated" is in `label types`.  Then click on
+`annotated` in the `kind` pull-down menu and select one of your labels (e.g.
+`mel-` in `species` and `-pulse` in `word`).  Scan through the visualized
+clusters by click on several points and looking at the snippets therein.  If
+you find an error, simply choose the correct label in one of the text boxes
+below and then double click on either the snippet itself or the corresponding
+gray box in the upper half of the wide context window.  If you want to remove
+the annotation entirely, choose a label with an empty text box and
+double-click.  In both cases, the entry in the original "annotated.csv" file is
+removed, and in the former case a new entry is created in the current
+"annotated.csv" file.  Should you make a mistake while correcting a mistake,
+simply `Undo` it, or double click it again.  In this case, the original CSV
+entry remains deleted and the new one removed from the current "annotated.csv"
+file.
 
 ## Measuring Generalization ##
 
@@ -966,7 +1036,7 @@ characteristics that are unique to the withheld recordings.
 
 To train one classifier with a single recording or set of recordings withheld
 for validation, first click on `Generalize` and then `Omit All`.  Use the `File
-Dialog` browser to either select (1) specific WAV file(s), (2) a text file
+Browser` to either select (1) specific WAV file(s), (2) a text file
 containing a list of WAV file(s) (either comma separated or one per line), or
 (3) the ground-truth folder or a subdirectory therein.  Finally press the
 `Validation Files` button and `DoIt!`.
@@ -974,29 +1044,30 @@ containing a list of WAV file(s) (either comma separated or one per line), or
 To train multiple classifiers, each of which withholds a single recording in a
 set you specify, click on `Omit One`.  Select the set as described above for
 `Omit All`.  The `DoIt!` button will then iteratively launch a job for each WAV
-file that has been selected, storing the result in the same Logs Folder in
-separate files and subdirectories that are suffixed the letter "w".  Of course,
-training multiple classifiers is quickest when done simultaneously instead of
-sequentially.  If your model is small, you might be able to fit multiple on a
-single GPU (see the "njobs_per_gpu" variable in "configuration.sh").
-Otherwise, you'll need a machine with multiple GPUs, access to a cluster or
-the cloud, or patience.
+file that has been selected, storing the result in the same `Logs Folder` but in
+separate files and subdirectories that are suffixed with the letter "w".  Of
+course, training multiple classifiers is quickest when done simultaneously
+instead of sequentially.  If your model is small, you might be able to fit
+multiple on a single GPU (see the `models_per_job` variable in
+"configuration.pysh").  Otherwise, you'll need a machine with multiple GPUs,
+access to a cluster, or patience.
 
 A simple jitter plot of the accuracies on withheld recordings is included in
-the output of the `Accuracy` button ("accuracy.pdf").  It will likely be worse
-than a model trained on a portion of each recording.  If so, label more data,
-or try modifying the hyperparameters ([Searching
+the output of the `Accuracy` button (right panel of "accuracy.pdf").  It will
+likely be worse than a model trained on a portion of each recording.  If so,
+label more data, or try modifying the hyperparameters ([Searching
 Hyperparameters](#searching-hyperparameters))
 
 ## Searching Hyperparameters ##
 
 Achieving high accuracy is not just about annotating lots of data, it also
-depends on choosing the right model.  While DeepSong is (currently) set up
-solely for convolutional neural networks, there are many free parameters by
-which to tune its architecture.  You configure them by editing the variables
-itemized below, and then use cross-validation to compare different choices.
-One could of course also modify the source code to permit radically different
-neural architectures, or even something other than neural networks.
+depends on choosing the right model architecture.  While DeepSong is
+(currently) set up solely for convolutional neural networks, there are many
+free parameters by which to tune its architecture.  You configure them by
+editing the variables itemized below, and then use cross-validation to compare
+different choices.  One could of course also modify the source code to permit
+radically different neural architectures, or even something other than neural
+networks.
 
 * `context` is the temporal duration, in milliseconds, that the classifier
 inputs
@@ -1015,8 +1086,8 @@ arbitrary features that spectrograms and cepstrums might be blind to, but need
 more annotations to make the training converge.
 
 * `window` is the length of the temporal slices, in milliseconds, that
-constitute the spectrogram.  `window` / 1000 * `tic rate` should round down
-to a power of two.
+constitute the spectrogram.  `window` / 1000 * `audio_tic_rate` should round
+down to a power of two.
 
 * `stride` is the time, in milliseconds, by which the `window`s in the
 spectrogram are shifted.  1000/`stride` must be an integer.
@@ -1024,7 +1095,7 @@ spectrogram are shifted.  1000/`stride` must be an integer.
 * `mel & DCT` specifies how many taps to use in the mel-frequency cepstrum.  The
 first number is for the mel-frequency resampling and the second for the
 discrete cosine transform.  Modifying these is tricky as valid values depend on
-`tic rate` and `window`.  The table below shows the maximum permissible
+`audio_tic_rate` and `window`.  The table below shows the maximum permissible
 values for each, and are what is recommended.  See the code in
 "tensorflow/contrib/lite/kernels/internal/mfcc.cc" for more details.
 
@@ -1058,8 +1129,9 @@ height is again smaller than it.  Finally the third value is used until the
 width is less than `last conv width`.  Only the third value matters when
 `representation` is "waveform".
 
-* `# features` is the number of feature maps to use at each of the corresponding stages
-in `kernel_sizes`.  See [LeCun *et al* (1989; Neural Computation)](http://yann.lecun.com/exdb/publis/pdf/lecun-89e.pdf).
+* `# features` is the number of feature maps to use at each of the
+corresponding stages in `kernel_sizes`.  See [LeCun *et al* (1989; Neural
+Computation)](http://yann.lecun.com/exdb/publis/pdf/lecun-89e.pdf).
 
 * `dilate after` specifies the first layer, starting from zero, at which to
 start dilating the convolutional kernels.  See [Yu and Koltun (2016;
@@ -1072,23 +1144,35 @@ start striding the convolutional kernels by two.
 models with many layers converge.  See [He, Zhang, Ren, and Sun (2015;
 arXiv](https://arxiv.org/abs/1512.03385).
 
-To search for the optimal value for a particular hyperparameter, first choose
-how many folds you want to partition your ground-truth data into using
-`k-fold`.  Then set the hyperparameter of interest to the first value you want
-to try and choose a name for the `Logs Folder` such that its prefix will be
-shared across all of the hyperparameters values you plan to validate.  Suffix
-any additional hyperparameters of interest using underscores.  (For example, to
-search mini-batch and keep track of kernel size and feature maps, use
-"mb-64_ks129_fm64".)  Click the `X-Validate` button and then `DoIt!`.  One
-classifier will be trained for each fold, using it as the validation set and
-the remaining folds for training.  Separate files and subdirectories are
-created in the `Logs Folder` that are suffixed by the fold number and the
-letter "k".  Plot overlayed training curves with the `Accuracy` button, as
-before.  Repeat the above procedure for each of remaining hyperparameter values
-you want to try (e.g. "mb-128_ks129_fm64", "mb-256_ks129_fm64", etc.).  Then
-use the `Compare` button to create a figure of the cross-validation data over
-the hyperparameter values, specifying the prefix that the logs folders have in
-common ("mb" in this case).  Output are three files:
+* `weights seed` specifies whether to randomize the initial weights or not.  a
+value of -1 results in different values for each fold.  they are also different
+each time you run `x-validate`.  any other number results in a set of initial
+weights that is unique to that number across all folds and repeated runs.
+
+* `batch seed` similarly specifies whether to randomize the order in which
+samples are drawn from the groundtruth data set during training.  a value of
+"-1" results in a different order for each fold and run;  any other number
+results in a unique order specific to that number across folds and runs.
+
+To perform a simple grid search for the optimal value for a particular
+hyperparameter, first choose how many folds you want to partition your
+ground-truth data into using `k-fold`.  Then set the hyperparameter of interest
+to the first value you want to try and choose a name for the `Logs Folder` such
+that its prefix will be shared across all of the hyperparameter values you plan
+to validate.  Suffix any additional hyperparameters of interest using
+underscores.  (For example, to search mini-batch and keep track of kernel size
+and feature maps, use "mb-64_ks129_fm64".)  If your models is small, use
+`models_per_job` in "configuration.pysh" to train multiple folds on a GPU.
+Click the `X-Validate` button and then `DoIt!`.  One classifier will be trained
+for each fold, using it as the validation set and the remaining folds for
+training.  Separate files and subdirectories are created in the `Logs Folder`
+that are suffixed by the fold number and the letter "k".  Plot overlayed
+training curves with the `Accuracy` button, as before.  Repeat the above
+procedure for each of remaining hyperparameter values you want to try (e.g.
+"mb-128_ks129_fm64", "mb-256_ks129_fm64", etc.).  Then use the `Compare` button
+to create a figure of the cross-validation data over the hyperparameter values,
+specifying the prefix that the logs folders have in common ("mb" in this case).
+Output are three files:
 
 * "[suffix]-compare-confusion-matrices.pdf" contains the summed confusion matrix
 for each of the values tested.
@@ -1120,17 +1204,17 @@ that the penultimate column is the prediction and the final one the annotation.
 To use these predictions, copy these CSV files into their corresponding
 ground-truth sub-folders.
 
-    $ tail -n 10 trained-classifier/predictions/round2-mistakes.csv 
-    PS_20130625111709_ch3_p1.wav,377778,377778,correct,mel-pulse,mel-pulse
-    PS_20130625111709_ch3_p1.wav,157257,157257,correct,mel-pulse,mel-pulse
-    PS_20130625111709_ch3_p1.wav,164503,165339,correct,ambient,ambient
-    PS_20130625111709_ch3_p1.wav,379518,379518,mistaken,ambient,mel-pulse
-    PS_20130625111709_ch3_p1.wav,377827,377827,correct,mel-pulse,mel-pulse
-    PS_20130625111709_ch3_p1.wav,378085,378085,correct,mel-pulse,mel-pulse
-    PS_20130625111709_ch3_p1.wav,379412,379412,mistaken,ambient,mel-pulse
-    PS_20130625111709_ch3_p1.wav,160474,161353,correct,ambient,ambient
-    PS_20130625111709_ch3_p1.wav,207780,208572,correct,mel-sine,mel-sine
-    PS_20130625111709_ch3_p1.wav,157630,157630,correct,mel-pulse,mel-pulse
+    $ tail -n 10 trained-classifier1/predictions/round1-mistakes.csv 
+    PS_20130625111709_ch3.wav,377778,377778,correct,mel-pulse,mel-pulse
+    PS_20130625111709_ch3.wav,157257,157257,correct,mel-pulse,mel-pulse
+    PS_20130625111709_ch3.wav,164503,165339,correct,ambient,ambient
+    PS_20130625111709_ch3.wav,379518,379518,mistaken,ambient,mel-pulse
+    PS_20130625111709_ch3.wav,377827,377827,correct,mel-pulse,mel-pulse
+    PS_20130625111709_ch3.wav,378085,378085,correct,mel-pulse,mel-pulse
+    PS_20130625111709_ch3.wav,379412,379412,mistaken,ambient,mel-pulse
+    PS_20130625111709_ch3.wav,160474,161353,correct,ambient,ambient
+    PS_20130625111709_ch3.wav,207780,208572,correct,mel-sine,mel-sine
+    PS_20130625111709_ch3.wav,157630,157630,correct,mel-pulse,mel-pulse
 
 Similarly, the `Activations` button creates an "activations.npz" file
 containing the logits of the output layer (which is just a vector of word
@@ -1170,12 +1254,12 @@ word in them.  Then detect and cluster the sounds in these recordings using the
 earlier.  Annotate every occurrence of each word of interest by jumping to the
 beginning of each recording and panning all the way to the end.  Afterwards,
 manually suffix each resulting "annotated.csv" file with the name of the
-annotator (e.g. "annotated-yyyymmddThhmmss-ben.csv").  Take your best model to
-date and make ethograms of these densely annotated recordings using the
-`Classify` and `Ethogram` buttons as before.  Finally, use the `Congruence`
-button to plot the fraction of false positives and negatives, specifying which
-files you've densely annotated with `ground truth` and either `validation
-files` or `test files` (a comma-separated list of .wav files, a text file of
+annotator (e.g. "annotated-<name>.csv").  Take your best model to date and make
+ethograms of these densely annotated recordings using the `Classify` and
+`Ethogram` buttons as before.  Finally, use the `Congruence` button to plot the
+fraction of false positives and negatives, specifying which files you've
+densely annotated with `ground truth` and either `validation files` or `test
+files` (a comma-separated list of .wav files, a text file of
 .wav filenames, or a folder of .wav files; see [Measuring
 Generalization](#measuring-generalization)).  If the accuracy is not
 acceptable, iteratively adjust the hyperparameters, train a new model, and make
@@ -1193,17 +1277,17 @@ use this test data as training or validation data going forward, and densely
 annotate a new set of data to test against.
 
 The congruence between multiple human annotators can be quantified using the
-same procedure.  Simply create "annotated-yyyymmddThhmmss-\<name\>.csv" files
-for each one.  The plot created by `Congruence` will include bars for the
-number of sounds labeled by all annotators (including DeepSong), only each
-annotator, and not by a given annotator.
+same procedure.  Simply create "annotated-<name>.csv" files for each one.  The
+plot created by `Congruence` will include bars for the number of sounds labeled
+by all annotators (including DeepSong), only each annotator, and not by a given
+annotator.
 
 Much as one can examine the mistakes of a particular model with respect to
 sparsely annotated ground truth by clustering with "mistaken" as one of the
 `label types`, one can look closely at the errors in congruence between a model
 and a densely annotated test set by using
-"everyone|{tic,word}-{only,not}{1.0pr,annotator1,annotator2,...}".  Note that
-the Congruence button generates a bunch of "disjoint.csv" files:
+"everyone|{tic,word}-{only,not}{1.0pr,annotator1,annotator2,...}" as the `label
+types`.  The Congruence button generates a bunch of "disjoint.csv" files:
 "disjoint-everyone.csv" contains the intersection of intervals that DeepSong
 and all annotators agreed upon; "disjoint-only.csv" files contain the intervals
 which only DeepSong or one particular annotator labelled; "disjoint-not.csv"
@@ -1220,17 +1304,18 @@ of mel-pulse,mel-sine,ambient respectively); alternatively, the relative
 probability for each word can be given (e.g. 0.1,0.2,0.7).  The probability
 waveforms generated by `Classify` will now be adjusted on a word-specific basis
 to account for these known imbalanced distributions.  Note that a similar
-effect can be achieved by changing `P/Rs`, but there the thresholds are
-adjusted instead of the probabilities, and they are changed equally for all
-words.
+effect can be achieved by changing the `P/Rs` variable, but there the
+thresholds are adjusted instead of the probabilities, and they are changed
+equally for all words.
+
 
 ## Discovering Novel Sounds ##
 
 After amassing a sizeable amount of ground truth one might wonder whether one
-has manually annotated all types of words that exist in the recordings.  One
-way to check for any missed types is to look for hot spots in the clusters of
-detected sounds that have no corresponding annotations.  Annotating known types
-in these spots should improve generalization too.
+has manually annotated all of the types of words that exist in the recordings.
+One way to check for any missed types is to look for hot spots in the clusters
+of detected sounds that have no corresponding annotations.  Annotating known
+types in these spots should improve generalization too.
 
 First, set `label types` to "annotated" and train a model that includes "time"
 and "frequency" plus all of your existing wanted words
@@ -1246,51 +1331,91 @@ annotated.  Create new word types as necessary.
 
 ## Scripting Automation ##
 
-For some tasks it may be easier to write code instead of use the GUI--
-tasks which require many tedious mouse clicks, for example, or simpler ones
-that must be performed over and over again.  To facilitate coding your
-analysis, DeepSong is structured such that each action button (`Detect`,
-`Misses`, `Activations`, etc.) is backed by a linux shell script.  At the top each
-script is documentation showing how to call it.  Here, for example, is the
-interface for `Classify`:
+For some tasks it may be easier to write code instead of use the GUI-- tasks
+which require many tedious mouse clicks, for example, or simpler ones that must
+be performed repeatedly.  To facilitate coding your analysis, DeepSong is
+structured such that each action button (`Detect`, `Misses`, `Activations`,
+etc.) is backed by a linux bash script.  At the top of each script is
+documentation showing how to call it.  Here, for example, is the interface for
+`Detect`:
 
-    $ $DEEPSONG_BIN head -n 8 /opt/deepsong/src/classify.sh
+    $ $DEEPSONG_BIN head -n 8 /opt/deepsong/src/detect.sh
     #!/bin/bash
 
-    # generate per-class probabilities
+    # threshold an audio recording in both the time and frequency spaces
 
-    # classify.sh <config-file> <context_ms> <shiftby_ms> <representation> \
-      <stride_ms> <logdir> <model> <check-point> <wavfile>
+    # detect.sh <full-path-to-wavfile> <time-sigma> <time-smooth-ms>
+    #           <frequency-n-ms> <frequency-nw> <frequency-p> <frequency-smooth-ms>
+    #           <audio-tic-rate> <audio-nchannels>
 
     # e.g.
-    # deepsong classify.sh `pwd`/configuration.sh 204.8 0.0 waveform 1.6 \
-      `pwd`/trained-classifier train_1 50 \
-      `pwd`/groundtruth-data/round1/20161207T102314_ch1_p1.wav
+    # $DEEPSONG_BIN detect.sh \
+                    `pwd`/groundtruth-data/round2/20161207T102314_ch1_p1.wav \
+                    6 6.4 25.6 4 0.1 25.6 2500 1
 
-The following example uses this script to make predictions on a set of
-recordings in different folders.  It is written in bash, but you could easily
-use Julia, Python, Matlab, or any other language that can execute shell
-commands.
-
-    $ basepath=groundtruth-data
-    $ logdir=trained-classifier
-    $ model=train_1
-    $ ckpt=100
+The following bash code directly calls this script to make predictions on a set
+of recordings in different folders:
 
     $ wavfiles=(
-          round1/20161207T102314_ch1_p1
-          round3/20161207T102314_ch1_p2
-          round5/20161207T102314_ch1_p3
-          round2/PS_20130625111709_ch3_p1
-          round4/PS_20130625111709_ch3_p2
-          round6/PS_20130625111709_ch3_p3
-          )
+               groundtruth-data/round1/PS_20130625111709_ch3.wav
+               groundtruth-data/round2/20161207T102314_ch1.wav
+               groundtruth-data/round3/Antigua_20110313095210_ch26.wav
+               )
 
     $ for wavfile in ${wavfiles[@]} ; do
-          $DEEPSONG_BIN classify.sh deepsong/configuration.sh \
-                  204.8 0.0 waveform 1.6 \
-                  $logdir $model $ckpt $basepath/$wavfile.wav
+          $DEEPSONG_BIN detect.sh $wavfile 6 6.4 25.6 4 0.1 25.6 2500 1
       done
+
+The above workflow could also easily be performed in Julia, Python, Matlab, or
+any other language that can execute shell commands.
+
+Alternatively, one can also write a python script which invokes DeepSong's GUI
+interface to programmatically fill text boxes with values and to push action
+buttons:
+
+    import sys
+    import os
+
+    # load the GUI
+    sys.path.append(os.path.join(os.environ["DEEPSONG_HOME"], "src", "gui"))
+    import model as M
+    import view as V
+    import controller as C
+
+    # start the GUI
+    M.init("configuration.pysh")
+    V.init(None)
+    C.init(None)
+
+    # start the job scheduler
+    run(["hetero", "start", str(M.local_ncpu_cores),
+         str(M.local_ngpu_cards), str(M.local_ngigabytes_memory)])
+
+    # set the needed textbox variables
+    V.time_sigma_string.value = "6"
+    V.time_smooth_ms_string.value = "6.4"
+    V.frequency_n_ms_string.value = "25.6"
+    V.frequency_nw_string.value = "4"
+    V.frequency_p_string.value = "0.1"
+    V.frequency_smooth_ms_string.value = "25.6"
+
+    # repeatedly push the Detect button
+    wavpaths_noext = [
+                     "groundtruth-data/round1/PS_20130625111709_ch3",
+                     "groundtruth-data/round2/20161207T102314_ch1",
+                     "groundtruth-data/round3/Antigua_20110313095210_ch26",
+                     ]
+    for wavpath_noext in wavepaths_noext:
+        V.wavtfcsvfiles_string.value = wavpath_noext+".wav"
+        C.detect_actuate()
+
+    # stop the job scheduler
+    run(["hetero", "stop"], stdout=PIPE, stderr=STDOUT)
+
+For more details see the system tests in $DEEPSONG_HOME/test/tutorial.{sh,py}.
+These two files implement, as bash and python scripts respectively, the entire
+workflow presented in this [Tutorial](#tutorial), from [Detecting
+Sounds](#detecting-sounds) all the way to [Testing Densely](#testing-densely).
 
 
 # Troubleshooting #
@@ -1302,9 +1427,9 @@ case, kill it with `ps auxc | grep -E '(gui.sh|bokeh)'` and then `kill -9
 
 # Frequently Asked Questions #
 
-* The `WAV,TF,CSV Files` textbox, being plural, can contain multiple
-comma-separated filenames.  Just select multiple files in the File Dialog
-browser using shift/command-click as you would in most other file browsers.
+* The `WAV,TF,CSV Files` text box, being plural, can contain multiple
+comma-separated filenames.  Select multiple files in the File Browser using
+shift/command-click as you would in most other file browsers.
 
 
 # Reporting Problems #
@@ -1334,23 +1459,26 @@ To confirm that the image works:
     >>> msg = tf.constant('Hello, TensorFlow!')
     >>> tf.print(msg)
 
-Optionally, compress the image into a single file:
+Compress the image into a single file:
 
     $ sudo singularity build deepsong.sif deepsong.img
 
-To push an image to the cloud, first create an access token at cloud.sylabs.io
-and save it using `singularity remote login SylabsCloud`.  Then:
+Next create an access token at cloud.sylabs.io and login using:
+
+    $ singularity remote login SylabsCloud
+
+Then push the image to the cloud:
 
     $ singularity sign deepsong.sif
-    $ singularity push deepsong.sif library://bjarthur/default/deepsong:<version>[_cpu]
+    $ singularity push deepsong.sif library://bjarthur/default/deepsong:<version>
 
-To build an image without GPU support, comment out the section titled "install CUDA" in
-"singularity.def" and omit the `--nv` flags.
+To build an image without GPU support, comment out the section titled "install
+CUDA" in "singularity.def" and omit the `--nv` flags.
 
-To use the DeepSong source code outside of the container, set
+To use a copy of the DeepSong source code outside of the container, set
 SINGULARITYENV_PREPEND_PATH to the full path to DeepSong's `src` directory in
-your shell environment.  `server_export` in "configuration.sh" must be set
-similarly if using a remote workstation.
+your shell environment.  `source_path` in "configuration.pysh" must be set
+similarly if using a remote workstation or a cluster.
 
 ## Docker ##
 
@@ -1362,7 +1490,7 @@ To start docker on linux and set permissions:
 To build a docker image and push it to docker hub:
 
     $ cd deepsong
-    $ docker build --file=containers/dockerfile-cpu --tag=bjarthur/deepsong \
+    $ docker build --file=containers/dockerfile --tag=bjarthur/deepsong \
           [--no-cache=true] .
     $ docker login
     $ docker {push,pull} bjarthur/deepsong
@@ -1372,3 +1500,13 @@ To monitor resource usage:
     $ docker stats
 
 To run a container interactively add "-i --tty".
+
+## System Tests ##
+
+DeepSong comes with a comprehensive set of tests to facilitate easy validation
+that everything works both after you've first installed it as well as after any
+changes have been made to the code.  The tests exercise both the python GUI as
+well as the linux bash interfaces.  To run them, simply execute "runtests.sh":
+
+    $ singularity exec -B /tmp:/opt/deepsong/test/scratch <--nv> <deepsong.sif> \
+            /opt/deepsong/test/runtests.sh

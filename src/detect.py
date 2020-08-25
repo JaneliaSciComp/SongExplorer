@@ -5,7 +5,7 @@
 # detect.py <full-path-to-wavfile> <audio-tic-rate> <audio-nchannels> <time-sigma-signal> <time-sigma-noise> <time-smooth-ms> <frequency-n-ms> <frequency-nw> <frequency-p-signal> <frequency-p-noise> <frequency-smooth-ms>
 
 # e.g.
-# deepsong detect.py `pwd`/groundtruth-data/round2/20161207T102314_ch1_p1.wav 2500 1 4 2 6.4 25.6 4 0.1 1.0 25.6
+# detect.py `pwd`/groundtruth-data/round2/20161207T102314_ch1_p1.wav 2500 1 4 2 6.4 25.6 4 0.1 1.0 25.6
 
 import os
 import numpy as np
