@@ -15,20 +15,26 @@ source $configuration_file
 
 DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
 
-thishost=$(hostname)
-if [ "$thishost" == '(none)' ] ; then
-    thishost=$(hostname -I)
-    thishost=${thishost% }
-fi
-echo $thishost:$port
-read -a theseips <<< $(hostname -i)
+allow_websocket=--allow-websocket-origin=localhost:$port
+ipaddr=noIPv4s
 
-allow_websocket=--allow-websocket-origin=${thishost}:$port
-allow_websocket=${allow_websocket}' '--allow-websocket-origin=localhost:$port
-for thisip in ${theseips[*]} ; do
-    [[ $thisip == *':'* ]] && continue
-    allow_websocket=${allow_websocket}' '--allow-websocket-origin=$thisip:$port
+flags=(-i -I)
+for flag in ${flags[*]} ; do
+  read -a theseips <<< $(hostname $flag)
+  for thisip in ${theseips[*]} ; do
+      [[ $thisip == *':'* ]] && continue
+      allow_websocket=${allow_websocket}' '--allow-websocket-origin=$thisip:$port
+      ipaddr=$thisip
+  done
 done
+
+thisip=$(hostname)
+if [ "$thisip" != '(none)' ] ; then
+    allow_websocket=${allow_websocket}' '--allow-websocket-origin=$thisip:$port
+    ipaddr=$thisip
+fi
+
+echo $ipaddr:$port
 
 trap "local_njobs=\`hetero njobs\`; \
       if [[ \\\$\? && (( \"\$local_njobs\" > 0 )) ]] ; then \
