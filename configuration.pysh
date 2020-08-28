@@ -2,6 +2,9 @@
 
 # DeepSong must be restarted for changes to take effect
 
+# where to save the GUI text boxes
+state_dir=""
+
 # sampling rate of and number of channels in the WAV files
 audio_tic_rate=2500
 audio_nchannels=1

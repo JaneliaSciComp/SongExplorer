@@ -287,7 +287,7 @@ def init(_configuration_file):
     action=None
     function=None
 
-    statepath = os.path.join(os.environ["DEEPSONG_STATE"], 'deepsong.state.yml')
+    statepath = os.path.join(state_dir, 'deepsong.state.yml')
 
     if not os.path.exists(statepath):
         with open(statepath, 'w') as fid:
