@@ -62,7 +62,9 @@ def generic_actuate(cmd, logfile, where, localargs, localdeps, clusterflags, *ar
         bokehlog.info(jobinfo)
     return jobid
 
-def generic_parameters_callback():
+def generic_parameters_callback(n):
+    if ' ' in n:
+      bokehlog.info('ERROR: textboxes should not contain spaces')
     M.save_state_callback()
     V.buttons_update()
 

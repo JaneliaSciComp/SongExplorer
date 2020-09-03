@@ -1349,7 +1349,7 @@ def init(_bokeh_document):
     logs = Button(label='logs folder:', width=110)
     logs.on_click(C.logs_callback)
     logs_folder = TextInput(value=M.state['logs'], title="", disabled=False)
-    logs_folder.on_change('value', lambda a,o,n: C.generic_parameters_callback())
+    logs_folder.on_change('value', lambda a,o,n: C.generic_parameters_callback(n))
 
     model = Button(label='model:', width=110)
     model.on_click(C.model_callback)
@@ -1359,7 +1359,7 @@ def init(_bokeh_document):
     wavtfcsvfiles = Button(label='wav,tf,csv files:', width=110)
     wavtfcsvfiles.on_click(C.wavtfcsvfiles_callback)
     wavtfcsvfiles_string = TextInput(value=M.state['wavtfcsvfiles'], title="", disabled=False)
-    wavtfcsvfiles_string.on_change('value', lambda a,o,n: C.generic_parameters_callback())
+    wavtfcsvfiles_string.on_change('value', lambda a,o,n: C.generic_parameters_callback(n))
 
     groundtruth = Button(label='ground truth:', width=110)
     groundtruth.on_click(C.groundtruth_callback)
@@ -1369,26 +1369,26 @@ def init(_bokeh_document):
     validationfiles = Button(label='validation files:', width=110)
     validationfiles.on_click(C.validationfiles_callback)
     validationfiles_string = TextInput(value=M.state['validationfiles'], title="", disabled=False)
-    validationfiles_string.on_change('value', lambda a,o,n: C.generic_parameters_callback())
+    validationfiles_string.on_change('value', lambda a,o,n: C.generic_parameters_callback(n))
 
     testfiles = Button(label='test files:', width=110)
     testfiles.on_click(C.testfiles_callback)
     testfiles_string = TextInput(value=M.state['testfiles'], title="", disabled=False)
-    testfiles_string.on_change('value', lambda a,o,n: C.generic_parameters_callback())
+    testfiles_string.on_change('value', lambda a,o,n: C.generic_parameters_callback(n))
 
     wantedwords = Button(label='wanted words:', width=110)
     wantedwords.on_click(C.wantedwords_callback)
     wantedwords_string = TextInput(value=M.state['wantedwords'], title="", disabled=False)
-    wantedwords_string.on_change('value', lambda a,o,n: C.generic_parameters_callback())
+    wantedwords_string.on_change('value', lambda a,o,n: C.generic_parameters_callback(n))
 
     labeltypes = Button(label='label types:', width=110)
     labeltypes_string = TextInput(value=M.state['labeltypes'], title="", disabled=False)
-    labeltypes_string.on_change('value', lambda a,o,n: C.generic_parameters_callback())
+    labeltypes_string.on_change('value', lambda a,o,n: C.generic_parameters_callback(n))
 
     prevalences = Button(label='prevalences:', width=110)
     prevalences.on_click(C.prevalences_callback)
     prevalences_string = TextInput(value=M.state['prevalences'], title="", disabled=False)
-    prevalences_string.on_change('value', lambda a,o,n: C.generic_parameters_callback())
+    prevalences_string.on_change('value', lambda a,o,n: C.generic_parameters_callback(n))
 
     copy = Button(label='copy')
     copy.on_click(C.copy_callback)
@@ -1426,200 +1426,200 @@ def init(_bokeh_document):
     time_sigma_string = TextInput(value=M.state['time_sigma'], \
                                   title="time σ", \
                                   disabled=False)
-    time_sigma_string.on_change('value', lambda a,o,n: C.generic_parameters_callback())
+    time_sigma_string.on_change('value', lambda a,o,n: C.generic_parameters_callback(n))
 
     time_smooth_ms_string = TextInput(value=M.state['time_smooth_ms'], \
                                       title="time smooth", \
                                       disabled=False)
-    time_smooth_ms_string.on_change('value', lambda a,o,n: C.generic_parameters_callback())
+    time_smooth_ms_string.on_change('value', lambda a,o,n: C.generic_parameters_callback(n))
 
     frequency_n_ms_string = TextInput(value=M.state['frequency_n_ms'], \
                                       title="freq N (msec)", \
                                       disabled=False)
-    frequency_n_ms_string.on_change('value', lambda a,o,n: C.generic_parameters_callback())
+    frequency_n_ms_string.on_change('value', lambda a,o,n: C.generic_parameters_callback(n))
 
     frequency_nw_string = TextInput(value=M.state['frequency_nw'], \
                                     title="freq NW", \
                                     disabled=False)
-    frequency_nw_string.on_change('value', lambda a,o,n: C.generic_parameters_callback())
+    frequency_nw_string.on_change('value', lambda a,o,n: C.generic_parameters_callback(n))
 
     frequency_p_string = TextInput(value=M.state['frequency_p'], \
                                    title="freq ρ", \
                                    disabled=False)
-    frequency_p_string.on_change('value', lambda a,o,n: C.generic_parameters_callback())
+    frequency_p_string.on_change('value', lambda a,o,n: C.generic_parameters_callback(n))
 
     frequency_smooth_ms_string = TextInput(value=M.state['frequency_smooth_ms'], \
                                            title="freq smooth", \
                                            disabled=False)
-    frequency_smooth_ms_string.on_change('value', lambda a,o,n: C.generic_parameters_callback())
+    frequency_smooth_ms_string.on_change('value', lambda a,o,n: C.generic_parameters_callback(n))
 
     nsteps_string = TextInput(value=M.state['nsteps'], title="# steps", disabled=False)
-    nsteps_string.on_change('value', lambda a,o,n: C.generic_parameters_callback())
+    nsteps_string.on_change('value', lambda a,o,n: C.generic_parameters_callback(n))
 
     restore_from_string = TextInput(value=M.state['restore_from'], title="restore from", disabled=False)
-    restore_from_string.on_change('value', lambda a,o,n: C.generic_parameters_callback())
+    restore_from_string.on_change('value', lambda a,o,n: C.generic_parameters_callback(n))
 
     save_and_validate_period_string = TextInput(value=M.state['save_and_validate_interval'], \
                                                 title="validate period", \
                                                 disabled=False)
-    save_and_validate_period_string.on_change('value', lambda a,o,n: C.generic_parameters_callback())
+    save_and_validate_period_string.on_change('value', lambda a,o,n: C.generic_parameters_callback(n))
 
     validate_percentage_string = TextInput(value=M.state['validate_percentage'], \
                                            title="validate %", \
                                            disabled=False)
-    validate_percentage_string.on_change('value', lambda a,o,n: C.generic_parameters_callback())
+    validate_percentage_string.on_change('value', lambda a,o,n: C.generic_parameters_callback(n))
 
     mini_batch_string = TextInput(value=M.state['mini_batch'], \
                                   title="mini-batch", \
                                   disabled=False)
-    mini_batch_string.on_change('value', lambda a,o,n: C.generic_parameters_callback())
+    mini_batch_string.on_change('value', lambda a,o,n: C.generic_parameters_callback(n))
 
     kfold_string = TextInput(value=M.state['kfold'], title="k-fold",  disabled=False)
-    kfold_string.on_change('value', lambda a,o,n: C.generic_parameters_callback())
+    kfold_string.on_change('value', lambda a,o,n: C.generic_parameters_callback(n))
 
     activations_equalize_ratio_string = TextInput(value=M.state['activations_equalize_ratio'], \
                                              title="equalize ratio", \
                                              disabled=False)
-    activations_equalize_ratio_string.on_change('value', lambda a,o,n: C.generic_parameters_callback())
+    activations_equalize_ratio_string.on_change('value', lambda a,o,n: C.generic_parameters_callback(n))
 
     activations_max_samples_string = TextInput(value=M.state['activations_max_samples'], \
                                           title="max samples", \
                                           disabled=False)
-    activations_max_samples_string.on_change('value', lambda a,o,n: C.generic_parameters_callback())
+    activations_max_samples_string.on_change('value', lambda a,o,n: C.generic_parameters_callback(n))
 
     pca_fraction_variance_to_retain_string = TextInput(value=M.state['pca_fraction_variance_to_retain'], \
                                                        title="PCA fraction", \
                                                        disabled=False)
-    pca_fraction_variance_to_retain_string.on_change('value', lambda a,o,n: C.generic_parameters_callback())
+    pca_fraction_variance_to_retain_string.on_change('value', lambda a,o,n: C.generic_parameters_callback(n))
 
     tsne_perplexity_string = TextInput(value=M.state['tsne_perplexity'], \
                                        title="perplexity", \
                                        disabled=False)
-    tsne_perplexity_string.on_change('value', lambda a,o,n: C.generic_parameters_callback())
+    tsne_perplexity_string.on_change('value', lambda a,o,n: C.generic_parameters_callback(n))
 
     tsne_exaggeration_string = TextInput(value=M.state['tsne_exaggeration'], \
                                         title="exaggeration", \
                                         disabled=False)
-    tsne_exaggeration_string.on_change('value', lambda a,o,n: C.generic_parameters_callback())
+    tsne_exaggeration_string.on_change('value', lambda a,o,n: C.generic_parameters_callback(n))
 
     umap_neighbors_string = TextInput(value=M.state['umap_neighbors'], \
                                       title="neighbors", \
                                       disabled=False)
-    umap_neighbors_string.on_change('value', lambda a,o,n: C.generic_parameters_callback())
+    umap_neighbors_string.on_change('value', lambda a,o,n: C.generic_parameters_callback(n))
 
     umap_distance_string = TextInput(value=M.state['umap_distance'], \
                                      title="distance", \
                                      disabled=False)
-    umap_distance_string.on_change('value', lambda a,o,n: C.generic_parameters_callback())
+    umap_distance_string.on_change('value', lambda a,o,n: C.generic_parameters_callback(n))
 
     precision_recall_ratios_string = TextInput(value=M.state['precision_recall_ratios'], \
                                                title="P/Rs", \
                                                disabled=False)
-    precision_recall_ratios_string.on_change('value', lambda a,o,n: C.generic_parameters_callback())
+    precision_recall_ratios_string.on_change('value', lambda a,o,n: C.generic_parameters_callback(n))
 
     context_ms_string = TextInput(value=M.state['context_ms'], \
                                   title="context (msec)", \
                                   disabled=False)
-    context_ms_string.on_change('value', lambda a,o,n: C.generic_parameters_callback())
+    context_ms_string.on_change('value', lambda a,o,n: C.generic_parameters_callback(n))
 
     shiftby_ms_string = TextInput(value=M.state['shiftby_ms'], \
                                   title="shift by (msec)", \
                                   disabled=False)
-    shiftby_ms_string.on_change('value', lambda a,o,n: C.generic_parameters_callback())
+    shiftby_ms_string.on_change('value', lambda a,o,n: C.generic_parameters_callback(n))
 
     representation = Select(title="representation", height=50, \
                             value=M.state['representation'], \
                             options=["waveform", "spectrogram", "mel-cepstrum"])
-    representation.on_change('value', lambda a,o,n: C.generic_parameters_callback())
+    representation.on_change('value', lambda a,o,n: C.generic_parameters_callback(''))
 
     cluster_algorithm = Select(title="cluster", height=50, \
                                value=M.state['cluster_algorithm'], \
                                options=["PCA 2D", "PCA 3D", \
                                         "tSNE 2D", "tSNE 3D", \
                                         "UMAP 2D", "UMAP 3D"])
-    cluster_algorithm.on_change('value', lambda a,o,n: C.generic_parameters_callback())
+    cluster_algorithm.on_change('value', lambda a,o,n: C.generic_parameters_callback(''))
 
     cluster_these_layers = MultiSelect(title='layers', height=108, \
                                        value=M.state['cluster_these_layers'], \
                                        options=[])
-    cluster_these_layers.on_change('value', lambda a,o,n: C.generic_parameters_callback())
+    cluster_these_layers.on_change('value', lambda a,o,n: C.generic_parameters_callback(''))
     cluster_these_layers_update()
 
     connection_type = Select(title="connection", height=50, \
                              value=M.state['connection_type'], \
                              options=["plain", "residual"])
-    connection_type.on_change('value', lambda a,o,n: C.generic_parameters_callback())
+    connection_type.on_change('value', lambda a,o,n: C.generic_parameters_callback(''))
 
     window_ms_string = TextInput(value=M.state['window_ms'], \
                                  title="window (msec)", \
                                  disabled=False)
-    window_ms_string.on_change('value', lambda a,o,n: C.generic_parameters_callback())
+    window_ms_string.on_change('value', lambda a,o,n: C.generic_parameters_callback(n))
 
     stride_ms_string = TextInput(value=M.state['stride_ms'], \
                                  title="stride (msec)", \
                                  disabled=False)
-    stride_ms_string.on_change('value', lambda a,o,n: C.generic_parameters_callback())
+    stride_ms_string.on_change('value', lambda a,o,n: C.generic_parameters_callback(n))
 
     mel_dct_string = TextInput(value=M.state['mel&dct'], \
                                title="Mel & DCT", \
                                disabled=False)
-    mel_dct_string.on_change('value', lambda a,o,n: C.generic_parameters_callback())
+    mel_dct_string.on_change('value', lambda a,o,n: C.generic_parameters_callback(n))
 
     dropout_string = TextInput(value=M.state['dropout'], \
                                title="dropout", \
                                disabled=False)
-    dropout_string.on_change('value', lambda a,o,n: C.generic_parameters_callback())
+    dropout_string.on_change('value', lambda a,o,n: C.generic_parameters_callback(n))
 
     replicates_string = TextInput(value=M.state['replicates'], \
                                   title="replicates", \
                                   disabled=False)
-    replicates_string.on_change('value', lambda a,o,n: C.generic_parameters_callback())
+    replicates_string.on_change('value', lambda a,o,n: C.generic_parameters_callback(n))
 
     batch_seed_string = TextInput(value=M.state['batch_seed'], \
                                   title="batch seed", \
                                   disabled=False)
-    batch_seed_string.on_change('value', lambda a,o,n: C.generic_parameters_callback())
+    batch_seed_string.on_change('value', lambda a,o,n: C.generic_parameters_callback(n))
 
     weights_seed_string = TextInput(value=M.state['weights_seed'], \
                                     title="weights seed", \
                                     disabled=False)
-    weights_seed_string.on_change('value', lambda a,o,n: C.generic_parameters_callback())
+    weights_seed_string.on_change('value', lambda a,o,n: C.generic_parameters_callback(n))
 
     optimizer = Select(title="optimizer", height=50, \
                        value=M.state['optimizer'], \
                        options=[("sgd","SGD"), ("adam","Adam"), ("adagrad","AdaGrad"), \
                                 ("rmsprop","RMSProp")])
-    optimizer.on_change('value', lambda a,o,n: C.generic_parameters_callback())
+    optimizer.on_change('value', lambda a,o,n: C.generic_parameters_callback(''))
 
     learning_rate_string = TextInput(value=M.state['learning_rate'], \
                                      title="learning rate", \
                                      disabled=False)
-    learning_rate_string.on_change('value', lambda a,o,n: C.generic_parameters_callback())
+    learning_rate_string.on_change('value', lambda a,o,n: C.generic_parameters_callback(n))
 
     kernel_sizes_string = TextInput(value=M.state['kernel_sizes'], \
                                     title="kernels", \
                                     disabled=False)
-    kernel_sizes_string.on_change('value', lambda a,o,n: C.generic_parameters_callback())
+    kernel_sizes_string.on_change('value', lambda a,o,n: C.generic_parameters_callback(n))
 
     last_conv_width_string = TextInput(value=M.state['last_conv_width'], \
                                        title="last conv width", \
                                        disabled=False)
-    last_conv_width_string.on_change('value', lambda a,o,n: C.generic_parameters_callback())
+    last_conv_width_string.on_change('value', lambda a,o,n: C.generic_parameters_callback(n))
 
     nfeatures_string = TextInput(value=M.state['nfeatures'], \
                                  title="# features", \
                                  disabled=False)
-    nfeatures_string.on_change('value', lambda a,o,n: C.generic_parameters_callback())
+    nfeatures_string.on_change('value', lambda a,o,n: C.generic_parameters_callback(n))
 
     dilate_after_layer_string = TextInput(value=M.state['dilate_after_layer'], \
                                           title="dilate after", \
                                           disabled=False)
-    dilate_after_layer_string.on_change('value', lambda a,o,n: C.generic_parameters_callback())
+    dilate_after_layer_string.on_change('value', lambda a,o,n: C.generic_parameters_callback(n))
 
     stride_after_layer_string = TextInput(value=M.state['stride_after_layer'], \
                                           title="stride after", \
                                           disabled=False)
-    stride_after_layer_string.on_change('value', lambda a,o,n: C.generic_parameters_callback())
+    stride_after_layer_string.on_change('value', lambda a,o,n: C.generic_parameters_callback(n))
 
     editconfiguration = Button(label='edit', button_type="default")
     editconfiguration.on_click(C.editconfiguration_callback)
