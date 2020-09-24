@@ -18,7 +18,8 @@ bokehlog = logging.getLogger("deepsong")
 import model as M
 import view as V
 
-def generic_actuate(cmd, logfile, where, localargs, localdeps, clusterflags, *args):
+def generic_actuate(cmd, logfile, where,
+                    ncpu_cores, ngpu_cards, ngigabyes_memory, localdeps, clusterflags, *args):
     args = ["\'\'" if x=="" else x for x in args]
     if V.waitfor.active:
         if localdeps=="":
@@ -34,7 +35,7 @@ def generic_actuate(cmd, logfile, where, localargs, localdeps, clusterflags, *ar
     if where == "local":
         p = run(["hetero", "submit",
                  "{ export CUDA_VISIBLE_DEVICES=$QUEUE1; "+cmd+" "+' '.join(args)+"; } &> "+logfile,
-                 *localargs.split(' '), localdeps],
+                 str(ncpu_cores), str(ngpu_cards), str(ngigabyes_memory), localdeps],
                 stdout=PIPE, stderr=STDOUT)
         jobid = p.stdout.decode('ascii').rstrip()
         bokehlog.info(jobid)
@@ -42,7 +43,7 @@ def generic_actuate(cmd, logfile, where, localargs, localdeps, clusterflags, *ar
         p = run(["ssh", M.server_ipaddr, "export SINGULARITYENV_PREPEND_PATH="+M.source_path+";",
                  "$DEEPSONG_BIN", "hetero", "submit",
                  "\"{ export CUDA_VISIBLE_DEVICES=\$QUEUE1; "+cmd+" "+' '.join(args)+"; } &> "+logfile+"\"",
-                 *localargs.split(' '), "'"+localdeps+"'"],
+                 str(ncpu_cores), str(ngpu_cards), str(ngigabyes_memory), "'"+localdeps+"'"],
                 stdout=PIPE, stderr=STDOUT)
         jobid = p.stdout.decode('ascii').rstrip()
         bokehlog.info(jobid)
@@ -515,7 +516,11 @@ def detect_actuate():
         currtime = time.time()
         logfile = os.path.splitext(wavfile)[0]+'-detect.log'
         jobid = generic_actuate("detect.sh", logfile, \
-                                M.detect_where, M.detect_local_resources, "",
+                                M.detect_where,
+                                M.detect_ncpu_cores,
+                                M.detect_ngpu_cards,
+                                M.detect_ngigabytes_memory,
+                                "",
                                 M.detect_cluster_flags,
                                 wavfile, \
                                 *V.time_sigma_string.value.split(','), \
@@ -559,7 +564,11 @@ def misses_actuate():
     noext = os.path.join(basepath, os.path.splitext(wavfile)[0])
     logfile = noext+'-misses.log'
     jobid = generic_actuate("misses.sh", logfile, \
-                            M.misses_where, M.misses_local_resources, "",
+                            M.misses_where,
+                            M.misses_ncpu_cores,
+                            M.misses_ngpu_cards,
+                            M.misses_ngigabytes_memory,
+                            "",
                             M.misses_cluster_flags, \
                             V.wavtfcsvfiles_string.value)
     displaystring = "MISSES "+wavfile+" ("+jobid+")"
@@ -742,11 +751,17 @@ def train_actuate():
                                                                 ireplicate+M.models_per_job))])]
         if M.train_gpu == 1:
             jobid = generic_actuate("train.sh", logfile, M.train_where,
-                                    M.train_local_resources_gpu, "", M.train_cluster_flags_gpu,
+                                    M.train_gpu_ncpu_cores,
+                                    M.train_gpu_ngpu_cards,
+                                    M.train_gpu_ngigabytes_memory,
+                                    "", M.train_gpu_cluster_flags,
                                     *args)
         else:
             jobid = generic_actuate("train.sh", logfile, M.train_where,
-                                    M.train_local_resources_cpu, "", M.train_cluster_flags_cpu,
+                                    M.train_cpu_ncpu_cores,
+                                    M.train_cpu_ngpu_cards,
+                                    M.train_cpu_ngigabytes_memory,
+                                    "", M.train_cpu_cluster_flags,
                                     *args)
         jobids.append(jobid)
     displaystring = "TRAIN "+os.path.basename(V.logs_folder.value.rstrip('/'))+ \
@@ -815,13 +830,19 @@ def leaveout_actuate(comma):
                 *validation_files[ivalidation_file:ivalidation_file+M.models_per_job]]
         if M.generalize_gpu == 1:
             jobid = generic_actuate("generalize.sh", logfile, M.generalize_where,
-                                    M.generalize_local_resources_gpu, "", \
-                                    M.generalize_cluster_flags_gpu, \
+                                    M.generalize_gpu_ncpu_cores,
+                                    M.generalize_gpu_ngpu_cards,
+                                    M.generalize_gpu_ngigabytes_memory,
+                                    "", \
+                                    M.generalize_gpu_cluster_flags, \
                                     *args)
         else:
             jobid = generic_actuate("generalize.sh", logfile, M.generalize_where,
-                                    M.generalize_local_resources_cpu, "", \
-                                    M.generalize_cluster_flags_cpu, \
+                                    M.generalize_cpu_ncpu_cores,
+                                    M.generalize_cpu_ngpu_cards,
+                                    M.generalize_cpu_ngigabytes_memory,
+                                    "", \
+                                    M.generalize_cpu_cluster_flags, \
                                     *args)
         jobids.append(jobid)
     displaystring = "GENERALIZE "+os.path.basename(V.logs_folder.value.rstrip('/'))+ \
@@ -865,13 +886,19 @@ def xvalidate_actuate():
                 ','.join([str(x) for x in range(ifold, min(1+kfolds, ifold+M.models_per_job))])]
         if M.xvalidate_gpu == 1:
             jobid = generic_actuate("xvalidate.sh", logfile, M.xvalidate_where,
-                                    M.xvalidate_local_resources_gpu, "", \
-                                    M.xvalidate_cluster_flags_gpu, \
+                                    M.xvalidate_gpu_ncpu_cores,
+                                    M.xvalidate_gpu_ngpu_cards,
+                                    M.xvalidate_gpu_ngigabytes_memory,
+                                    "", \
+                                    M.xvalidate_gpu_cluster_flags, \
                                     *args)
         else:
             jobid = generic_actuate("xvalidate.sh", logfile, M.xvalidate_where,
-                                    M.xvalidate_local_resources_cpu, "", \
-                                    M.xvalidate_cluster_flags_cpu, \
+                                    M.xvalidate_cpu_ncpu_cores,
+                                    M.xvalidate_cpu_ngpu_cards,
+                                    M.xvalidate_cpu_ngigabytes_memory,
+                                    "", \
+                                    M.xvalidate_cpu_cluster_flags, \
                                     *args)
         jobids.append(jobid)
 
@@ -898,7 +925,11 @@ def mistakes_actuate():
     currtime = time.time()
     logfile = os.path.join(V.groundtruth_folder.value, "mistakes.log")
     jobid = generic_actuate("mistakes.sh", logfile,
-                            M.mistakes_where, M.mistakes_local_resources, "",
+                            M.mistakes_where,
+                            M.mistakes_ncpu_cores,
+                            M.mistakes_ngpu_cards,
+                            M.mistakes_ngigabytes_memory,
+                            "",
                             M.mistakes_cluster_flags,
                             V.groundtruth_folder.value)
     displaystring = "MISTAKES "+os.path.basename(V.groundtruth_folder.value.rstrip('/'))+ \
@@ -941,13 +972,19 @@ def activations_actuate():
             str(M.audio_tic_rate), str(M.audio_nchannels)]
     if M.activations_gpu:
         jobid = generic_actuate("activations.sh", logfile, M.activations_where,
-                                M.activations_local_resources_gpu, "",
-                                M.activations_cluster_flags_gpu,
+                                M.activations_gpu_ncpu_cores,
+                                M.activations_gpu_ngpu_cards,
+                                M.activations_gpu_ngigabytes_memory,
+                                "",
+                                M.activations_gpu_cluster_flags,
                                 *args)
     else:
         jobid = generic_actuate("activations.sh", logfile, M.activations_where,
-                                M.activations_local_resources_cpu, "",
-                                M.activations_cluster_flags_cpu,
+                                M.activations_cpu_ncpu_cores,
+                                M.activations_cpu_ngpu_cards,
+                                M.activations_cpu_ngigabytes_memory,
+                                "",
+                                M.activations_cpu_cluster_flags,
                                 *args)
 
     displaystring = "ACTIVATIONS " + \
@@ -976,7 +1013,11 @@ def cluster_actuate():
     elif algorithm == "UMAP":
         args.extend([V.umap_neighbors_string.value, V.umap_distance_string.value])
     jobid = generic_actuate("cluster.sh", logfile,
-                            M.cluster_where, M.cluster_local_resources, "",
+                            M.cluster_where,
+                            M.cluster_ncpu_cores,
+                            M.cluster_ngpu_cards,
+                            M.cluster_ngigabytes_memory,
+                            "",
                             M.cluster_cluster_flags,
                             *args)
 
@@ -1068,7 +1109,11 @@ def accuracy_actuate():
     currtime = time.time()
     logfile = os.path.join(V.logs_folder.value, "accuracy.log")
     jobid = generic_actuate("accuracy.sh", logfile,
-                            M.accuracy_where, M.accuracy_local_resources, "",
+                            M.accuracy_where,
+                            M.accuracy_ncpu_cores,
+                            M.accuracy_ngpu_cards,
+                            M.accuracy_ngigabytes_memory,
+                            "",
                             M.accuracy_cluster_flags,
                             V.logs_folder.value, \
                             V.precision_recall_ratios_string.value, \
@@ -1101,7 +1146,11 @@ def freeze_actuate():
         logdir, model, check_point = M.parse_model_file(ckpt)
         logfile = os.path.join(logdir, model, "freeze.ckpt-"+str(check_point)+".log")
         jobid = generic_actuate("freeze.sh", logfile,
-                                M.freeze_where, M.freeze_local_resources, "",
+                                M.freeze_where,
+                                M.freeze_ncpu_cores,
+                                M.freeze_ngpu_cards,
+                                M.freeze_ngigabytes_memory,
+                                "",
                                 M.freeze_cluster_flags,
                                 V.context_ms_string.value, \
                                 V.representation.value, V.window_ms_string.value, \
@@ -1157,16 +1206,25 @@ def classify_actuate():
         p = run(["date", "+%s"], stdout=PIPE, stderr=STDOUT)
         if M.classify_gpu:
             jobid = generic_actuate("classify1.sh", logfile1, M.classify_where,
-                                      M.classify1_local_resources_gpu, "",
-                                      M.classify1_cluster_flags_gpu,
+                                      M.classify1_gpu_ncpu_cores,
+                                      M.classify1_gpu_ngpu_cards,
+                                      M.classify1_gpu_ngigabytes_memory,
+                                      "",
+                                      M.classify1_gpu_cluster_flags,
                                       *args)
         else:
             jobid = generic_actuate("classify1.sh", logfile1, M.classify_where,
-                                      M.classify1_local_resources_gpu, "",
-                                      M.classify1_cluster_flags_gpu,
+                                      M.classify1_cpu_ncpu_cores,
+                                      M.classify1_cpu_ngpu_cards,
+                                      M.classify1_cpu_ngigabytes_memory,
+                                      "",
+                                      M.classify1_cpu_cluster_flags,
                                       *args)
         jobid = generic_actuate("classify2.sh", logfile2, M.classify_where,
-                                M.classify2_local_resources, "hetero job "+jobid,
+                                M.classify2_ncpu_cores,
+                                M.classify2_ngpu_cards,
+                                M.classify2_ngigabytes_memory,
+                                "hetero job "+jobid,
                                 M.classify2_cluster_flags+" -w \"done("+jobid+")\"", *args)
         displaystring = "CLASSIFY "+os.path.basename(wavfile)+" ("+jobid+")"
         jobids.append(jobid)
@@ -1203,7 +1261,10 @@ def ethogram_actuate():
             tffile = os.path.splitext(tffile)[0]+'.tf'
         logfile = tffile[:-3]+'-ethogram.log'
         jobid = generic_actuate("ethogram.sh", logfile, M.ethogram_where,
-                                M.ethogram_local_resources, "", M.ethogram_cluster_flags,
+                                M.ethogram_ncpu_cores,
+                                M.ethogram_ngpu_cards,
+                                M.ethogram_ngigabytes_memory,
+                                "", M.ethogram_cluster_flags,
                                 logdir, model, check_point, tffile, str(M.audio_tic_rate))
         displaystring = "ETHOGRAM "+os.path.basename(tffile)+" ("+jobid+")"
         jobids.append(jobid)
@@ -1235,7 +1296,11 @@ def compare_actuate():
     currtime = time.time()
     logfile = V.logs_folder.value+'-compare.log'
     jobid = generic_actuate("compare.sh", logfile,
-                            M.compare_where, M.compare_local_resources, "",
+                            M.compare_where,
+                            M.compare_ncpu_cores,
+                            M.compare_ngpu_cards,
+                            M.compare_ngigabytes_memory,
+                            "",
                             M.compare_cluster_flags,
                             V.logs_folder.value)
     displaystring = "COMPARE "+os.path.basename(V.logs_folder.value.rstrip('/'))+ \
@@ -1289,7 +1354,11 @@ def congruence_actuate():
         all_files.remove('')
     logfile = os.path.join(V.groundtruth_folder.value,'congruence.log')
     jobid = generic_actuate("congruence.sh", logfile,
-                            M.congruence_where, M.congruence_local_resources, "", \
+                            M.congruence_where,
+                            M.congruence_ncpu_cores,
+                            M.congruence_ngpu_cards,
+                            M.congruence_ngigabytes_memory,
+                            "", \
                             M.congruence_cluster_flags,
                             V.groundtruth_folder.value, ','.join(all_files),
                             str(M.congruence_parallelize))
