@@ -329,10 +329,10 @@ for pr in precision_recalls:
       sorted_hm = natsorted(onlyone_tic[pr][word][csvbase].keys())
 
       plot_file(fig_tic, fig_tic_venn,
-                [sum([x[1]-x[0] for x in everyone[pr][word][csvbase]]), \
-                 *[sum([y[1]-y[0] for y in onlyone_tic[pr][word][csvbase][x]]) \
+                [sum([x[1]-x[0]+1 for x in everyone[pr][word][csvbase]]), \
+                 *[sum([y[1]-y[0]+1 for y in onlyone_tic[pr][word][csvbase][x]]) \
                    for x in sorted_hm]],
-                [sum([y[1]-y[0] for y in notone_tic[pr][word][csvbase][x]]) \
+                [sum([y[1]-y[0]+1 for y in notone_tic[pr][word][csvbase][x]]) \
                  for x in sorted_hm] if len(sorted_hm)>2 else None)
       plot_file(fig_word, fig_word_venn,
                 [len(everyone[pr][word][csvbase]), \
@@ -354,11 +354,11 @@ for pr in precision_recalls:
     if all_files_flag:
       csvbase0 = list(onlyone_tic[pr][word].keys())[0]
       plot_sumfiles(fig_tic, fig_tic_venn,
-                    [sum([x[1]-x[0] for f in everyone[pr][word].values() for x in f]),
-                     *[sum([sum([y[1]-y[0] for y in f[hm]])
+                    [sum([x[1]-x[0]+1 for f in everyone[pr][word].values() for x in f]),
+                     *[sum([sum([y[1]-y[0]+1 for y in f[hm]])
                             for f in onlyone_tic[pr][word].values()])
                        for hm in sorted_hm]],
-                    [sum([sum([y[1]-y[0] for y in f[hm]]) \
+                    [sum([sum([y[1]-y[0]+1 for y in f[hm]]) \
                            for f in notone_tic[pr][word].values()])
                      for hm in onlyone_tic[pr][word][csvbase0].keys()]
                         if len(sorted_hm)>2 else None)
@@ -401,16 +401,16 @@ for pr in precision_recalls:
       roc_table_word[word][pr] = {}
     for hm in sorted_hm:
       key = 'only '+hm if hm!=pr else 'only deepsong'
-      roc_table_tic[word][pr][key] = int(sum([sum([y[1]-y[0] for y in f[hm]]) \
+      roc_table_tic[word][pr][key] = int(sum([sum([y[1]-y[0]+1 for y in f[hm]]) \
                                               for f in onlyone_tic[pr][word].values()]))
       roc_table_word[word][pr][key] = sum([len(f[hm]) for f in onlyone_word[pr][word].values()])
       if len(sorted_hm)>2:
         key = 'not '+hm if hm!=pr else 'not deepsong'
-        roc_table_tic[word][pr][key] = int(sum([sum([y[1]-y[0] for y in f[hm]]) \
+        roc_table_tic[word][pr][key] = int(sum([sum([y[1]-y[0]+1 for y in f[hm]]) \
                                                 for f in notone_tic[pr][word].values()]))
         roc_table_word[word][pr][key] = sum([len(f[hm])
                                              for f in notone_word[pr][word].values()])
-    roc_table_tic[word][pr]['everyone'] = int(sum([x[1]-x[0]
+    roc_table_tic[word][pr]['everyone'] = int(sum([x[1]-x[0]+1
                                                    for f in everyone[pr][word].values()
                                                    for x in f]))
     roc_table_word[word][pr]['everyone'] = sum([len(f) for f in everyone[pr][word].values()])
