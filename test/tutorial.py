@@ -11,7 +11,7 @@ import shutil
 import glob
 from subprocess import run, PIPE, STDOUT
 
-from lib import wait_for_job, check_file_exists, count_lines_with_word
+from lib import wait_for_job, check_file_exists, count_lines_with_word, count_lines
 
 repo_path = os.path.dirname(sys.path[0])
   
@@ -22,7 +22,6 @@ import controller as C
 
 os.makedirs(os.path.join(repo_path, "test/scratch/py"))
 shutil.copy(os.path.join(repo_path, "configuration.pysh"),
-            os.path.join(repo_path, "test/scratch/py"))
 
 M.init(os.path.join(repo_path, "test/scratch/py/configuration.pysh"))
 V.init(None)
@@ -433,14 +432,19 @@ check_file_exists(os.path.join(V.groundtruth_folder.value, "congruence",
 kinds = ["tic", "word"]
 persons = ["person2", "person3"]
 for kind in kinds:
-  for pr in V.precision_recall_ratios_string.value.split(','):
+  for word in V.wantedwords_string.value.split(','):
     check_file_exists(os.path.join(V.groundtruth_folder.value,
-                                   "congruence-"+kind+"."+pr+"pr.csv"))
+                                   "congruence."+kind+"."+word+".csv"))
+    count_lines(os.path.join(V.groundtruth_folder.value,
+                                   "congruence."+kind+"."+word+".csv"), M.nprobabilities+2)
+    check_file_exists(os.path.join(V.groundtruth_folder.value,
+                                   "congruence."+kind+"."+word+".pdf"))
+  for pr in V.precision_recall_ratios_string.value.split(','):
     for word in V.wantedwords_string.value.split(','):
-      check_file_exists(os.path.join(V.groundtruth_folder.value,
-                                     "congruence-"+kind+"."+pr+"pr."+word+"-venn.pdf"))
-      check_file_exists(os.path.join(V.groundtruth_folder.value,
-                                     "congruence-"+kind+"."+pr+"pr."+word+".pdf"))
+      check_file_exists(os.path.join(V.groundtruth_folder.value, "congruence.bar-venn",
+                                     "congruence."+kind+"."+word+"."+pr+"pr-venn.pdf"))
+      check_file_exists(os.path.join(V.groundtruth_folder.value, "congruence.bar-venn",
+                                     "congruence."+kind+"."+word+"."+pr+"pr.pdf"))
     check_file_exists(os.path.join(V.groundtruth_folder.value, "congruence",
                                    wavpath_noext+"-disjoint-"+kind+"-not"+pr+"pr.csv"))
     check_file_exists(os.path.join(V.groundtruth_folder.value, "congruence",

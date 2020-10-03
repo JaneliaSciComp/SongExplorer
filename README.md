@@ -169,13 +169,23 @@ might need an access token):
     total 16G
     -rwxr-xr-x  1 arthurb scicompsoft 1.5G Sep  2 08:16 deepsong_latest.sif*
 
-Finally, put these definitions in your .bashrc file:
+Finally, put these definitions in your .bashrc (or .zshrc file on Mac OS
+Catalina) file:
 
-    export DEEPSONG_BIN="singularity exec [--nv] <path-to-deepsong_latest.sif>"
+    export DEEPSONG_BIN="singularity exec [--nv] [-B ...] \
+        [--vm-cpu] [--vm-ram] <path-to-deepsong_latest.sif>"
     alias deepsong="$DEEPSONG_BIN gui.sh <path-to-configuration.pysh> 5006"
 
 Add to the DEEPSONG_BIN export any directories you mounted using the `-B` flag
-(e.g. `-B /my/home/directory`).
+(e.g. `singularity exec -B /my/home/directory ...`).
+
+On Mac singularity runs within a virtual machine that is configured by default
+to only use one CPU core and one GB of memory.  Use the `--vm-cpu` and
+`--vm-ram` flags to allocate a different amount of system resources to DeepSong
+(e.g. `singularity exec --vm-cpu 4 --vm-ram 4096 ...`).  Note that even when
+DeepSong is idle these resources will *not* be available to other programs,
+including the operating system.
+
 
 ## Docker for Windows, Mac, and Linux ##
 
@@ -196,14 +206,14 @@ cloud.docker.com](https://cloud.docker.com/u/bjarthur/repository/docker/bjarthur
     REPOSITORY        TAG    IMAGE ID     CREATED      SIZE
     bjarthur/deepsong latest b63784a710bb 20 hours ago 2.27GB
 
-Finally, put these definitions in your .bashrc file:
+Finally, put these definitions in your .bashrc (or .zshrc file on mac os catalina) file:
 
-    export DEEPSONG_BIN="docker run -w `pwd` --env DEEPSONG_BIN \
+    export DEEPSONG_BIN="docker run -w `pwd` [-v ...] --env DEEPSONG_BIN \
         -h=`hostname` -p 5006:5006 bjarthur/deepsong"
     alias deepsong="$DEEPSONG_BIN gui.sh <path-to-configuration.pysh> 5006"
 
 Add to the DEEPSONG_BIN export any directories you mounted using the `-v` flag
-(e.g. `-v /C:/C`).
+(e.g. `docker run -v /C:/C ...`).
 
 Should docker ever hang, or run for an interminably long time, and you
 want to kill it, you'll need to open another terminal window and issue the
@@ -220,8 +230,11 @@ If you have to do this often, consider putting this short cut in your
 
     $ alias dockerkill='docker stop $(docker ps --latest --format "{{.ID}}")'
 
-The virtual machine that docker runs within is configured by default with only
-2 GB of memory.  You will probably want to increase this limit.
+On Windows and Mac docker runs within a virtual machine that is configured by
+default to only use half the available CPU cores and half of the memory.  This
+configuration can be changed in the Preferences window.  Note that even when
+DeepSong is idle these resources will *not* be available to other programs,
+including the operating system.
 
 ## System Configuration ##
 
@@ -285,29 +298,37 @@ its specifications in "configuration.pysh":
     local_ngpu_cards=1
     local_ngigabytes_memory=32
 
+On Mac and Windows specify only the subset of resources you have allocated
+to the virtual machine (e.g. with `singularity --vm-cpu` on Mac).
+
 Similarly, for each kind of task, you must specify how much of those resources
 it requires.  Here, for example, are the settings for training a model locally:
 
-    $ grep -A3 train_gpu configuration.pysh 
+    $ grep train_ configuration.pysh | head -8
     train_gpu=1
     train_where=default_where
-    train_local_resources_gpu="2 1 1"
-    train_local_resources_cpu="12 0 1"
+    train_cpu_ncpu_cores=12
+    train_cpu_ngpu_cards=0
+    train_cpu_ngigabytes_memory=1
+    train_gpu_ncpu_cores=2
+    train_gpu_ngpu_cards=1
+    train_gpu_ngigabytes_memory=1
 
 Let's break this down.  When training (as well as certain other tasks),
 DeepSong provides the option to use a GPU or not with the `train_gpu` variable.
 Depending on the size of your model, the resources you have access to and their
 associated cost, and how many tasks you want to run in parallel, you might or
-might not want or be able to use one.  The `train_local_resources_{gpu,cpu}`
-variables are each a string of three integers, which specify the number of CPU
-cores, number of GPU cards, and number of gigabytes of memory needed
-respectively.
+might not want or be able to use one.  The
+`train_{gpu,cpu}_{ncpu_cores,ngpu_cards,ngigabytes_memory}` variables specify
+the number of CPU cores, number of GPU cards, and number of gigabytes of memory
+needed respectively.
 
 Training the model in the [Tutorial](#tutorial) below, for example, needs two
 CPU cores, one GPU, and a megabyte of memory, and hence
-`train_local_resources_gpu` is set to the string "2 1 1".  Alternatively, if
-you don't have a GPU, you could use an entire CPU by setting `train_gpu` to 0
-and `train_local_resources_cpu` to "12 0 1".
+`train_gpu_{ncpu_cores,ngpu_cards,ngigabytes_memory}` are set to 2, 1, and 1,
+respectively.  Alternatively, if you don't have a GPU, you could use an entire
+CPU by setting `train_gpu` to 0 and
+`train_cpu_{ncpu_cores,ngpu_cards,ngigabytes_memory}` to 12, 0, and 1.
 
 To assess how much resources your particular workflow requires, use the `top`
 and `nvidia-smi` commands to monitor jobs while they are running.
@@ -445,9 +466,9 @@ flexibility.  Instead of specifying the cores, GPUs, and RAM needed explicitly,
 you give it the flags that the job submission command uses to allocate those
 same resources.
 
-    $ grep -A5 train_gpu configuration.pysh | tail -n 2
-    train_cluster_flags_gpu="-n 2 -gpu 'num=1' -q gpu_rtx"
-    train_cluster_flags_cpu="-n 12"
+    $ grep -E train.*cluster configuration.pysh
+    train_gpu_cluster_flags="-n 2 -gpu 'num=1' -q gpu_rtx"
+    train_cpu_cluster_flags="-n 12"
 
 
 # Tutorial #
@@ -516,7 +537,7 @@ in addition be enabled and turn red.
 
 The first time you use DeepSong all of the parameters will need to be
 specified.  In the `File Browser`, navigate to the WAV file in the "round1/"
-directory and click on the `WAV,TF,CSV Files` button.  Then specify the eight
+directory and click on the `WAV Files` button.  Then specify the eight
 numeric parameters that control the algorithm used to find sounds:  In the time
 domain, subtract the median, take the absolute value, threshold by the median
 absolute deviation times the first number in `time σ`, and morphologically
@@ -588,17 +609,17 @@ its hidden state activations and output logits by mock-classifying these
 detected sounds with this untrained network.  You'll need to tell it which
 model to use by selecting the last checkpoint file in the untrained
 classifier's log files with the `File Browser` (i.e.
-"untrained-classifier/train_1r/vgg.ckpt-0" in this case).  The time and amount
-of memory this takes depends directly on the number and dimensionality of
-detected sounds.  To limit the problem to a manageable size one can use `max
-samples` to randomly choose a subset of samples to cluster.  (The `time σ` and
-`freq ρ` variables can also be used limit how many sound events were detected
-in the first place.)  The `Activations` button also limits the relative
-proportion of each `wanted word` to `equalize ratio`.  In the case of
-"detected" `label types` you'll want to set this to a large number, as it does
-not matter if the number of samples which pass the "time" threshold far exceeds
-the "frequency" threshold, or vice versa.  Output are three files in the
-ground-truth directory: "activations.log", "activations-samples.log", and
+"untrained-classifier/train_1r/vgg.ckpt-0.{index,meta,data\*}" in this case).
+The time and amount of memory this takes depends directly on the number and
+dimensionality of detected sounds.  To limit the problem to a manageable size
+one can use `max samples` to randomly choose a subset of samples to cluster.
+(The `time σ` and `freq ρ` variables can also be used limit how many sound
+events were detected in the first place.)  The `Activations` button also limits
+the relative proportion of each `wanted word` to `equalize ratio`.  In the case
+of "detected" `label types` you'll want to set this to a large number, as it
+does not matter if the number of samples which pass the "time" threshold far
+exceeds the "frequency" threshold, or vice versa.  Output are three files in
+the ground-truth directory: "activations.log", "activations-samples.log", and
 "activations.npz".  The two ending in ".log" report any errors, and the ".npz"
 file contains the actual data in binary format.
 
@@ -831,16 +852,18 @@ fields.  Then use the `Freeze` button to save the classifier's neural network
 graph structure and weight parameters into the single file that TensorFlow
 needs for inference.  You'll need to choose a checkpoint to use with the File
 Browser as you did before when saving the activations (i.e.
-"trained-classifier1/train_1r/vgg.ckpt-100" in this case).  Output into the log
-files directory are "freeze.ckpt-<>.log" and "frozen-graph.ckpt-<>.log" files
-for errors, and "frozen-graph.ckpt-<>.pb" containing the binary data.  This
-latter PB file can in future be chosen as the model instead of a checkpoint
-file.
+"trained-classifier1/train_1r/vgg.ckpt-100.{index,meta,data\*}" in this case).
+Output into the log files directory are "freeze.ckpt-<>.log" and
+"frozen-graph.ckpt-<>.log" files for errors, and "frozen-graph.ckpt-<>.pb"
+containing the binary data.  This latter PB file can in future be chosen as the
+model instead of a checkpoint file.
 
 Now use the `Classify` button to generate probabilities over time for each
-annotated word.  Specify which recordings using the `File Browser` and
-the `WAV,TF,CSV Files` button.  These are first stored in a file ending in
-".tf", and then converted to WAV files for easy viewing.
+annotated word.  Specify which recordings using the `File Browser` and the `WAV
+Files` button.  Note that while the "Checkpoint File" button changed to "PB
+File", you can leave the text box as is;  all DeepSong needs is a filename from
+which it can parse "ckpt-\*".  The probabilities are first stored in a file
+ending in ".tf", and then converted to WAV files for easy viewing.
 
     $ ls groundtruth-data/round2/
     20161207T102314_ch1-ambient.wav    20161207T102314_ch1-other.wav
@@ -849,11 +872,15 @@ the `WAV,TF,CSV Files` button.  These are first stored in a file ending in
     20161207T102314_ch1-mel-sine.wav
 
 Discretize these probabilities using thresholds based on a set of
-precision-recall ratios using the `Ethogram` button.  The ratios used are those
-in the "thresholds.csv" file in the log files folder, which is created by the
-`Accuracy` button and controlled by the `P/Rs` variable at the time you
-quantified the accuracy.  You'll need to specify which ".tf" files to threshold
-using the `File Browser` and the `WAV,TF,CSV` button.
+precision-recall ratios using the `Ethogram` button.  Choose one of the
+"thresholds.ckpt-\*.csv" files in the log files folder using the `File
+Browser`.  These are created by the `Accuracy` button and controlled by the
+`P/Rs` variable at the time you quantified the accuracy.  For convenience you
+can also just leave this text box as it was when freezing or classifying; all
+DeepSong needs is a filename in the logs folder from which in can parse
+"ckpt-\*".  You'll also need to specify which ".tf" files to threshold using the
+`TF Files` button.  Again, for convenience, you can specify the ".wav" files too,
+and hence leave this as it was when classifying.
 
     $ ls -t1 groundtruth-data/round2/ | head -4
     20161207T102314_ch1-ethogram.log
@@ -926,7 +953,7 @@ button.  Then detect sounds in the recording you just classified, using the
 `Detect` button as before, and create a list of the subset of these sounds which
 were not assigned a label using the `Misses` button.  For the latter, you'll need
 to specify both the detected and predicted CSV files with the `File Browser`
-and the `WAV,TF,CSV` button.  The result is another CSV file, this time
+and the `WAV Files` button.  The result is another CSV file, this time
 ending in "missed.csv":
 
     $ head -5 groundtruth-data/round2/20161207T102314_ch1-missed.csv 
@@ -1278,7 +1305,7 @@ annotate a new set of data to test against.
 
 The congruence between multiple human annotators can be quantified using the
 same procedure.  Simply create "annotated-<name>.csv" files for each one.  The
-plot created by `Congruence` will include bars for the number of sounds labeled
+plots created by `Congruence` will include lines for the number of sounds labeled
 by all annotators (including DeepSong), only each annotator, and not by a given
 annotator.
 
@@ -1307,6 +1334,16 @@ to account for these known imbalanced distributions.  Note that a similar
 effect can be achieved by changing the `P/Rs` variable, but there the
 thresholds are adjusted instead of the probabilities, and they are changed
 equally for all words.
+
+One can also use thresholds derived from this dense annotation to achieve
+better accuracy.  Doing so is particularly useful when making predictions on
+recordings that were made under different conditions than the data used to
+train and validate the model.  To do so, choose the
+"thresholds-dense.ckpt-\*.csv" file when making ethograms.  This file is
+created when the congruence is quantified, but only when a single human
+annotator has made dense annotations.  The precision-recalls ratios therein are
+controlled by the "P/Rs" box when the sparse annotation accuracy was quantified
+with the Accuracy button.
 
 
 ## Discovering Novel Sounds ##

@@ -13,6 +13,8 @@ import matplotlib.cm as cm
 from scipy import interpolate
 import math
 from natsort import realsorted
+from scipy.io import wavfile
+import csv
 
 sys.path.append(os.path.dirname(os.path.realpath(__file__)))
 from jitter import *
@@ -451,3 +453,68 @@ def calculate_precision_recall_specificity(validation_ground_truth, test_logits,
     thresholds[words[iword]] = f(ratios)
   return probabilities, thresholds, precisions, recalls, sensitivities, specificities, \
          pr_areas, roc_areas
+
+def read_probabilities(basepath, labels):
+  wavpath = basepath+'-'+labels[0]+'.wav'
+  sample_rate_probabilities, probabilities = wavfile.read(wavpath)
+  half_stride_sec = 1/sample_rate_probabilities/2
+  probability_matrix = np.empty((len(labels), len(probabilities)))
+  probability_matrix[0,:] = probabilities / np.iinfo(probabilities.dtype).max
+  for ilabel in range(1,len(labels)):
+    wavpath = basepath+'-'+labels[ilabel]+'.wav'
+    sample_rate_probabilities, probabilities = wavfile.read(wavpath)
+    probability_matrix[ilabel,:] = probabilities / np.iinfo(probabilities.dtype).max
+  return sample_rate_probabilities, half_stride_sec, probability_matrix
+
+def discretize_probabilites(probability_matrix, thresholds, labels,
+                            sample_rate_probabilities, half_stride_sec, audio_tic_rate):
+  behavior = probability_matrix > thresholds
+  diff_behavior = np.diff(behavior)
+  ichanges, jchanges = np.where(diff_behavior)
+  nfeatures = int(np.ceil(len(ichanges)/2))
+  features = np.empty((nfeatures,), dtype=object)
+  start_tics = np.empty((nfeatures,), dtype=np.int32)
+  stop_tics = np.empty((nfeatures,), dtype=np.int32)
+  ifeature = 0
+  ijchange = 1
+  while ijchange<len(ichanges):                 # spans classes or starts with word
+    if ichanges[ijchange-1]!=ichanges[ijchange] or \
+           not behavior[ichanges[ijchange],jchanges[ijchange]]:
+       ijchange += 1;
+       continue
+    start_tics[ifeature] = jchanges[ijchange-1] + 1
+    stop_tics[ifeature] = jchanges[ijchange]
+    features[ifeature] = labels[ichanges[ijchange]]
+    ifeature += 1
+    ijchange += 2
+  ifeature -= 1
+
+  features = features[:ifeature]
+  start_tics = np.round((start_tics[:ifeature] / sample_rate_probabilities \
+                         - half_stride_sec) \
+                        * audio_tic_rate).astype(np.int)
+  stop_tics = np.round((stop_tics[:ifeature] / sample_rate_probabilities \
+                         + half_stride_sec) \
+                       * audio_tic_rate).astype(np.int)
+  return features, start_tics, stop_tics
+
+def read_thresholds(logdir, model, thresholds_file):
+  precision_recall_ratios=None
+  thresholds=[]
+  with open(os.path.join(logdir,model,thresholds_file)) as fid:
+    csvreader = csv.reader(fid)
+    for row in csvreader:
+      if precision_recall_ratios==None:
+        precision_recall_ratios=row[1:]
+      else:
+        thresholds.append(row)
+  return precision_recall_ratios, thresholds
+
+def save_thresholds(logdir, model, ckpt, thresholds, ratios, words, dense=False):
+  filename = 'thresholds'+('-dense' if dense else '')+'.ckpt-'+str(ckpt)+'.csv'
+  fid = open(os.path.join(logdir,model,filename),"w")
+  fidcsv = csv.writer(fid)
+  fidcsv.writerow(['precision/recall'] + ratios)
+  for iword in range(len(words)):
+    fidcsv.writerow([words[iword]] + thresholds[words[iword]].tolist())
+  fid.close()

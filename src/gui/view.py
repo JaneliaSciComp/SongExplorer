@@ -912,13 +912,19 @@ def buttons_update():
         button.button_type="primary" if button==M.action else "default"
         button.disabled=False if button in wizard2actions[M.wizard] else True
     if M.action in [detect,classify]:
-        wavtfcsvfiles.label='wav files'
+        wavtfcsvfiles.label='wav files:'
     elif M.action==ethogram:
-        wavtfcsvfiles.label='tf files'
+        wavtfcsvfiles.label='tf files:'
     elif M.action==misses:
-        wavtfcsvfiles.label='csv files'
+        wavtfcsvfiles.label='csv files:'
     else:
-        wavtfcsvfiles.label='wav,tf,csv files'
+        wavtfcsvfiles.label='wav,tf,csv files:'
+    if M.action == classify:
+        model.label='pb file:'
+    elif M.action == ethogram:
+        model.label='threshold file:'
+    else:
+        model.label='checkpoint file:'
     for button in parameter_buttons:
         button.disabled=False if button in action2parameterbuttons[M.action] else True
     okay=True if M.action else False
@@ -1351,7 +1357,7 @@ def init(_bokeh_document):
     logs_folder = TextInput(value=M.state['logs'], title="", disabled=False)
     logs_folder.on_change('value', lambda a,o,n: C.generic_parameters_callback(n))
 
-    model = Button(label='model:', width=110)
+    model = Button(label='checkpoint file:', width=110)
     model.on_click(C.model_callback)
     model_file = TextInput(value=M.state['model'], title="", disabled=False)
     model_file.on_change('value', model_file_update)

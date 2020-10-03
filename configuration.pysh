@@ -169,7 +169,7 @@ accuracy_parallelize=1
 congruence_parallelize=1
 
 # how many points to use for the precision-recall and sensitivity-specificity curves
-accuracy_nprobabilities=50
+nprobabilities=50
 
 # used by freeze and classify to specify how many `window`s to process in parallel
 # must be an integer multiple of the effective downsampling achieved by `stride after`

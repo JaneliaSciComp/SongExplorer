@@ -954,7 +954,7 @@ def activations_cluster_succeeded(kind, groundtruthdir, reftime):
 
 def activations_actuate():
     currtime = time.time()
-    logdir, model, check_point = M.parse_model_file(V.model_file.value)
+    logdir, model, _, check_point = M.parse_model_file(V.model_file.value)
     logfile = os.path.join(V.groundtruth_folder.value, "activations.log")
     args = [V.context_ms_string.value, \
             V.shiftby_ms_string.value, V.representation.value, \
@@ -1117,7 +1117,7 @@ def accuracy_actuate():
                             M.accuracy_cluster_flags,
                             V.logs_folder.value, \
                             V.precision_recall_ratios_string.value, \
-                            str(M.accuracy_nprobabilities), str(M.accuracy_parallelize))
+                            str(M.nprobabilities), str(M.accuracy_parallelize))
     displaystring = "ACCURACY "+os.path.basename(V.logs_folder.value.rstrip('/'))+ \
                     " ("+jobid+")"
     M.waitfor_job = jobid
@@ -1143,7 +1143,7 @@ def freeze_actuate():
     jobids = []
     for ckpt in V.model_file.value.split(','):
         currtime = time.time()
-        logdir, model, check_point = M.parse_model_file(ckpt)
+        logdir, model, _, check_point = M.parse_model_file(ckpt)
         logfile = os.path.join(logdir, model, "freeze.ckpt-"+str(check_point)+".log")
         jobid = generic_actuate("freeze.sh", logfile,
                                 M.freeze_where,
@@ -1193,7 +1193,7 @@ def classify_actuate():
     jobids = []
     for wavfile in V.wavtfcsvfiles_string.value.split(','):
         currtime = time.time()
-        logdir, model, check_point = M.parse_model_file(V.model_file.value)
+        logdir, model, _, check_point = M.parse_model_file(V.model_file.value)
         logfile0 = os.path.splitext(wavfile)[0]+'-classify'
         logfile1 = logfile0+'1.log'
         logfile2 = logfile0+'2.log'
@@ -1256,7 +1256,11 @@ def ethogram_actuate():
     jobids = []
     for (i,tffile) in enumerate(tffiles):
         currtime = time.time()
-        logdir, model, check_point = M.parse_model_file(V.model_file.value)
+        logdir, model, prefix, check_point = M.parse_model_file(V.model_file.value)
+        if 'thresholds' in prefix:
+            thresholds_file =  prefix+'.ckpt-'+check_point+'.csv'
+        else:
+            thresholds_file =  'thresholds.ckpt-'+check_point+'.csv'
         if tffile.lower().endswith('.wav'):
             tffile = os.path.splitext(tffile)[0]+'.tf'
         logfile = tffile[:-3]+'-ethogram.log'
@@ -1265,7 +1269,8 @@ def ethogram_actuate():
                                 M.ethogram_ngpu_cards,
                                 M.ethogram_ngigabytes_memory,
                                 "", M.ethogram_cluster_flags,
-                                logdir, model, check_point, tffile, str(M.audio_tic_rate))
+                                logdir, model, thresholds_file, tffile,
+                                str(M.audio_tic_rate))
         displaystring = "ETHOGRAM "+os.path.basename(tffile)+" ("+jobid+")"
         jobids.append(jobid)
         threads[i] = threading.Thread(target=actuate_monitor, args=( \
@@ -1312,27 +1317,29 @@ def compare_actuate():
                      lambda l=logfile: contains_two_timestamps(l), \
                      lambda l=V.logs_folder.value, t=currtime: compare_succeeded(l, t))).start()
 
-def congruence_succeeded(logdir, reftime, regex_files):
-    logfile = os.path.join(logdir,'congruence.log')
+def congruence_succeeded(groundtruth_folder, reftime, regex_files):
+    logfile = os.path.join(groundtruth_folder,'congruence.log')
     if not logfile_succeeded(logfile, reftime):
         return False
-    listfiles = os.listdir(os.path.join(logdir))
+    listfiles = os.listdir(groundtruth_folder)
     csvfiles = list(filter(lambda x: x.endswith(".csv"), listfiles))
     pdffiles = list(filter(lambda x: x.endswith(".pdf"), listfiles))
-    for (suffix, allfiles) in zip(["CSV", csvfiles], ["PDF", pdffiles]):
-        ntic = len(list(filter(lambda x: x.startswith("congruence-tic"), allfiles)))
-        nword = len(list(filter(lambda x: x.startswith("congruence-word"), allfiles)))
-        if ntic != nword:
-            bokehlog.info("ERROR: # of congruence-tic "+suffix+ \
-                          " files does not match # of congruence-word "+suffix+" files.")
+    for (suffix, allfiles) in zip(["CSV", "PDF"], [csvfiles, pdffiles]):
+        ntic = len(list(filter(lambda x: x.startswith("congruence.tic") and reftime <=
+                                         os.path.getmtime(os.path.join(groundtruth_folder,x)),
+                               allfiles)))
+        nword = len(list(filter(lambda x: x.startswith("congruence.word") and reftime <=
+                                          os.path.getmtime(os.path.join(groundtruth_folder,x)),
+                                allfiles)))
+        if ntic != nword or ntic==0:
+            bokehlog.info("ERROR: missing congruence-{tic,word} "+suffix+" files.")
             return False
-    #pdffile = os.path.join(logdir, "congruence-vs-threshold.pdf")
-    #if not pdffile_succeeded(pdffile, reftime):
-    #    return False
-    for subdir in filter(lambda x: os.path.isdir(os.path.join(logdir,x)), \
-                         os.listdir(logdir)):
-        listfiles = os.listdir(os.path.join(logdir,subdir))
-        csvfiles = list(filter(lambda x: re.match(regex_files, x), listfiles))
+    for subdir in filter(lambda x: os.path.isdir(os.path.join(groundtruth_folder,x)), \
+                         os.listdir(groundtruth_folder)):
+        listfiles = os.listdir(os.path.join(groundtruth_folder,subdir))
+        csvfiles = list(filter(lambda x: re.match(regex_files, x) and reftime <=
+                                         os.path.getmtime(os.path.join(groundtruth_folder,subdir,x)),
+                               listfiles))
         if len(csvfiles)==0:
           continue
         ndisjoint_everyone = len(list(filter(lambda x: "disjoint-everyone" in x, csvfiles)))
@@ -1361,6 +1368,8 @@ def congruence_actuate():
                             "", \
                             M.congruence_cluster_flags,
                             V.groundtruth_folder.value, ','.join(all_files),
+                            str(M.nprobabilities),
+                            str(M.audio_tic_rate),
                             str(M.congruence_parallelize))
     displaystring = "CONGRUENCE "+os.path.basename(all_files[0])+" ("+jobid+")"
     M.waitfor_job = jobid

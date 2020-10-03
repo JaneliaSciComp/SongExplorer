@@ -28,8 +28,12 @@ files=(groundtruth-data/round1/PS_20130625111709_ch3-detected.csv
        nfeatures-32/xvalidate_1k/thresholds.ckpt-100.csv
        nfeatures-64/xvalidate_1k/thresholds.ckpt-10.csv
        nfeatures-64/xvalidate_1k/thresholds.ckpt-100.csv
-       groundtruth-data/congruence-tic.1.0pr.csv
-       groundtruth-data/congruence-word.1.0pr.csv
+       groundtruth-data/congruence.tic.ambient.csv
+       groundtruth-data/congruence.tic.mel-pulse.csv
+       groundtruth-data/congruence.tic.mel-sine.csv
+       groundtruth-data/congruence.word.ambient.csv
+       groundtruth-data/congruence.word.mel-pulse.csv
+       groundtruth-data/congruence.word.mel-sine.csv
       )
 for file in ${files[*]} ; do
   if [[ $(diff $repo_path/test/scratch/sh/$file \

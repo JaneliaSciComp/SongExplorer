@@ -7,6 +7,8 @@
 check_file_exists() { [[ -e $1 ]] || echo ERROR: $1 is missing; }
 count_lines_with_word() {
       (( $(grep $2 $1 | wc -l) == $3 )) || echo ERROR: $1 has wrong $2 count; }
+count_lines() {
+    (( $(wc -l $1) == $2 )) || echo ERROR: $1 has wrong number of lines; }
 
 repo_path=$(dirname $(dirname $(which detect.sh)))
 
@@ -148,7 +150,7 @@ check_file_exists $logdir/train_1r/logits.validation.ckpt-$nsteps.npz
 
 precision_recall_ratios=0.5,1.0,2.0
 accuracy.sh $logdir $precision_recall_ratios \
-      $accuracy_nprobabilities $accuracy_parallelize \
+      $nprobabilities $accuracy_parallelize \
       &> $logdir/accuracy.log
 
 check_file_exists $logdir/accuracy.log
@@ -200,7 +202,7 @@ for word in $(echo $wanted_words | sed "s/,/ /g") ; do
 done
 
 ethogram.sh \
-      $logdir train_${ireplicates}r $check_point \
+      $logdir train_${ireplicates}r thresholds.ckpt-${check_point}.csv \
       $wavpath_noext $audio_tic_rate \
       &> ${wavpath_noext}-ethogram.log
 
@@ -298,7 +300,7 @@ for ioffset in $ioffsets ; do
 done
 
 accuracy.sh $logdir $precision_recall_ratios \
-      $accuracy_nprobabilities $accuracy_parallelize \
+      $nprobabilities $accuracy_parallelize \
       &> $logdir/accuracy.log
 
 check_file_exists $logdir/accuracy.log
@@ -343,7 +345,7 @@ for nfeatures in ${nfeaturess[@]} ; do
   done
 
   accuracy.sh $logdir $precision_recall_ratios \
-        $accuracy_nprobabilities $accuracy_parallelize \
+        $nprobabilities $accuracy_parallelize \
         &> $logdir/accuracy.log
 
   check_file_exists $logdir/accuracy.log
@@ -397,7 +399,7 @@ check_file_exists $logdir/train_1r/logits.validation.ckpt-$nsteps.npz
 
 precision_recall_ratios=1.0
 accuracy.sh $logdir $precision_recall_ratios \
-      $accuracy_nprobabilities $accuracy_parallelize \
+      $nprobabilities $accuracy_parallelize \
       &> $logdir/accuracy.log
 
 check_file_exists $logdir/accuracy.log
@@ -448,7 +450,7 @@ for word in $(echo $wanted_words | sed "s/,/ /g") ; do
 done
 
 ethogram.sh \
-      $logdir train_${ireplicates}r $check_point \
+      $logdir train_${ireplicates}r thresholds.ckpt-${check_point}.csv \
       ${wavpath_noext}.wav $audio_tic_rate \
       &> ${wavpath_noext}-ethogram.log
 
@@ -464,7 +466,7 @@ cp $repo_path/data/20190122T093303a-7-annotated-person3.csv \
 
 wav_file_noext=20190122T093303a-7
 congruence.sh \
-      $data_dir ${wav_file_noext}.wav $congruence_parallelize \
+      $data_dir ${wav_file_noext}.wav $nprobabilities $audio_tic_rate $congruence_parallelize \
       &> $data_dir/congruence.log
 
 check_file_exists $data_dir/congruence.log
@@ -474,11 +476,15 @@ persons=(person2 person3)
 IFS=', ' read -r -a prs <<< "$precision_recall_ratios"
 IFS=', ' read -r -a words <<< "$wanted_words"
 for kind in ${kinds[@]} ; do
+  for word in ${words[@]} ; do
+    check_file_exists $data_dir/congruence.${kind}.${word}.csv
+    count_lines $data_dir/congruence.${kind}.${word}.csv $(( $nprobabilities + 2 ))
+    check_file_exists $data_dir/congruence.${kind}.${word}.pdf
+  done
   for pr in ${prs[@]} ; do
-    check_file_exists $data_dir/congruence-${kind}.${pr}pr.csv
     for word in ${words[@]} ; do
-      check_file_exists $data_dir/congruence-${kind}.${pr}pr.${word}-venn.pdf
-      check_file_exists $data_dir/congruence-${kind}.${pr}pr.${word}.pdf
+      check_file_exists $data_dir/congruence.bar-venn/congruence.${kind}.${word}.${pr}pr-venn.pdf
+      check_file_exists $data_dir/congruence.bar-venn/congruence.${kind}.${word}.${pr}pr.pdf
     done
     check_file_exists $data_dir/congruence/$wav_file_noext-disjoint-${kind}-not${pr}pr.csv
     check_file_exists $data_dir/congruence/$wav_file_noext-disjoint-${kind}-only${pr}pr.csv

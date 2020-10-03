@@ -328,14 +328,6 @@ if len(keys_to_plot)>1:
   plt.savefig(os.path.join(logdir,'confusion-matrices.pdf'))
   plt.close()
 
-def save_thresholds(logdir, model, ckpt, thresholds, ratios, words):
-  fid = open(os.path.join(logdir,model,'thresholds.ckpt-'+str(ckpt)+'.csv'),"w")
-  fidcsv = csv.writer(fid)
-  fidcsv.writerow(['precision/recall'] + ratios)
-  for iword in range(len(words)):
-    fidcsv.writerow([words[iword]] + thresholds[words[iword]].tolist())
-  fid.close()
-
 def plot_metrics_parameterized_by_threshold(logdir, thresholds, \
                                             metric1_data, metric2_data, \
                                             metric1_label, metric2_label, \

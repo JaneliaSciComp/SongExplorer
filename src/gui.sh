@@ -29,7 +29,7 @@ isinteger gui_context_width_ms
 isinteger gui_context_offset_ms
 isinteger models_per_job
 isinteger pca_batch_size
-isinteger accuracy_nprobabilities
+isinteger nprobabilities
 isinteger nstrides
 isinteger detect_ncpu_cores
 isinteger detect_ngpu_cards
