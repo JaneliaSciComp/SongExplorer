@@ -43,7 +43,7 @@ if [[ -n "$server_ipaddr" ]] ; then
 fi
 
 isinteger() {
-  number_re='^[0-9]+$'
+  number_re='^-?[0-9]+$'
   [[ "${!1}" =~ $number_re ]] || echo WARNING: $1 is not set or is not an integer
 }
 

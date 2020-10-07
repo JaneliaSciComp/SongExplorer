@@ -13,9 +13,9 @@ audio_nchannels=1
 server_ipaddr=""
 
 # how to dispatch jobs to the 'cluster'
-cluster_ipaddr="login1"
-cluster_cmd="bsub -Ne -Pstern"
-cluster_logfile_flag="-oo"
+cluster_ipaddr=""
+cluster_cmd=""
+cluster_logfile_flag=""
 
 # GUI
 #gui_cluster_dot_colormap="Category10_10"
@@ -37,117 +37,117 @@ default_where="local"
 # action buttons
 
 detect_where=default_where
-detect_ncpu_cores=1
-detect_ngpu_cards=0
-detect_ngigabytes_memory=32
-detect_cluster_flags="-n 2 -W 60"
+detect_ncpu_cores=-1
+detect_ngpu_cards=-1
+detect_ngigabytes_memory=-1
+detect_cluster_flags=""
 
 misses_where=default_where
-misses_ncpu_cores=1
-misses_ngpu_cards=0
-misses_ngigabytes_memory=1
-misses_cluster_flags="-W 60"
+misses_ncpu_cores=-1
+misses_ngpu_cards=-1
+misses_ngigabytes_memory=-1
+misses_cluster_flags=""
 
-train_gpu=1
+train_gpu=0
 train_where=default_where
-train_gpu_ncpu_cores=2
-train_gpu_ngpu_cards=1
-train_gpu_ngigabytes_memory=1
-train_gpu_cluster_flags="-n 2 -W 10080 -gpu 'num=1' -q gpu_rtx"
-train_cpu_ncpu_cores=12
-train_cpu_ngpu_cards=0
-train_cpu_ngigabytes_memory=1
-train_cpu_cluster_flags="-n 12 -W 10080"
+train_gpu_ncpu_cores=-1
+train_gpu_ngpu_cards=-1
+train_gpu_ngigabytes_memory=-1
+train_gpu_cluster_flags=""
+train_cpu_ncpu_cores=-1
+train_cpu_ngpu_cards=-1
+train_cpu_ngigabytes_memory=-1
+train_cpu_cluster_flags=""
 
-generalize_gpu=1
+generalize_gpu=0
 generalize_where=default_where
-generalize_gpu_ncpu_cores=2
-generalize_gpu_ngpu_cards=1
-generalize_gpu_ngigabytes_memory=1
-generalize_gpu_cluster_flags="-n 8 -W 10080 -gpu 'num=1:mode=shared' -q gpu_rtx"
-generalize_cpu_ncpu_cores=24
-generalize_cpu_ngpu_cards=0
-generalize_cpu_ngigabytes_memory=1
-generalize_cpu_cluster_flags="-n 24 -W 10080"
+generalize_gpu_ncpu_cores=-1
+generalize_gpu_ngpu_cards=-1
+generalize_gpu_ngigabytes_memory=-1
+generalize_gpu_cluster_flags=""
+generalize_cpu_ncpu_cores=-1
+generalize_cpu_ngpu_cards=-1
+generalize_cpu_ngigabytes_memory=-1
+generalize_cpu_cluster_flags=""
 
-xvalidate_gpu=1
+xvalidate_gpu=0
 xvalidate_where=default_where
-xvalidate_gpu_ncpu_cores=2
-xvalidate_gpu_ngpu_cards=1
-xvalidate_gpu_ngigabytes_memory=1
-xvalidate_gpu_cluster_flags="-n 5 -W 10080 -gpu 'num=1:mode=shared' -q gpu_rtx"
-xvalidate_cpu_ncpu_cores=24
-xvalidate_cpu_ngpu_cards=0
-xvalidate_cpu_ngigabytes_memory=1
-xvalidate_cpu_cluster_flags="-n 24 -W 10080"
+xvalidate_gpu_ncpu_cores=-1
+xvalidate_gpu_ngpu_cards=-1
+xvalidate_gpu_ngigabytes_memory=-1
+xvalidate_gpu_cluster_flags=""
+xvalidate_cpu_ncpu_cores=-1
+xvalidate_cpu_ngpu_cards=-1
+xvalidate_cpu_ngigabytes_memory=-1
+xvalidate_cpu_cluster_flags=""
 
 mistakes_where=default_where
-mistakes_ncpu_cores=1
-mistakes_ngpu_cards=0
-mistakes_ngigabytes_memory=1
-mistakes_cluster_flags="-n 1 -W 60"
+mistakes_ncpu_cores=-1
+mistakes_ngpu_cards=-1
+mistakes_ngigabytes_memory=-1
+mistakes_cluster_flags=""
 
 activations_gpu=0
 activations_where=default_where
-activations_gpu_ncpu_cores=1
-activations_gpu_ngpu_cards=1
-activations_gpu_ngigabytes_memory=1
-activations_gpu_cluster_flags="-W 60 -gpu 'num=1' -q gpu_short"
-activations_cpu_ncpu_cores=12
-activations_cpu_ngpu_cards=0
-activations_cpu_ngigabytes_memory=1
-activations_cpu_cluster_flags="-n 24 -W 60"
+activations_gpu_ncpu_cores=-1
+activations_gpu_ngpu_cards=-1
+activations_gpu_ngigabytes_memory=-1
+activations_gpu_cluster_flags=""
+activations_cpu_ncpu_cores=-1
+activations_cpu_ngpu_cards=-1
+activations_cpu_ngigabytes_memory=-1
+activations_cpu_cluster_flags=""
 
 cluster_where=default_where
-cluster_ncpu_cores=8
-cluster_ngpu_cards=0
-cluster_ngigabytes_memory=1
-cluster_cluster_flags="-n 8 -W 60"
+cluster_ncpu_cores=-1
+cluster_ngpu_cards=-1
+cluster_ngigabytes_memory=-1
+cluster_cluster_flags=""
 
 accuracy_where=default_where
-accuracy_ncpu_cores=2
-accuracy_ngpu_cards=0
-accuracy_ngigabytes_memory=1
-accuracy_cluster_flags="-W 60 -n 2"
+accuracy_ncpu_cores=-1
+accuracy_ngpu_cards=-1
+accuracy_ngigabytes_memory=-1
+accuracy_cluster_flags=""
 
 freeze_where=default_where
-freeze_ncpu_cores=1
-freeze_ngpu_cards=0
-freeze_ngigabytes_memory=0
-freeze_cluster_flags="-W 60"
+freeze_ncpu_cores=-1
+freeze_ngpu_cards=-1
+freeze_ngigabytes_memory=-1
+freeze_cluster_flags=""
 
 classify_gpu=0
 classify_where=default_where
-classify1_gpu_ncpu_cores=2
-classify1_gpu_ngpu_cards=1
-classify1_gpu_ngigabytes_memory=1
-classify1_gpu_cluster_flags="-n 2 -W 60 -gpu 'num=1' -q gpu_rtx"
-classify1_cpu_ncpu_cores=12
-classify1_cpu_ngpu_cards=0
-classify1_cpu_ngigabytes_memory=1
-classify1_cpu_cluster_flags="-n 8 -W 60"
-classify2_ncpu_cores=1
-classify2_ngpu_cards=0
-classify2_ngigabytes_memory=1
-classify2_cluster_flags="-W 60"
+classify1_gpu_ncpu_cores=-1
+classify1_gpu_ngpu_cards=-1
+classify1_gpu_ngigabytes_memory=-1
+classify1_gpu_cluster_flags=""
+classify1_cpu_ncpu_cores=-1
+classify1_cpu_ngpu_cards=-1
+classify1_cpu_ngigabytes_memory=-1
+classify1_cpu_cluster_flags=""
+classify2_ncpu_cores=-1
+classify2_ngpu_cards=-1
+classify2_ngigabytes_memory=-1
+classify2_cluster_flags=""
 
 ethogram_where=default_where
-ethogram_ncpu_cores=1
-ethogram_ngpu_cards=0
-ethogram_ngigabytes_memory=1
-ethogram_cluster_flags="-W 60"
+ethogram_ncpu_cores=-1
+ethogram_ngpu_cards=-1
+ethogram_ngigabytes_memory=-1
+ethogram_cluster_flags=""
 
 compare_where=default_where
-compare_ncpu_cores=1
-compare_ngpu_cards=0
-compare_ngigabytes_memory=1
-compare_cluster_flags="-W 60"
+compare_ncpu_cores=-1
+compare_ngpu_cards=-1
+compare_ngigabytes_memory=-1
+compare_cluster_flags=""
 
 congruence_where=default_where
-congruence_ncpu_cores=12
-congruence_ngpu_cards=0
-congruence_ngigabytes_memory=1
-congruence_cluster_flags="-n 16 -W 120"
+congruence_ncpu_cores=-1
+congruence_ngpu_cards=-1
+congruence_ngigabytes_memory=-1
+congruence_cluster_flags=""
 
 # used by `generalize` and `xvalidate` to simultaneously train multiple models on one GPU
 models_per_job=1
@@ -161,7 +161,7 @@ accuracy_parallelize=1
 congruence_parallelize=1
 
 # how many points to use for the precision-recall and sensitivity-specificity curves
-nprobabilities=50
+nprobabilities=20
 
 # used by freeze and classify to specify how many `window`s to process in parallel
 # must be an integer multiple of the effective downsampling achieved by `stride after`

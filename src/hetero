@@ -134,8 +134,9 @@ _nslots() {
 _submit() {
   local nq=`_nqueues`
   if [[ "$1" == help ]] || (( $# < $nq + 1 )) || (( $# > $nq + 2 )) ; then
-    echo usage: hetero submit \<cmd\> \<num-slots-queue0\> \[\<num-slots-queue1\>...\] \[job-dependencies\]
-    echo "job-dependencies" is a bash expression which delays the start while it is true
+    echo usage: hetero submit \<cmd\> \<num-slots-queue0\> \[\<num-slots-queue1\>...\] \[\<job-dependencies\>\]
+    echo if \<num-slots-queue\*\> is -1, then all the slots for that queue are used
+    echo \<job-dependencies\> is a bash expression which delays the start while it is true
     echo prints the job name 
     echo returns 1 if hetero is stopped or the state is not clean
     if [[ "$1" == help ]]; then return 0; else return 1; fi
@@ -146,7 +147,22 @@ _submit() {
     return 1
   fi
 
+  local nslots
+  IFS=' ' read -a nslots <<< `_nslots`
+
   local cmd=$1
+  local slots_requested=()
+  local ntotal=0
+  for ((iqueue=0 ; iqueue<nq ; iqueue++)) ; do
+    local iqueue2=$(( iqueue + 2 ))
+    local this_request=${!iqueue2}
+    if (( "$this_request" == -1 )) ; then
+      slots_requested[$iqueue]=${nslots[$iqueue]}
+    else
+      slots_requested[$iqueue]=$this_request
+    fi
+    ntotal=$(( $ntotal + slots_requested[$iqueue]))
+  done
   if (($# == $nq + 2)) && [[ -n ${!#} ]] ; then
     local dependencies=${!#}
   else
@@ -158,7 +174,6 @@ _submit() {
       #ls $tmpfile |
       #entr -ns '[[ \`cat $tmpfile | wc -l\` -eq $((1+ntotal)) ]] && ! $dependencies && kill \$PPID';
   local tmpfile=$(mktemp ${prefix}.jobXXX)
-  local ntotal=$(IFS=+; echo $((${*:2:nq})))
   local modified_cmd="
       echo \#'$cmd' >> $tmpfile;
       while [[ \`cat $tmpfile | wc -l\` -ne $((2+ntotal)) ]] || $dependencies ; do
@@ -191,11 +206,10 @@ _submit() {
   local islot
   local knowslot
   if __isgnu; then knowslot=true; else knowslot=false; fi
-  for ((iqueue = 0 ; iqueue < nq ; iqueue++)) ; do
-    iparameter=$(($iqueue + 2))
-    for ((islot=0; islot<${!iparameter}; islot++)) ; do
+  for ((iqueue=0 ; iqueue<nq ; iqueue++)) ; do
+    for ((islot=0 ; islot<${slots_requested[$iqueue]}; islot++)) ; do
       if [ "$knowslot" == true ] ; then
-        if (( "$islot" == ${!iparameter}-1 )) ; then
+        if (( "$islot" == ${slots_requested[$iqueue]}-1 )) ; then
           comma=
         else
           comma=,

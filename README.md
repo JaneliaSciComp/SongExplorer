@@ -289,38 +289,46 @@ variables that need to be tailored to your specific resources.
 
 When running locally DeepSong uses a custom job scheduler to manage the
 resources required by different commands.  This permits doing multiple things
-at once, as well as queueing a bunch of jobs for offline analysis.  For each
-kind of task, you specify how much of your computer's CPU, GPU, and RAM it
-requires.  Here, for example, are the settings for training a model locally:
+at once, as well as queueing a bunch of jobs for offline analysis.  By default,
+each task reserves all of your computer's CPU cores, GPU cards, and memory.  To
+tailor resources according to your particular data set, you need to specify for
+each kind of task how much it actually requires.  Here, for example, are the
+default settings for training a model locally:
 
     $ grep train_ configuration.pysh | head -8
-    train_gpu=1
+    train_gpu=0
     train_where=default_where
-    train_cpu_ncpu_cores=12
-    train_cpu_ngpu_cards=0
-    train_cpu_ngigabytes_memory=1
-    train_gpu_ncpu_cores=2
-    train_gpu_ngpu_cards=1
-    train_gpu_ngigabytes_memory=1
+    train_cpu_ncpu_cores=-1
+    train_cpu_ngpu_cards=-1
+    train_cpu_ngigabytes_memory=-1
+    train_gpu_ncpu_cores=-1
+    train_gpu_ngpu_cards=-1
+    train_gpu_ngigabytes_memory=-1
 
 Let's break this down.  When training (as well as certain other tasks),
 DeepSong provides the option to use a GPU or not with the `train_gpu` variable.
 Depending on the size of your model, the resources you have access to and their
 associated cost, and how many tasks you want to run in parallel, you might or
 might not want or be able to use one.  The
-`train_{gpu,cpu}_{ncpu_cores,ngpu_cards,ngigabytes_memory}` variables specify
+`train_{cpu,gpu}_{ncpu_cores,ngpu_cards,ngigabytes_memory}` variables specify
 the number of CPU cores, number of GPU cards, and number of gigabytes of memory
-needed respectively.
+needed respectively, with -1 reserving everything available.
 
-Training the model in the [Tutorial](#tutorial) below, for example, needs two
-CPU cores, one GPU, and a megabyte of memory, and hence
-`train_gpu_{ncpu_cores,ngpu_cards,ngigabytes_memory}` are set to 2, 1, and 1,
-respectively.  Alternatively, if you don't have a GPU, you could use an entire
-CPU by setting `train_gpu` to 0 and
-`train_cpu_{ncpu_cores,ngpu_cards,ngigabytes_memory}` to 12, 0, and 1.
+Training the model in the [Tutorial](#tutorial) below, for example, only needs
+two CPU cores and a megabyte of memory.  So in this case you could set
+`train_gpu` to 0 and `train_cpu_{ncpu_cores,ngpu_cards,ngigabytes_memory}` to
+2, 0, and 1, respectively.  Doing so would then permit you to train multiple
+models at once even on not so fancy machines.  Alternatively, if you have a
+GPU, you could set `train_gpu` to 1 and
+`train_gpu_{ncpu_cores,ngpu_cards,ngigabytes_memory}` to 2, 1, and 1.  As it
+happens, for models of this size, training is quicker *without* a GPU.
 
-To assess how much resources your particular workflow requires, use the `top`
-and `nvidia-smi` commands to monitor jobs while they are running.
+Note that these settings don't actually limit the job to that amount of
+resources, but rather they just set aside that many resource for each job to
+use.  It is important not to overburden you computer with tasks, so don't
+underestimate the resources required, particularly memory consumption.  To make
+an accurate assessment for your particular workflow, use the `top` and
+`nvidia-smi` commands to monitor jobs while they are running.
 
     $ $DEEPSONG_BIN top -b | head -10
     top - 09:36:18 up 25 days,  1:18,  0 users,  load average: 11.40, 12.46, 12.36
