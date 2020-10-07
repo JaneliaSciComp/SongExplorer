@@ -686,8 +686,8 @@ groups of words that share a common prefix or suffix.
 ## Training a Classifier ##
 
 Once you have a few tens of examples for each word, it's time to train a
-classifier.  First, confirm that the annotations you just made were saved into
-an "-annotated.csv" file in the ground-truth folder.
+classifier and make some predictions.  First, confirm that the annotations you
+just made were saved into an "-annotated.csv" file in the ground-truth folder.
 
     $ tree groundtruth-data
     groundtruth-data
@@ -709,11 +709,12 @@ an "-annotated.csv" file in the ground-truth folder.
     PS_20130625111709_ch3.wav,471839,471839,annotated,mel-pulse
     PS_20130625111709_ch3.wav,492342,498579,annotated,ambient
 
-Now train a classifier on your annotations using the `Train` button.  Choose a
-`Logs Folder` as before (e.g. "trained-classifier1").  One hundred steps
-suffices for this amount of ground truth.  So we can accurately monitor the
-progress, withhold 40% of the annotations to validate on, and do so every 10
-steps.  Enter these values into the `# steps`, `validate %`, and `validate
+Click on the `Make Predictions` button to disable the irrelevant actions and
+fields.  Now train a classifier on your annotations using the `Train` button.
+Choose a `Logs Folder` as before (e.g. "trained-classifier1").  One hundred
+steps suffices for this amount of ground truth.  So we can accurately monitor
+the progress, withhold 40% of the annotations to validate on, and do so every
+10 steps.  Enter these values into the `# steps`, `validate %`, and `validate
 period` variables.  You'll also need to change the `wanted words` variable to
 "mel-pulse,mel-sine,ambient,other" and `label types` to "annotated" so that it
 will ignore the detected annotations in the ground-truth directory.  It's
@@ -847,11 +848,10 @@ First let's get some more data bundled with DeepSong into your home directory:
     $ $DEEPSONG_BIN cp /opt/deepsong/data/20161207T102314_ch1.wav \
             groundtruth-data/round2
 
-Click on the `Make Predictions` button to disable the irrelevant actions and
-fields.  Then use the `Freeze` button to save the classifier's neural network
-graph structure and weight parameters into the single file that TensorFlow
-needs for inference.  You'll need to choose a checkpoint to use with the File
-Browser as you did before when saving the activations (i.e.
+Use the `Freeze` button to save the classifier's neural network graph structure
+and weight parameters into the single file that TensorFlow needs for inference.
+You'll need to choose a checkpoint to use with the File Browser as you did
+before when saving the activations (i.e.
 "trained-classifier1/train_1r/vgg.ckpt-100.{index,meta,data\*}" in this case).
 Output into the log files directory are "freeze.ckpt-<>.log" and
 "frozen-graph.ckpt-<>.log" files for errors, and "frozen-graph.ckpt-<>.pb"

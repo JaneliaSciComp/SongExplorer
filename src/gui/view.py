@@ -1735,7 +1735,7 @@ def init(_bokeh_document):
         stride_after_layer_string])
 
     wizard2actions = {
-            labelsounds: [detect,train,activations,cluster,visualize,accuracy],
+            labelsounds: [detect,train,activations,cluster,visualize],
             makepredictions: [train, accuracy, freeze, classify, ethogram],
             fixfalsepositives: [activations, cluster, visualize],
             fixfalsenegatives: [detect, misses, activations, cluster, visualize],
