@@ -13,6 +13,35 @@ port=$2
 
 source $configuration_file
 
+local_ncpu_cores=$(nproc)
+nvidia_output=$(nvidia-smi -L)
+if [[ "$?" == 0 ]] ; then
+  local_ngpu_cards=$(echo "$nvidia_output" | wc -l)
+else
+  local_ngpu_cards=0
+fi
+nbytes=$(free -b | tail -2 | head -1 | tr -s ' ' | cut -d' ' -f2)
+local_ngigabytes_memory=$(dc -e "$nbytes 1024 / 1024 / 512 + 1024 / p")
+echo INFO: detected $local_ncpu_cores local_ncpu_cores, \
+                    $local_ngpu_cards local_ngpu_cards, \
+                    $local_ngigabytes_memory local_ngigabytes_memory
+
+if [[ -n "$server_ipaddr" ]] ; then
+    server_ncpu_cores=$(ssh $server_ipaddr nproc)
+    server_ngpu_cards=$(ssh $server_ipaddr nvidia-smi -L | wc -l)
+    nvidia_output=$(ssh $server_ipaddr nvidia-smi -L)
+    if [[ "$?" == 0 ]] ; then
+      server_ngpu_cards=$(echo "$nvidia_output" | wc -l)
+    else
+      server_ngpu_cards=0
+    fi
+    nbytes=$(ssh $server_ipaddr free -b | tail -2 | head -1 | tr -s ' ' | cut -d' ' -f2)
+    server_ngigabytes_memory=$(dc -e "$nbytes 1024 / 1024 / 512 + 1024 / p")
+    echo INFO: detected $server_ncpu_cores server_ncpu_cores, \
+                        $server_ngpu_cards server_ngpu_cards, \
+                        $server_ngigabytes_memory server_ngigabytes_memory
+fi
+
 isinteger() {
   number_re='^[0-9]+$'
   [[ "${!1}" =~ $number_re ]] || echo WARNING: $1 is not set or is not an integer
@@ -121,11 +150,13 @@ for resource_kind in "${resource_kinds[@]}"; do
     job_resource_name=${job_resource%=*}
     job_resource_value=${job_resource##*=}
     local_resource=local_$resource_kind
-    server_resource=server_$resource_kind
     (( $job_resource_value > ${!local_resource} )) && \
           echo WARNING: $job_resource_name exceeds ${!local_resource} $local_resource
-    (( $job_resource_value > ${!server_resource} )) && \
-          echo WARNING: $job_resource_name exceeds ${!server_resource} $server_resource
+    if [[ -n "$server_ipaddr" ]] ; then
+      server_resource=server_$resource_kind
+      (( $job_resource_value > ${!server_resource} )) && \
+            echo WARNING: $job_resource_name exceeds ${!server_resource} $server_resource
+    fi
   done
   unset job_resource
   unset job_resources

@@ -288,21 +288,10 @@ variables that need to be tailored to your specific resources.
 ### Locally ###
 
 When running locally DeepSong uses a custom job scheduler to manage the
-resources required by different commands.  So that multiple tasks can be
-performed simultaneously without overwhelming your workstation, you must list
-its specifications in "configuration.pysh":
-
-    $ grep -A4 \'local configuration.pysh
-    # specs of the 'local' computer
-    local_ncpu_cores=12
-    local_ngpu_cards=1
-    local_ngigabytes_memory=32
-
-On Mac and Windows specify only the subset of resources you have allocated
-to the virtual machine (e.g. with `singularity --vm-cpu` on Mac).
-
-Similarly, for each kind of task, you must specify how much of those resources
-it requires.  Here, for example, are the settings for training a model locally:
+resources required by different commands.  This permits doing multiple things
+at once, as well as queueing a bunch of jobs for offline analysis.  For each
+kind of task, you specify how much of your computer's CPU, GPU, and RAM it
+requires.  Here, for example, are the settings for training a model locally:
 
     $ grep train_ configuration.pysh | head -8
     train_gpu=1
@@ -413,17 +402,14 @@ If you do not have a shared file system, the DeepSong image and configuration fi
 must be separately installed on both computers, and you'll need to do all of
 the compute jobs remotely.
 
-Lastly, update "configuration.pysh" with the specification of the server.  As
-when doing compute locally, DeepSong uses a job scheduler on the server to
-manage resources.  The per-task resources used are the same as specified for
-the local machine in `<task>_local_resources_{gpu,cpu}`.
+Lastly, update "configuration.pysh" with the IP address of the server.  As when
+doing compute locally, DeepSong uses a job scheduler on the server to manage
+resources.  The per-task resources used are the same as specified for the local
+machine in `<task>_{gpu,cpu}_{ncpu_cores,ngpu_cards,ngigabytes_memory}`.
 
-    $ grep -A5 \'server configuration.pysh
-    # specs of the 'server' computer
+    $ grep -A1 \'server configuration.pysh
+    # URL of the 'server' computer
     server_ipaddr="c03u14"
-    server_ncpu_cores=24
-    server_ngpu_cards=4
-    server_ngigabytes_memory=256
 
 ### An On-Premise Cluster ###
 

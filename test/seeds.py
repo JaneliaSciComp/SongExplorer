@@ -34,8 +34,7 @@ os.makedirs(os.path.join(repo_path, "test/scratch/seeds/groundtruth-data/round1"
 shutil.copy(os.path.join(repo_path, "data/PS_20130625111709_ch3.wav"),
             os.path.join(repo_path, "test/scratch/seeds/groundtruth-data/round1"))
 
-run(["hetero", "start",
-     str(M.local_ncpu_cores), str(M.local_ngpu_cards), str(M.local_ngigabytes_memory)])
+run(["hetero", "start", "1", "1", "1"])
 
 shutil.copy(os.path.join(repo_path, "data/PS_20130625111709_ch3-annotated-person1.csv"),
             os.path.join(repo_path, "test/scratch/seeds/groundtruth-data/round1"))
