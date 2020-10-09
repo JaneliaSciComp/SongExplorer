@@ -23,7 +23,7 @@ def count_lines_with_word(filename, word, rightanswer):
       if word in line:
         count += 1
   if count != rightanswer:
-    print("ERROR: "+filename+" has wrong "+word+" count")
+    print("ERROR: "+filename+" has "+str(count)+" "+word+" when it should have "+str(rightanswer))
 
 def count_lines(filename, rightanswer):
   count = 0
@@ -31,4 +31,4 @@ def count_lines(filename, rightanswer):
     for line in fid:
       count += 1
   if count != rightanswer:
-    print("ERROR: "+filename+" has wrong number of lines")
+    print("ERROR: "+filename+" has "+str(count)+" lines when it should have "+str(rightanswer))

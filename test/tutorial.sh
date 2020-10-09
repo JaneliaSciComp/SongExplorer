@@ -6,9 +6,11 @@
 
 check_file_exists() { [[ -e $1 ]] || echo ERROR: $1 is missing; }
 count_lines_with_word() {
-      (( $(grep $2 $1 | wc -l) == $3 )) || echo ERROR: $1 has wrong $2 count; }
+  count=$(grep $2 $1 | wc -l)
+  (( "$count" == "$3" )) || echo ERROR: $1 has $count $2 when it should have $3; }
 count_lines() {
-    (( $(wc -l $1) == $2 )) || echo ERROR: $1 has wrong number of lines; }
+  count=$(cat $1 | wc -l)
+  (( "$count" == "$2" )) || echo ERROR: $1 has $count lines when it should have $2; }
 
 repo_path=$(dirname $(dirname $(which detect.sh)))
 
