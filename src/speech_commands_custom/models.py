@@ -262,6 +262,7 @@ def create_custom_vgg_model(fingerprint_input, model_settings, is_training):
   inarg = fingerprint_4d
   hidden_layers.append(inarg)
   inarg_shape = inarg.get_shape().as_list()
+  output_time_size1 = inarg_shape[1]-nstrides+1
   filter_count_prev = input_channel_size
 
   while inarg_shape[2]>=filter_sizes[0]:
@@ -293,8 +294,7 @@ def create_custom_vgg_model(fingerprint_input, model_settings, is_training):
           (iconv, inarg.get_shape(), weights.get_shape(), str(strides), str(dilation), str(bypassadded)))
     inarg = dropout
     inarg_shape = inarg.get_shape().as_list()
-    if iconv>=stride_after_layer:
-      nstrides = nstrides//2
+    output_time_size1 = math.ceil((output_time_size1 - filter_sizes[0] + 1) / strides[1])
     iconv += 1
 
   while inarg_shape[2]>=filter_sizes[1]:
@@ -326,15 +326,14 @@ def create_custom_vgg_model(fingerprint_input, model_settings, is_training):
           (iconv, inarg.get_shape(), weights.get_shape(), str(strides), str(dilation), str(bypassadded)))
     inarg = dropout
     inarg_shape = inarg.get_shape().as_list()
-    if iconv>=stride_after_layer:
-      nstrides = nstrides//2
+    output_time_size1 = math.ceil((output_time_size1 - filter_sizes[1] + 1) / strides[1])
     iconv += 1
 
   assert inarg_shape[2]==1
 
   #inarg = tf.squeeze(inarg,[2])
   output_time_size = inarg.get_shape().as_list()[1]
-  while output_time_size>(nstrides+final_filter_len):
+  while output_time_size1>final_filter_len:
     if residual and iconv%2==0:
       bypass = inarg
     weights = tf.Variable( tf.truncated_normal(
@@ -360,8 +359,7 @@ def create_custom_vgg_model(fingerprint_input, model_settings, is_training):
     tf.logging.info('conv layer %d: in_shape = %s, conv_shape = %s, strides = %s, dilation = %s, bypass = %s' %
           (iconv, inarg.get_shape(), weights.get_shape(), str(strides), str(dilation), str(bypassadded)))
     inarg = dropout
-    if iconv>=stride_after_layer:
-      nstrides = nstrides//2
+    output_time_size1 = math.ceil((output_time_size1 - filter_sizes[2] + 1) / strides[1])
     iconv += 1
 
   #assert output_time_size==(nstrides+final_filter_len)
@@ -369,8 +367,7 @@ def create_custom_vgg_model(fingerprint_input, model_settings, is_training):
   inarg = tf.squeeze(inarg,[2])
   label_count = model_settings['label_count']
   weights = tf.Variable( tf.truncated_normal(
-            [(iconv<=stride_after_layer)+output_time_size-nstrides,
-              filter_count_prev, label_count],
+            [output_time_size1, filter_count_prev, label_count],
             stddev=0.01))
   bias = tf.Variable(tf.zeros([label_count]))
   strides = 1+(iconv>=stride_after_layer)

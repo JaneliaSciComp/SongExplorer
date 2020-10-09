@@ -43,3 +43,4 @@ for file in ${files[*]} ; do
 done
 
 $repo_path/test/seeds.py
+$repo_path/test/freeze.py
