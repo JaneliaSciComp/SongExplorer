@@ -949,7 +949,8 @@ def activations_cluster_succeeded(kind, groundtruthdir, reftime):
     npzfile = os.path.join(groundtruthdir, kind+".npz")
     if not npzfile_succeeded(npzfile, reftime):
         return False
-    V.cluster_these_layers_update()
+    if bokeh_document: 
+        bokeh_document.add_next_tick_callback(V.cluster_these_layers_update)
     return True
 
 def activations_actuate():
