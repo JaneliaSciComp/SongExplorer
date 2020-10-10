@@ -323,7 +323,8 @@ def init(_configuration_file):
                        'tsne_exaggeration':'12.0', \
                        'umap_neighbors':'10', \
                        'umap_distance':'0.1', \
-                       'cluster_algorithm':'UMAP 3D', \
+                       # https://github.com/plotly/plotly.js/issues/5158
+                       'cluster_algorithm':'UMAP 2D', \
                        'cluster_these_layers':['0'], \
                        'connection_type':'plain', \
                        'precision_recall_ratios':'0.5,1,2', \
