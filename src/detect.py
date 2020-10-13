@@ -93,35 +93,47 @@ p_noise = 1/NFFT*frequency_p_noise
 
 selem = np.ones((frequency_smooth), dtype=np.uint8)
 
-timestamps_freq = []
+chunk_size_samples = 1024*1024
+assert chunk_size_samples % N == 0
+
+timestamps_freq_signal = []
+timestamps_freq_noise = []
 for ichannel in range(nchannels):
-  song_reshaped1 = np.reshape(song[:nsamples//N*N,ichannel],(-1,N))
-  f = utils.detect_lines(song_reshaped1, (NW, 2*NW), low_bias=True, NFFT=NFFT, p=p_signal)
-  timestamps_f1 = [2*i+0 for (i,ii) in enumerate(f) if ii!=()]
+  ioffset=0
+  while ioffset < nsamples:
+    ilast = min(nsamples, ioffset+chunk_size_samples)//N*N
+    song_reshaped1 = np.reshape(song[ioffset : ilast, ichannel], (-1,N))
+    f = utils.detect_lines(song_reshaped1, (NW, 2*NW), low_bias=True, NFFT=NFFT, p=p_signal)
+    timestamps_f1 = [2*i+0 for (i,ii) in enumerate(f) if ii!=()]
 
-  song_reshaped2 = np.reshape(song[N//2:N//2+(nsamples-N//2)//N*N,ichannel],(-1,N))
-  f = utils.detect_lines(song_reshaped2, (NW, 2*NW), low_bias=True, NFFT=NFFT, p=p_signal)
-  timestamps_f2 = [2*i+1 for (i,ii) in enumerate(f) if ii!=()]
+    ilast -= N//2
+    song_reshaped2 = np.reshape(song[ioffset+N//2 : ilast, ichannel], (-1,N))
+    f = utils.detect_lines(song_reshaped2, (NW, 2*NW), low_bias=True, NFFT=NFFT, p=p_signal)
+    timestamps_f2 = [2*i+1 for (i,ii) in enumerate(f) if ii!=()]
 
-  song_thresholded = np.zeros((len(song_reshaped1)+len(song_reshaped2)), dtype=np.uint8)
-  song_thresholded[np.concatenate((timestamps_f1,timestamps_f2))] = 1
-  song_morphed = closing(opening(song_thresholded, selem), selem)
-  timestamps_freq_signal = bool2stamp(song_morphed,
-                                      lambda x,y: (x*N//2-N//4, y*N//2+N//4))
+    song_thresholded = np.zeros((len(song_reshaped1)+len(song_reshaped2)), dtype=np.uint8)
+    song_thresholded[np.concatenate((timestamps_f1,timestamps_f2)).astype(np.int)] = 1
+    song_morphed = closing(opening(song_thresholded, selem), selem)
+    timestamps_freq_signal += bool2stamp(song_morphed,
+                                         lambda x,y: (ioffset+x*N//2-N//4, ioffset+y*N//2+N//4))
 
-  song_reshaped1 = np.reshape(song[:nsamples//N*N,ichannel],(-1,N))
-  f = utils.detect_lines(song_reshaped1, (NW, 2*NW), low_bias=True, NFFT=NFFT, p=p_noise)
-  timestamps_f1 = [2*i+0 for (i,ii) in enumerate(f) if ii!=()]
+    ilast = min(nsamples, ioffset+chunk_size_samples)//N*N
+    song_reshaped1 = np.reshape(song[ioffset : ilast, ichannel], (-1,N))
+    f = utils.detect_lines(song_reshaped1, (NW, 2*NW), low_bias=True, NFFT=NFFT, p=p_noise)
+    timestamps_f1 = [2*i+0 for (i,ii) in enumerate(f) if ii!=()]
 
-  song_reshaped2 = np.reshape(song[N//2:N//2+(nsamples-N//2)//N*N,ichannel],(-1,N))
-  f = utils.detect_lines(song_reshaped2, (NW, 2*NW), low_bias=True, NFFT=NFFT, p=p_noise)
-  timestamps_f2 = [2*i+1 for (i,ii) in enumerate(f) if ii!=()]
+    ilast -= N//2
+    song_reshaped2 = np.reshape(song[ioffset+N//2 : ilast, ichannel], (-1,N))
+    f = utils.detect_lines(song_reshaped2, (NW, 2*NW), low_bias=True, NFFT=NFFT, p=p_noise)
+    timestamps_f2 = [2*i+1 for (i,ii) in enumerate(f) if ii!=()]
 
-  song_thresholded = np.zeros((len(song_reshaped1)+len(song_reshaped2)), dtype=np.uint8)
-  song_thresholded[np.concatenate((timestamps_f1,timestamps_f2))] = 1
-  song_morphed = closing(opening(song_thresholded, selem), selem)
-  timestamps_freq_noise = bool2stamp(song_morphed,
-                                     lambda x,y: (x*N//2-N//4, y*N//2+N//4))
+    song_thresholded = np.zeros((len(song_reshaped1)+len(song_reshaped2)), dtype=np.uint8)
+    song_thresholded[np.concatenate((timestamps_f1,timestamps_f2)).astype(np.int)] = 1
+    song_morphed = closing(opening(song_thresholded, selem), selem)
+    timestamps_freq_noise += bool2stamp(song_morphed,
+                                        lambda x,y: (ioffset+x*N//2-N//4, ioffset+y*N//2+N//4))
+
+    ioffset += chunk_size_samples
 
 
 start_times, stop_times, ifeature = combine_events(
