@@ -202,6 +202,8 @@ def cluster_tap_callback(event):
     V.context_update()
 
 def snippets_tap_callback(event):
+    if np.isnan(M.xcluster) or np.isnan(M.ycluster):
+        return
     M.xsnippet = int(np.rint(event.x/(M.snippets_gap_pix+M.snippets_pix)-0.5))
     M.ysnippet = int(np.rint(-event.y/2))
     M.isnippet = M.nearest_samples[M.ysnippet*M.nx + M.xsnippet]
@@ -230,6 +232,8 @@ def context_doubletap_callback(event):
                           'label':M.state['labels'][M.ilabel]}
             M.add_annotation(thissample)
     else:
+        if M.state['labels'][M.ilabel]=='':
+            return
         ileft = np.searchsorted(M.clustered_starts_sorted, x_tic)
         samples_righthere = set(range(0,ileft))
         iright = np.searchsorted(M.clustered_stops, x_tic,
@@ -346,12 +350,12 @@ def allright_callback():
     
 def toggle_annotation(idouble_tapped_sample):
     iannotated = M.isannotated(M.clustered_samples[idouble_tapped_sample])
-    if len(iannotated)>0 and M.annotated_samples[iannotated[0]]['label'] != \
-                             M.clustered_samples[idouble_tapped_sample]['label']:
+    if len(iannotated)>0:
         M.delete_annotation(iannotated[0])
     else:
         thissample = M.clustered_samples[idouble_tapped_sample].copy()
         thissample['label'] = M.state['labels'][M.ilabel]
+        thissample.pop('kind', None)
         M.add_annotation(thissample)
 
 def snippets_doubletap_callback(event):
@@ -360,6 +364,17 @@ def snippets_doubletap_callback(event):
     idouble_tapped_sample = M.nearest_samples[y_tic*M.nx + x_tic]
     toggle_annotation(idouble_tapped_sample)
 
+def _undo_callback():
+    time.sleep(0.5)
+    if M.history_stack[M.history_idx][0]=='add':
+        iannotated = np.searchsorted(M.annotated_starts_sorted, \
+                                     M.history_stack[M.history_idx][1]['ticks'][0])
+        while M.annotated_samples[iannotated]!=M.history_stack[M.history_idx][1]:
+            iannotated += 1
+        M.delete_annotation(iannotated, addto_history=False)
+    elif M.history_stack[M.history_idx][0]=='delete':
+        M.add_annotation(M.history_stack[M.history_idx][1], addto_history=False)
+    
 def undo_callback():
     if M.history_idx>0:
         M.history_idx-=1
@@ -373,17 +388,23 @@ def undo_callback():
                              M.clustered_starts_sorted[M.isnippet]
         M.context_offset_ms = M.context_offset_tic/M.audio_tic_rate*1000
         V.zoom_offset.value = str(M.context_offset_ms)
-        V.context_update(False)
-        time.sleep(0.5)
-        if M.history_stack[M.history_idx][0]=='add':
-            iannotated = np.searchsorted(M.annotated_starts_sorted, \
-                                         M.history_stack[M.history_idx][1]['ticks'][0])
-            while M.annotated_samples[iannotated]!=M.history_stack[M.history_idx][1]:
-                iannotated += 1
-            M.delete_annotation(iannotated, addto_history=False)
-        elif M.history_stack[M.history_idx][0]=='delete':
-            M.add_annotation(M.history_stack[M.history_idx][1], addto_history=False)
-    
+        V.context_update()
+        if bokeh_document:
+            bokeh_document.add_next_tick_callback(_undo_callback)
+        else:
+            _undo_callback()
+
+def _redo_callback():
+    time.sleep(0.5)
+    if M.history_stack[M.history_idx-1][0]=='add':
+        M.add_annotation(M.history_stack[M.history_idx-1][1], addto_history=False)
+    elif M.history_stack[M.history_idx-1][0]=='delete':
+        iannotated = np.searchsorted(M.annotated_starts_sorted, \
+                                     M.history_stack[M.history_idx-1][1]['ticks'][0])
+        while M.annotated_samples[iannotated]!=M.history_stack[M.history_idx-1][1]:
+            iannotated += 1
+        M.delete_annotation(iannotated, addto_history=False)
+
 def redo_callback():
     if M.history_idx<len(M.history_stack):
         M.history_idx+=1
@@ -397,16 +418,11 @@ def redo_callback():
                              M.clustered_starts_sorted[M.isnippet]
         M.context_offset_ms = M.context_offset_tic/M.audio_tic_rate*1000
         V.zoom_offset.value = str(M.context_offset_ms)
-        V.context_update(False)
-        time.sleep(0.5)
-        if M.history_stack[M.history_idx-1][0]=='add':
-            M.add_annotation(M.history_stack[M.history_idx-1][1], addto_history=False)
-        elif M.history_stack[M.history_idx-1][0]=='delete':
-            iannotated = np.searchsorted(M.annotated_starts_sorted, \
-                                         M.history_stack[M.history_idx-1][1]['ticks'][0])
-            while M.annotated_samples[iannotated]!=M.history_stack[M.history_idx-1][1]:
-                iannotated += 1
-            M.delete_annotation(iannotated, addto_history=False)
+        V.context_update()
+        if bokeh_document:
+            bokeh_document.add_next_tick_callback(_redo_callback)
+        else:
+            _redo_callback()
 
 def action_callback(thisaction, thisactuate):
     M.action=None if M.action is thisaction else thisaction

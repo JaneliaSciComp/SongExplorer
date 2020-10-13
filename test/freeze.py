@@ -23,11 +23,10 @@ import view as V
 import controller as C
 
 os.makedirs(os.path.join(repo_path, "test/scratch/freeze"))
-#shutil.copy(os.path.join(repo_path, "configuration.pysh"),
-shutil.copy(os.path.join(repo_path, "test/configuration.pysh"),
+shutil.copy(os.path.join(repo_path, "configuration.pysh"),
             os.path.join(repo_path, "test/scratch/freeze"))
 
-M.init(os.path.join(repo_path, "test/scratch/freeze/configuration.pysh"))
+M.init(None, os.path.join(repo_path, "test/scratch/freeze/configuration.pysh"))
 V.init(None)
 C.init(None)
 

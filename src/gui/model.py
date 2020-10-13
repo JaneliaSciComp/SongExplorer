@@ -11,7 +11,7 @@ bokehlog = logging.getLogger("deepsong")
 
 import view as V
 
-configuration_file, audio_tic_rate, audio_nchannels, snippets_ms, nx, ny, nlabels, gui_width_pix, context_width_ms0, context_offset_ms0, context_width_ms, context_offset_ms, cluster_dot_colors, xcluster, ycluster, zcluster, ndcluster, filter_order, filter_ratio_max, snippet_width_pix, layer, specie, word, nohyphen, kind, nlayers, layers, species, words, nohyphens, kinds, snippets_gap_ms, snippets_tic, snippets_gap_tic, tic2pix, snippets_decimate_by, snippets_pix, snippets_gap_pix, context_width_tic, context_offset_tic, isnippet, xsnippet, ysnippet, file_nframes, context_midpoint_tic, context_decimate_by, panned_sample, ipanned_quad, ilabel, annotated_samples, annotated_starts_sorted, annotated_stops, iannotated_stops_sorted, annotated_csvfiles_all, nrecent_annotations, clustered_samples, clustered_activations, clustered_starts_sorted, clustered_stops, iclustered_stops_sorted, deepsong_starttime, history_stack, history_idx, wizard, action, function, statepath, state, file_dialog_root, file_dialog_filter, nearest_samples, status_ticker_queue, waitfor_job, server_ipaddr, cluster_ipaddr, cluster_cmd, cluster_logfile_flag, source_path, cluster_circle_color, cluster_dot_colormap, snippet_colormap = [None]*81
+bokeh_document, configuration_file, audio_tic_rate, audio_nchannels, snippets_ms, nx, ny, nlabels, gui_width_pix, context_width_ms0, context_offset_ms0, context_width_ms, context_offset_ms, cluster_dot_colors, xcluster, ycluster, zcluster, ndcluster, filter_order, filter_ratio_max, snippet_width_pix, layer, specie, word, nohyphen, kind, nlayers, layers, species, words, nohyphens, kinds, snippets_gap_ms, snippets_tic, snippets_gap_tic, tic2pix, snippets_decimate_by, snippets_pix, snippets_gap_pix, context_width_tic, context_offset_tic, isnippet, xsnippet, ysnippet, file_nframes, context_midpoint_tic, context_decimate_by, panned_sample, ipanned_quad, ilabel, annotated_samples, annotated_starts_sorted, annotated_stops, iannotated_stops_sorted, annotated_csvfiles_all, nrecent_annotations, clustered_samples, clustered_activations, clustered_starts_sorted, clustered_stops, iclustered_stops_sorted, deepsong_starttime, history_stack, history_idx, wizard, action, function, statepath, state, file_dialog_root, file_dialog_filter, nearest_samples, status_ticker_queue, waitfor_job, server_ipaddr, cluster_ipaddr, cluster_cmd, cluster_logfile_flag, source_path, cluster_circle_color, cluster_dot_colormap, snippet_colormap = [None]*82
 detect_where, detect_ncpu_cores, detect_ngpu_cards, detect_ngigabytes_memory, detect_cluster_flags, misses_where, misses_ncpu_cores, misses_ngpu_cards, misses_ngigabytes_memory, misses_cluster_flags, train_gpu, train_where, train_ncpu_cores, train_ngpu_cards, train_gpu_ngigabytes_memory, train_gpu_cluster_flags, train_ncpu_cores, train_ngpu_cards, train_cpu_ngigabytes_memory, train_cpu_cluster_flags, models_per_job, generalize_gpu, generalize_where, generalize_ncpu_cores, generalize_ngpu_cards, generalize_gpu_ngigabytes_memory, generalize_gpu_cluster_flags, generalize_ncpu_cores, generalize_ngpu_cards, generalize_cpu_ngigabytes_memory, generalize_cpu_cluster_flags, xvalidate_gpu, xvalidate_where, xvalidate_ncpu_cores, xvalidate_ngpu_cards, xvalidate_gpu_ngigabytes_memory, xvalidate_gpu_cluster_flags, xvalidate_ncpu_cores, xvalidate_ngpu_cards, xvalidate_cpu_ngigabytes_memory, xvalidate_cpu_cluster_flags, mistakes_where, mistakes_ncpu_cores, mistakes_ngpu_cards, mistakes_ngigabytes_memory, mistakes_cluster_flags, activations_gpu, activations_where, activations_ncpu_cores, activations_ngpu_cards, activations_gpu_ngigabytes_memory, activations_gpu_cluster_flags, activations_ncpu_cores, activations_ngpu_cards, activations_cpu_ngigabytes_memory, activations_cpu_cluster_flags, cluster_where, cluster_ncpu_cores, cluster_ngpu_cards, cluster_ngigabytes_memory, cluster_cluster_flags, accuracy_where, accuracy_ncpu_cores, accuracy_ngpu_cards, accuracy_ngigabytes_memory, accuracy_cluster_flags, freeze_where, freeze_ncpu_cores, freeze_ngpu_cards, freeze_ngigabytes_memory, freeze_cluster_flags, classify_gpu, classify_where, classify1_ncpu_cores, classify1_ngpu_cards, classify1_gpu_ngigabytes_memory, classify1_gpu_cluster_flags, classify1_ncpu_cores, classify1_ngpu_cards, classify1_cpu_ngigabytes_memory, classify1_cluster_cpu_flags, classify2_ncpu_cores, classify2_ngpu_cards, classify2_ngigabytes_memory, classify2_cluster_flags, ethogram_where, ethogram_ncpu_cores, ethogram_ngpu_cards, ethogram_ngigabytes_memory, ethogram_cluster_flags, compare_where, compare_ncpu_cores, compare_ngpu_cards, compare_ngigabytes_memory, compare_cluster_flags, congruence_where, congruence_ncpu_cores, congruence_ngpu_cards, congruence_ngigabytes_memory, congruence_cluster_flags, pca_batch_size, cluster_parallelize, accuracy_parallelize, congruence_parallelize, nprobabilities, nstrides = [None]*106
 
 def parse_model_file(filepath):
@@ -106,16 +106,17 @@ def save_annotations():
                 os.remove(file)
         corrected_samples=[]
         for annotation in annotated_samples:
-            if annotation['label']!="":
+            if annotation['label']!="" and not annotation['label'].isspace():
                 csvwriters[annotation['file']].writerow(
                         [os.path.basename(annotation['file']),
                         annotation['ticks'][0], annotation['ticks'][1],
                         'annotated', annotation['label']])
-            if len(isclustered(annotation))>0:
+            iclustered = isclustered(annotation)
+            if len(iclustered)>0 and clustered_samples[iclustered[0]]['kind']=='annotated':
                 corrected_samples.append(annotation)
         if corrected_samples:
             df_corrected = pd.DataFrame([[os.path.basename(x['file']), x['ticks'][0], \
-                                          x['ticks'][1], x['kind'], x['label']] \
+                                          x['ticks'][1], 'annotated', x['label']] \
                                          for x in corrected_samples], \
                                         columns=['file','start','stop','kind','label'])
             for wavfile in set([x['file'] for x in corrected_samples]):
@@ -134,12 +135,16 @@ def save_annotations():
                                                 how='left', indicator=True)
                     isetdiff = ~(df_all['_merge']=='both').values
                     if not all(isetdiff):
-                        df_clustered.loc[isetdiff,:].to_csv(csvfile, header=False, \
-                                                            index=False)
+                        if any(isetdiff):
+                            df_clustered.loc[isetdiff,:].to_csv(csvfile, header=False, \
+                                                                index=False)
+                        else:
+                            os.remove(csvfile)
         for fid in fids.values():
             fid.close()
         nrecent_annotations=0
-        V.save_update(nrecent_annotations)
+        if bokeh_document:
+            bokeh_document.add_next_tick_callback(lambda n=nrecent_annotations:  V.save_update(n))
 
 def add_annotation(sample, addto_history=True):
     global annotated_samples, annotated_starts_sorted
@@ -177,7 +182,7 @@ def delete_annotation(isample, addto_history=True):
         count = int(V.label_count_widgets[thislabel].label)
         V.label_count_widgets[thislabel].label = str(count-1)
     iclustered = isclustered(annotated_samples[isample])
-    if len(iclustered)>0:
+    if len(iclustered)>0 and clustered_samples[iclustered[0]]['kind']=='annotated':
         annotated_samples[isample]['label'] = clustered_samples[iclustered[0]]['label']
     else:
         del annotated_samples[isample]
@@ -200,11 +205,13 @@ def finalize_annotation(redraw_snippets=True):
         V.redo.disabled=False
     if redraw_snippets:
         V.snippets_update(False)
-    V.context_update(redraw_snippets)
+    V.context_update()
 
-def init(_configuration_file):
-    global configuration_file, audio_tic_rate, audio_nchannels, snippets_ms, nx, ny, nlabels, gui_width_pix, context_width_ms0, context_offset_ms0, context_width_ms, context_offset_ms, cluster_dot_colors, xcluster, ycluster, zcluster, ndcluster, filter_order, filter_ratio_max, snippet_width_pix, ilayer, ispecies, iword, inohyphen, ikind, nlayers, layers, species, words, nohyphens, kinds, snippets_gap_ms, snippets_tic, snippets_gap_tic, tic2pix, snippets_decimate_by, snippets_pix, snippets_gap_pix, context_width_tic, context_offset_tic, isnippet, xsnippet, ysnippet, file_nframes, context_midpoint_tic, context_decimate_by, panned_sample, ipanned_quad, ilabel, annotated_samples, annotated_starts_sorted, annotated_stops, iannotated_stops_sorted, annotated_csvfiles_all, nrecent_annotations, clustered_samples, clustered_activations, clustered_starts_sorted, clustered_stops, iclustered_stops_sorted, deepsong_starttime, history_stack, history_idx, wizard, action, function, statepath, state, file_dialog_root, file_dialog_filter, nearest_samples, status_ticker_queue, waitfor_job, server_ipaddr, cluster_ipaddr, cluster_cmd, cluster_logfile_flag, source_path, cluster_circle_color, cluster_dot_colormap, snippet_colormap
+def init(_bokeh_document, _configuration_file):
+    global bokeh_document, configuration_file, audio_tic_rate, audio_nchannels, snippets_ms, nx, ny, nlabels, gui_width_pix, context_width_ms0, context_offset_ms0, context_width_ms, context_offset_ms, cluster_dot_colors, xcluster, ycluster, zcluster, ndcluster, filter_order, filter_ratio_max, snippet_width_pix, ilayer, ispecies, iword, inohyphen, ikind, nlayers, layers, species, words, nohyphens, kinds, snippets_gap_ms, snippets_tic, snippets_gap_tic, tic2pix, snippets_decimate_by, snippets_pix, snippets_gap_pix, context_width_tic, context_offset_tic, isnippet, xsnippet, ysnippet, file_nframes, context_midpoint_tic, context_decimate_by, panned_sample, ipanned_quad, ilabel, annotated_samples, annotated_starts_sorted, annotated_stops, iannotated_stops_sorted, annotated_csvfiles_all, nrecent_annotations, clustered_samples, clustered_activations, clustered_starts_sorted, clustered_stops, iclustered_stops_sorted, deepsong_starttime, history_stack, history_idx, wizard, action, function, statepath, state, file_dialog_root, file_dialog_filter, nearest_samples, status_ticker_queue, waitfor_job, server_ipaddr, cluster_ipaddr, cluster_cmd, cluster_logfile_flag, source_path, cluster_circle_color, cluster_dot_colormap, snippet_colormap
     global detect_where, detect_local_resources, detect_cluster_flags, misses_where, misses_local_resources, misses_cluster_flags, train_gpu, train_where, train_local_resources_gpu, train_cluster_flags_gpu, train_local_resources_cpu, train_cluster_flags_cpu, models_per_job, generalize_gpu, generalize_where, generalize_local_resources_gpu, generalize_cluster_flags_gpu, generalize_local_resources_cpu, generalize_cluster_flags_cpu, xvalidate_gpu, xvalidate_where, xvalidate_local_resources_gpu, xvalidate_cluster_flags_gpu, xvalidate_local_resources_cpu, xvalidate_cluster_flags_cpu, mistakes_where, mistakes_local_resources, mistakes_cluster_flags, activations_gpu, activations_where, activations_local_resources_gpu, activations_cluster_flags_gpu, activations_local_resources_cpu, activations_cluster_flags_cpu, cluster_where, cluster_local_resources, cluster_cluster_flags, accuracy_where, accuracy_local_resources, accuracy_cluster_flags, freeze_where, freeze_local_resources, freeze_cluster_flags, classify_gpu, classify_where, classify1_local_resources_gpu, classify1_cluster_flags_gpu, classify1_local_resources_cpu, classify1_cluster_flags_cpu, classify2_local_resources, classify2_cluster_flags, ethogram_where, ethogram_local_resources, ethogram_cluster_flags, compare_where, compare_local_resources, compare_cluster_flags, congruence_where, congruence_local_resources, congruence_cluster_flags, pca_batch_size, cluster_parallelize, accuracy_parallelize, congruence_parallelize, nprobabilities, nstrides
+
+    bokeh_document = _bokeh_document
 
     exec(open(_configuration_file).read(), globals())
 

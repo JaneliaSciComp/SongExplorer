@@ -1044,7 +1044,7 @@ double-click.  In both cases, the entry in the original "annotated.csv" file is
 removed, and in the former case a new entry is created in the current
 "annotated.csv" file.  Should you make a mistake while correcting a mistake,
 simply `Undo` it, or double click it again.  In this case, the original CSV
-entry remains deleted and the new one removed from the current "annotated.csv"
+entry remains deleted and the new one modified in the current "annotated.csv"
 file.
 
 ## Measuring Generalization ##

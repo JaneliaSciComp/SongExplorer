@@ -515,6 +515,8 @@ def within_an_annotation(sample):
     return -1
 
 def snippets_update(redraw_wavs):
+    if len(M.species)==0:
+        return
     if M.isnippet>0 and not np.isnan(M.xcluster) and not np.isnan(M.ycluster) \
                 and (M.ndcluster==2 or not np.isnan(M.zcluster)):
         quad_fuchsia_snippets.data.update(
@@ -680,7 +682,7 @@ def _context_update(wavi, tapped_sample, istart_bounded, ilength):
     bokeh_document.add_next_tick_callback(lambda: \
             __context_update(wavi, tapped_sample, istart_bounded, ilength))
 
-def context_update(highlight_tapped_snippet=True):
+def context_update():
     p_context.title.text = ''
     tapped_ticks = [np.nan, np.nan]
     istart = np.nan
@@ -734,11 +736,12 @@ def context_update(highlight_tapped_snippet=True):
                         wavi = np.concatenate((wavi, np.full((npad,),0)))
 
                 if ichannel==0:
-                    bokeh_document.add_next_tick_callback(lambda: \
-                            _context_update(wavi,
-                                            tapped_sample['file'],
-                                            istart_bounded,
-                                            ilength))
+                    if bokeh_document: 
+                        bokeh_document.add_next_tick_callback(lambda: \
+                                _context_update(wavi,
+                                                tapped_sample['file'],
+                                                istart_bounded,
+                                                ilength))
 
                 wavi_downsampled = decimate(wavi, context_decimate_by, n=M.filter_order,
                                             ftype='iir', zero_phase=True)
@@ -783,7 +786,7 @@ def context_update(highlight_tapped_snippet=True):
                 right.append(R/M.audio_tic_rate)
                 top.append(song_max)
                 bottom.append(0)
-                if tapped_sample==M.clustered_samples[isample] and highlight_tapped_snippet:
+                if tapped_sample==M.clustered_samples[isample] and not np.isnan(M.xcluster):
                     quad_fuchsia_context.data.update(left=[L/M.audio_tic_rate],
                                                      right=[R/M.audio_tic_rate],
                                                      top=[song_max], bottom=[0])
@@ -802,10 +805,6 @@ def context_update(highlight_tapped_snippet=True):
                         range(iright, len(M.iannotated_stops_sorted))])
 
                 for isample in samples_to_plot:
-                    iclustered = M.isclustered(M.annotated_samples[isample])
-                    if len(iclustered)>0 and M.clustered_samples[iclustered[0]] == \
-                                             M.annotated_samples[isample]:
-                        continue
                     if tapped_sample['file']!=M.annotated_samples[isample]['file']:
                         continue
                     L = np.max([istart, M.annotated_samples[isample]['ticks'][0]])

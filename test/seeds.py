@@ -26,7 +26,7 @@ os.makedirs(os.path.join(repo_path, "test/scratch/seeds"))
 shutil.copy(os.path.join(repo_path, "configuration.pysh"),
             os.path.join(repo_path, "test/scratch/seeds"))
 
-M.init(os.path.join(repo_path, "test/scratch/seeds/configuration.pysh"))
+M.init(None, os.path.join(repo_path, "test/scratch/seeds/configuration.pysh"))
 V.init(None)
 C.init(None)
 

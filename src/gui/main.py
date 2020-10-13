@@ -25,7 +25,7 @@ import controller as C
 
 doc = curdoc()
 
-M.init(configuration_file)
+M.init(doc, configuration_file)
 V.init(doc)
 C.init(doc)
 

@@ -22,8 +22,9 @@ import controller as C
 
 os.makedirs(os.path.join(repo_path, "test/scratch/py"))
 shutil.copy(os.path.join(repo_path, "configuration.pysh"),
+            os.path.join(repo_path, "test/scratch/py"))
 
-M.init(os.path.join(repo_path, "test/scratch/py/configuration.pysh"))
+M.init(None, os.path.join(repo_path, "test/scratch/py/configuration.pysh"))
 V.init(None)
 C.init(None)
 
