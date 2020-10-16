@@ -190,7 +190,7 @@ wait_for_job(M.status_ticker_queue)
 check_file_exists(wavpath_noext+"-ethogram.log")
 for pr in V.precision_recall_ratios_string.value.split(','):
   check_file_exists(wavpath_noext+"-predicted-"+pr+"pr.csv")
-count_lines_with_word(wavpath_noext+"-predicted-1.0pr.csv", "mel-pulse", 1055)
+count_lines_with_word(wavpath_noext+"-predicted-1.0pr.csv", "mel-pulse", 1010)
 count_lines_with_word(wavpath_noext+"-predicted-1.0pr.csv", "mel-sine", 958)
 count_lines_with_word(wavpath_noext+"-predicted-1.0pr.csv", "ambient", 88)
 
@@ -201,7 +201,7 @@ wait_for_job(M.status_ticker_queue)
 check_file_exists(wavpath_noext+"-detect.log")
 check_file_exists(wavpath_noext+"-detected.csv")
 count_lines_with_word(wavpath_noext+"-detected.csv", "time", 1309)
-count_lines_with_word(wavpath_noext+"-detected.csv", "frequency", 178)
+count_lines_with_word(wavpath_noext+"-detected.csv", "frequency", 179)
 
 V.wavtfcsvfiles_string.value = wavpath_noext+"-detected.csv,"+ \
                                wavpath_noext+"-predicted-1.0pr.csv"
@@ -211,7 +211,7 @@ wait_for_job(M.status_ticker_queue)
 
 check_file_exists(wavpath_noext+"-misses.log")
 check_file_exists(wavpath_noext+"-missed.csv")
-count_lines_with_word(wavpath_noext+"-missed.csv", "other", 2171)
+count_lines_with_word(wavpath_noext+"-missed.csv", "other", 2199)
 
 os.mkdir(os.path.join(V.groundtruth_folder.value, "round1", "cluster"))
 for file in glob.glob(os.path.join(V.groundtruth_folder.value, "activations*")):

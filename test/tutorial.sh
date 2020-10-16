@@ -4,12 +4,19 @@
 
 #${SONGEXPLORER_BIN/-B/-B /tmp:/opt/songexplorer/test/scratch -B} bash -c "test/tutorial.sh"
 
-check_file_exists() { [[ -e $1 ]] || echo ERROR: $1 is missing; }
+check_file_exists() {
+  if [[ ! -e $1 ]] ; then
+    echo ERROR: $1 is missing
+    return 1
+  fi
+  return 0; }
 count_lines_with_word() {
-  count=$(grep $2 $1 | wc -l)
+  check_file_exists $1 || return
+  local count=$(grep $2 $1 | wc -l)
   (( "$count" == "$3" )) || echo ERROR: $1 has $count $2 when it should have $3; }
 count_lines() {
-  count=$(cat $1 | wc -l)
+  check_file_exists $1 || return
+  local count=$(cat $1 | wc -l)
   (( "$count" == "$2" )) || echo ERROR: $1 has $count lines when it should have $2; }
 
 repo_path=$(dirname $(dirname $(which detect.sh)))
@@ -212,7 +219,7 @@ check_file_exists ${wavpath_noext}-ethogram.log
 for pr in $(echo $precision_recall_ratios | sed "s/,/ /g") ; do
   check_file_exists ${wavpath_noext}-predicted-${pr}pr.csv
 done
-count_lines_with_word ${wavpath_noext}-predicted-1.0pr.csv mel-pulse 1055
+count_lines_with_word ${wavpath_noext}-predicted-1.0pr.csv mel-pulse 1010
 count_lines_with_word ${wavpath_noext}-predicted-1.0pr.csv mel-sine 958
 count_lines_with_word ${wavpath_noext}-predicted-1.0pr.csv ambient 88
 
@@ -226,14 +233,14 @@ detect.sh \
 check_file_exists ${wavpath_noext}-detect.log
 check_file_exists ${wavpath_noext}-detected.csv
 count_lines_with_word ${wavpath_noext}-detected.csv time 1309
-count_lines_with_word ${wavpath_noext}-detected.csv frequency 178
+count_lines_with_word ${wavpath_noext}-detected.csv frequency 179
 
 csvfiles=${wavpath_noext}-detected.csv,${wavpath_noext}-predicted-1.0pr.csv
 misses.sh $csvfiles &> ${wavpath_noext}-misses.log
 
 check_file_exists ${wavpath_noext}-misses.log
 check_file_exists ${wavpath_noext}-missed.csv
-count_lines_with_word ${wavpath_noext}-missed.csv other 2171
+count_lines_with_word ${wavpath_noext}-missed.csv other 2199
 
 mkdir $data_dir/round1/cluster
 mv $data_dir/{activations,cluster}* $data_dir/round1/cluster
