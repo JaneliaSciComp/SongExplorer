@@ -5,7 +5,7 @@
 # mistakes.sh <path-to-annotations-npz-file>
 
 # e.g.
-# $DEEPSONG_BIN mistakes.sh `pwd`/groundtruth-data
+# $SONGEXPLORER_BIN mistakes.sh `pwd`/groundtruth-data
 
 groundtruth_directory=$1
 

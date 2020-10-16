@@ -2,8 +2,8 @@
 
 # test that freeze works with strides and different representations
 
-# export SINGULARITYENV_DEEPSONG_STATE=/tmp
-# ${DEEPSONG_BIN/-B/-B /tmp:/opt/deepsong/test/scratch -B} test/freeze.py
+# export SINGULARITYENV_SONGEXPLORER_STATE=/tmp
+# ${SONGEXPLORER_BIN/-B/-B /tmp:/opt/deepsong/test/scratch -B} test/freeze.py
 
 import sys
 import os

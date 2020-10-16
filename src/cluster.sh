@@ -5,8 +5,8 @@
 # cluster.sh <groundtruth-directory> <which-layers-to-cluster> <pca-fraction-variance-to-retain> <pca-batch-size> <pca|tsne|umap> <N-dims> <parallelize> [ <tsne-perplexity> <tsne-exaggeration> | <umap-n-neighbors> <umap-min-distance> ]
 
 # e.g.
-# $DEEPSONG_BIN cluster.sh `pwd`/groundtruth-data 3 0.99 0 tsne 2 1 30 12.0
-# $DEEPSONG_BIN cluster.sh `pwd`/groundtruth-data 0,1,2,3,4 1 0 umap 3 0 10 0.1
+# $SONGEXPLORER_BIN cluster.sh `pwd`/groundtruth-data 3 0.99 0 tsne 2 1 30 12.0
+# $SONGEXPLORER_BIN cluster.sh `pwd`/groundtruth-data 0,1,2,3,4 1 0 umap 3 0 10 0.1
 
 groundtruth_directory=$1
 these_layers=$2

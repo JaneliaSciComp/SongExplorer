@@ -5,7 +5,7 @@
 # ethogram.sh <logdir> <model> <thresholds_file> <tf-file> <audio-tic_rate>
 
 # e.g.
-# $DEEPSONG_BIN ethogram.sh `pwd`/trained-classifier 1k 50 `pwd`/groundtruth-data/round1/20161207T102314_ch1_p1.tf 5000
+# $SONGEXPLORER_BIN ethogram.sh `pwd`/trained-classifier 1k 50 `pwd`/groundtruth-data/round1/20161207T102314_ch1_p1.tf 5000
 
 logdir=$1
 model=$2

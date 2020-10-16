@@ -5,7 +5,7 @@
 # classify1.sh <context-ms> '' <representation> <stride-ms> <logdir> <model> <check-point> <wavfile> <audio-tic-rate> <nstrides>
 
 # e.g.
-# $DEEPSONG_BIN classify1.sh 204.8 '' waveform 1.6 `pwd`/trained-classifier train_1 50 `pwd`/groundtruth-data/round1/20161207T102314_ch1_p1.wav 5000 65536
+# $SONGEXPLORER_BIN classify1.sh 204.8 '' waveform 1.6 `pwd`/trained-classifier train_1 50 `pwd`/groundtruth-data/round1/20161207T102314_ch1_p1.wav 5000 65536
 
 context_ms=$1
 dummy_placeholder=$2
@@ -37,7 +37,7 @@ expr="/usr/bin/python3 $DIR/speech_commands_custom/test_streaming_accuracy.py \
       --model=$model_str \
       --labels=$logdir/$model/vgg_labels.txt \
       --wav=$wavfile \
-      --ground_truth=/opt/deepsong/src/streaming_test_labels.txt \
+      --ground_truth=/opt/songexplorer/src/streaming_test_labels.txt \
       --verbose \
       --clip_duration_ms=$clip_duration \
       --clip_stride_ms=$clip_stride \

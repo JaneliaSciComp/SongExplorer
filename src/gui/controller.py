@@ -9,7 +9,7 @@ import threading
 import csv
 import re
 
-bokehlog = logging.getLogger("deepsong") 
+bokehlog = logging.getLogger("songexplorer") 
 #class Object(object):
 #  pass
 #bokehlog=Object()
@@ -41,7 +41,7 @@ def generic_actuate(cmd, logfile, where,
         bokehlog.info(jobid)
     elif where == "server":
         p = run(["ssh", M.server_ipaddr, "export SINGULARITYENV_PREPEND_PATH="+M.source_path+";",
-                 "$DEEPSONG_BIN", "hetero", "submit",
+                 "$SONGEXPLORER_BIN", "hetero", "submit",
                  "\"{ export CUDA_VISIBLE_DEVICES=\$QUEUE1; "+cmd+" "+' '.join(args)+"; } &> "+logfile+"\"",
                  str(ncpu_cores), str(ngpu_cards), str(ngigabyes_memory), "'"+localdeps+"'"],
                 stdout=PIPE, stderr=STDOUT)
@@ -50,7 +50,7 @@ def generic_actuate(cmd, logfile, where,
     elif where == "cluster":
         pe = Popen(["echo",
                     "export SINGULARITYENV_PREPEND_PATH="+M.source_path+";",
-                    os.environ["DEEPSONG_BIN"]+" "+cmd+" "+' '.join(args)],
+                    os.environ["SONGEXPLORER_BIN"]+" "+cmd+" "+' '.join(args)],
                    stdout=PIPE)
         ps = Popen(["ssh", M.cluster_ipaddr, M.cluster_cmd,
                     #"-J ${logfile//,/}.job",
@@ -705,7 +705,7 @@ def train_generalize_xvalidate_finished(lastlogfile, reftime):
     return False
 
 def sequester_stalefiles():
-    M.deepsong_starttime = datetime.strftime(datetime.now(),'%Y%m%dT%H%M%S')
+    M.songexplorer_starttime = datetime.strftime(datetime.now(),'%Y%m%dT%H%M%S')
     M.annotated_samples=[]
     M.annotated_starts_sorted=[]
     M.annotated_stops=[]
@@ -733,7 +733,7 @@ def sequester_stalefiles():
             if len(oldfiles)>0:
                 topath = os.path.join(V.groundtruth_folder.value, \
                                       subdir, \
-                                      'oldfiles-'+M.deepsong_starttime)
+                                      'oldfiles-'+M.songexplorer_starttime)
                 os.mkdir(topath)
                 for oldfile in oldfiles:
                     os.rename(os.path.join(V.groundtruth_folder.value, subdir, oldfile), \

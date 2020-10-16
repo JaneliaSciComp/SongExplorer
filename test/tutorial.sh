@@ -2,7 +2,7 @@
 
 # recapitulate the tutorial via the shell interface
 
-#${DEEPSONG_BIN/-B/-B /tmp:/opt/deepsong/test/scratch -B} bash -c "test/tutorial.sh"
+#${SONGEXPLORER_BIN/-B/-B /tmp:/opt/songexplorer/test/scratch -B} bash -c "test/tutorial.sh"
 
 check_file_exists() { [[ -e $1 ]] || echo ERROR: $1 is missing; }
 count_lines_with_word() {

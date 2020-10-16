@@ -5,7 +5,7 @@
 # detect.sh <full-path-to-wavfile> <time-sigma-signal> <time-sigma-noise> <time-smooth-ms> <frequency-n-ms> <frequency-nw> <frequency-p-signal> <frequency-p-noise> <frequency-smooth-ms> <audio-tic-rate> <audio-nchannels>
 
 # e.g.
-# $DEEPSONG_BIN detect.sh `pwd`/groundtruth-data/round2/20161207T102314_ch1_p1.wav 4 2 6.4 25.6 4 0.1 1.0 25.6 2500 1
+# $SONGEXPLORER_BIN detect.sh `pwd`/groundtruth-data/round2/20161207T102314_ch1_p1.wav 4 2 6.4 25.6 4 0.1 1.0 25.6 2500 1
 
 wavfile=$1
 time_sigma_signal=$2

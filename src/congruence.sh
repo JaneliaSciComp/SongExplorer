@@ -5,7 +5,7 @@
 # congruence.sh <path-to-groundtruth> <wavfiles-with-dense-annotations-and-predictions> <nprobabilities> <audio-tic-rate> <parallelize>
 
 # e.g.
-# $DEEPSONG_BIN congruence.sh `pwd`/groundtruth-data PS_20130625111709_ch3_p2.wav,PS_20130625111709_ch3_p3.wav 20 2500 1
+# $SONGEXPLORER_BIN congruence.sh `pwd`/groundtruth-data PS_20130625111709_ch3_p2.wav,PS_20130625111709_ch3_p3.wav 20 2500 1
 
 data_dir=$1
 wav_files=$2

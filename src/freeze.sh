@@ -5,7 +5,7 @@
 # freeze.sh <context-ms> <representation> <window-ms> <stride-ms> <mel> <dct> <kernel-sizes> <last-conv-width> <nfeatures> <dilate-after-layer> <stride-after-layer> <connection-type> <logdir> <model> <check-point> <nstrides> <audio-tic-rate> <audio-nchannels>
 
 # e.g.
-# $DEEPSONG_BIN freeze.sh 204.8 waveform 6.4 1.6 7 7 5,3,3 130 256,256,256 65535 65535 plain `pwd`/trained-classifier 1k 50 65536 5000 1
+# $SONGEXPLORER_BIN freeze.sh 204.8 waveform 6.4 1.6 7 7 5,3,3 130 256,256,256 65535 65535 plain `pwd`/trained-classifier 1k 50 65536 5000 1
 
 context_ms=$1
 representation=$2

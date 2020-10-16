@@ -5,7 +5,7 @@
 # activations.sh <context_ms> <shiftby_ms> <representation> <window_ms> <mel> <dct> <stride_ms> <kernel_sizes> <last_conv_width> <nfeatures> <dilate-after-layer> <stride-after-layer> <connection-type> <logdir> <model> <check-point> <path-to-wavfiles> <wanted-words> <label-types> <equalize-ratio> <max-samples> <mini-batch> <audio-tic-rate> <audio-nchannels>
 
 # e.g.
-# $DEEPSONG_BIN activations.sh 204.8 0.0 6.4 7 7 1.6 5,3,3 130 256,256,256 65535 65535 plain `pwd`/trained-classifier 1k 50 `pwd`/groundtruth-data mel-sine,mel-pulse,ambient,other annotated 1000 10000 32 5000 1
+# $SONGEXPLORER_BIN activations.sh 204.8 0.0 6.4 7 7 1.6 5,3,3 130 256,256,256 65535 65535 plain `pwd`/trained-classifier 1k 50 `pwd`/groundtruth-data mel-sine,mel-pulse,ambient,other annotated 1000 10000 32 5000 1
 
 context_ms=$1
 shiftby_ms=$2

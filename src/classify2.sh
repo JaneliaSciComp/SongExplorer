@@ -5,7 +5,7 @@
 # classify2.sh <context_ms> <shiftby_ms> <representation> <stride_ms> <logdir> <model> <check-point> <wavfile> <audio-tic-rate> [<labels> <prevalences>]
 
 # e.g.
-# $DEEPSONG_BIN classify2.sh 204.8 0.0 waveform 1.6 `pwd`/trained-classifier train_1 50 `pwd`/groundtruth-data/round1/20161207T102314_ch1_p1.wav 5000 mel-pulse,mel-sine,ambient 0.1,0.1,0.8
+# $SONGEXPLORER_BIN classify2.sh 204.8 0.0 waveform 1.6 `pwd`/trained-classifier train_1 50 `pwd`/groundtruth-data/round1/20161207T102314_ch1_p1.wav 5000 mel-pulse,mel-sine,ambient 0.1,0.1,0.8
 
 context_ms=$1
 shiftby_ms=$2

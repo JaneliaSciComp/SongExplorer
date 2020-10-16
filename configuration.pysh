@@ -1,6 +1,6 @@
 # this file must be valid python and bash code, hence the .pysh extension
 
-# DeepSong must be restarted for changes to take effect
+# SongExplorer must be restarted for changes to take effect
 
 # where to save the GUI text boxes
 state_dir=""

@@ -4,7 +4,7 @@
 # http://<hostname>:<port>/visualize
 
 # e.g.
-# bokeh serve --allow-websocket-origin=`hostname`:5006 --allow-websocket-origin=localhost:5006 --port 5006 --show /opt/users/deepsong/src/visualize.py --args 5000 1 15 40 10 10 8 1200 400 0 #FFFFFF #FF00FF Category10 Viridis256
+# bokeh serve --allow-websocket-origin=`hostname`:5006 --allow-websocket-origin=localhost:5006 --port 5006 --show /opt/songexplorer/src/visualize.py --args 5000 1 15 40 10 10 8 1200 400 0 #FFFFFF #FF00FF Category10 Viridis256
 
 import os
 from bokeh.plotting import curdoc
@@ -13,7 +13,7 @@ import threading
 import logging 
 from sys import argv
 
-bokehlog = logging.getLogger("deepsong") 
+bokehlog = logging.getLogger("songexplorer") 
 bokehlog.setLevel(logging.INFO)
 #bokehlog.info(...) 
 

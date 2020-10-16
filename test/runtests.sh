@@ -2,7 +2,7 @@
 
 # run all of the tests
 
-# singularity exec -B /tmp:/opt/deepsong/test/scratch <--nv> <deepsong.sif> test/runtests.sh
+# singularity exec -B /tmp:/opt/songexplorer/test/scratch <--nv> <songexplorer.sif> test/runtests.sh
 
 repo_path=$(dirname $(dirname $(which detect.sh)))
 

@@ -238,20 +238,20 @@ def plot_file(fig, fig_venn, only_data, not_data):
   ax = fig.add_subplot(nrows,ncols,iplot)
   if len(sorted_hm)<4:
     ax_venn = fig_venn.add_subplot(nrows,ncols,iplot)
-  xdata=['everyone', *['only '+(x if x!=pr else 'deepsong') for x in sorted_hm]]
+  xdata=['everyone', *['only '+(x if x!=pr else 'songexplorer') for x in sorted_hm]]
   ydata=only_data
   if len(sorted_hm)>2:
-    xdata.extend(['not '+(x if x!=pr else 'deepsong') for x in sorted_hm])
+    xdata.extend(['not '+(x if x!=pr else 'songexplorer') for x in sorted_hm])
     ydata.extend(not_data)
   if len(sorted_hm)==2:
     idx = [1,2,0]  # Ab, aB, AB
     venn2(subsets=[ydata[x] for x in idx],
-          set_labels=[x if x!=pr else 'deepsong' for x in sorted_hm],
+          set_labels=[x if x!=pr else 'songexplorer' for x in sorted_hm],
           ax=ax_venn)
   elif len(sorted_hm)==3:
     idx = [1,2,6,3,5,4,0]  # Abc, aBc, ABc, abC, AbC, aBC, ABC
     venn3(subsets=[ydata[x] for x in idx],
-          set_labels=[x if x!=pr else 'deepsong' for x in sorted_hm],
+          set_labels=[x if x!=pr else 'songexplorer' for x in sorted_hm],
           ax=ax_venn)
   ax_venn.set_title(os.path.basename(csvbase), fontsize=8)
   ax.bar(xdata, ydata, color='k')
@@ -262,20 +262,20 @@ def plot_sumfiles(fig, fig_venn, only_data, not_data):
   ax = fig.add_subplot(nrows,ncols,1)
   if len(sorted_hm)<4:
     ax_venn = fig_venn.add_subplot(nrows,ncols,1)
-  xdata=['everyone', *['only '+(x if x!=pr else 'deepsong') for x in sorted_hm]]
+  xdata=['everyone', *['only '+(x if x!=pr else 'songexplorer') for x in sorted_hm]]
   ydata=only_data
   if len(sorted_hm)>2:
-    xdata.extend(['not '+(x if x!=pr else 'deepsong') for x in sorted_hm])
+    xdata.extend(['not '+(x if x!=pr else 'songexplorer') for x in sorted_hm])
     ydata.extend(not_data)
   if len(sorted_hm)==2:
     idx = [1,2,0]
     venn2(subsets=[ydata[x] for x in idx],
-          set_labels=[x if x!=pr else 'deepsong' for x in sorted_hm],
+          set_labels=[x if x!=pr else 'songexplorer' for x in sorted_hm],
           ax=ax_venn)
   elif len(sorted_hm)==3:
     idx = [1,2,6,3,5,4,0]
     venn3(subsets=[ydata[x] for x in idx],
-          set_labels=[x if x!=pr else 'deepsong' for x in sorted_hm],
+          set_labels=[x if x!=pr else 'songexplorer' for x in sorted_hm],
           ax=ax_venn)
   ax_venn.set_title('all files', fontsize=8)
   ax.bar(xdata, ydata, color='k')
@@ -400,12 +400,12 @@ for pr in precision_recalls:
       roc_table_tic[word][pr] = {}
       roc_table_word[word][pr] = {}
     for hm in sorted_hm:
-      key = 'only '+hm if hm!=pr else 'only deepsong'
+      key = 'only '+hm if hm!=pr else 'only songexplorer'
       roc_table_tic[word][pr][key] = int(sum([sum([y[1]-y[0]+1 for y in f[hm]]) \
                                               for f in onlyone_tic[pr][word].values()]))
       roc_table_word[word][pr][key] = sum([len(f[hm]) for f in onlyone_word[pr][word].values()])
       if len(sorted_hm)>2:
-        key = 'not '+hm if hm!=pr else 'not deepsong'
+        key = 'not '+hm if hm!=pr else 'not songexplorer'
         roc_table_tic[word][pr][key] = int(sum([sum([y[1]-y[0]+1 for y in f[hm]]) \
                                                 for f in notone_tic[pr][word].values()]))
         roc_table_word[word][pr][key] = sum([len(f[hm])
@@ -434,12 +434,12 @@ def plot_versus_thresholds(roc_table, kind):
       ax1.plot(xdata, ydata, '.-' if len(xdata)<10 else '-', label=not_only_every)
       if not_only_every=='everyone':
         TP = ydata
-      elif not_only_every=='only deepsong':
+      elif not_only_every=='only songexplorer':
         FP = ydata
       else:
         if len(humans)==1:
           FN = ydata
-        elif not_only_every=='not deepsong':
+        elif not_only_every=='not songexplorer':
           FN = ydata
     for (ipr,pr) in enumerate(precision_recalls_sparse):
       th = float([x[1:] for x in thresholds_sparse if x[0]==word][0][ipr])

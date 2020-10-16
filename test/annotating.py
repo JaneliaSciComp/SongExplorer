@@ -2,8 +2,8 @@
 
 # test doing, undoing, and redoing annotations
 
-# export SINGULARITYENV_DEEPSONG_STATE=/tmp
-# ${DEEPSONG_BIN/-B/-B /tmp:/opt/deepsong/test/scratch -B} test/annotating.py
+# export SINGULARITYENV_SONGEXPLORER_STATE=/tmp
+# ${SONGEXPLORER_BIN/-B/-B /tmp:/opt/songexplorer/test/scratch -B} test/annotating.py
 
 import sys
 import os

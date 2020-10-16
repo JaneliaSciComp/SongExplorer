@@ -2,7 +2,7 @@ Bootstrap: library
 From: ubuntu:20.04
 Stage: build
 %files
-    deepsong /opt
+    songexplorer /opt
 %environment
     export CUDA_HOME=/usr/local/cuda
     CUDA_LIB=$CUDA_HOME/lib64
@@ -10,7 +10,7 @@ Stage: build
     CUDA_BIN=$CUDA_HOME/bin
     export LD_LIBRARY_PATH=$CUDA_LIB
     export PATH=$CUDA_BIN:$PATH
-    PATH=/opt/deepsong/src:$PATH
+    PATH=/opt/songexplorer/src:$PATH
 %runscript
     exec /usr/bin/python3 "$@"
 %post

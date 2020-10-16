@@ -2,8 +2,8 @@
 
 # test that weights_seed works
 
-# export SINGULARITYENV_DEEPSONG_STATE=/tmp
-# ${DEEPSONG_BIN/-B/-B /tmp:/opt/deepsong/test/scratch -B} test/seeds.py
+# export SINGULARITYENV_SONGEXPLORER_STATE=/tmp
+# ${SONGEXPLORER_BIN/-B/-B /tmp:/opt/songexplorer/test/scratch -B} test/seeds.py
 
 import sys
 import os

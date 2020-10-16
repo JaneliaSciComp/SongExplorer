@@ -5,7 +5,7 @@
 # accuracy.sh <logdir> <precision-recall-ratios> <n-probabilities> <parallelize>
 
 # e.g.
-# $DEEPSONG_BIN accuracy.sh `pwd`/trained-classifier 2,1,0.5 50 1
+# $SONGEXPLORER_BIN accuracy.sh `pwd`/trained-classifier 2,1,0.5 50 1
 
 logdir=$1
 precision_recall_ratios=$2

@@ -26,7 +26,7 @@ import ast
 from bokeh.core.properties import Instance, String, List, Float
 from bokeh.util.compiler import TypeScript
 
-bokehlog = logging.getLogger("deepsong") 
+bokehlog = logging.getLogger("songexplorer") 
 
 import model as M
 import controller as C

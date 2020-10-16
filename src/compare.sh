@@ -5,7 +5,7 @@
 # compare.sh <logdirs-prefix>
 
 # e.g.
-# $DEEPSONG_BIN compare.sh `pwd`/withheld
+# $SONGEXPLORER_BIN compare.sh `pwd`/withheld
 
 logdirs_prefix=$1
 

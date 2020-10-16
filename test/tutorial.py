@@ -2,8 +2,8 @@
 
 # recapitulate the tutorial via the python interface
 
-# export SINGULARITYENV_DEEPSONG_STATE=/tmp
-# ${DEEPSONG_BIN/-B/-B /tmp:/opt/deepsong/test/scratch -B} test/tutorial.py
+# export SINGULARITYENV_SONGEXPLORER_STATE=/tmp
+# ${SONGEXPLORER_BIN/-B/-B /tmp:/opt/songexplorer/test/scratch -B} test/tutorial.py
 
 import sys
 import os

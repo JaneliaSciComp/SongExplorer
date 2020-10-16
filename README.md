@@ -40,11 +40,11 @@ Table of Contents
 # Description #
 
 You have an audio recording, and you want to know where certain classes of
-sounds are.  DeepSong is trained to recognize such words by manually giving
+sounds are.  SongExplorer is trained to recognize such words by manually giving
 it a few examples.  It will then automatically calculate the probability,
 over time, of when those words occur in all of your recordings.
 
-Applications suitable for DeepSong include quantifying the rate or pattern
+Applications suitable for SongExplorer include quantifying the rate or pattern
 of words emitted by a particular species, distinguishing a recording of one
 species from another, and discerning whether individuals of the same species
 produce different song.
@@ -68,24 +68,24 @@ new recordings is repeated until the desired accuracy is reached.
 
 # Public Domain Annotations #
 
-DeepSong is open source and free for you to use.  However, DeepSong is not
+SongExplorer is open source and free for you to use.  However, SongExplorer is not
 a static piece of software.  It’s performance is improved with additional
 high-quality annotations.
 
-Therefore, when you publish results based on DeepSong, we request that you make
+Therefore, when you publish results based on SongExplorer, we request that you make
 all of your primary data and annotations freely available in a recognized data
 repository, such as [figshare](http://figshare.com),
 [Dryad](http://datadryad.org), or [Zenodo](http://zenodo.org).  Many journals
 already require deposition of raw data, but we strongly encourage you to also
 provide your manual annotations.  These manual annotations will serve to
-improve the performance of DeepSong over time, helping both your own work and
+improve the performance of SongExplorer over time, helping both your own work and
 that of everyone else.
 
 Please let us know where you have deposited your raw
-data and annotations by posting an issue to the [DeepSong
-repository](https://github.com/JaneliaSciComp/DeepSong).  We will endeavor to
+data and annotations by posting an issue to the [SongExplorer
+repository](https://github.com/JaneliaSciComp/SongExplorer).  We will endeavor to
 maintain a database of these recordings and annotations and will periodically
-re-train DeepSong with the new data.
+re-train SongExplorer with the new data.
 
 In addition, consider donating your recordings to library or museum, like the
 Cornell Lab of Ornithology's [Macauley Library](www.macaulaylibrary.org) or the
@@ -95,14 +95,14 @@ Museo de Ciencias Naturales de Madrid's [Fonoteca Zoológica](www.fonozoo.com).
 # Citations and Repositories
 
 BJ Arthur, Y Ding, M Sosale, F Khalif, S Turaga, DL Stern (in prep)  
-DeepSong: A machine-learning classifier to segment and discover animal acoustic communication signals   
+SongExplorer: A machine-learning classifier to segment and discover animal acoustic communication signals   
 [BioRxiv]()  
 [datadryad]()
 
 
 # Notation #
 
-Throughout this document `Buttons` and `variables` in the DeepSong graphical
+Throughout this document `Buttons` and `variables` in the SongExplorer graphical
 user interface (GUI) as well as `code` are highlighted like so.  Files and
 paths are enclosed in double quotes ("...").  The dollar sign ($) in code
 snippets signifies your computer terminal's command line.  Square brackets
@@ -112,13 +112,13 @@ represent sections which you much customize.
 
 # Installation #
 
-DeepSong can be run on all three major platforms.  The installation procedure
+SongExplorer can be run on all three major platforms.  The installation procedure
 is different on each due to various support of the technologies used.  We
 recommend using Singularity on Linux and Apple Macintosh, and Conda on
 Microsoft Windows.  Training your own classifier is fastest with an Nvidia
 graphics processing unit (GPU).
 
-TensorFlow, the machine learning framework from Google that DeepSong uses,
+TensorFlow, the machine learning framework from Google that SongExplorer uses,
 supports Ubuntu, Mac and Windows.  The catch is that TensorFlow (and Nvidia)
 currently doesn't support GPUs on Macs.  So while using a pre-trained
 classifier would be fine on a Mac, because inference is just as fast on the
@@ -137,53 +137,53 @@ light-weight virtual machine on Macs; you can run it on Windows within a
 virtual environment, like Docker does, but would have to set that up yourself.
 As with Docker, GPUs are only accessible on Linux.
 
-To use DeepSong with a GPU on Windows one must install it manually, without
+To use SongExplorer with a GPU on Windows one must install it manually, without
 the convenience of a container.  We're looking for volunteers to write a
 Conda recipe to make this easy.
 
 ## Singularity for Linux, Mac, and Windows ##
 
 Platform-specific installation instructions can be found at
-[Sylabs](https://www.sylabs.io).  DeepSong has been tested with version 3.4 on
+[Sylabs](https://www.sylabs.io).  SongExplorer has been tested with version 3.4 on
 linux and [3.3 Desktop Beta](https://sylabs.io/singularity-desktop-macos) on
 Mac.
 
 You'll also need to install the CUDA and CUDNN drivers from nvidia.com.
-The latter requires you to register for an account.  DeepSong was tested and
+The latter requires you to register for an account.  SongExplorer was tested and
 built with version 10.2.
 
-Next download the DeepSong image from the cloud.  You can either go to
-[DeepSong's cloud.sylabs.io
+Next download the SongExplorer image from the cloud.  You can either go to
+[SongExplorer's cloud.sylabs.io
 page](https://cloud.sylabs.io/library/_container/5ccca72a800ca26aa6ccf008) and
 click the Download button, or equivalently use the command line (for which you
 might need an access token):
 
     $ singularity remote login SylabsCloud
 
-    $ singularity pull library://bjarthur/default/deepsong:latest
+    $ singularity pull library://bjarthur/default/songexplorer:latest
     INFO:    Container is signed
     Data integrity checked, authentic and signed by:
-      ben arthur (deepsong) <arthurb@hhmi.org>, Fingerprint XXABCXXX
+      ben arthur (songexplorer) <arthurb@hhmi.org>, Fingerprint XXABCXXX
 
     $ ls -lht | head -n 2
     total 16G
-    -rwxr-xr-x  1 arthurb scicompsoft 1.5G Sep  2 08:16 deepsong_latest.sif*
+    -rwxr-xr-x  1 arthurb scicompsoft 1.5G Sep  2 08:16 songexplorer_latest.sif*
 
 Finally, put these definitions in your .bashrc (or .zshrc file on Mac OS
 Catalina) file:
 
-    export DEEPSONG_BIN="singularity exec [--nv] [-B ...] \
-        [--vm-cpu] [--vm-ram] <path-to-deepsong_latest.sif>"
-    alias deepsong="$DEEPSONG_BIN gui.sh <path-to-configuration.pysh> 5006"
+    export SONGEXPLORER_BIN="singularity exec [--nv] [-B ...] \
+        [--vm-cpu] [--vm-ram] <path-to-songexplorer_latest.sif>"
+    alias songexplorer="$SONGEXPLORER_BIN gui.sh <path-to-configuration.pysh> 5006"
 
-Add to the DEEPSONG_BIN export any directories you mounted using the `-B` flag
+Add to the SONGEXPLORER_BIN export any directories you mounted using the `-B` flag
 (e.g. `singularity exec -B /my/home/directory ...`).
 
 On Mac singularity runs within a virtual machine that is configured by default
 to only use one CPU core and one GB of memory.  Use the `--vm-cpu` and
-`--vm-ram` flags to allocate a different amount of system resources to DeepSong
+`--vm-ram` flags to allocate a different amount of system resources to SongExplorer
 (e.g. `singularity exec --vm-cpu 4 --vm-ram 4096 ...`).  Note that even when
-DeepSong is idle these resources will *not* be available to other programs,
+SongExplorer is idle these resources will *not* be available to other programs,
 including the operating system.
 
 
@@ -191,28 +191,28 @@ including the operating system.
 
 Platform-specific installation instructions can be found at
 [Docker](http://www.docker.com).  Once you have it installed, download the
-[DeepSong image from
-cloud.docker.com](https://cloud.docker.com/u/bjarthur/repository/docker/bjarthur/deepsong):
+[SongExplorer image from
+cloud.docker.com](https://cloud.docker.com/u/bjarthur/repository/docker/bjarthur/songexplorer):
 
     $ docker login
 
-    $ docker pull bjarthur/deepsong
+    $ docker pull bjarthur/songexplorer
     Using default tag: latest
-    latest: Pulling from bjarthur/deepsong
+    latest: Pulling from bjarthur/songexplorer
     Digest: sha256:466674507a10ae118219d83f8d0a3217ed31e4763209da96dddb03994cc26420
-    Status: Image is up to date for bjarthur/deepsong:latest
+    Status: Image is up to date for bjarthur/songexplorer:latest
 
     $ docker image ls
     REPOSITORY        TAG    IMAGE ID     CREATED      SIZE
-    bjarthur/deepsong latest b63784a710bb 20 hours ago 2.27GB
+    bjarthur/songexplorer latest b63784a710bb 20 hours ago 2.27GB
 
 Finally, put these definitions in your .bashrc (or .zshrc file on mac os catalina) file:
 
-    export DEEPSONG_BIN="docker run -w `pwd` [-v ...] --env DEEPSONG_BIN \
-        -h=`hostname` -p 5006:5006 bjarthur/deepsong"
-    alias deepsong="$DEEPSONG_BIN gui.sh <path-to-configuration.pysh> 5006"
+    export SONGEXPLORER_BIN="docker run -w `pwd` [-v ...] --env SONGEXPLORER_BIN \
+        -h=`hostname` -p 5006:5006 bjarthur/songexplorer"
+    alias songexplorer="$SONGEXPLORER_BIN gui.sh <path-to-configuration.pysh> 5006"
 
-Add to the DEEPSONG_BIN export any directories you mounted using the `-v` flag
+Add to the SONGEXPLORER_BIN export any directories you mounted using the `-v` flag
 (e.g. `docker run -v /C:/C ...`).
 
 Should docker ever hang, or run for an interminably long time, and you
@@ -221,7 +221,7 @@ want to kill it, you'll need to open another terminal window and issue the
 
     $ docker ps
     CONTAINER ID IMAGE             COMMAND               CREATED       STATUS ...
-    6a26ad9d005e bjarthur/deepsong "detect.sh /src/p..." 3 seconds ago Up 2 seconds ...
+    6a26ad9d005e bjarthur/songexplorer "detect.sh /src/p..." 3 seconds ago Up 2 seconds ...
 
     $ docker stop 6a26ad9d005e
 
@@ -233,12 +233,12 @@ If you have to do this often, consider putting this short cut in your
 On Windows and Mac docker runs within a virtual machine that is configured by
 default to only use half the available CPU cores and half of the memory.  This
 configuration can be changed in the Preferences window.  Note that even when
-DeepSong is idle these resources will *not* be available to other programs,
+SongExplorer is idle these resources will *not* be available to other programs,
 including the operating system.
 
 ## System Configuration ##
 
-DeepSong is capable of training a classifier and making predictions on
+SongExplorer is capable of training a classifier and making predictions on
 recordings either locally on the host computer, or remotely on a workstation or
 a cluster.  You specify how you want this to work by editing
 "configuration.pysh".
@@ -246,9 +246,9 @@ a cluster.  You specify how you want this to work by editing
 Copy the exemplar configuration file out of the container and into your home
 directory:
 
-    $ $DEEPSONG_BIN cp /opt/deepsong/configuration.pysh .
+    $ $SONGEXPLORER_BIN cp /opt/songexplorer/configuration.pysh .
 
-Inside you'll find many variables which control where DeepSong does its work:
+Inside you'll find many variables which control where SongExplorer does its work:
 
     $ grep _where= configuration.pysh
     default_where="local"
@@ -268,9 +268,9 @@ Inside you'll find many variables which control where DeepSong does its work:
     congruence_where=default_where
 
 Each operation (e.g. detect, train, classify, generalize, etc.) is dispatched
-according to these `_where` variables.  DeepSong is shipped with each set to
+according to these `_where` variables.  SongExplorer is shipped with each set to
 "local" via the `default_where` variable at the top of the configuration file.
-This value instructs DeepSong to perform the task on the same machine as used
+This value instructs SongExplorer to perform the task on the same machine as used
 for the GUI.  You can change which computer is used to do the actual work
 either globally through this variable, or by configuring the operation specific
 ones later in the file.  Other valid values for these variables are "server"
@@ -287,7 +287,7 @@ variables that need to be tailored to your specific resources.
 
 ### Locally ###
 
-When running locally DeepSong uses a custom job scheduler to manage the
+When running locally SongExplorer uses a custom job scheduler to manage the
 resources required by different commands.  This permits doing multiple things
 at once, as well as queueing a bunch of jobs for offline analysis.  By default,
 each task reserves all of your computer's CPU cores, GPU cards, and memory.  To
@@ -306,7 +306,7 @@ default settings for training a model locally:
     train_gpu_ngigabytes_memory=-1
 
 Let's break this down.  When training (as well as certain other tasks),
-DeepSong provides the option to use a GPU or not with the `train_gpu` variable.
+SongExplorer provides the option to use a GPU or not with the `train_gpu` variable.
 Depending on the size of your model, the resources you have access to and their
 associated cost, and how many tasks you want to run in parallel, you might or
 might not want or be able to use one.  The
@@ -330,7 +330,7 @@ underestimate the resources required, particularly memory consumption.  To make
 an accurate assessment for your particular workflow, use the `top` and
 `nvidia-smi` commands to monitor jobs while they are running.
 
-    $ $DEEPSONG_BIN top -b | head -10
+    $ $SONGEXPLORER_BIN top -b | head -10
     top - 09:36:18 up 25 days,  1:18,  0 users,  load average: 11.40, 12.46, 12.36
     Tasks: 252 total,   1 running, 247 sleeping,   0 stopped,   4 zombie
     %Cpu(s):  0.7 us,  0.9 sy, 87.9 ni, 10.4 id,  0.1 wa,  0.0 hi,  0.0 si,  0.0 st
@@ -346,15 +346,15 @@ The output above shows that a `python3` command, which is how a training session
 appears, is currently using 131.2% of a CPU core (e.g. 1.3 cores), and 6.9% of
 the 32702004 KiB of total system memory (so about 2.15 GiB).  To monitor how
 these numbers change throughout the course of an entire job, omit the `-b` flag
-and do *not* pipe the output into `head` (so just use `$DEEPSONG_BIN top`) and
+and do *not* pipe the output into `head` (so just use `$SONGEXPLORER_BIN top`) and
 the screen will be refreshed every few seconds.
 
 The output below shows how to similarly monitor the GPU card.  The same
 `python3` command as above is currently using 4946 MiB of GPU memory and 67% of
 the GPU cores.  Use the `watch` command to receive repeated updates (i.e.
-`$DEEPSONG_BIN watch nvidia-smi`).
+`$SONGEXPLORER_BIN watch nvidia-smi`).
 
-    $ $DEEPSONG_BIN nvidia-smi
+    $ $SONGEXPLORER_BIN nvidia-smi
     Fri Jan 31 09:35:13 2020       
     +-----------------------------------------------------------------------------+
     | NVIDIA-SMI 418.39       Driver Version: 418.39       CUDA Version: 10.1     |
@@ -376,9 +376,9 @@ the GPU cores.  Use the `watch` command to receive repeated updates (i.e.
 ### Another Workstation ###
 
 Using a lab or departmental server, or perhaps a colleague's workstation
-remotely, is easiest if you run DeepSong on it directly and then view the GUI
+remotely, is easiest if you run SongExplorer on it directly and then view the GUI
 in your own personal workstation's internet browser.  To do this, simply `ssh`
-into the server and install DeepSong as described above.
+into the server and install SongExplorer as described above.
 
 Alternatively, you can run the GUI code (in addition to viewing its output) on
 your own personal workstation and batch compute jobs to the remote server.
@@ -386,32 +386,32 @@ This is easiest if there is a shared file system between the two computers.
 The advantage here is that less compute intensive jobs (e.g. freeze, accuracy)
 can be run on your workstation.  In this case:
 
-* Store all DeepSong related files on the share, including the container image,
+* Store all SongExplorer related files on the share, including the container image,
 "configuration.pysh", and all of your data.
 
 * Make the remote and local file paths match by creating a symbolic link.
 For example, if on a Mac you use SMB to mount as "/Volumes/sternlab"
 an NSF drive whose path is "/groups/stern/sternlab", then add `-[v|B]
-/groups/stern/sternlab` to `DEEPSONG_BIN` and `mkdir -p /groups/stern &&
+/groups/stern/sternlab` to `SONGEXPLORER_BIN` and `mkdir -p /groups/stern &&
 ln -s /Volumes/sternlab/ /groups/stern/sternlab`.  With Docker you'll
 additionally need to open the preferences panel and configure file sharing
 to bind "/groups".
 
-* Set the `DEEPSONG` environment variable plus the `deepsong` alias on both
+* Set the `SONGEXPLORER` environment variable plus the `songexplorer` alias on both
 your workstation and the server to point to this same image.
 
 * You might need an RSA key pair.  If so, you'll need to add `-[v|B]
-~/.ssh:/ssh` to `DEEPSONG_BIN`.
+~/.ssh:/ssh` to `SONGEXPLORER_BIN`.
 
 * You might need to use ssh flags `-i /ssh/id_rsa -o "StrictHostKeyChecking
 no"` in "configuration.pysh".
 
-If you do not have a shared file system, the DeepSong image and configuration file
+If you do not have a shared file system, the SongExplorer image and configuration file
 must be separately installed on both computers, and you'll need to do all of
 the compute jobs remotely.
 
 Lastly, update "configuration.pysh" with the IP address of the server.  As when
-doing compute locally, DeepSong uses a job scheduler on the server to manage
+doing compute locally, SongExplorer uses a job scheduler on the server to manage
 resources.  The per-task resources used are the same as specified for the local
 machine in `<task>_{gpu,cpu}_{ncpu_cores,ngpu_cards,ngigabytes_memory}`.
 
@@ -451,9 +451,9 @@ your system administrator.
     cluster_logfile_flag="-oo"
 
 The syntax used to specify the resources required is unique to the particular
-scheduler your cluster uses and how it is configured.  DeepSong was developed
+scheduler your cluster uses and how it is configured.  SongExplorer was developed
 and tested using the Load Sharing Facility (LSF) from IBM.  To support any
-cluster scheduler (e.g. SGE, PBS, Slurm, etc.), DeepSong ignores
+cluster scheduler (e.g. SGE, PBS, Slurm, etc.), SongExplorer ignores
 `<task>_local_resources_{gpu,cpu}` when `<task_where>` is set to "cluster" and
 uses the variables `<task>_cluster_flags_{gpu,cpu}` instead to provide maximum
 flexibility.  Instead of specifying the cores, GPUs, and RAM needed explicitly,
@@ -474,9 +474,9 @@ Recordings need to be monaural 16-bit little-endian PCM-encoded WAV files.
 They should all be sampled at the same rate, which can be anything.  For this
 tutorial we supply you with *Drosophila melanogaster* data sampled at 2500 Hz.
 
-First, let's get some data bundled with DeepSong into your home directory.
+First, let's get some data bundled with SongExplorer into your home directory.
 
-    $ $DEEPSONG_BIN ls -1 /opt/deepsong/data
+    $ $SONGEXPLORER_BIN ls -1 /opt/songexplorer/data
     20161207T102314_ch1-annotated-person1.csv
     20161207T102314_ch1.wav*
     20190122T093303a-7-annotated-person2.csv*
@@ -493,7 +493,7 @@ First, let's get some data bundled with DeepSong into your home directory.
 
     $ mkdir -p groundtruth-data/round1
 
-    $ $DEEPSONG_BIN cp /opt/deepsong/data/PS_20130625111709_ch3.wav \
+    $ $SONGEXPLORER_BIN cp /opt/songexplorer/data/PS_20130625111709_ch3.wav \
           ./groundtruth-data/round1
 
 ## Detecting Sounds ##
@@ -501,9 +501,9 @@ First, let's get some data bundled with DeepSong into your home directory.
 Now that we have some data, let's extract the timestamps of some sounds from
 one of these as-of-yet unannotated audio recordings.
 
-First, start DeepSong's GUI:
+First, start SongExplorer's GUI:
 
-    $ deepsong
+    $ songexplorer
     arthurb-ws2:5006
     2020-08-09 09:30:02,377 Starting Bokeh server version 2.0.2 (running on Tornado 6.0.4)
     2020-08-09 09:30:02,381 User authentication hooks NOT provided (default user enabled)
@@ -529,7 +529,7 @@ below that are *not* used will be greyed out and disabled.  If all of the
 required parameters are filled in, the `DoIt!` button in the upper right will
 in addition be enabled and turn red.
 
-The first time you use DeepSong all of the parameters will need to be
+The first time you use SongExplorer all of the parameters will need to be
 specified.  In the `File Browser`, navigate to the WAV file in the "round1/"
 directory and click on the `WAV Files` button.  Then specify the eight
 numeric parameters that control the algorithm used to find sounds:  In the time
@@ -589,9 +589,9 @@ files (i.e. "groundtruth-data" in this case).  Check to make sure that the
 `validation %` to 0, `restore from` to blank, `wanted words` to
 "time,frequency,ambient", and `label types` to "detected".  The rest of the
 fields, most of which specify the network architecture, are filled in with
-default values the first time you ever use DeepSong, and any changes you make
+default values the first time you ever use SongExplorer, and any changes you make
 to them, along with all of the other text fields, are saved to a file named
-"deepsong.state.yml" in the directory specified by "state_dir" in
+"songexplorer.state.yml" in the directory specified by "state_dir" in
 "configuration.pysh".  Now press `DoIt!`.  Output into the log directory are
 "train1.log", "train_1r.log", and "train_1r/".  The former two files contain
 error transcripts should any problems arise, and the latter folder contains
@@ -713,7 +713,7 @@ period` variables.  You'll also need to change the `wanted words` variable to
 "mel-pulse,mel-sine,ambient,other" and `label types` to "annotated" so that it
 will ignore the detected annotations in the ground-truth directory.  It's
 important to include "other" as a wanted word here, even if you haven't labeled
-any sounds as such, as it will be used later by DeepSong to highlight false
+any sounds as such, as it will be used later by SongExplorer to highlight false
 negatives ([see Correcting Misses](#correcting-misses)).  Note that the total
 number of annotations must exceed the size of the mini-batches, which is
 specified by the `mini-batch` variable.
@@ -727,7 +727,7 @@ as it goes:
 
     INFO:tensorflow:Elapsed 39.697532, Step #9: accuracy 75.8%, cross entropy 0.947476
     INFO:tensorflow:Elapsed 43.414184, Step #10: accuracy 84.4%, cross entropy 0.871244
-    INFO:tensorflow:Saving to "/home/arthurb/deepsong/trained-classifier1/train_1k/vgg.ckpt-10"
+    INFO:tensorflow:Saving to "/home/arthurb/songexplorer/trained-classifier1/train_1k/vgg.ckpt-10"
     INFO:tensorflow:Confusion Matrix:
      ['mel-pulse', 'mel-sine', 'ambient']
      [[26  9  9]
@@ -814,7 +814,7 @@ specific annotations in the withheld validation set which were mis-classified
 used to look for patterns in the raw data ([see Examining
 Errors](#examining-errors)).
 
-At this point in the tutorial we have just trained a single model, but DeepSong
+At this point in the tutorial we have just trained a single model, but SongExplorer
 does have workflows were multiple models are saved to a single `Logs Folder`
 (e.g. if `replicates` is >1, or if `Omit One`, `Omit All`, or `X-Validate` is
 used).  In these cases, the left panel of "accuracy.pdf" will show the sum of
@@ -835,11 +835,11 @@ trained classifier find sounds for us instead of using a simple threshold.  And
 we're going to do so with a different recording so that the classifier learns
 to be insensitive to experimental conditions.
 
-First let's get some more data bundled with DeepSong into your home directory:
+First let's get some more data bundled with SongExplorer into your home directory:
 
     $ mkdir groundtruth-data/round2
 
-    $ $DEEPSONG_BIN cp /opt/deepsong/data/20161207T102314_ch1.wav \
+    $ $SONGEXPLORER_BIN cp /opt/songexplorer/data/20161207T102314_ch1.wav \
             groundtruth-data/round2
 
 Use the `Freeze` button to save the classifier's neural network graph structure
@@ -855,7 +855,7 @@ model instead of a checkpoint file.
 Now use the `Classify` button to generate probabilities over time for each
 annotated word.  Specify which recordings using the `File Browser` and the `WAV
 Files` button.  Note that while the "Checkpoint File" button changed to "PB
-File", you can leave the text box as is;  all DeepSong needs is a filename from
+File", you can leave the text box as is;  all SongExplorer needs is a filename from
 which it can parse "ckpt-\*".  The probabilities are first stored in a file
 ending in ".tf", and then converted to WAV files for easy viewing.
 
@@ -871,7 +871,7 @@ precision-recall ratios using the `Ethogram` button.  Choose one of the
 Browser`.  These are created by the `Accuracy` button and controlled by the
 `P/Rs` variable at the time you quantified the accuracy.  For convenience you
 can also just leave this text box as it was when freezing or classifying; all
-DeepSong needs is a filename in the logs folder from which in can parse
+SongExplorer needs is a filename in the logs folder from which in can parse
 "ckpt-\*".  You'll also need to specify which ".tf" files to threshold using the
 `TF Files` button.  Again, for convenience, you can specify the ".wav" files too,
 and hence leave this as it was when classifying.
@@ -1082,7 +1082,7 @@ Hyperparameters](#searching-hyperparameters))
 ## Searching Hyperparameters ##
 
 Achieving high accuracy is not just about annotating lots of data, it also
-depends on choosing the right model architecture.  While DeepSong is
+depends on choosing the right model architecture.  While SongExplorer is
 (currently) set up solely for convolutional neural networks, there are many
 free parameters by which to tune its architecture.  You configure them by
 editing the variables itemized below, and then use cross-validation to compare
@@ -1211,7 +1211,7 @@ sounds.  To find such sounds, cluster the errors made on the ground-truth
 annotations with sounds detected in your recordings.  Then look for
 localized hot spots of mistakes and make annotations therein.
 
-DeepSong provides two ways to generate lists of errors, which you'll need to
+SongExplorer provides two ways to generate lists of errors, which you'll need to
 choose between.  The `Accuracy` button does so just for the validation data,
 while `Activations` uses the entire ground truth or a randomly sampled subset
 thereof.
@@ -1220,7 +1220,7 @@ As [mentioned earlier](#quantifying-accuracy), the `Accuracy` button creates a
 "predictions/" folder in the Log Folder containing CSV files itemizing whether
 the sounds in the validation set were correctly or incorrectly classified.
 Each CSV file corresponds to a sub-folder within the ground-truth folder.  The
-file format is similar to DeepSong's other CSV files, with the difference being
+file format is similar to SongExplorer's other CSV files, with the difference being
 that the penultimate column is the prediction and the final one the annotation.
 To use these predictions, copy these CSV files into their corresponding
 ground-truth sub-folders.
@@ -1291,7 +1291,7 @@ Once the accuracy is acceptable on validation data, quantify the accuracy on a
 densely annotated test set.  The network should have never been trained or
 validated on these latter data before; otherwise the resulting accuracy could
 be spuriously better.  Label every word of interest as before, make ethograms
-with your best model, and plot the congruence with DeepSong's predictions.
+with your best model, and plot the congruence with SongExplorer's predictions.
 Hopefully the accuracy will be okay.  If not, and you want to change the
 hyperparameters or add more training data, then the proper thing to do is to
 use this test data as training or validation data going forward, and densely
@@ -1300,7 +1300,7 @@ annotate a new set of data to test against.
 The congruence between multiple human annotators can be quantified using the
 same procedure.  Simply create "annotated-<name>.csv" files for each one.  The
 plots created by `Congruence` will include lines for the number of sounds labeled
-by all annotators (including DeepSong), only each annotator, and not by a given
+by all annotators (including SongExplorer), only each annotator, and not by a given
 annotator.
 
 Much as one can examine the mistakes of a particular model with respect to
@@ -1309,10 +1309,10 @@ sparsely annotated ground truth by clustering with "mistaken" as one of the
 and a densely annotated test set by using
 "everyone|{tic,word}-{only,not}{1.0pr,annotator1,annotator2,...}" as the `label
 types`.  The Congruence button generates a bunch of "disjoint.csv" files:
-"disjoint-everyone.csv" contains the intersection of intervals that DeepSong
+"disjoint-everyone.csv" contains the intersection of intervals that SongExplorer
 and all annotators agreed upon; "disjoint-only.csv" files contain the intervals
-which only DeepSong or one particular annotator labelled; "disjoint-not.csv"
-contains those which were labelled by everyone except DeepSong or a given
+which only SongExplorer or one particular annotator labelled; "disjoint-not.csv"
+contains those which were labelled by everyone except SongExplorer or a given
 annotator.  Choose one or all of these label types and then use the
 `Activations`, `Cluster`, and `Visualize` buttons as before.
 
@@ -1364,13 +1364,13 @@ annotated.  Create new word types as necessary.
 
 For some tasks it may be easier to write code instead of use the GUI-- tasks
 which require many tedious mouse clicks, for example, or simpler ones that must
-be performed repeatedly.  To facilitate coding your analysis, DeepSong is
+be performed repeatedly.  To facilitate coding your analysis, SongExplorer is
 structured such that each action button (`Detect`, `Misses`, `Activations`,
 etc.) is backed by a linux bash script.  At the top of each script is
 documentation showing how to call it.  Here, for example, is the interface for
 `Detect`:
 
-    $ $DEEPSONG_BIN head -n 8 /opt/deepsong/src/detect.sh
+    $ $SONGEXPLORER_BIN head -n 8 /opt/songexplorer/src/detect.sh
     #!/bin/bash
 
     # threshold an audio recording in both the time and frequency spaces
@@ -1380,7 +1380,7 @@ documentation showing how to call it.  Here, for example, is the interface for
     #           <audio-tic-rate> <audio-nchannels>
 
     # e.g.
-    # $DEEPSONG_BIN detect.sh \
+    # $SONGEXPLORER_BIN detect.sh \
                     `pwd`/groundtruth-data/round2/20161207T102314_ch1_p1.wav \
                     6 6.4 25.6 4 0.1 25.6 2500 1
 
@@ -1394,13 +1394,13 @@ of recordings in different folders:
                )
 
     $ for wavfile in ${wavfiles[@]} ; do
-          $DEEPSONG_BIN detect.sh $wavfile 6 6.4 25.6 4 0.1 25.6 2500 1
+          $SONGEXPLORER_BIN detect.sh $wavfile 6 6.4 25.6 4 0.1 25.6 2500 1
       done
 
 The above workflow could also easily be performed in Julia, Python, Matlab, or
 any other language that can execute shell commands.
 
-Alternatively, one can also write a python script which invokes DeepSong's GUI
+Alternatively, one can also write a python script which invokes SongExplorer's GUI
 interface to programmatically fill text boxes with values and to push action
 buttons:
 
@@ -1408,7 +1408,7 @@ buttons:
     import os
 
     # load the GUI
-    sys.path.append("/opt/deepsong/src/gui")
+    sys.path.append("/opt/songexplorer/src/gui")
     import model as M
     import view as V
     import controller as C
@@ -1443,7 +1443,7 @@ buttons:
     # stop the job scheduler
     run(["hetero", "stop"], stdout=PIPE, stderr=STDOUT)
 
-For more details see the system tests in /opt/deepsong/test/tutorial.{sh,py}.
+For more details see the system tests in /opt/songexplorer/test/tutorial.{sh,py}.
 These two files implement, as bash and python scripts respectively, the entire
 workflow presented in this [Tutorial](#tutorial), from [Detecting
 Sounds](#detecting-sounds) all the way to [Testing Densely](#testing-densely).
@@ -1451,7 +1451,7 @@ Sounds](#detecting-sounds) all the way to [Testing Densely](#testing-densely).
 
 # Troubleshooting #
 
-* Sometimes using control-C to quit out of DeepSong does not work.  In this
+* Sometimes using control-C to quit out of SongExplorer does not work.  In this
 case, kill it with `ps auxc | grep -E '(gui.sh|bokeh)'` and then `kill -9
 <pid>`.  Errant jobs can be killed similarly.
 
@@ -1465,11 +1465,11 @@ shift/command-click as you would in most other file browsers.
 
 # Reporting Problems #
 
-The code is hosted on [github](https://github.com/JaneliaSciComp/DeepSong).
+The code is hosted on [github](https://github.com/JaneliaSciComp/SongExplorer).
 Please file an issue there for all bug reports and feature requests.
 Pull requests are also welcomed!  For major changes it is best to file an
 issue first so we can discuss implementation details.  Please work with us
-to improve DeepSong instead instead of forking your own version.
+to improve SongExplorer instead instead of forking your own version.
 
 
 # Development #
@@ -1479,20 +1479,20 @@ to improve DeepSong instead instead of forking your own version.
 To build an image, change to a local (i.e. not NFS mounted; e.g.
 /opt/users) directory and:
 
-    $ git clone https://github.com/JaneliaSciComp/DeepSong.git
-    $ rm -rf deepsong/.git
-    $ sudo singularity build -s deepsong.img deepsong/containers/singularity.def
+    $ git clone https://github.com/JaneliaSciComp/SongExplorer.git
+    $ rm -rf songexplorer/.git
+    $ sudo singularity build -s songexplorer.img songexplorer/containers/singularity.def
 
 To confirm that the image works:
 
-    $ singularity run --nv deepsong.img
+    $ singularity run --nv songexplorer.img
     >>> import tensorflow as tf
     >>> msg = tf.constant('Hello, TensorFlow!')
     >>> tf.print(msg)
 
 Compress the image into a single file:
 
-    $ sudo singularity build deepsong.sif deepsong.img
+    $ sudo singularity build songexplorer.sif songexplorer.img
 
 Next create an access token at cloud.sylabs.io and login using:
 
@@ -1500,14 +1500,14 @@ Next create an access token at cloud.sylabs.io and login using:
 
 Then push the image to the cloud:
 
-    $ singularity sign deepsong.sif
-    $ singularity push deepsong.sif library://bjarthur/default/deepsong:<version>
+    $ singularity sign songexplorer.sif
+    $ singularity push songexplorer.sif library://bjarthur/default/songexplorer:<version>
 
 To build an image without GPU support, comment out the section titled "install
 CUDA" in "singularity.def" and omit the `--nv` flags.
 
-To use a copy of the DeepSong source code outside of the container, set
-SINGULARITYENV_PREPEND_PATH to the full path to DeepSong's `src` directory in
+To use a copy of the SongExplorer source code outside of the container, set
+SINGULARITYENV_PREPEND_PATH to the full path to SongExplorer's `src` directory in
 your shell environment.  `source_path` in "configuration.pysh" must be set
 similarly if using a remote workstation or a cluster.
 
@@ -1520,11 +1520,11 @@ To start docker on linux and set permissions:
 
 To build a docker image and push it to docker hub:
 
-    $ cd deepsong
-    $ docker build --file=containers/dockerfile --tag=bjarthur/deepsong \
+    $ cd songexplorer
+    $ docker build --file=containers/dockerfile --tag=bjarthur/songexplorer \
           [--no-cache=true] .
     $ docker login
-    $ docker {push,pull} bjarthur/deepsong
+    $ docker {push,pull} bjarthur/songexplorer
 
 To monitor resource usage:
 
@@ -1534,10 +1534,10 @@ To run a container interactively add "-i --tty".
 
 ## System Tests ##
 
-DeepSong comes with a comprehensive set of tests to facilitate easy validation
+SongExplorer comes with a comprehensive set of tests to facilitate easy validation
 that everything works both after you've first installed it as well as after any
 changes have been made to the code.  The tests exercise both the python GUI as
 well as the linux bash interfaces.  To run them, simply execute "runtests.sh":
 
-    $ singularity exec -B /tmp:/opt/deepsong/test/scratch <--nv> <deepsong.sif> \
-            /opt/deepsong/test/runtests.sh
+    $ singularity exec -B /tmp:/opt/songexplorer/test/scratch <--nv> <songexplorer.sif> \
+            /opt/songexplorer/test/runtests.sh
