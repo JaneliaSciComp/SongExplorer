@@ -1462,9 +1462,10 @@ def testfiles_callback():
   V.testfiles_string.value = _validation_test_files_callback()
 
 def wantedwords_update(labels_file):
-    with open(labels_file, "r") as fid:
-        labels = fid.readlines()
-    V.wantedwords_string.value = str.join(',',[x.strip() for x in labels])
+    if os.path.isfile(labels_file):
+        with open(labels_file, "r") as fid:
+            labels = fid.readlines()
+        V.wantedwords_string.value = str.join(',',[x.strip() for x in labels])
 
 def wantedwords_callback():
     assert len(V.file_dialog_source.selected.indices)==1
