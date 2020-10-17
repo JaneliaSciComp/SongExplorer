@@ -19,33 +19,35 @@ from lib import *
 csv_files = sys.argv[1:]
 print('csv_files: '+str(csv_files))
 
-detected_events=[]
-predicted_events=[]
+detected_events = {}
+predicted_events = {}
 for csv_file in csv_files:
   with open(csv_file) as fid:
     csvreader = csv.reader(fid)
     for row in csvreader:
       if row[3]=='detected':
-        detected_events.append(row)
+        if row[0] not in detected_events:
+          detected_events[row[0]] = []
+        detected_events[row[0]].append(row)
       elif row[3]=='predicted':
-        predicted_events.append(row)
+        if row[0] not in predicted_events:
+          predicted_events[row[0]] = []
+        predicted_events[row[0]].append(row)
       else:
         assert False
 
-detected_wavs = list(set([x[0] for x in detected_events]))
-predicted_wavs = list(set([x[0] for x in predicted_events]))
-assert len(detected_wavs)==1
-assert len(predicted_wavs)==1
-assert detected_wavs == predicted_wavs
+assert detected_events.keys() == predicted_events.keys()
 
-start_times, stop_times, ifeature = combine_events(detected_events, predicted_events,
-      lambda x,y: np.logical_and(x, np.logical_not(y)))
+for wavfile in detected_events.keys():
+  start_times, stop_times, ifeature = combine_events(
+        detected_events[wavfile], predicted_events[wavfile],
+        lambda x,y: np.logical_and(x, np.logical_not(y)))
 
-noext = os.path.splitext(detected_wavs[0])[0]
-basepath = os.path.dirname(csv_files[0])
-filename = os.path.join(basepath, noext+'-missed.csv')
-with open(filename,'w') as fid:
-  csvwriter = csv.writer(fid)
-  csvwriter.writerows(zip(cycle([detected_wavs[0]]), \
-                          start_times[:ifeature], stop_times[:ifeature], \
-                          cycle(['missed']), cycle(['other'])))
+  noext = os.path.splitext(wavfile)[0]
+  basepath = os.path.dirname(csv_files[0])
+  filename = os.path.join(basepath, noext+'-missed.csv')
+  with open(filename,'w') as fid:
+    csvwriter = csv.writer(fid)
+    csvwriter.writerows(zip(cycle([wavfile]), \
+                            start_times[:ifeature], stop_times[:ifeature], \
+                            cycle(['missed']), cycle(['other'])))
