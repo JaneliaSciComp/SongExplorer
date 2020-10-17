@@ -1,3 +1,5 @@
+[![video tutorials](/data/screenshot.png)](https://www.youtube.com/playlist?list=PLYXyXDkMwZip8x78RAyN6ee9NK42WBbKb)
+
 Table of Contents
 =================
 
@@ -64,7 +66,6 @@ mistakes, both re-labeling words that it got wrong, as well as labeling
 words it missed.  These new annotations are added to the ground truth,
 and the process of retraining the classifier and analyzing and correcting
 new recordings is repeated until the desired accuracy is reached.
-
 
 # Public Domain Annotations #
 
