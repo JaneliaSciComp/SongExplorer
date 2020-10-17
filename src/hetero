@@ -307,7 +307,7 @@ _jobs() {
     return 1
   fi
 
-  read -a joblist <<< $(ls -t $(_prefix).job* 2>/dev/null)
+  readarray joblist <<< $(ls -1 -t $(_prefix).job* 2>/dev/null)
   [[ "$?" != 0 ]] && return 1
 
   for thisjob in ${joblist[*]} ; do

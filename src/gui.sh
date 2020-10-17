@@ -135,7 +135,7 @@ isbinary accuracy_parallelize
 isbinary cluster_parallelize
 isbinary congruence_parallelize
 
-IFS=$'\n' read -d '' -a where_vars < <(set | grep _where=  )
+readarray where_vars < <(set | grep _where=  )
 for var in "${where_vars[@]}"; do
   lhs=${var%%=*}
   (( "$lhs" == local )) || (( "$lhs" == server )) || (( "$lhs" == cluster )) || \
@@ -145,7 +145,7 @@ unset where_vars
 
 resource_kinds=(ncpu_cores ngpu_cards ngigabytes_memory)
 for resource_kind in "${resource_kinds[@]}"; do
-  IFS=$'\n' read -d '' -a job_resources < <(set | grep ${resource_kind}= | grep -v local_ | grep -v server_)
+  readarray job_resources < <(set | grep ${resource_kind}= | grep -v local_ | grep -v server_)
   for job_resource in "${job_resources[@]}"; do
     job_resource_name=${job_resource%=*}
     job_resource_value=${job_resource##*=}
