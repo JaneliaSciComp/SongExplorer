@@ -145,7 +145,8 @@ def color_picker_callback(new):
     #        del M.cluster_dot_colors[M.words[M.iword]]
     #    else:
     #        M.cluster_dot_colors[M.words[M.iword]]=new
-    V.cluster_initialize(False)
+    if not V.cluster_initialize():
+        return
     V.cluster_update()
     
 def circle_radius_callback(attr, old, new):
@@ -1049,7 +1050,8 @@ def cluster_actuate():
                             activations_cluster_succeeded("cluster", g, t))).start()
 
 def visualize_actuate():
-    V.cluster_initialize()
+    if not V.cluster_initialize():
+        return
     M.ilayer = 0
     V.which_layer.value = M.layers[M.ilayer]
     M.ispecies = 0
@@ -1411,13 +1413,19 @@ def configuration_textarea_callback(attr, old, new):
     V.configuration_contents.disabled=True
 
 def logs_callback():
-    assert len(V.file_dialog_source.selected.indices)<2 
-    if len(V.file_dialog_source.selected.indices)==1:
-        assert V.file_dialog_source.data['names'][V.file_dialog_source.selected.indices[0]] == '.'
+    if len(V.file_dialog_source.selected.indices)>=2:
+        bokehlog.info('ERROR: a directory must be selected in the file browser')
+        return
+    if len(V.file_dialog_source.selected.indices)==1 and \
+            V.file_dialog_source.data['names'][V.file_dialog_source.selected.indices[0]] != '.':
+        bokehlog.info('ERROR: a directory must be selected in the file browser')
+        return
     V.logs_folder.value = M.file_dialog_root
 
 def _dialog2list():
-    assert len(V.file_dialog_source.selected.indices)>0 
+    if len(V.file_dialog_source.selected.indices)==0:
+        bokehlog.info('ERROR: a file(s) must be selected in the file browser')
+        return
     filename = V.file_dialog_source.data['names'][V.file_dialog_source.selected.indices[0]]
     files = os.path.join(M.file_dialog_root, filename)
     for i in range(1, len(V.file_dialog_source.selected.indices)):
@@ -1432,9 +1440,13 @@ def wavtfcsvfiles_callback():
     V.wavtfcsvfiles_string.value = _dialog2list()
 
 def groundtruth_callback():
-    assert len(V.file_dialog_source.selected.indices)<2 
-    if len(V.file_dialog_source.selected.indices)==1:
-        assert V.file_dialog_source.data['names'][V.file_dialog_source.selected.indices[0]] == './'
+    if len(V.file_dialog_source.selected.indices)>=2:
+        bokehlog.info('ERROR: a directory must be selected in the file browser')
+        return
+    if len(V.file_dialog_source.selected.indices)==1 and \
+            V.file_dialog_source.data['names'][V.file_dialog_source.selected.indices[0]] != '.':
+        bokehlog.info('ERROR: a directory must be selected in the file browser')
+        return
     V.groundtruth_folder.value = M.file_dialog_root
 
 def _validation_test_files_callback():
@@ -1468,13 +1480,17 @@ def wantedwords_update(labels_file):
         V.wantedwords_string.value = str.join(',',[x.strip() for x in labels])
 
 def wantedwords_callback():
-    assert len(V.file_dialog_source.selected.indices)==1
+    if len(V.file_dialog_source.selected.indices)!=1:
+        bokehlog.info('ERROR: a file must be selected in the file browser')
+        return
     idx = V.file_dialog_source.selected.indices[0]
     labels_file = os.path.join(M.file_dialog_root, V.file_dialog_source.data['names'][idx])
     wantedwords_update(labels_file)
 
 def prevalences_callback():
-    assert len(V.file_dialog_source.selected.indices)==1
+    if len(V.file_dialog_source.selected.indices)!=1:
+        bokehlog.info('ERROR: a file must be selected in the file browser')
+        return
     idx = V.file_dialog_source.selected.indices[0]
     classify_wav_log = os.path.join(M.file_dialog_root, V.file_dialog_source.data['names'][idx])
     with open(classify_wav_log,'r') as fid:
@@ -1486,7 +1502,11 @@ def prevalences_callback():
     V.prevalences_string.value = prevalences.replace(' ',',')
 
 def copy_callback():
-    assert len(V.file_dialog_source.selected.indices)==1
+    if len(V.file_dialog_source.selected.indices)!=1:
+        bokehlog.info('ERROR: a file must be selected in the file browser')
+        V.copy.button_type="default"
+        V.copy.disabled=False
+        return
     idx = V.file_dialog_source.selected.indices[0]
     logfile = os.path.join(M.file_dialog_root, V.file_dialog_source.data['names'][idx])
     with open(logfile, "r") as fid:

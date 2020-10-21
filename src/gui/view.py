@@ -351,8 +351,11 @@ def cluster_initialize(newcolors=True):
     global p_cluster_xmax, p_cluster_ymax, p_cluster_zmax
     global p_cluster_xmin, p_cluster_ymin, p_cluster_zmin
 
-    npzfile = np.load(os.path.join(groundtruth_folder.value,'cluster.npz'),
-                      allow_pickle=True)
+    cluster_file = os.path.join(groundtruth_folder.value,'cluster.npz')
+    if not os.path.isfile(cluster_file):
+        bokehlog.info("ERROR: "+cluster_file+" not found")
+        return False
+    npzfile = np.load(cluster_file, allow_pickle=True)
     M.clustered_samples = npzfile['samples']
     M.clustered_activations = npzfile['activations_clustered']
 
@@ -460,6 +463,8 @@ def cluster_initialize(newcolors=True):
     M.iword=0
     M.inohyphen=0
     M.ikind=0
+
+    return True
 
 def cluster_update():
     global cluster_dots
