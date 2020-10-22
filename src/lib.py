@@ -433,21 +433,22 @@ def calculate_precision_recall_specificity(validation_ground_truth, test_logits,
                 np.abs(recalls[words[iword]][iprobability] - 1)
         delta_roc = specificities[words[iword]][iprobability] * \
                 np.abs(sensitivities[words[iword]][iprobability] - 1)
-      elif iprobability+1==len(probabilities_logit):
+      else:
+        delta_pr = precisions[words[iword]][iprobability] * \
+                np.abs(recalls[words[iword]][iprobability] - \
+                       recalls[words[iword]][iprobability-1])
+        delta_roc = specificities[words[iword]][iprobability] * \
+                np.abs(sensitivities[words[iword]][iprobability] - \
+                       sensitivities[words[iword]][iprobability-1])
+      if not np.isnan(delta_pr):  pr_areas[words[iword]] += delta_pr
+      if not np.isnan(delta_roc): roc_areas[words[iword]] += delta_roc
+      if iprobability+1==len(probabilities_logit):
         delta_pr = precisions[words[iword]][iprobability] * \
                 np.abs(recalls[words[iword]][iprobability] - 0)
         delta_roc = specificities[words[iword]][iprobability] * \
                 np.abs(sensitivities[words[iword]][iprobability] - 0)
-      else:
-        delta_pr = precisions[words[iword]][iprobability] * \
-                np.abs(recalls[words[iword]][iprobability] - recalls[words[iword]][iprobability-1])
-        delta_roc = specificities[words[iword]][iprobability] * \
-                np.abs(sensitivities[words[iword]][iprobability] - \
-                sensitivities[words[iword]][iprobability-1])
-      if not np.isnan(delta_pr):
-        pr_areas[words[iword]] += delta_pr
-      if not np.isnan(delta_roc):
-        roc_areas[words[iword]] += delta_roc
+        if not np.isnan(delta_pr):  pr_areas[words[iword]] += delta_pr
+        if not np.isnan(delta_roc): roc_areas[words[iword]] += delta_roc
     f = interpolate.interp1d(precisions[words[iword]]/recalls[words[iword]],
                              probabilities[words[iword]], fill_value="extrapolate")
     thresholds[words[iword]] = f(ratios)
