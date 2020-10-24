@@ -1501,7 +1501,7 @@ def prevalences_callback():
                 break
     V.prevalences_string.value = prevalences.replace(' ',',')
 
-def copy_callback():
+def _copy_callback():
     if len(V.file_dialog_source.selected.indices)!=1:
         bokehlog.info('ERROR: a file must be selected in the file browser')
         V.copy.button_type="default"
@@ -1574,8 +1574,11 @@ def copy_callback():
                 m=re.search('representation = (.*)', line)
                 V.representation.value = m.group(1)
             elif "start_checkpoint = " in line:
-                m=re.search('start_checkpoint = (.*)', line)
-                V.restore_from_string.value = m.group(1)
+                m=re.search('start_checkpoint = .*ckpt-([0-9]+)', line)
+                if m:
+                    V.restore_from_string.value = m.group(1)
+                else:
+                    V.restore_from_string.value = ''
             elif "testing_files" in line:
                 m=re.search('testing_files = (.*)', line)
                 V.testfiles_string.value = m.group(1)
@@ -1599,8 +1602,14 @@ def copy_callback():
             elif "window_stride_ms" in line:
                 m=re.search('window_stride_ms = (.*)', line)
                 V.stride_ms_string.value = m.group(1)
-                break
+    V.copy.button_type="default"
+    V.copy.disabled=False
     
+def copy_callback():
+    V.copy.button_type="warning"
+    V.copy.disabled=True
+    bokeh_document.add_next_tick_callback(_copy_callback)
+
 def wizard_callback(wizard):
     M.wizard=None if M.wizard is wizard else wizard
     M.action=None
