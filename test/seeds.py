@@ -12,6 +12,7 @@ import glob
 from subprocess import run, PIPE, STDOUT, Popen
 import time
 import math
+import asyncio
 
 from lib import wait_for_job, check_file_exists
 
@@ -71,7 +72,7 @@ for batch_seed in ["1", "-1"]:
     V.weights_seed_string.value = weights_seed
     V.logs_folder.value = os.path.join(repo_path,
           "test/scratch/seeds/trained-classifier-bs="+batch_seed+"-ws="+weights_seed)
-    C.train_actuate()
+    asyncio.run(C.train_actuate())
 
     wait_for_job(M.status_ticker_queue)
 

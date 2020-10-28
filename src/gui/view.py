@@ -25,6 +25,7 @@ from itertools import cycle, product
 import ast
 from bokeh.core.properties import Instance, String, List, Float
 from bokeh.util.compiler import TypeScript
+import asyncio
 
 bokehlog = logging.getLogger("songexplorer") 
 
@@ -1028,10 +1029,7 @@ def wordcounts_update():
     else:
         wordcounts.text = ""
 
-from tornado import gen
-
-@gen.coroutine
-def status_ticker_update():
+async def status_ticker_update():
     if len(M.status_ticker_queue)>0:
         newtext = []
         for k in M.status_ticker_queue.keys():

@@ -10,6 +10,7 @@ import os
 import shutil
 import glob
 from subprocess import run, PIPE, STDOUT
+import asyncio
 
 from lib import wait_for_job, check_file_exists, count_lines_with_word, count_lines
 
@@ -43,7 +44,7 @@ V.frequency_n_ms_string.value = "25.6"
 V.frequency_nw_string.value = "4"
 V.frequency_p_string.value = "0.1,1.0"
 V.frequency_smooth_ms_string.value = "25.6"
-C.detect_actuate()
+asyncio.run(C.detect_actuate())
 
 wait_for_job(M.status_ticker_queue)
 
@@ -81,7 +82,7 @@ V.testing_files = ""
 V.batch_seed_string.value = "1"
 V.weights_seed_string.value = "1"
 V.replicates_string.value = "1"
-C.train_actuate()
+asyncio.run(C.train_actuate())
 
 wait_for_job(M.status_ticker_queue)
 
@@ -95,7 +96,7 @@ V.model_file.value = os.path.join(repo_path, "test/scratch/py/untrained-classifi
                                   "vgg.ckpt-"+V.nsteps_string.value+".meta")
 V.activations_equalize_ratio_string.value = "1000"
 V.activations_max_samples_string.value = "10000"
-C.activations_actuate()
+asyncio.run(C.activations_actuate())
 
 wait_for_job(M.status_ticker_queue)
 
@@ -109,7 +110,7 @@ M.pca_batch_size = "0"
 V.cluster_algorithm.value = "tSNE 2D"
 V.tsne_perplexity_string.value = "30"
 V.tsne_exaggeration_string.value = "12"
-C.cluster_actuate()
+asyncio.run(C.cluster_actuate())
 
 wait_for_job(M.status_ticker_queue)
 
@@ -126,7 +127,7 @@ V.labeltypes_string.value = "annotated"
 V.nsteps_string.value = "100"
 V.save_and_validate_period_string.value = "10"
 V.validate_percentage_string.value = "40"
-C.train_actuate()
+asyncio.run(C.train_actuate())
 
 wait_for_job(M.status_ticker_queue)
 
@@ -138,7 +139,7 @@ check_file_exists(os.path.join(V.logs_folder.value, "train_1r",
                                "logits.validation.ckpt-"+V.nsteps_string.value+".npz"))
 
 V.precision_recall_ratios_string.value = "0.5,1.0,2.0"
-C.accuracy_actuate()
+asyncio.run(C.accuracy_actuate())
 
 wait_for_job(M.status_ticker_queue)
 
@@ -157,7 +158,7 @@ for word in V.wantedwords_string.value.split(','):
 
 V.model_file.value = os.path.join(V.logs_folder.value, "train_"+V.replicates_string.value+"r",
                                   "vgg.ckpt-"+V.nsteps_string.value+".meta")
-C.freeze_actuate()
+asyncio.run(C.freeze_actuate())
 
 wait_for_job(M.status_ticker_queue)
 
@@ -172,7 +173,8 @@ shutil.copy(os.path.join(repo_path, "data/20161207T102314_ch1.wav"),
 
 V.wavtfcsvfiles_string.value = os.path.join(repo_path,
       "test/scratch/py/groundtruth-data/round2/20161207T102314_ch1.wav")
-C.classify_actuate()
+V.prevalences_string.value = ""
+asyncio.run(C.classify_actuate())
 
 wait_for_job(M.status_ticker_queue)
 
@@ -183,7 +185,7 @@ check_file_exists(wavpath_noext+"-classify2.log")
 for word in V.wantedwords_string.value.split(','):
   check_file_exists(wavpath_noext+"-"+word+".wav")
 
-C.ethogram_actuate()
+asyncio.run(C.ethogram_actuate())
 
 wait_for_job(M.status_ticker_queue)
 
@@ -194,7 +196,7 @@ count_lines_with_word(wavpath_noext+"-predicted-1.0pr.csv", "mel-pulse", 1010)
 count_lines_with_word(wavpath_noext+"-predicted-1.0pr.csv", "mel-sine", 958)
 count_lines_with_word(wavpath_noext+"-predicted-1.0pr.csv", "ambient", 88)
 
-C.detect_actuate()
+asyncio.run(C.detect_actuate())
 
 wait_for_job(M.status_ticker_queue)
 
@@ -205,7 +207,7 @@ count_lines_with_word(wavpath_noext+"-detected.csv", "frequency", 179)
 
 V.wavtfcsvfiles_string.value = wavpath_noext+"-detected.csv,"+ \
                                wavpath_noext+"-predicted-1.0pr.csv"
-C.misses_actuate()
+asyncio.run(C.misses_actuate())
 
 wait_for_job(M.status_ticker_queue)
 
@@ -226,7 +228,7 @@ V.model_file.value = os.path.join(repo_path, "test/scratch/py/trained-classifier
 V.labeltypes_string.value = "annotated,missed"
 V.activations_equalize_ratio_string.value = "1000"
 V.activations_max_samples_string.value = "10000"
-C.activations_actuate()
+asyncio.run(C.activations_actuate())
 
 wait_for_job(M.status_ticker_queue)
 
@@ -241,7 +243,7 @@ V.cluster_algorithm.value = "UMAP 3D"
 M.cluster_parallelize=1
 V.umap_neighbors_string.value = "10"
 V.umap_distance_string.value = "0.1"
-C.cluster_actuate()
+asyncio.run(C.cluster_actuate())
 
 wait_for_job(M.status_ticker_queue)
 
@@ -253,7 +255,7 @@ shutil.copy(os.path.join(repo_path, "data/20161207T102314_ch1-annotated-person1.
 
 V.logs_folder.value = os.path.join(repo_path, "test/scratch/py/omit-one")
 V.validationfiles_string.value = "PS_20130625111709_ch3.wav,20161207T102314_ch1.wav"
-C.leaveout_actuate(False)
+asyncio.run(C.leaveout_actuate(False))
 
 wait_for_job(M.status_ticker_queue)
 
@@ -265,7 +267,7 @@ for ifile in range(1,1+len(V.validationfiles_string.value.split(','))):
   check_file_exists(os.path.join(V.logs_folder.value, "generalize_"+str(ifile)+"w",
                                  "logits.validation.ckpt-"+V.nsteps_string.value+".npz"))
 
-C.accuracy_actuate()
+asyncio.run(C.accuracy_actuate())
 
 wait_for_job(M.status_ticker_queue)
 
@@ -291,7 +293,7 @@ for nfeatures in nfeaturess:
                                      "test/scratch/py/nfeatures-"+nfeatures.split(',')[0])
   V.nfeatures_string.value = nfeatures
   V.kfold_string.value = "2"
-  C.xvalidate_actuate()
+  asyncio.run(C.xvalidate_actuate())
 
 wait_for_job(M.status_ticker_queue)
 
@@ -307,7 +309,7 @@ for nfeatures in nfeaturess:
 for nfeatures in nfeaturess:
   V.logs_folder.value = os.path.join(repo_path,
                                      "test/scratch/py/nfeatures-"+nfeatures.split(',')[0])
-  C.accuracy_actuate()
+  asyncio.run(C.accuracy_actuate())
 
 wait_for_job(M.status_ticker_queue)
 
@@ -328,7 +330,7 @@ for nfeatures in nfeaturess:
     check_file_exists(os.path.join(V.logs_folder.value, "validation-PvR-"+word+".pdf"))
 
 V.logs_folder.value = os.path.join(repo_path, "test/scratch/py/nfeatures")
-C.compare_actuate()
+asyncio.run(C.compare_actuate())
 
 wait_for_job(M.status_ticker_queue)
 
@@ -337,7 +339,7 @@ check_file_exists(V.logs_folder.value+"-compare-precision-recall.pdf")
 check_file_exists(V.logs_folder.value+"-compare-confusion-matrices.pdf")
 check_file_exists(V.logs_folder.value+"-compare-overall-params-speed.pdf")
 
-C.mistakes_actuate()
+asyncio.run(C.mistakes_actuate())
 
 wait_for_job(M.status_ticker_queue)
 
@@ -349,7 +351,7 @@ V.logs_folder.value = os.path.join(repo_path, "test/scratch/py/trained-classifie
 V.labeltypes_string.value = "annotated"
 V.nsteps_string.value = "100"
 V.validate_percentage_string.value = "20"
-C.train_actuate()
+asyncio.run(C.train_actuate())
 
 wait_for_job(M.status_ticker_queue)
 
@@ -361,7 +363,7 @@ check_file_exists(os.path.join(V.logs_folder.value, "train_1r",
                                "logits.validation.ckpt-"+V.nsteps_string.value+".npz"))
 
 V.precision_recall_ratios_string.value = "1.0"
-C.accuracy_actuate()
+asyncio.run(C.accuracy_actuate())
 
 wait_for_job(M.status_ticker_queue)
 
@@ -380,7 +382,7 @@ for word in V.wantedwords_string.value.split(','):
 
 V.model_file.value = os.path.join(V.logs_folder.value, "train_"+V.replicates_string.value+"r",
                                   "vgg.ckpt-"+V.nsteps_string.value+".meta")
-C.freeze_actuate()
+asyncio.run(C.freeze_actuate())
 
 wait_for_job(M.status_ticker_queue)
 
@@ -395,7 +397,7 @@ shutil.copy(os.path.join(repo_path, "data/20190122T093303a-7.wav"),
 
 V.wavtfcsvfiles_string.value = os.path.join(repo_path,
       "test/scratch/py/groundtruth-data/congruence/20190122T093303a-7.wav")
-C.classify_actuate()
+asyncio.run(C.classify_actuate())
 
 wait_for_job(M.status_ticker_queue)
 
@@ -406,7 +408,7 @@ check_file_exists(wavpath_noext+"-classify2.log")
 for word in V.wantedwords_string.value.split(','):
   check_file_exists(wavpath_noext+"-"+word+".wav")
 
-C.ethogram_actuate()
+asyncio.run(C.ethogram_actuate())
 
 wait_for_job(M.status_ticker_queue)
 
@@ -421,7 +423,7 @@ shutil.copy(os.path.join(repo_path, "data/20190122T093303a-7-annotated-person3.c
 
 V.testfiles_string.value = ""
 V.validationfiles_string.value = "20190122T093303a-7.wav"
-C.congruence_actuate()
+asyncio.run(C.congruence_actuate())
 
 wait_for_job(M.status_ticker_queue)
 

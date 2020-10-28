@@ -202,7 +202,7 @@ check_file_exists ${wavpath_noext}-classify1.log
 classify2.sh \
       $context_ms $shiftby_ms $representation $stride_ms \
       $logdir train_${ireplicates}r $check_point \
-      ${wavpath_noext}.wav $audio_tic_rate '' \
+      ${wavpath_noext}.wav $audio_tic_rate \
       &> ${wavpath_noext}-classify2.log
 
 check_file_exists ${wavpath_noext}-classify2.log

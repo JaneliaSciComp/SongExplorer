@@ -12,6 +12,7 @@ import glob
 from subprocess import run, PIPE, STDOUT, Popen
 import time
 import math
+import asyncio
 
 from lib import wait_for_job, check_file_exists
 
@@ -71,7 +72,7 @@ for representation in ["waveform", "spectrogram", "mel-cepstrum"]:
     V.stride_after_layer_string.value = stride_after_layer
     V.logs_folder.value = os.path.join(repo_path,
           "test/scratch/freeze/trained-classifier-r="+representation+"-s="+stride_after_layer)
-    C.train_actuate()
+    asyncio.run(C.train_actuate())
 
     wait_for_job(M.status_ticker_queue)
 
@@ -83,7 +84,7 @@ for representation in ["waveform", "spectrogram", "mel-cepstrum"]:
     V.model_file.value = os.path.join(V.logs_folder.value,
                                       "train_"+V.replicates_string.value+"r",
                                       "vgg.ckpt-"+V.nsteps_string.value+".meta")
-    C.freeze_actuate()
+    asyncio.run(C.freeze_actuate())
     wait_for_job(M.status_ticker_queue)
 
     check_file_exists(os.path.join(V.logs_folder.value, "train_1r",

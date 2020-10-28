@@ -369,4 +369,4 @@ def init(_bokeh_document, _configuration_file):
 
     status_ticker_queue = {}
 
-    waitfor_job = ""
+    waitfor_job = []

@@ -8,6 +8,7 @@ import logging
 import threading
 import csv
 import re
+import asyncio
 
 bokehlog = logging.getLogger("songexplorer") 
 #class Object(object):
@@ -435,18 +436,18 @@ def classify_callback():
     wantedwords_update(os.path.join(labels_file, "vgg_labels.txt"))
     action_callback(V.classify, classify_actuate)
 
-def actuate_monitor(displaystring, results, idx, isrunningfun, isdonefun, succeededfun):
+async def actuate_monitor(displaystring, results, idx, isrunningfun, isdonefun, succeededfun):
     M.status_ticker_queue = {k:v for k,v in M.status_ticker_queue.items() if v!="succeeded"}
     M.status_ticker_queue[displaystring] = "pending"
     if bokeh_document: 
         bokeh_document.add_next_tick_callback(V.status_ticker_update)
     while not isrunningfun():
-        time.sleep(3)
+        await asyncio.sleep(1)
     M.status_ticker_queue[displaystring] = "running"
     if bokeh_document: 
         bokeh_document.add_next_tick_callback(V.status_ticker_update)
     while not isdonefun():
-        time.sleep(3)
+        await asyncio.sleep(1)
     for sec in [3,10,30,100,300,1000]:
         M.status_ticker_queue[displaystring] = "succeeded" if succeededfun() else "failed"
         if bokeh_document: 
@@ -455,13 +456,13 @@ def actuate_monitor(displaystring, results, idx, isrunningfun, isdonefun, succee
             if results:
                 results[idx]=True
             return
-        time.sleep(sec)
+        await asyncio.sleep(sec)
     if results:
         results[idx]=False
 
-def actuate_finalize(threads, results, finalizefun):
+async def actuate_finalize(threads, results, finalizefun):
     for i in range(len(threads)):
-        threads[i].join()
+        await threads[i]
     if any(results) and bokeh_document: 
         bokeh_document.add_next_tick_callback(finalizefun)
 
@@ -524,42 +525,49 @@ def detect_succeeded(wavfile, reftime):
         return False
     return True
 
-def detect_actuate():
+async def detect_actuate():
+    M.waitfor_job = []
     wavfiles = V.wavtfcsvfiles_string.value.split(',')
     threads = [None] * len(wavfiles)
     results = [None] * len(wavfiles)
-    jobids = []
-    for (i,wavfile) in enumerate(wavfiles):
-        currtime = time.time()
-        logfile = os.path.splitext(wavfile)[0]+'-detect.log'
-        jobid = generic_actuate("detect.sh", logfile, \
-                                M.detect_where,
-                                M.detect_ncpu_cores,
-                                M.detect_ngpu_cards,
-                                M.detect_ngigabytes_memory,
-                                "",
-                                M.detect_cluster_flags,
-                                wavfile, \
-                                *V.time_sigma_string.value.split(','), \
-                                V.time_smooth_ms_string.value, \
-                                V.frequency_n_ms_string.value, \
-                                V.frequency_nw_string.value, \
-                                *V.frequency_p_string.value.split(','), \
-                                V.frequency_smooth_ms_string.value,
-                                str(M.audio_tic_rate), str(M.audio_nchannels))
-        jobids.append(jobid)
-        displaystring = "DETECT "+os.path.basename(wavfile)+" ("+jobid+")"
-        threads[i] = threading.Thread(target=actuate_monitor, args=( \
-                         displaystring, \
-                         results, i, \
-                         lambda l=logfile, t=currtime: recent_file_exists(l, t, False), \
-                         lambda l=logfile: contains_two_timestamps(l), \
-                         lambda w=wavfile, t=currtime: detect_succeeded(w, t)))
-        threads[i].start()
-    M.waitfor_job = jobids
-    V.waitfor_update()
-    threading.Thread(target=actuate_finalize, \
-                     args=(threads, results, V.wordcounts_update)).start()
+    await _detect_actuate(0, wavfiles, threads, results)
+
+async def _detect_actuate(i, wavfiles, threads, results):
+    wavfile = wavfiles.pop(0)
+    currtime = time.time()
+    logfile = os.path.splitext(wavfile)[0]+'-detect.log'
+    jobid = generic_actuate("detect.sh", logfile, \
+                            M.detect_where,
+                            M.detect_ncpu_cores,
+                            M.detect_ngpu_cards,
+                            M.detect_ngigabytes_memory,
+                            "",
+                            M.detect_cluster_flags,
+                            wavfile, \
+                            *V.time_sigma_string.value.split(','), \
+                            V.time_smooth_ms_string.value, \
+                            V.frequency_n_ms_string.value, \
+                            V.frequency_nw_string.value, \
+                            *V.frequency_p_string.value.split(','), \
+                            V.frequency_smooth_ms_string.value,
+                            str(M.audio_tic_rate), str(M.audio_nchannels))
+    M.waitfor_job.append(jobid)
+    displaystring = "DETECT "+os.path.basename(wavfile)+" ("+jobid+")"
+    threads[i] = asyncio.create_task(actuate_monitor(displaystring, results, i, \
+                                     lambda l=logfile, t=currtime: \
+                                            recent_file_exists(l, t, False), \
+                                     lambda l=logfile: contains_two_timestamps(l), \
+                                     lambda w=wavfile, t=currtime: detect_succeeded(w, t)))
+    await asyncio.sleep(0.001)
+    if wavfiles:
+        if bokeh_document: 
+            bokeh_document.add_next_tick_callback(lambda i=i+1, w=wavfiles, t=threads, \
+                                                  r=results: _detect_actuate(i,w,t,r))
+        else:
+            _detect_actuate(i+1, wavfiles, threads, results)
+    else:
+        asyncio.create_task(actuate_finalize(threads, results, V.wordcounts_update))
+        V.waitfor_update()
 
 def misses_succeeded(wavfile, reftime):
     logfile = wavfile[:-4]+'-misses.log'
@@ -570,7 +578,7 @@ def misses_succeeded(wavfile, reftime):
         return False
     return True
 
-def misses_actuate():
+async def misses_actuate():
     currtime = time.time()
     csvfile1 = V.wavtfcsvfiles_string.value.split(',')[0]
     basepath = os.path.dirname(csvfile1)
@@ -589,19 +597,16 @@ def misses_actuate():
                             M.misses_cluster_flags, \
                             V.wavtfcsvfiles_string.value)
     displaystring = "MISSES "+wavfile+" ("+jobid+")"
-    M.waitfor_job = jobid
+    M.waitfor_job = [jobid]
     V.waitfor_update()
-    threads = [None]
-    results = [None]
-    threads[0] = threading.Thread(target=actuate_monitor, args=( \
-             displaystring, \
-             results, 0, \
-             lambda l=logfile, t=currtime: recent_file_exists(l, t, False), \
-             lambda l=logfile: contains_two_timestamps(l), \
-             lambda w=os.path.join(basepath, wavfile), t=currtime: misses_succeeded(w, t)))
-    threads[0].start()
-    threading.Thread(target=actuate_finalize, \
-                     args=(threads, results, V.wordcounts_update)).start()
+    threads, results = [None], [None]
+    threads[0] = asyncio.create_task(actuate_monitor(displaystring, results, 0, \
+                                     lambda l=logfile, t=currtime: \
+                                            recent_file_exists(l, t, False), \
+                                     lambda l=logfile: contains_two_timestamps(l), \
+                                     lambda w=os.path.join(basepath, wavfile), t=currtime: \
+                                            misses_succeeded(w, t)))
+    asyncio.create_task(actuate_finalize(threads, results, V.wordcounts_update))
 
 def isoldfile(x,subdir,basewavs):
     return \
@@ -741,7 +746,7 @@ def sequester_stalefiles():
                               os.path.join(topath, oldfile))
     V.wordcounts_update()
 
-def train_actuate():
+async def train_actuate():
     M.save_annotations()
     test_files = _validation_test_files(V.testfiles_string.value)[0]
     currtime = time.time()
@@ -785,21 +790,17 @@ def train_actuate():
                     " ("+','.join([str(x) for x in jobids])+")"
     M.waitfor_job = jobids
     V.waitfor_update()
-    threads = [None]
-    results = [None]
+    threads, results = [None], [None]
     logfile1 = os.path.join(V.logs_folder.value, "train1.log")
     logfileN = os.path.join(V.logs_folder.value, "train"+str(len(jobids))+".log")
-    threads[0] = threading.Thread(target=actuate_monitor, args=( \
-                     displaystring, \
-                     results, 0, \
-                     lambda l=logfile1, t=currtime: recent_file_exists(l, t, False), \
-                     lambda l=logfileN, t=currtime: \
-                            train_generalize_xvalidate_finished(l, t), \
-                     lambda l=V.logs_folder.value, r=nreplicates, t=currtime: \
-                            train_succeeded(l, r, t)))
-    threads[0].start()
-    threading.Thread(target=actuate_finalize, \
-                     args=(threads, results, sequester_stalefiles)).start()
+    threads[0] = asyncio.create_task(actuate_monitor(displaystring, results, 0, \
+                                     lambda l=logfile1, t=currtime: \
+                                            recent_file_exists(l, t, False), \
+                                     lambda l=logfileN, t=currtime: \
+                                            train_generalize_xvalidate_finished(l, t), \
+                                     lambda l=V.logs_folder.value, r=nreplicates, t=currtime: \
+                                            train_succeeded(l, r, t)))
+    asyncio.create_task(actuate_finalize(threads, results, sequester_stalefiles))
 
 def generalize_xvalidate_succeeded(kind, logdir, currtime):
     summary_dirs = list(filter(lambda x: os.path.isdir(os.path.join(logdir,x)) and \
@@ -817,7 +818,7 @@ def generalize_xvalidate_succeeded(kind, logdir, currtime):
             return False
     return True
 
-def leaveout_actuate(comma):
+async def leaveout_actuate(comma):
     test_files = _validation_test_files(V.testfiles_string.value)[0]
     validation_files = list(filter(
             lambda x: not any([y!='' and y in x for y in test_files.split(',')]),
@@ -868,14 +869,14 @@ def leaveout_actuate(comma):
     V.waitfor_update()
     logfile1 = os.path.join(V.logs_folder.value, "generalize1.log")
     logfileN = os.path.join(V.logs_folder.value, "generalize"+str(len(jobids))+".log")
-    threading.Thread(target=actuate_monitor, args=(displaystring, None, None, \
-                     lambda l=logfile1, t=currtime: recent_file_exists(l, t, False), \
-                     lambda l=logfileN, t=currtime: \
-                            train_generalize_xvalidate_finished(l, t), \
-                     lambda l=V.logs_folder.value, t=currtime: \
-                            generalize_xvalidate_succeeded("generalize", l, t))).start()
+    asyncio.create_task(actuate_monitor(displaystring, None, None, \
+                        lambda l=logfile1, t=currtime: recent_file_exists(l, t, False), \
+                        lambda l=logfileN, t=currtime: \
+                               train_generalize_xvalidate_finished(l, t), \
+                        lambda l=V.logs_folder.value, t=currtime: \
+                               generalize_xvalidate_succeeded("generalize", l, t)))
 
-def xvalidate_actuate():
+async def xvalidate_actuate():
     test_files = _validation_test_files(V.testfiles_string.value)[0]
     currtime = time.time()
     jobids = []
@@ -925,12 +926,12 @@ def xvalidate_actuate():
     V.waitfor_update()
     logfile1 = os.path.join(V.logs_folder.value, "xvalidate1.log")
     logfileN = os.path.join(V.logs_folder.value, "xvalidate"+str(len(jobids))+".log")
-    threading.Thread(target=actuate_monitor, args=(displaystring, None, None, \
-                     lambda l=logfile1, t=currtime: recent_file_exists(l, t, False), \
-                     lambda l=logfileN, t=currtime: \
-                            train_generalize_xvalidate_finished(l, t), \
-                     lambda l=V.logs_folder.value, t=currtime: \
-                            generalize_xvalidate_succeeded("xvalidate", l, t))).start()
+    asyncio.create_task(actuate_monitor(displaystring, None, None, \
+                        lambda l=logfile1, t=currtime: recent_file_exists(l, t, False), \
+                        lambda l=logfileN, t=currtime: \
+                               train_generalize_xvalidate_finished(l, t), \
+                        lambda l=V.logs_folder.value, t=currtime: \
+                               generalize_xvalidate_succeeded("xvalidate", l, t)))
 
 def mistakes_succeeded(groundtruthdir, reftime):
     logfile = os.path.join(groundtruthdir, "mistakes.log")
@@ -938,7 +939,7 @@ def mistakes_succeeded(groundtruthdir, reftime):
         return False
     return True
 
-def mistakes_actuate():
+async def mistakes_actuate():
     currtime = time.time()
     logfile = os.path.join(V.groundtruth_folder.value, "mistakes.log")
     jobid = generic_actuate("mistakes.sh", logfile,
@@ -951,13 +952,13 @@ def mistakes_actuate():
                             V.groundtruth_folder.value)
     displaystring = "MISTAKES "+os.path.basename(V.groundtruth_folder.value.rstrip('/'))+ \
                     " ("+jobid+")"
-    M.waitfor_job = jobid
+    M.waitfor_job = [jobid]
     V.waitfor_update()
-    threading.Thread(target=actuate_monitor, args=(displaystring, None, None, \
-                     lambda l=logfile, t=currtime: recent_file_exists(l, t, False), \
-                     lambda l=logfile: contains_two_timestamps(l), \
-                     lambda g=V.groundtruth_folder.value, t=currtime: \
-                            mistakes_succeeded(g, t))).start()
+    asyncio.create_task(actuate_monitor(displaystring, None, None, \
+                        lambda l=logfile, t=currtime: recent_file_exists(l, t, False), \
+                        lambda l=logfile: contains_two_timestamps(l), \
+                        lambda g=V.groundtruth_folder.value, t=currtime: \
+                               mistakes_succeeded(g, t)))
 
 def activations_cluster_succeeded(kind, groundtruthdir, reftime):
     logfile = os.path.join(groundtruthdir, kind+".log")
@@ -970,7 +971,7 @@ def activations_cluster_succeeded(kind, groundtruthdir, reftime):
         bokeh_document.add_next_tick_callback(V.cluster_these_layers_update)
     return True
 
-def activations_actuate():
+async def activations_actuate():
     currtime = time.time()
     logdir, model, _, check_point = M.parse_model_file(V.model_file.value)
     logfile = os.path.join(V.groundtruth_folder.value, "activations.log")
@@ -1008,15 +1009,15 @@ def activations_actuate():
     displaystring = "ACTIVATIONS " + \
                     os.path.join(os.path.basename(logdir), model, "ckpt-"+check_point) + \
                     " ("+jobid+")"
-    M.waitfor_job = jobid
+    M.waitfor_job = [jobid]
     V.waitfor_update()
-    threading.Thread(target=actuate_monitor, args=(displaystring, None, None, \
-                     lambda l=logfile, t=currtime: recent_file_exists(l, t, False), \
-                     lambda l=logfile: contains_two_timestamps(l), \
-                     lambda g=V.groundtruth_folder.value, t=currtime: \
-                            activations_cluster_succeeded("activations", g, t))).start()
+    asyncio.create_task(actuate_monitor(displaystring, None, None, \
+                        lambda l=logfile, t=currtime: recent_file_exists(l, t, False), \
+                        lambda l=logfile: contains_two_timestamps(l), \
+                        lambda g=V.groundtruth_folder.value, t=currtime: \
+                               activations_cluster_succeeded("activations", g, t)))
 
-def cluster_actuate():
+async def cluster_actuate():
     currtime = time.time()
     algorithm, ndims = V.cluster_algorithm.value.split(' ')
     these_layers = ','.join([x for x in V.cluster_these_layers.value])
@@ -1041,15 +1042,15 @@ def cluster_actuate():
 
     displaystring = "CLUSTER "+os.path.basename(V.groundtruth_folder.value.rstrip('/'))+ \
                     " ("+jobid+")"
-    M.waitfor_job = jobid
+    M.waitfor_job = [jobid]
     V.waitfor_update()
-    threading.Thread(target=actuate_monitor, args=(displaystring, None, None, \
-                     lambda l=logfile, t=currtime: recent_file_exists(l, t, False), \
-                     lambda l=logfile: contains_two_timestamps(l), \
-                     lambda g=V.groundtruth_folder.value, t=currtime: \
-                            activations_cluster_succeeded("cluster", g, t))).start()
+    asyncio.create_task(actuate_monitor(displaystring, None, None, \
+                        lambda l=logfile, t=currtime: recent_file_exists(l, t, False), \
+                        lambda l=logfile: contains_two_timestamps(l), \
+                        lambda g=V.groundtruth_folder.value, t=currtime: \
+                               activations_cluster_succeeded("cluster", g, t)))
 
-def visualize_actuate():
+async def visualize_actuate():
     if not V.cluster_initialize():
         return
     M.ilayer = 0
@@ -1124,7 +1125,7 @@ def accuracy_succeeded(logdir, reftime):
         return False
     return True
 
-def accuracy_actuate():
+async def accuracy_actuate():
     currtime = time.time()
     logfile = os.path.join(V.logs_folder.value, "accuracy.log")
     jobid = generic_actuate("accuracy.sh", logfile,
@@ -1139,13 +1140,13 @@ def accuracy_actuate():
                             str(M.nprobabilities), str(M.accuracy_parallelize))
     displaystring = "ACCURACY "+os.path.basename(V.logs_folder.value.rstrip('/'))+ \
                     " ("+jobid+")"
-    M.waitfor_job = jobid
+    M.waitfor_job = [jobid]
     V.waitfor_update()
-    threading.Thread(target=actuate_monitor, args=(displaystring, None, None, \
-                     lambda l=logfile, t=currtime: recent_file_exists(l, t, False), \
-                     lambda l=logfile: contains_two_timestamps(l), \
-                     lambda l=V.logs_folder.value, t=currtime: accuracy_succeeded(l, t))).start()
-
+    asyncio.create_task(actuate_monitor(displaystring, None, None, \
+                        lambda l=logfile, t=currtime: recent_file_exists(l, t, False), \
+                        lambda l=logfile: contains_two_timestamps(l), \
+                        lambda l=V.logs_folder.value, t=currtime: accuracy_succeeded(l, t)))
+ 
 def freeze_succeeded(modeldir, ckpt, reftime):
     logfile = os.path.join(modeldir, "freeze.ckpt-"+str(ckpt)+".log")
     if not logfile_succeeded(logfile, reftime):
@@ -1158,40 +1159,49 @@ def freeze_succeeded(modeldir, ckpt, reftime):
         return False
     return True
 
-def freeze_actuate():
-    jobids = []
-    for ckpt in V.model_file.value.split(','):
-        currtime = time.time()
-        logdir, model, _, check_point = M.parse_model_file(ckpt)
-        logfile = os.path.join(logdir, model, "freeze.ckpt-"+str(check_point)+".log")
-        jobid = generic_actuate("freeze.sh", logfile,
-                                M.freeze_where,
-                                M.freeze_ncpu_cores,
-                                M.freeze_ngpu_cards,
-                                M.freeze_ngigabytes_memory,
-                                "",
-                                M.freeze_cluster_flags,
-                                V.context_ms_string.value, \
-                                V.representation.value, V.window_ms_string.value, \
-                                V.stride_ms_string.value, *V.mel_dct_string.value.split(','), \
-                                V.kernel_sizes_string.value, \
-                                V.last_conv_width_string.value, V.nfeatures_string.value, \
-                                V.dilate_after_layer_string.value, \
-                                V.stride_after_layer_string.value, \
-                                V.connection_type.value, \
-                                logdir, model, check_point, str(M.nstrides), \
-                                str(M.audio_tic_rate), str(M.audio_nchannels))
-        displaystring = "FREEZE " + \
-                        os.path.join(os.path.basename(logdir), model, "ckpt-"+check_point) + \
-                        " ("+jobid+")"
-        jobids.append(jobid)
-        threading.Thread(target=actuate_monitor, args=(displaystring, None, None, \
-                         lambda l=logfile, t=currtime: recent_file_exists(l, t, False), \
-                         lambda l=logfile: contains_two_timestamps(l), \
-                         lambda m=os.path.join(logdir, model), c=check_point, t=currtime: \
-                                freeze_succeeded(m, c, t))).start()
-    M.waitfor_job = jobids
-    V.waitfor_update()
+async def freeze_actuate():
+    M.waitfor_job = []
+    await _freeze_actuate(V.model_file.value.split(','))
+
+async def _freeze_actuate(ckpts):
+    ckpt = ckpts.pop(0)
+    currtime = time.time()
+    logdir, model, _, check_point = M.parse_model_file(ckpt)
+    logfile = os.path.join(logdir, model, "freeze.ckpt-"+str(check_point)+".log")
+    jobid = generic_actuate("freeze.sh", logfile,
+                            M.freeze_where,
+                            M.freeze_ncpu_cores,
+                            M.freeze_ngpu_cards,
+                            M.freeze_ngigabytes_memory,
+                            "",
+                            M.freeze_cluster_flags,
+                            V.context_ms_string.value, \
+                            V.representation.value, V.window_ms_string.value, \
+                            V.stride_ms_string.value, *V.mel_dct_string.value.split(','), \
+                            V.kernel_sizes_string.value, \
+                            V.last_conv_width_string.value, V.nfeatures_string.value, \
+                            V.dilate_after_layer_string.value, \
+                            V.stride_after_layer_string.value, \
+                            V.connection_type.value, \
+                            logdir, model, check_point, str(M.nstrides), \
+                            str(M.audio_tic_rate), str(M.audio_nchannels))
+    displaystring = "FREEZE " + \
+                    os.path.join(os.path.basename(logdir), model, "ckpt-"+check_point) + \
+                    " ("+jobid+")"
+    M.waitfor_job.append(jobid)
+    asyncio.create_task(actuate_monitor(displaystring, None, None, \
+                        lambda l=logfile, t=currtime: recent_file_exists(l, t, False), \
+                        lambda l=logfile: contains_two_timestamps(l), \
+                        lambda m=os.path.join(logdir, model), c=check_point, t=currtime: \
+                               freeze_succeeded(m, c, t)))
+    await asyncio.sleep(0.001)
+    if ckpts:
+        if bokeh_document: 
+            bokeh_document.add_next_tick_callback(lambda c=ckpts: _freeze_actuate(c))
+        else:
+            _freeze_actuate(ckpts)
+    else:
+        V.waitfor_update()
 
 def classify_isdone(wavlogfile, reftime):
     return recent_file_exists(wavlogfile, reftime, False) and \
@@ -1208,52 +1218,61 @@ def classify_succeeded(modeldir, wavfile, reftime):
             return False
     return True
 
-def classify_actuate():
-    jobids = []
-    for wavfile in V.wavtfcsvfiles_string.value.split(','):
-        currtime = time.time()
-        logdir, model, _, check_point = M.parse_model_file(V.model_file.value)
-        logfile0 = os.path.splitext(wavfile)[0]+'-classify'
-        logfile1 = logfile0+'1.log'
-        logfile2 = logfile0+'2.log'
-        args = [V.context_ms_string.value, \
-                V.shiftby_ms_string.value, V.representation.value, \
-                V.stride_ms_string.value, \
-                logdir, model, check_point, wavfile, str(M.audio_tic_rate), str(M.nstrides)]
-        if V.prevalences_string.value!='':
-            args += [V.wantedwords_string.value, V.prevalences_string.value]
-        p = run(["date", "+%s"], stdout=PIPE, stderr=STDOUT)
-        if M.classify_gpu:
-            jobid = generic_actuate("classify1.sh", logfile1, M.classify_where,
-                                      M.classify1_gpu_ncpu_cores,
-                                      M.classify1_gpu_ngpu_cards,
-                                      M.classify1_gpu_ngigabytes_memory,
-                                      "",
-                                      M.classify1_gpu_cluster_flags,
-                                      *args)
+async def classify_actuate():
+    M.waitfor_job = []
+    await _classify_actuate(V.wavtfcsvfiles_string.value.split(','))
+
+async def _classify_actuate(wavfiles):
+    wavfile = wavfiles.pop(0)
+    currtime = time.time()
+    logdir, model, _, check_point = M.parse_model_file(V.model_file.value)
+    logfile0 = os.path.splitext(wavfile)[0]+'-classify'
+    logfile1 = logfile0+'1.log'
+    logfile2 = logfile0+'2.log'
+    args = [V.context_ms_string.value, \
+            V.shiftby_ms_string.value, V.representation.value, \
+            V.stride_ms_string.value, \
+            logdir, model, check_point, wavfile, str(M.audio_tic_rate), str(M.nstrides)]
+    if V.prevalences_string.value!='':
+        args += [V.wantedwords_string.value, V.prevalences_string.value]
+    p = run(["date", "+%s"], stdout=PIPE, stderr=STDOUT)
+    if M.classify_gpu:
+        jobid1 = generic_actuate("classify1.sh", logfile1, M.classify_where,
+                                  M.classify1_gpu_ncpu_cores,
+                                  M.classify1_gpu_ngpu_cards,
+                                  M.classify1_gpu_ngigabytes_memory,
+                                  "",
+                                  M.classify1_gpu_cluster_flags,
+                                  *args)
+    else:
+        jobid1 = generic_actuate("classify1.sh", logfile1, M.classify_where,
+                                  M.classify1_cpu_ncpu_cores,
+                                  M.classify1_cpu_ngpu_cards,
+                                  M.classify1_cpu_ngigabytes_memory,
+                                  "",
+                                  M.classify1_cpu_cluster_flags,
+                                  *args)
+    jobid2 = generic_actuate("classify2.sh", logfile2, M.classify_where,
+                            M.classify2_ncpu_cores,
+                            M.classify2_ngpu_cards,
+                            M.classify2_ngigabytes_memory,
+                            "hetero job "+jobid1,
+                            M.classify2_cluster_flags+" -w \"done("+jobid1+")\"", *args)
+    displaystring = "CLASSIFY "+os.path.basename(wavfile)+" ("+jobid1+','+jobid2+")"
+    M.waitfor_job.append(jobid2)
+    asyncio.create_task(actuate_monitor(displaystring, None, None, \
+                     lambda l=logfile1, t=currtime: recent_file_exists(l, t, False), \
+                     lambda w=logfile2, t=currtime: classify_isdone(w, t), \
+                     lambda m=os.path.join(logdir, model), w=wavfile, t=currtime: \
+                            classify_succeeded(m, w, t)))
+    await asyncio.sleep(0.001)
+    if wavfiles:
+        if bokeh_document: 
+            bokeh_document.add_next_tick_callback(lambda w=wavfiles: _classify_actuate(w))
         else:
-            jobid = generic_actuate("classify1.sh", logfile1, M.classify_where,
-                                      M.classify1_cpu_ncpu_cores,
-                                      M.classify1_cpu_ngpu_cards,
-                                      M.classify1_cpu_ngigabytes_memory,
-                                      "",
-                                      M.classify1_cpu_cluster_flags,
-                                      *args)
-        jobid = generic_actuate("classify2.sh", logfile2, M.classify_where,
-                                M.classify2_ncpu_cores,
-                                M.classify2_ngpu_cards,
-                                M.classify2_ngigabytes_memory,
-                                "hetero job "+jobid,
-                                M.classify2_cluster_flags+" -w \"done("+jobid+")\"", *args)
-        displaystring = "CLASSIFY "+os.path.basename(wavfile)+" ("+jobid+")"
-        jobids.append(jobid)
-        threading.Thread(target=actuate_monitor, args=(displaystring, None, None, \
-                         lambda l=logfile1, t=currtime: recent_file_exists(l, t, False), \
-                         lambda w=logfile2, t=currtime: classify_isdone(w, t), \
-                         lambda m=os.path.join(logdir, model), w=wavfile, t=currtime: \
-                                classify_succeeded(m, w, t))).start()
-    M.waitfor_job = jobids
-    V.waitfor_update()
+            _classify_actuate(wavfiles)
+    else:
+        V.waitfor_update()
 
 def ethogram_succeeded(modeldir, ckpt, tffile, reftime):
     thresholds_file = os.path.join(modeldir, 'thresholds.ckpt-'+str(ckpt)+'.csv')
@@ -1268,42 +1287,49 @@ def ethogram_succeeded(modeldir, ckpt, tffile, reftime):
             return False
     return True
 
-def ethogram_actuate():
+async def ethogram_actuate():
     tffiles = V.wavtfcsvfiles_string.value.split(',')
     threads = [None] * len(tffiles)
     results = [None] * len(tffiles)
-    jobids = []
-    for (i,tffile) in enumerate(tffiles):
-        currtime = time.time()
-        logdir, model, prefix, check_point = M.parse_model_file(V.model_file.value)
-        if 'thresholds' in prefix:
-            thresholds_file =  prefix+'.ckpt-'+check_point+'.csv'
+    await _ethogram_actuate(0, tffiles, threads, results)
+
+async def _ethogram_actuate(i, tffiles, threads, results):
+    tffile = tffiles.pop(0)
+    currtime = time.time()
+    logdir, model, prefix, check_point = M.parse_model_file(V.model_file.value)
+    if 'thresholds' in prefix:
+        thresholds_file =  prefix+'.ckpt-'+check_point+'.csv'
+    else:
+        thresholds_file =  'thresholds.ckpt-'+check_point+'.csv'
+    if tffile.lower().endswith('.wav'):
+        tffile = os.path.splitext(tffile)[0]+'.tf'
+    logfile = tffile[:-3]+'-ethogram.log'
+    jobid = generic_actuate("ethogram.sh", logfile, M.ethogram_where,
+                            M.ethogram_ncpu_cores,
+                            M.ethogram_ngpu_cards,
+                            M.ethogram_ngigabytes_memory,
+                            "", M.ethogram_cluster_flags,
+                            logdir, model, thresholds_file, tffile,
+                            str(M.audio_tic_rate))
+    displaystring = "ETHOGRAM "+os.path.basename(tffile)+" ("+jobid+")"
+    M.waitfor_job.append(jobid)
+    threads[i] = asyncio.create_task(actuate_monitor(displaystring, results, i, \
+                                     lambda l=logfile, t=currtime: \
+                                            recent_file_exists(l, t, False), \
+                                     lambda l=logfile: contains_two_timestamps(l), \
+                                     lambda m=os.path.join(logdir, model), \
+                                            c=check_point, l=tffile, t=currtime: \
+                                            ethogram_succeeded(m, c, l, t)))
+    await asyncio.sleep(0.001)
+    if tffiles:
+        if bokeh_document: 
+            bokeh_document.add_next_tick_callback(lambda i=i+1, tf=tffiles, th=threads, \
+                                                  r=results: _ethogram_actuate(i,tf,th,r))
         else:
-            thresholds_file =  'thresholds.ckpt-'+check_point+'.csv'
-        if tffile.lower().endswith('.wav'):
-            tffile = os.path.splitext(tffile)[0]+'.tf'
-        logfile = tffile[:-3]+'-ethogram.log'
-        jobid = generic_actuate("ethogram.sh", logfile, M.ethogram_where,
-                                M.ethogram_ncpu_cores,
-                                M.ethogram_ngpu_cards,
-                                M.ethogram_ngigabytes_memory,
-                                "", M.ethogram_cluster_flags,
-                                logdir, model, thresholds_file, tffile,
-                                str(M.audio_tic_rate))
-        displaystring = "ETHOGRAM "+os.path.basename(tffile)+" ("+jobid+")"
-        jobids.append(jobid)
-        threads[i] = threading.Thread(target=actuate_monitor, args=( \
-                         displaystring, \
-                         results, i, \
-                         lambda l=logfile, t=currtime: recent_file_exists(l, t, False), \
-                         lambda l=logfile: contains_two_timestamps(l), \
-                         lambda m=os.path.join(logdir, model), c=check_point, \
-                                l=tffile, t=currtime: ethogram_succeeded(m, c, l, t)))
-        threads[i].start()
-    M.waitfor_job = jobids
-    V.waitfor_update()
-    threading.Thread(target=actuate_finalize, \
-                     args=(threads, results, V.wordcounts_update)).start()
+            _ethogram_actuate(i+1, tffiles, threads, results)
+    else:
+        asyncio.create_task(actuate_finalize(threads, results, V.wordcounts_update))
+        V.waitfor_update()
 
 def compare_succeeded(logdirprefix, reftime):
     logfile = logdirprefix+'-compare.log'
@@ -1316,7 +1342,7 @@ def compare_succeeded(logdirprefix, reftime):
             return False
     return True
 
-def compare_actuate():
+async def compare_actuate():
     currtime = time.time()
     logfile = V.logs_folder.value+'-compare.log'
     jobid = generic_actuate("compare.sh", logfile,
@@ -1331,10 +1357,10 @@ def compare_actuate():
                     " ("+jobid+")"
     M.waitfor_job = jobid
     V.waitfor_update()
-    threading.Thread(target=actuate_monitor, args=(displaystring, None, None, \
+    asyncio.create_task(actuate_monitor(displaystring, None, None, \
                      lambda l=logfile, t=currtime: recent_file_exists(l, t, False), \
                      lambda l=logfile: contains_two_timestamps(l), \
-                     lambda l=V.logs_folder.value, t=currtime: compare_succeeded(l, t))).start()
+                     lambda l=V.logs_folder.value, t=currtime: compare_succeeded(l, t)))
 
 def congruence_succeeded(groundtruth_folder, reftime, regex_files):
     logfile = os.path.join(groundtruth_folder,'congruence.log')
@@ -1371,7 +1397,7 @@ def congruence_succeeded(groundtruth_folder, reftime, regex_files):
                 return False
     return True
 
-def congruence_actuate():
+async def congruence_actuate():
     currtime = time.time()
     validation_files = _validation_test_files(V.validationfiles_string.value, False)
     test_files = _validation_test_files(V.testfiles_string.value, False)
@@ -1391,14 +1417,14 @@ def congruence_actuate():
                             str(M.audio_tic_rate),
                             str(M.congruence_parallelize))
     displaystring = "CONGRUENCE "+os.path.basename(all_files[0])+" ("+jobid+")"
-    M.waitfor_job = jobid
+    M.waitfor_job = [jobid]
     V.waitfor_update()
     regex_files = '('+'|'.join([os.path.splitext(x)[0] for x in all_files])+')*csv'
-    threading.Thread(target=actuate_monitor, args=(displaystring, None, None, \
-                     lambda l=logfile, t=currtime: recent_file_exists(l, t, False), \
-                     lambda l=logfile: contains_two_timestamps(l), \
-                     lambda l=V.groundtruth_folder.value, t=currtime,
-                            r=regex_files: congruence_succeeded(l, t, r))).start()
+    asyncio.create_task(actuate_monitor(displaystring, None, None, \
+                        lambda l=logfile, t=currtime: recent_file_exists(l, t, False), \
+                        lambda l=logfile: contains_two_timestamps(l), \
+                        lambda l=V.groundtruth_folder.value, t=currtime,
+                               r=regex_files: congruence_succeeded(l, t, r)))
 
 def waitfor_callback(arg):
     if V.waitfor.active:
@@ -1658,8 +1684,8 @@ def wizard_callback(wizard):
             V.labeltypes_string.value="annotated,detected"
     V.buttons_update()
   
-def _doit_callback():
-    M.function()
+async def _doit_callback():
+    await M.function()
     V.doit.button_type="default"
     V.doit.disabled=True
   
