@@ -1543,6 +1543,9 @@ def _copy_callback():
             elif "clip_duration_ms" in line:
                 m=re.search('clip_duration_ms = (.*)', line)
                 V.context_ms_string.value = m.group(1)
+            elif "time_shift_ms" in line:
+                m=re.search('time_shift_ms = (.*)', line)
+                V.shiftby_ms_string.value = m.group(1)
             elif "connection_type" in line:
                 m=re.search('connection_type = (.*)', line)
                 V.connection_type.value = m.group(1)
