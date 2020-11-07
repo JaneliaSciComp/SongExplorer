@@ -1183,7 +1183,7 @@ async def _freeze_actuate(ckpts):
                             V.dilate_after_layer_string.value, \
                             V.stride_after_layer_string.value, \
                             V.connection_type.value, \
-                            logdir, model, check_point, str(M.nstrides), \
+                            logdir, model, check_point, str(M.nwindows), \
                             str(M.audio_tic_rate), str(M.audio_nchannels))
     displaystring = "FREEZE " + \
                     os.path.join(os.path.basename(logdir), model, "ckpt-"+check_point) + \
@@ -1232,7 +1232,7 @@ async def _classify_actuate(wavfiles):
     args = [V.context_ms_string.value, \
             V.shiftby_ms_string.value, V.representation.value, \
             V.stride_ms_string.value, \
-            logdir, model, check_point, wavfile, str(M.audio_tic_rate), str(M.nstrides)]
+            logdir, model, check_point, wavfile, str(M.audio_tic_rate), str(M.nwindows)]
     if V.prevalences_string.value!='':
         args += [V.wantedwords_string.value, V.prevalences_string.value]
     p = run(["date", "+%s"], stdout=PIPE, stderr=STDOUT)

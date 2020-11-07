@@ -58,7 +58,7 @@ FLAGS = None
 
 def create_inference_graph(wanted_words, sample_rate, nchannels, clip_duration_ms,
                            clip_stride_ms, representation, window_size_ms,
-                           window_stride_ms, nstrides,
+                           window_stride_ms, nwindows,
                            dct_coefficient_count, filterbank_channel_count,
                            model_architecture, filter_counts, filter_sizes, final_filter_len,
                            dropout_prob, batch_size,
@@ -86,7 +86,7 @@ def create_inference_graph(wanted_words, sample_rate, nchannels, clip_duration_m
   model_settings = models.prepare_model_settings(
       len(words_list), sample_rate, nchannels,
       clip_duration_ms, representation, window_size_ms,
-      window_stride_ms, nstrides, dct_coefficient_count, filterbank_channel_count,
+      window_stride_ms, nwindows, dct_coefficient_count, filterbank_channel_count,
       filter_counts, filter_sizes, final_filter_len,
       dropout_prob, batch_size, dilate_after_layer, stride_after_layer,
       connection_type)
@@ -148,7 +148,7 @@ def main(_):
   sess = tf.InteractiveSession()
   create_inference_graph(FLAGS.wanted_words, FLAGS.sample_rate, FLAGS.nchannels,
                          FLAGS.clip_duration_ms, FLAGS.clip_stride_ms, FLAGS.representation,
-                         FLAGS.window_size_ms, FLAGS.window_stride_ms, FLAGS.nstrides,
+                         FLAGS.window_size_ms, FLAGS.window_stride_ms, FLAGS.nwindows,
                          FLAGS.dct_coefficient_count, FLAGS.filterbank_channel_count,
                          FLAGS.model_architecture,
                          [int(x) for x in FLAGS.filter_counts.split(',')],
@@ -211,7 +211,7 @@ if __name__ == '__main__':
       default=10.0,
       help='How long the stride is between spectrogram timeslices',)
   parser.add_argument(
-      '--nstrides',
+      '--nwindows',
       type=int,
       default=1,
       help='How many context windows to process in parallel',)

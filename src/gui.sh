@@ -59,7 +59,7 @@ isinteger gui_context_offset_ms
 isinteger models_per_job
 isinteger pca_batch_size
 isinteger nprobabilities
-isinteger nstrides
+isinteger nwindows
 isinteger detect_ncpu_cores
 isinteger detect_ngpu_cards
 isinteger detect_ngigabytes_memory

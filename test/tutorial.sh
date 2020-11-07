@@ -178,7 +178,7 @@ freeze.sh \
       $context_ms $representation $window_ms $stride_ms $mel $dct \
       $kernel_sizes $last_conv_width $nfeatures \
       $dilate_after_layer $stride_after_layer $connection_type \
-      $logdir train_${ireplicates}r $check_point $nstrides \
+      $logdir train_${ireplicates}r $check_point $nwindows \
       $audio_tic_rate $audio_nchannels \
       &> $logdir/train_${ireplicates}r/freeze.ckpt-$check_point.log
 
@@ -194,7 +194,7 @@ classify1.sh \
       $context_ms '' $representation $stride_ms \
       $logdir train_${ireplicates}r $check_point \
       ${wavpath_noext}.wav \
-      $audio_tic_rate $nstrides &> ${wavpath_noext}-classify1.log
+      $audio_tic_rate $nwindows &> ${wavpath_noext}-classify1.log
 
 check_file_exists ${wavpath_noext}.tf
 check_file_exists ${wavpath_noext}-classify1.log
@@ -426,7 +426,7 @@ freeze.sh \
       $context_ms $representation $window_ms $stride_ms $mel $dct \
       $kernel_sizes $last_conv_width $nfeatures \
       $dilate_after_layer $stride_after_layer $connection_type \
-      $logdir train_${ireplicates}r $check_point $nstrides \
+      $logdir train_${ireplicates}r $check_point $nwindows \
       $audio_tic_rate $audio_nchannels \
       &> $logdir/train_${ireplicates}r/freeze.ckpt-$check_point.log
 
@@ -441,7 +441,7 @@ wavpath_noext=$repo_path/test/scratch/sh/groundtruth-data/congruence/20190122T09
 classify1.sh \
       $context_ms '' $representation $stride_ms \
       $logdir train_${ireplicates}r $check_point ${wavpath_noext}.wav \
-      $audio_tic_rate $nstrides \
+      $audio_tic_rate $nwindows \
       &> ${wavpath_noext}-classify1.log
 
 check_file_exists ${wavpath_noext}-classify1.log

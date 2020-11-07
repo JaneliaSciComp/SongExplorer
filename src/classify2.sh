@@ -30,9 +30,7 @@ if [ "$representation" == "waveform" ] ; then
 fi
 frozenlog=$logdir/$model/frozen-graph.ckpt-${check_point}.log
 ndownsample2=`grep -e 'strides = \[1, 2' -e 'strides = 2' $frozenlog | wc -l`
-if (( "$ndownsample2" > 0 )) ; then
-  stride_ms=`dc -e "$stride_ms 2 $ndownsample2 ^ * p"`
-fi
+stride_ms=`dc -e "$stride_ms 2 $ndownsample2 ^ * p"`
 
 DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
 

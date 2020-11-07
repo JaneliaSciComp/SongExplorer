@@ -26,7 +26,7 @@ tf.disable_v2_behavior()
 
 
 def prepare_model_settings(label_count, sample_rate, nchannels, clip_duration_ms,
-                           representation, window_size_ms, window_stride_ms, nstrides,
+                           representation, window_size_ms, window_stride_ms, nwindows,
                            dct_coefficient_count, filterbank_channel_count,
                            filter_counts, filter_sizes, final_filter_len,
                            dropout_prob, batch_size, dilate_after_layer,
@@ -68,7 +68,7 @@ def prepare_model_settings(label_count, sample_rate, nchannels, clip_duration_ms
       'representation': representation,
       'window_size_samples': window_size_samples,
       'window_stride_samples': window_stride_samples,
-      'nstrides': nstrides,
+      'nwindows': nwindows,
       'spectrogram_length': spectrogram_length,
       'dct_coefficient_count': dct_coefficient_count,
       'filterbank_channel_count': filterbank_channel_count,
@@ -246,7 +246,7 @@ def create_custom_vgg_model(fingerprint_input, model_settings, is_training):
   final_filter_len = model_settings['final_filter_len']
   filter_sizes = model_settings['filter_sizes']
   batch_size = model_settings['batch_size']
-  nstrides = model_settings['nstrides']
+  nwindows = model_settings['nwindows']
   dilate_after_layer = model_settings['dilate_after_layer']
   stride_after_layer = model_settings['stride_after_layer']
   residual = True if model_settings['connection_type']=='residual' else False
@@ -262,7 +262,7 @@ def create_custom_vgg_model(fingerprint_input, model_settings, is_training):
   inarg = fingerprint_4d
   hidden_layers.append(inarg)
   inarg_shape = inarg.get_shape().as_list()
-  output_time_size1 = inarg_shape[1]-nstrides+1
+  output_time_size1 = inarg_shape[1]-nwindows+1
   filter_count_prev = input_channel_size
 
   while inarg_shape[2]>=filter_sizes[0]:
@@ -362,7 +362,7 @@ def create_custom_vgg_model(fingerprint_input, model_settings, is_training):
     output_time_size1 = math.ceil((output_time_size1 - filter_sizes[2] + 1) / strides[1])
     iconv += 1
 
-  #assert output_time_size==(nstrides+final_filter_len)
+  #assert output_time_size==(nwindows+final_filter_len)
 
   inarg = tf.squeeze(inarg,[2])
   label_count = model_settings['label_count']

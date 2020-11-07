@@ -2,7 +2,7 @@
 
 # prepare the best network to use as a classifier
 
-# freeze.sh <context-ms> <representation> <window-ms> <stride-ms> <mel> <dct> <kernel-sizes> <last-conv-width> <nfeatures> <dilate-after-layer> <stride-after-layer> <connection-type> <logdir> <model> <check-point> <nstrides> <audio-tic-rate> <audio-nchannels>
+# freeze.sh <context-ms> <representation> <window-ms> <stride-ms> <mel> <dct> <kernel-sizes> <last-conv-width> <nfeatures> <dilate-after-layer> <stride-after-layer> <connection-type> <logdir> <model> <check-point> <nwindows> <audio-tic-rate> <audio-nchannels>
 
 # e.g.
 # $SONGEXPLORER_BIN freeze.sh 204.8 waveform 6.4 1.6 7 7 5,3,3 130 256,256,256 65535 65535 plain `pwd`/trained-classifier 1k 50 65536 5000 1
@@ -22,14 +22,14 @@ connection_type=${12}
 logdir=${13}
 model=${14}
 check_point=${15}
-nstrides=${16}
+nwindows=${16}
 audio_tic_rate=${17}
 audio_nchannels=${18}
 
 if [ "$representation" == "waveform" ] ; then
   stride_ms=`dc -e "16 k 1000 $audio_tic_rate / p"`
 fi
-clip_duration=$(dc -e "3 k $context_ms $stride_ms $nstrides 1 - * + p")
+clip_duration=$(dc -e "3 k $context_ms $stride_ms $nwindows 1 - * + p")
 
 DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
 
@@ -46,7 +46,7 @@ expr="/usr/bin/python3 $DIR/speech_commands_custom/freeze.py \
       --representation=$representation \
       --window_size_ms=$window_ms \
       --window_stride_ms=$stride_ms \
-      --nstrides=$nstrides \
+      --nwindows=$nwindows \
       --sample_rate=$audio_tic_rate \
       --nchannels=$audio_nchannels \
       --filterbank_channel_count=$mel \

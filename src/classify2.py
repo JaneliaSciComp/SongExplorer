@@ -58,7 +58,7 @@ with open(tffile) as fid:
       print(line)
       continue
     probabilities = ast.literal_eval(m.group(1).replace('nan','0'))
-    probability_matrix = np.concatenate((probability_matrix,np.array(probabilities)))
+    probability_matrix = np.concatenate((probability_matrix,np.array(probabilities, ndmin=2)))
 
 tic_rate = round(1000/stride_ms)
 if tic_rate != 1000/stride_ms:
