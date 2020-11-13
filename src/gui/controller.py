@@ -566,7 +566,7 @@ async def _detect_actuate(i, wavfiles, threads, results):
         else:
             _detect_actuate(i+1, wavfiles, threads, results)
     else:
-        asyncio.create_task(actuate_finalize(threads, results, V.wordcounts_update))
+        asyncio.create_task(actuate_finalize(threads, results, V.groundtruth_update))
         V.waitfor_update()
 
 def misses_succeeded(wavfile, reftime):
@@ -606,7 +606,7 @@ async def misses_actuate():
                                      lambda l=logfile: contains_two_timestamps(l), \
                                      lambda w=os.path.join(basepath, wavfile), t=currtime: \
                                             misses_succeeded(w, t)))
-    asyncio.create_task(actuate_finalize(threads, results, V.wordcounts_update))
+    asyncio.create_task(actuate_finalize(threads, results, V.groundtruth_update))
 
 def isoldfile(x,subdir,basewavs):
     return \
@@ -744,7 +744,7 @@ def sequester_stalefiles():
                 for oldfile in oldfiles:
                     os.rename(os.path.join(V.groundtruth_folder.value, subdir, oldfile), \
                               os.path.join(topath, oldfile))
-    V.wordcounts_update()
+    V.groundtruth_update()
 
 async def train_actuate():
     M.save_annotations()
@@ -1328,7 +1328,7 @@ async def _ethogram_actuate(i, tffiles, threads, results):
         else:
             _ethogram_actuate(i+1, tffiles, threads, results)
     else:
-        asyncio.create_task(actuate_finalize(threads, results, V.wordcounts_update))
+        asyncio.create_task(actuate_finalize(threads, results, V.groundtruth_update))
         V.waitfor_update()
 
 def compare_succeeded(logdirprefix, reftime):
