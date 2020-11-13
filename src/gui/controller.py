@@ -1527,14 +1527,21 @@ def prevalences_callback():
                 break
     V.prevalences_string.value = prevalences.replace(' ',',')
 
+def _copy_callback_finalize():
+    V.copy.button_type="default"
+    V.copy.disabled=False
+
 def _copy_callback():
     if len(V.file_dialog_source.selected.indices)!=1:
         bokehlog.info('ERROR: a file must be selected in the file browser')
-        V.copy.button_type="default"
-        V.copy.disabled=False
+        _copy_callback_finalize()
         return
     idx = V.file_dialog_source.selected.indices[0]
     logfile = os.path.join(M.file_dialog_root, V.file_dialog_source.data['names'][idx])
+    if not os.path.isfile(logfile):
+        bokehlog.info('ERROR: '+logfile+' does not exist')
+        _copy_callback_finalize()
+        return
     with open(logfile, "r") as fid:
         for line in fid:
             if "batch_size" in line:
@@ -1631,8 +1638,7 @@ def _copy_callback():
             elif "window_stride_ms" in line:
                 m=re.search('window_stride_ms = (.*)', line)
                 V.stride_ms_string.value = m.group(1)
-    V.copy.button_type="default"
-    V.copy.disabled=False
+    _copy_callback_finalize()
     
 def copy_callback():
     V.copy.button_type="warning"
