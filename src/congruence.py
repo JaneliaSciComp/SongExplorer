@@ -16,8 +16,8 @@ import matplotlib.pyplot as plt
 #plt.ion()
 import csv
 import pandas as pd
-from itertools import chain, cycle
-from interval import interval
+from itertools import cycle
+from interval import interval, inf
 from functools import reduce
 from natsort import natsorted
 from matplotlib_venn import venn2, venn3
@@ -138,43 +138,114 @@ def get_csvbases(word):
                                           for a in timestamps[word][f].keys()]) \
                                   else None for f in timestamps[word].keys()])))
 
-class MyInterval(interval):
-    def complement(self) -> 'MyInterval':
-        mychain = chain(self, [[sys.maxsize, None]])
-        out = []
-        prev = [None, 0]
-        for this in mychain:
-            if prev[1] != this[0]:
-                out.append([prev[1], this[0]])
-            prev = this
-        return self.__class__(*out)
+def delete_interval(intervals, idx):
+  mask = interval()
+  if idx < len(intervals)-1:
+    mask |= interval([intervals[idx+1].inf,inf])
+  if idx > 0:
+    mask |= interval([-inf,intervals[idx-1].sup])
+  intervals &= mask
+  return intervals
+
+def _interval_diff(A, B):
+  ret_val = interval()
+  if len(A)==0:
+    return ret_val
+  if A[0].inf < B[0].inf:
+    ret_val |= interval([A[0].inf, min(A[0].sup, B[0].inf-1)])
+  if A[0].sup > B[0].sup:
+    ret_val |= interval([max(A[0].inf, B[0].sup+1), A[0].sup])
+  return ret_val
+
+# set diff limited to len(B)==1
+def interval_diff(A,B):
+  ret_val = interval()
+  for thisinterval in A.components:
+    ret_val |= _interval_diff(thisinterval, B)
+  return ret_val
 
 def doit(intervals):
-  everyone = reduce(lambda x,y: x&y, intervals.values())
+
+  #for the intervals everyone agrees upon (i.e. "everyone"), choose one of the
+  #sets at random.  iterate through each interval therein, testing whether it
+  #overlaps with any of the intervals in all of the other sets.  if it does,
+  #delete the matching intervals in the other sets, and add to the "everyone"
+  #set just intersection of the matching intervals.
+
+  intervals_copy = intervals.copy()
+  key0 = next(iter(intervals_copy.keys()))
+  everyone = interval()
+  for interval0 in intervals_copy[key0].components:
+    ivalues = {}
+    for keyN in set(intervals_copy.keys()) - set([key0]):
+      for i,intervalN in enumerate(intervals_copy[keyN].components):
+        if len(interval0 & intervalN)>0:
+          ivalues[keyN] = i
+          break
+      if keyN not in ivalues:
+        break
+    if len(ivalues)==len(intervals_copy)-1:
+      for keyN in ivalues.keys():
+        interval0 &= interval(intervals_copy[keyN][ivalues[keyN]])
+        intervals_copy[keyN] = delete_interval(intervals_copy[keyN], ivalues[keyN])
+      everyone |= interval0
+
+  #to calculate the intervals which only one set contains (e.g. "only
+  #songexplorer"), iteratively test if each interval therein overlaps
+  #with any of the other sets.  if it does, delete the matching intervals
+  #in the other sets; otherwise add this interval to the "only word" set.
+  #for tics, delete from the interval the points in each matching interval
+  #and add what remains to the "only tic" set.
+
   onlyone_tic = {}
-  notone_tic = {}
   onlyone_word = {}
+  for key0 in intervals.keys():
+    intervals_copy = intervals.copy()
+    onlyone_tic[key0] = interval()
+    onlyone_word[key0] = interval()
+    for interval0 in intervals_copy[key0].components:
+      ivalues = {}
+      for keyN in set(intervals_copy.keys()) - set([key0]):
+        for i,intervalN in enumerate(intervals_copy[keyN].components):
+          if len(interval0 & intervalN)>0:
+            ivalues[keyN] = i
+            break
+      if len(ivalues)==0:
+        onlyone_word[key0] |= interval0
+      for keyN in ivalues.keys():
+        interval0 = interval_diff(interval0, interval(intervals_copy[keyN][ivalues[keyN]]))
+        intervals_copy[keyN] = delete_interval(intervals_copy[keyN], ivalues[keyN])
+      onlyone_tic[key0] |= interval0
+
+  #to calculate the intervals which only one set does not contain (e.g. "not
+  #david"), choose one of the other sets at random.  iteratively test whether
+  #its intervals overlap with an interval in the rest of the other sets
+  #but not with the set of interest.  for those intervals which meet this
+  #criteria, delete the matching intervals in the rest of the other sets,
+  #and add this interval to the "not" set.  for tics, add to the "not tic"
+  #set the intersection of all the matching intervals.
+
+  notone_tic = {}
   notone_word = {}
-  for hm in intervals.keys():
-    onlyone_tic[hm] = intervals[hm]
-    for x in intervals.keys()-set([hm]):
-      onlyone_tic[hm] &= MyInterval(*intervals[x]).complement()
-    notone_tic[hm] = interval()
-    for x in intervals.keys()-set([hm]):
-      notone_tic[hm] |= intervals[x]
-    notone_tic[hm] &= MyInterval(*intervals[hm]).complement()
-    someoneelse = reduce(lambda x,y: x|y, set(intervals.values())-set([intervals[hm]]))
-    onlyone_word[hm] = interval()
-    for x in intervals[hm].components:
-      intersection = x & someoneelse
-      if len(intersection)==0:
-        onlyone_word[hm] |= x
-    everyoneelse = reduce(lambda x,y: x&y, set(intervals.values())-set([intervals[hm]]))
-    notone_word[hm] = interval()
-    for x in everyoneelse.components:
-      intersection = x & intervals[hm]
-      if len(intersection)==0:
-        notone_word[hm] |= x
+  for key0 in intervals.keys():
+    intervals_copy = intervals.copy()
+    notone_tic[key0] = interval()
+    notone_word[key0] = interval()
+    key1 = next(iter(set(intervals_copy.keys()) - set([key0])))
+    for interval1 in intervals_copy[key1].components:
+      ivalues = {}
+      for keyN in set(intervals_copy.keys()) - set([key1]):
+        for i,intervalN in enumerate(intervals_copy[keyN].components):
+          if len(interval1 & intervalN)>0:
+            ivalues[keyN] = i
+            break
+      if len(ivalues)==len(intervals_copy)-2 and key0 not in ivalues.keys():
+        notone_word[key0] |= interval1
+        for keyN in ivalues.keys():
+          interval1 &= interval(intervals_copy[keyN][ivalues[keyN]])
+          intervals_copy[keyN] = delete_interval(intervals_copy[keyN], ivalues[keyN])
+        notone_tic[key0] |= interval1
+      
   return everyone, onlyone_tic, notone_tic, onlyone_word, notone_word
 
 if congruence_parallelize:
@@ -458,7 +529,8 @@ def plot_versus_thresholds(roc_table, kind):
     ax3.plot(xdata, F1, '.-' if len(xdata)<10 else '-', color='k', label='F1')
     ax3.set_ylabel('F1 = 2PR/(P+R)', color='k')
     ax3.legend(loc=(1.15, 0.0))
-    f = interpolate.interp1d([p/r for (p,r) in zip(P,R)], xdata, fill_value="extrapolate")
+    f = interpolate.interp1d([p/r if r!=0 else np.nan for (p,r) in zip(P,R)],
+                             xdata, fill_value="extrapolate")
     thresholds_touse[word] = f(desired_prs)
     fP = interpolate.interp1d(xdata, P, fill_value="extrapolate")
     fR = interpolate.interp1d(xdata, R, fill_value="extrapolate")

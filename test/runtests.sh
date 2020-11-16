@@ -9,8 +9,8 @@ repo_path=$(dirname $(dirname $(which detect.sh)))
 $repo_path/test/tutorial.sh
 $repo_path/test/tutorial.py
 
-if (( $(diff <(tree $repo_path/test/scratch/sh | grep -v tfevents) \
-             <(tree $repo_path/test/scratch/py | grep -v tfevents) | wc -l) > 4 )) ; then
+if (( $(diff <(tree $repo_path/test/scratch/tutorial-sh | grep -v tfevents) \
+             <(tree $repo_path/test/scratch/tutorial-py | grep -v tfevents) | wc -l) > 4 )) ; then
   echo ERROR
 fi
 files=(groundtruth-data/round1/PS_20130625111709_ch3-detected.csv
@@ -36,12 +36,13 @@ files=(groundtruth-data/round1/PS_20130625111709_ch3-detected.csv
        groundtruth-data/congruence.word.mel-sine.csv
       )
 for file in ${files[*]} ; do
-  if [[ $(diff $repo_path/test/scratch/sh/$file \
-               $repo_path/test/scratch/py/$file) ]] ; then
-      echo ERROR in $file
+  if [[ $(diff $repo_path/test/scratch/tutorial-sh/$file \
+               $repo_path/test/scratch/tutorial-py/$file) ]] ; then
+      echo WARNING $file in tutorial-sh/ and tutorial-py/ differ
   fi
 done
 
 $repo_path/test/seeds.py
 $repo_path/test/freeze-classify.py
 $repo_path/test/annotating.py
+$repo_path/test/congruence.py
