@@ -492,8 +492,8 @@ for kind in ${kinds[@]} ; do
   done
   for pr in ${prs[@]} ; do
     for word in ${words[@]} ; do
-      check_file_exists $data_dir/congruence.bar-venn/congruence.${kind}.${word}.${pr}pr-venn.pdf
-      check_file_exists $data_dir/congruence.bar-venn/congruence.${kind}.${word}.${pr}pr.pdf
+      check_file_exists $data_dir/congruence.${kind}.${word}.${pr}pr-venn.pdf
+      check_file_exists $data_dir/congruence.${kind}.${word}.${pr}pr.pdf
     done
     check_file_exists $data_dir/congruence/$wav_file_noext-disjoint-${kind}-not${pr}pr.csv
     check_file_exists $data_dir/congruence/$wav_file_noext-disjoint-${kind}-only${pr}pr.csv

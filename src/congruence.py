@@ -353,9 +353,6 @@ def plot_sumfiles(fig, fig_venn, only_data, not_data):
   ax.set_xticklabels(xdata, rotation=40, ha='right')
   ax.set_title('all files', fontsize=8)
 
-if not os.path.isdir(os.path.join(basepath,'congruence.bar-venn')):
-  os.mkdir(os.path.join(basepath,'congruence.bar-venn'))
-
 for pr in precision_recalls:
   print('P/R = '+pr)
   for word in timestamps.keys():
@@ -364,19 +361,20 @@ for pr in precision_recalls:
     if len(csvbases)==0:
       continue
 
-    all_files_flag = len(csvbases)>1
-    nrows = np.floor(np.sqrt(all_files_flag+len(csvbases))).astype(np.int)
-    ncols = np.ceil((all_files_flag+len(csvbases))/nrows).astype(np.int)
-    fig_tic = plt.figure(figsize=(2*ncols,2*nrows))
-    fig_word = plt.figure(figsize=(2*ncols,2*nrows))
-    if len(humans)<3:
-      fig_tic_venn = plt.figure(figsize=(2*ncols,2*nrows))
-      fig_word_venn = plt.figure(figsize=(2*ncols,2*nrows))
-    else:
-      fig_tic_venn = None
-      fig_word_venn = None
+    if pr.endswith('pr'):
+      all_files_flag = len(csvbases)>1
+      nrows = np.floor(np.sqrt(all_files_flag+len(csvbases))).astype(np.int)
+      ncols = np.ceil((all_files_flag+len(csvbases))/nrows).astype(np.int)
+      fig_tic = plt.figure(figsize=(2*ncols,2*nrows))
+      fig_word = plt.figure(figsize=(2*ncols,2*nrows))
+      if len(humans)<3:
+        fig_tic_venn = plt.figure(figsize=(2*ncols,2*nrows))
+        fig_word_venn = plt.figure(figsize=(2*ncols,2*nrows))
+      else:
+        fig_tic_venn = None
+        fig_word_venn = None
+      iplot=nrows*ncols
 
-    iplot=nrows*ncols
     for csvbase in reversed(csvbases):
       print('csv = '+csvbase)
       predicted_key = '-predicted-'+pr+'.csv'
@@ -387,6 +385,9 @@ for pr in precision_recalls:
             onlyone_tic[pr][word][csvbase], notone_tic[pr][word][csvbase], \
             onlyone_word[pr][word][csvbase], notone_word[pr][word][csvbase] = \
             everyone[pr][word][csvbase].get()
+
+      if not pr.endswith('pr'):
+        continue
 
       sorted_hm = natsorted(onlyone_tic[pr][word][csvbase].keys())
 
@@ -402,6 +403,9 @@ for pr in precision_recalls:
                 [len(notone_word[pr][word][csvbase][x]) for x in sorted_hm]
                     if len(sorted_hm)>2 else None)
       iplot-=1
+
+    if not pr.endswith('pr'):
+      continue
 
     if all_files_flag:
       csvbase0 = list(onlyone_tic[pr][word].keys())[0]
@@ -424,24 +428,20 @@ for pr in precision_recalls:
 
     fig_tic.tight_layout()
     plt.figure(fig_tic.number)
-    plt.savefig(os.path.join(basepath, 'congruence.bar-venn',
-                             'congruence.tic.'+word+'.'+pr+'.pdf'))
+    plt.savefig(os.path.join(basepath, 'congruence.tic.'+word+'.'+pr+'.pdf'))
     plt.close()
     fig_word.tight_layout()
     plt.figure(fig_word.number)
-    plt.savefig(os.path.join(basepath, 'congruence.bar-venn',
-                             'congruence.word.'+word+'.'+pr+'.pdf'))
+    plt.savefig(os.path.join(basepath, 'congruence.word.'+word+'.'+pr+'.pdf'))
     plt.close()
     if len(sorted_hm)<4:
       fig_tic_venn.tight_layout()
       plt.figure(fig_tic_venn.number)
-      plt.savefig(os.path.join(basepath, 'congruence.bar-venn',
-                               'congruence.tic.'+word+'.'+pr+'-venn.pdf'))
+      plt.savefig(os.path.join(basepath, 'congruence.tic.'+word+'.'+pr+'-venn.pdf'))
       plt.close()
       fig_word_venn.tight_layout()
       plt.figure(fig_word_venn.number)
-      plt.savefig(os.path.join(basepath, 'congruence.bar-venn',
-                               'congruence.word.'+word+'.'+pr+'-venn.pdf'))
+      plt.savefig(os.path.join(basepath, 'congruence.word.'+word+'.'+pr+'-venn.pdf'))
       plt.close()
 
 def to_csv(intervals, csvbase, whichset):

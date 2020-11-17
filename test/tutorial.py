@@ -443,9 +443,9 @@ for kind in kinds:
                                    "congruence."+kind+"."+word+".pdf"))
   for pr in V.precision_recall_ratios_string.value.split(','):
     for word in V.wantedwords_string.value.split(','):
-      check_file_exists(os.path.join(V.groundtruth_folder.value, "congruence.bar-venn",
+      check_file_exists(os.path.join(V.groundtruth_folder.value,
                                      "congruence."+kind+"."+word+"."+pr+"pr-venn.pdf"))
-      check_file_exists(os.path.join(V.groundtruth_folder.value, "congruence.bar-venn",
+      check_file_exists(os.path.join(V.groundtruth_folder.value,
                                      "congruence."+kind+"."+word+"."+pr+"pr.pdf"))
     check_file_exists(os.path.join(V.groundtruth_folder.value, "congruence",
                                    wavpath_noext+"-disjoint-"+kind+"-not"+pr+"pr.csv"))
