@@ -353,18 +353,9 @@ def plot_sumfiles(fig, fig_venn, only_data, not_data):
   ax.set_xticklabels(xdata, rotation=40, ha='right')
   ax.set_title('all files', fontsize=8)
 
-def to_csv(intervals, csvbase, whichset, word):
-  with open(os.path.join(basepath,csvbase+'-disjoint-'+whichset+'.csv'), 'w') as fid:
-    csvwriter = csv.writer(fid)
-    for i in intervals:
-      csvwriter.writerow([os.path.basename(csvbase)+'.wav',
-                          int(i[0]), int(i[1]), whichset, word])
-
 if not os.path.isdir(os.path.join(basepath,'congruence.bar-venn')):
   os.mkdir(os.path.join(basepath,'congruence.bar-venn'))
 
-roc_table_tic = {}
-roc_table_word = {}
 for pr in precision_recalls:
   print('P/R = '+pr)
   for word in timestamps.keys():
@@ -412,16 +403,6 @@ for pr in precision_recalls:
                     if len(sorted_hm)>2 else None)
       iplot-=1
 
-      to_csv(everyone[pr][word][csvbase], csvbase, 'everyone', word)
-      for hm in sorted_hm:
-        to_csv(onlyone_tic[pr][word][csvbase][hm], csvbase, 'tic-only'+hm, word)
-        if len(sorted_hm)>2:
-          to_csv(notone_tic[pr][word][csvbase][hm], csvbase, 'tic-not'+hm, word)
-      for hm in sorted_hm:
-        to_csv(onlyone_word[pr][word][csvbase][hm], csvbase, 'word-only'+hm, word)
-        if len(sorted_hm)>2:
-          to_csv(notone_word[pr][word][csvbase][hm], csvbase, 'word-not'+hm, word)
-
     if all_files_flag:
       csvbase0 = list(onlyone_tic[pr][word].keys())[0]
       plot_sumfiles(fig_tic, fig_tic_venn,
@@ -463,6 +444,36 @@ for pr in precision_recalls:
                                'congruence.word.'+word+'.'+pr+'-venn.pdf'))
       plt.close()
 
+def to_csv(intervals, csvbase, whichset):
+  with open(os.path.join(basepath,csvbase+'-disjoint-'+whichset+'.csv'), 'w') as fid:
+    csvwriter = csv.writer(fid)
+    for iword,word in enumerate(timestamps.keys()):
+      for i in intervals[iword]:
+        csvwriter.writerow([os.path.basename(csvbase)+'.wav',
+                            int(i[0]), int(i[1]), whichset, word])
+
+for pr in filter(lambda x: x.endswith("pr"), precision_recalls):
+  for csvbase in csvbases:
+    to_csv([everyone[pr][word][csvbase] for word in timestamps.keys()],
+            csvbase, 'everyone')
+    word0 = next(iter(natsorted(onlyone_tic[pr].keys())))
+    sorted_hm = natsorted(onlyone_tic[pr][word][csvbase].keys())
+    for hm in sorted_hm:
+      to_csv([onlyone_tic[pr][word][csvbase][hm] for word in timestamps.keys()],
+              csvbase, 'tic-only'+hm)
+      if len(sorted_hm)>2:
+        to_csv([notone_tic[pr][word][csvbase][hm] for word in timestamps.keys()],
+               csvbase, 'tic-not'+hm)
+    for hm in sorted_hm:
+      to_csv([onlyone_word[pr][word][csvbase][hm] for word in timestamps.keys()],
+             csvbase, 'word-only'+hm)
+      if len(sorted_hm)>2:
+        to_csv([notone_word[pr][word][csvbase][hm] for word in timestamps.keys()],
+               csvbase, 'word-not'+hm)
+
+roc_table_tic = {}
+roc_table_word = {}
+for pr in precision_recalls:
   for word in sorted(onlyone_tic[pr].keys()):
     if word not in roc_table_tic:
       roc_table_tic[word] = {}
@@ -470,6 +481,8 @@ for pr in precision_recalls:
     if pr not in roc_table_tic[word]:
       roc_table_tic[word][pr] = {}
       roc_table_word[word][pr] = {}
+    csvbase0 = next(iter(onlyone_tic[pr][word].keys()))
+    sorted_hm = natsorted(onlyone_tic[pr][word][csvbase0].keys())
     for hm in sorted_hm:
       key = 'only '+hm if hm!=pr else 'only songexplorer'
       roc_table_tic[word][pr][key] = int(sum([sum([y[1]-y[0]+1 for y in f[hm]]) \

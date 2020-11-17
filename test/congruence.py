@@ -164,4 +164,68 @@ check_value(pr1, "only person2", 0)
 check_value(pr1, "not person2", 12)
 check_value(pr1, "everyone", 0)
 
+correctvalues = [
+  ["recording1-disjoint-everyone.csv", 1],
+  ["recording1-disjoint-tic-not1.0pr.csv", 7],
+  ["recording1-disjoint-tic-notperson1.csv", 5],
+  ["recording1-disjoint-tic-notperson2.csv", 6],
+  ["recording1-disjoint-tic-only1.0pr.csv", 4],
+  ["recording1-disjoint-tic-onlyperson1.csv", 2],
+  ["recording1-disjoint-tic-onlyperson2.csv", 3],
+  ["recording1-disjoint-word-not1.0pr.csv", 7],
+  ["recording1-disjoint-word-notperson1.csv", 5],
+  ["recording1-disjoint-word-notperson2.csv", 6],
+  ["recording1-disjoint-word-only1.0pr.csv", 4],
+  ["recording1-disjoint-word-onlyperson1.csv", 2],
+  ["recording1-disjoint-word-onlyperson2.csv", 3],
+  ["recording2-disjoint-everyone.csv", 1],
+  ["recording2-disjoint-tic-not1.0pr.csv", 0],
+  #["recording2-disjoint-tic-notperson1.csv", ],
+  #["recording2-disjoint-tic-notperson2.csv", ],
+  ["recording2-disjoint-tic-only1.0pr.csv", 1],
+  ["recording2-disjoint-tic-onlyperson1.csv", 2],
+  ["recording2-disjoint-tic-onlyperson2.csv", 3],
+  ["recording2-disjoint-word-not1.0pr.csv", 0],
+  #["recording2-disjoint-word-notperson1.csv", ],
+  #["recording2-disjoint-word-notperson2.csv", ],
+  ["recording2-disjoint-word-only1.0pr.csv", 0],
+  ["recording2-disjoint-word-onlyperson1.csv", 2],
+  ["recording2-disjoint-word-onlyperson2.csv", 3],
+  ["recording3-disjoint-everyone.csv", 0],
+  ["recording3-disjoint-tic-not1.0pr.csv", 0],
+  ["recording3-disjoint-tic-notperson1.csv", 0],
+  ["recording3-disjoint-tic-notperson2.csv", 5],
+  ["recording3-disjoint-tic-only1.0pr.csv", 0],
+  ["recording3-disjoint-tic-onlyperson1.csv", 4],
+  ["recording3-disjoint-tic-onlyperson2.csv", 0],
+  ["recording3-disjoint-word-not1.0pr.csv", 0],
+  ["recording3-disjoint-word-notperson1.csv", 0],
+  ["recording3-disjoint-word-notperson2.csv", 5],
+  ["recording3-disjoint-word-only1.0pr.csv", 0],
+  ["recording3-disjoint-word-onlyperson1.csv", 0],
+  ["recording3-disjoint-word-onlyperson2.csv", 0],
+  ["recording4-disjoint-everyone.csv", 0],
+  ["recording4-disjoint-tic-not1.0pr.csv", 0],
+  ["recording4-disjoint-tic-notperson1.csv", 0],
+  ["recording4-disjoint-tic-notperson2.csv", 5],
+  ["recording4-disjoint-tic-only1.0pr.csv", 5],
+  ["recording4-disjoint-tic-onlyperson1.csv", 5],
+  ["recording4-disjoint-tic-onlyperson2.csv", 0],
+  ["recording4-disjoint-word-not1.0pr.csv", 0],
+  ["recording4-disjoint-word-notperson1.csv", 0],
+  ["recording4-disjoint-word-notperson2.csv", 5],
+  ["recording4-disjoint-word-only1.0pr.csv", 0],
+  ["recording4-disjoint-word-onlyperson1.csv", 5],
+  ["recording4-disjoint-word-onlyperson2.csv", 0],
+  ]
+
+for filename, correctvalue in correctvalues:
+  filepath = os.path.join(V.groundtruth_folder.value, "dummy-data", filename)
+  if os.path.isfile(filepath) and os.path.getsize(filepath) > 0:
+    df = pd.read_csv(filepath, header=None, index_col=False)
+  else:
+    df = pd.DataFrame()
+  if len(df.index)!=correctvalue:
+    print("ERROR: "+filename+" has "+str(len(df.index))+" rows when it should have "+str(correctvalue))
+
 run(["hetero", "stop"], stdout=PIPE, stderr=STDOUT)
