@@ -67,6 +67,7 @@ words it missed.  These new annotations are added to the ground truth,
 and the process of retraining the classifier and analyzing and correcting
 new recordings is repeated until the desired accuracy is reached.
 
+
 # Public Domain Annotations #
 
 SongExplorer is open source and free for you to use.  However, SongExplorer is not
@@ -96,10 +97,7 @@ Museo de Ciencias Naturales de Madrid's [Fonoteca Zoológica](www.fonozoo.com).
 # Citations and Repositories
 
 BJ Arthur, Y Ding, M Sosale, F Khalif, S Turaga, DL Stern (in prep)  
-SongExplorer: A machine-learning classifier to segment and discover animal acoustic communication signals   
-[BioRxiv]()  
-[datadryad]()
-
+SongExplorer: A deep learning workflow for discovery and segmentation of animal acoustic communication signals 
 
 # Notation #
 
@@ -113,17 +111,17 @@ represent sections which you much customize.
 
 # Installation #
 
-SongExplorer can be run on all three major platforms.  The installation procedure
-is different on each due to various support of the technologies used.  We
-recommend using Singularity on Linux and Apple Macintosh, and Conda on
+SongExplorer can be run on all three major platforms.  The installation
+procedure is different on each due to various support of the technologies used.
+We recommend using Singularity on Linux and Apple Macintosh, and Docker on
 Microsoft Windows.  Training your own classifier is fastest with an Nvidia
 graphics processing unit (GPU).
 
 TensorFlow, the machine learning framework from Google that SongExplorer uses,
-supports Ubuntu, Mac and Windows.  The catch is that TensorFlow (and Nvidia)
-currently doesn't support GPUs on Macs.  So while using a pre-trained
-classifier would be fine on a Mac, because inference is just as fast on the
-CPU, training your own would be ~10x slower.
+supports Ubuntu, Mac and Windows.  The catch is that Nvidia (and hence
+TensorFlow) currently doesn't support GPUs on Macs.  So while using a
+pre-trained classifier would be fine on a Mac, because inference is just as
+fast on the CPU, training your own would be ~10x slower.
 
 Docker, a popular container framework which provides an easy way to deploy
 software across platforms, supports Linux, Mac and Windows, but only supports
@@ -142,26 +140,26 @@ To use SongExplorer with a GPU on Windows one must install it manually, without
 the convenience of a container.  We're looking for volunteers to write a
 Conda recipe to make this easy.
 
-## Singularity for Linux, Mac, and Windows ##
+## Singularity for Linux and Mac ##
 
 Platform-specific installation instructions can be found at
 [Sylabs](https://www.sylabs.io).  SongExplorer has been tested with version 3.4 on
-linux and [3.3 Desktop Beta](https://sylabs.io/singularity-desktop-macos) on
+Linux and [3.3 Desktop Beta](https://sylabs.io/singularity-desktop-macos) on
 Mac.
 
-You'll also need to install the CUDA and CUDNN drivers from nvidia.com.
-The latter requires you to register for an account.  SongExplorer was tested and
-built with version 10.2.
+On Linux you'll also need to install the CUDA and CUDNN drivers from
+nvidia.com.  The latter requires you to register for an account.  SongExplorer
+was tested and built with version 10.2.
 
 Next download the SongExplorer image from the cloud.  You can either go to
 [SongExplorer's cloud.sylabs.io
-page](https://cloud.sylabs.io/library/_container/5ccca72a800ca26aa6ccf008) and
+page](https://cloud.sylabs.io/library/bjarthur/janelia/songexplorer) and
 click the Download button, or equivalently use the command line (for which you
 might need an access token):
 
     $ singularity remote login SylabsCloud
 
-    $ singularity pull library://bjarthur/default/songexplorer:latest
+    $ singularity pull library://bjarthur/janelia/songexplorer:latest
     INFO:    Container is signed
     Data integrity checked, authentic and signed by:
       ben arthur (songexplorer) <arthurb@hhmi.org>, Fingerprint XXABCXXX
@@ -170,15 +168,14 @@ might need an access token):
     total 16G
     -rwxr-xr-x  1 arthurb scicompsoft 1.5G Sep  2 08:16 songexplorer_latest.sif*
 
-Finally, put these definitions in your .bashrc (or .zshrc file on Mac OS
-Catalina) file:
+Put these definitions in your .bashrc (or .zshrc file on Mac OS Catalina) file:
 
-    export SONGEXPLORER_BIN="singularity exec [--nv] [-B ...] \
+    export SONGEXPLORER_BIN="singularity exec [--nv] [-B <disk-drive>] \
         [--vm-cpu] [--vm-ram] <path-to-songexplorer_latest.sif>"
     alias songexplorer="$SONGEXPLORER_BIN gui.sh <path-to-configuration.pysh> 5006"
 
-Add to the SONGEXPLORER_BIN export any directories you mounted using the `-B` flag
-(e.g. `singularity exec -B /my/home/directory ...`).
+Add to the SONGEXPLORER_BIN export any directories you want to access using the
+`-B` flag (e.g. `singularity exec -B /my/home/directory ...`).
 
 On Mac singularity runs within a virtual machine that is configured by default
 to only use one CPU core and one GB of memory.  Use the `--vm-cpu` and
@@ -187,12 +184,18 @@ to only use one CPU core and one GB of memory.  Use the `--vm-cpu` and
 SongExplorer is idle these resources will *not* be available to other programs,
 including the operating system.
 
+In [System Configuration](#system-configuration) we'll make a copy of the default
+configuration file.  For now, you just need to decide where you're going to put it,
+and then specify the full path to that file in the alias definition (e.g.
+"$HOME/songexplorer/configuration.pysh").
 
-## Docker for Windows, Mac, and Linux ##
+
+## Docker for Windows (and Mac and Linux) ##
 
 Platform-specific installation instructions can be found at
-[Docker](http://www.docker.com).  Once you have it installed, download the
-[SongExplorer image from
+[Docker](http://www.docker.com).  Once you have it installed, open the Command
+Prompt on Windows (or the Terminal on Mac), and download the [SongExplorer image
+from
 cloud.docker.com](https://cloud.docker.com/u/bjarthur/repository/docker/bjarthur/songexplorer):
 
     $ docker login
@@ -207,18 +210,46 @@ cloud.docker.com](https://cloud.docker.com/u/bjarthur/repository/docker/bjarthur
     REPOSITORY        TAG    IMAGE ID     CREATED      SIZE
     bjarthur/songexplorer latest b63784a710bb 20 hours ago 2.27GB
 
-Finally, put these definitions in your .bashrc (or .zshrc file on mac os catalina) file:
+Use `notepad` to create two ".bat" files.
 
-    export SONGEXPLORER_BIN="docker run -w `pwd` [-v ...] --env SONGEXPLORER_BIN \
-        -h=`hostname` -p 5006:5006 bjarthur/songexplorer"
-    alias songexplorer="$SONGEXPLORER_BIN gui.sh <path-to-configuration.pysh> 5006"
+    
+    "SONGEXPLORER_BIN.bat":
+    docker run ^
+        [-v <disk-drive>] [-u <userid>] [-w <working-directory] ^
+        bjarthur/songexplorer %*
 
-Add to the SONGEXPLORER_BIN export any directories you mounted using the `-v` flag
-(e.g. `docker run -v /C:/C ...`).
+    "songexplorer.bat":
+    docker run ^
+        [-v <disk-drive>] [-u <userid>] [-w <working-directory] ^
+        -e SONGEXPLORER_BIN -h=`hostname` -p 5006:5006 ^
+        bjarthur/songexplorer gui.sh <path-to-configuration.pysh> 5006
 
-Should docker ever hang, or run for an interminably long time, and you
-want to kill it, you'll need to open another terminal window and issue the
-`stop` command:
+The equivalent on Mac and Linux is to put these definitions in your .bashrc (or
+.zshrc file on Mac OS X Catalina) file:
+
+    export SONGEXPLORER_BIN="docker run \
+        [-v <disk-drive>] [-u <userid>] [-w <working-directory] \
+        bjarthur/songexplorer"
+    alias songexplorer="docker run \
+        [-v <disk-drive>] [-u <userid>] [-w <working-directory] \
+        -e SONGEXPLORER_BIN -h=`hostname` -p 5006:5006 \
+        bjarthur/songexplorer gui.sh <path-to-configuration.pysh> 5006"
+
+Add to these definitions any directories you want to access using the `-v`
+flag.  You might also need to use the `-u` flag to specify your username or
+userid.  Optionally specify the current working directory with the `-w` flag.
+All together these options would look something like `docker run -v C:\:/C -w
+/C/Users/%USERNAME% ...` on Windows, and `docker run -v /Users:/Users -u $(id
+-u) -w $HOME ...` on Mac.
+
+In [System Configuration](#system-configuration) we'll make a copy of the
+default configuration file.  For now, you just need to decide where you're
+going to put it, and then specify the full path to that file in the alias
+definition (e.g.  "%HOMEPATH%/songexplorer/configuration.pysh" on Windows, or
+"$HOME/..." on Mac and Linux).
+
+To quit out of SongExplorer you might need to open another terminal window and
+issue the `stop` command:
 
     $ docker ps
     CONTAINER ID IMAGE             COMMAND               CREATED       STATUS ...
@@ -226,10 +257,9 @@ want to kill it, you'll need to open another terminal window and issue the
 
     $ docker stop 6a26ad9d005e
 
-If you have to do this often, consider putting this short cut in your
-.bashrc file:
+To make this easy, put this short cut in your .bashrc file:
 
-    $ alias dockerkill='docker stop $(docker ps --latest --format "{{.ID}}")'
+    alias dockerkill='docker stop $(docker ps --latest --format "{{.ID}}")'
 
 On Windows and Mac docker runs within a virtual machine that is configured by
 default to only use half the available CPU cores and half of the memory.  This
@@ -247,7 +277,7 @@ a cluster.  You specify how you want this to work by editing
 Copy the exemplar configuration file out of the container and into your home
 directory:
 
-    $ $SONGEXPLORER_BIN cp /opt/songexplorer/configuration.pysh .
+    $ $SONGEXPLORER_BIN cp /opt/songexplorer/configuration.pysh $PWD [%CD% on Windows]
 
 Inside you'll find many variables which control where SongExplorer does its work:
 
@@ -310,7 +340,7 @@ Let's break this down.  When training (as well as certain other tasks),
 SongExplorer provides the option to use a GPU or not with the `train_gpu` variable.
 Depending on the size of your model, the resources you have access to and their
 associated cost, and how many tasks you want to run in parallel, you might or
-might not want or be able to use one.  The
+might not want or be able to use a GPU.  The
 `train_{cpu,gpu}_{ncpu_cores,ngpu_cards,ngigabytes_memory}` variables specify
 the number of CPU cores, number of GPU cards, and number of gigabytes of memory
 needed respectively, with -1 reserving everything available.
@@ -325,8 +355,8 @@ GPU, you could set `train_gpu` to 1 and
 happens, for models of this size, training is quicker *without* a GPU.
 
 Note that these settings don't actually limit the job to that amount of
-resources, but rather they just set aside that many resource for each job to
-use.  It is important not to overburden you computer with tasks, so don't
+resources, but rather they just limit how many jobs are running simultaneously.
+It is important not to overburden you computer with tasks, so don't
 underestimate the resources required, particularly memory consumption.  To make
 an accurate assessment for your particular workflow, use the `top` and
 `nvidia-smi` commands to monitor jobs while they are running.
@@ -495,7 +525,7 @@ First, let's get some data bundled with SongExplorer into your home directory.
     $ mkdir -p groundtruth-data/round1
 
     $ $SONGEXPLORER_BIN cp /opt/songexplorer/data/PS_20130625111709_ch3.wav \
-          ./groundtruth-data/round1
+          $PWD/groundtruth-data/round1 [%CD%/... on Windows]
 
 ## Detecting Sounds ##
 
@@ -516,7 +546,8 @@ First, start SongExplorer's GUI:
 
 Then in your favorite internet browser navigate to the URL on the first line
 printed to the terminal.  In the output above this is "arthurb-ws2:5006", which
-is my computer's name, but for you it will be different.
+is my computer's name, but for you it will be different.  If that doesn't work,
+try "http://localhost:5006/gui".
 
 On the left you'll see three empty panels (two large squares side by side and
 one wide rectangle underneath) in which the sound recordings are displayed and
@@ -841,7 +872,7 @@ First let's get some more data bundled with SongExplorer into your home director
     $ mkdir groundtruth-data/round2
 
     $ $SONGEXPLORER_BIN cp /opt/songexplorer/data/20161207T102314_ch1.wav \
-            groundtruth-data/round2
+            $PWD/groundtruth-data/round2 [%CD%/... on Windows]
 
 Use the `Freeze` button to save the classifier's neural network graph structure
 and weight parameters into the single file that TensorFlow needs for inference.
@@ -1335,10 +1366,9 @@ better accuracy.  Doing so is particularly useful when making predictions on
 recordings that were made under different conditions than the data used to
 train and validate the model.  To do so, choose the
 "thresholds-dense.ckpt-\*.csv" file when making ethograms.  This file is
-created when the congruence is quantified, but only when a single human
-annotator has made dense annotations.  The precision-recalls ratios therein are
-controlled by the "P/Rs" box when the sparse annotation accuracy was quantified
-with the Accuracy button.
+created when the congruence is quantified.  The precision-recalls ratios
+therein are controlled by the "P/Rs" box when the sparse annotation accuracy
+was quantified with the Accuracy button.
 
 
 ## Discovering Novel Sounds ##
@@ -1502,7 +1532,7 @@ Next create an access token at cloud.sylabs.io and login using:
 Then push the image to the cloud:
 
     $ singularity sign songexplorer.sif
-    $ singularity push songexplorer.sif library://bjarthur/default/songexplorer:<version>
+    $ singularity push songexplorer.sif library://bjarthur/janelia/songexplorer:<version>
 
 To build an image without GPU support, comment out the section titled "install
 CUDA" in "singularity.def" and omit the `--nv` flags.
@@ -1540,5 +1570,11 @@ that everything works both after you've first installed it as well as after any
 changes have been made to the code.  The tests exercise both the python GUI as
 well as the linux bash interfaces.  To run them, simply execute "runtests.sh":
 
-    $ singularity exec -B /tmp:/opt/songexplorer/test/scratch <--nv> <songexplorer.sif> \
+    $ singularity exec -B /tmp:/opt/songexplorer/test/scratch [--nv] <songexplorer.sif> \
             /opt/songexplorer/test/runtests.sh
+
+or with docker:
+
+    $ docker run -v %TMP%:/opt/songexplorer/test/scratch ^
+            [-v <other-disks>] [-u <userid>] [-w <working-directory] ^
+            -e SONGEXPLORER_BIN bjarthur/songexplorer /opt/songexplorer/test/runtests.sh
