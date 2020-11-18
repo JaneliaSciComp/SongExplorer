@@ -14,8 +14,9 @@ port=$2
 source $configuration_file
 
 local_ncpu_cores=$(nproc)
-nvidia_output=$(nvidia-smi -L)
+which nvidia-smi &> /dev/null
 if [[ "$?" == 0 ]] ; then
+  nvidia_output=$(nvidia-smi -L)
   local_ngpu_cards=$(echo "$nvidia_output" | wc -l)
 else
   local_ngpu_cards=0
@@ -28,9 +29,9 @@ echo INFO: detected $local_ncpu_cores local_ncpu_cores, \
 
 if [[ -n "$server_ipaddr" ]] ; then
     server_ncpu_cores=$(ssh $server_ipaddr nproc)
-    server_ngpu_cards=$(ssh $server_ipaddr nvidia-smi -L | wc -l)
-    nvidia_output=$(ssh $server_ipaddr nvidia-smi -L)
+    ssh $server_ipaddr which nvidia-smi &> /dev/null
     if [[ "$?" == 0 ]] ; then
+      nvidia_output=$(ssh $server_ipaddr nvidia-smi -L)
       server_ngpu_cards=$(echo "$nvidia_output" | wc -l)
     else
       server_ngpu_cards=0
