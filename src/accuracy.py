@@ -406,8 +406,9 @@ def plot_probability_density(test_ground_truth, test_logits, ratios, thresholds,
       if sum(igt)==0:
         continue
       xdata = test_logits[igt,iword]
-      xdata = np.exp(xdata) / (np.exp(xdata) + 1)
-      if len(xdata)<2:
+      xdata = np.minimum(np.finfo(np.float).max, np.exp(xdata))
+      xdata = xdata / (xdata + 1)
+      if len(xdata)<2 or any(np.isnan(xdata)):
         continue
       density = stats.kde.gaussian_kde(xdata)
       y = density(x)
