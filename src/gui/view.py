@@ -3,7 +3,7 @@ from bokeh.models.widgets import RadioButtonGroup, TextInput, Button, Div, DateF
 from bokeh.models import ColumnDataSource, TableColumn, DataTable, LayoutDOM
 from bokeh.plotting import figure
 from bokeh.transform import linear_cmap
-from bokeh.events import Tap, DoubleTap, PanStart, Pan, PanEnd, ButtonClick
+from bokeh.events import Tap, DoubleTap, PanStart, Pan, PanEnd, ButtonClick, MouseWheel
 from bokeh.models.callbacks import CustomJS
 from bokeh.models.markers import Circle
 import numpy as np
@@ -13,7 +13,7 @@ import markdown
 import pandas as pd
 import wave
 import scipy.io.wavfile as spiowav
-from scipy.signal import decimate
+from scipy.signal import decimate, spectrogram
 import logging 
 import base64
 import io
@@ -32,7 +32,7 @@ bokehlog = logging.getLogger("songexplorer")
 import model as M
 import controller as C
 
-bokeh_document, cluster_dot_palette, snippet_palette, p_cluster, cluster_dots, p_snippets, label_sources, label_sources_new, wav_sources, line_glyphs, quad_grey_snippets, dot_size_cluster, dot_alpha_cluster, circle_fuchsia_cluster, p_context, p_line_red_context, line_red_context, quad_grey_context_old, quad_grey_context_new, quad_grey_context_pan, quad_fuchsia_context, quad_fuchsia_snippets, wav_source, line_glyph, label_source, label_source_new, which_layer, which_species, which_word, which_nohyphen, which_kind, color_picker, circle_radius, dot_size, dot_alpha, zoom_context, zoom_offset, zoomin, zoomout, reset, panleft, panright, allleft, allout, allright, save_indicator, label_count_widgets, label_text_widgets, play, play_callback, video_toggle, video_div, undo, redo, detect, misses, configuration_file, train, leaveoneout, leaveallout, xvalidate, mistakes, activations, cluster, visualize, accuracy, freeze, classify, ethogram, compare, congruence, status_ticker, waitfor, file_dialog_source, file_dialog_source, configuration_contents, logs, logs_folder, model, model_file, wavtfcsvfiles, wavtfcsvfiles_string, groundtruth, groundtruth_folder, validationfiles, testfiles, validationfiles_string, testfiles_string, wantedwords, wantedwords_string, labeltypes, labeltypes_string, prevalences, prevalences_string, copy, labelsounds, makepredictions, fixfalsepositives, fixfalsenegatives, generalize, tunehyperparameters, findnovellabels, examineerrors, testdensely, doit, time_sigma_string, time_smooth_ms_string, frequency_n_ms_string, frequency_nw_string, frequency_p_string, frequency_smooth_ms_string, nsteps_string, restore_from_string, save_and_validate_period_string, validate_percentage_string, mini_batch_string, kfold_string, activations_equalize_ratio_string, activations_max_samples_string, pca_fraction_variance_to_retain_string, tsne_perplexity_string, tsne_exaggeration_string, umap_neighbors_string, umap_distance_string, cluster_algorithm, cluster_these_layers, connection_type, precision_recall_ratios_string, context_ms_string, shiftby_ms_string, representation, window_ms_string, stride_ms_string, mel_dct_string, dropout_string, replicates_string, batch_seed_string, weights_seed_string, optimizer, learning_rate_string, kernel_sizes_string, last_conv_width_string, nfeatures_string, dilate_after_layer_string, stride_after_layer_string, editconfiguration, file_dialog_string, file_dialog_table, readme_contents, wordcounts, wizard_buttons, action_buttons, parameter_buttons, parameter_textinputs, wizard2actions, action2parameterbuttons, action2parametertextinputs = [None]*157
+bokeh_document, cluster_dot_palette, snippet_palette, p_cluster, cluster_dots, p_snippets, label_sources, label_sources_new, wav_sources, line_glyphs, quad_grey_snippets, dot_size_cluster, dot_alpha_cluster, circle_fuchsia_cluster, p_context, p_spectrogram, spectrogram_source, image_glyph, p_line_red_context, line_red_context, quad_grey_context_old, quad_grey_context_new, quad_grey_context_pan, quad_fuchsia_context, quad_fuchsia_snippets, wav_source, line_glyph, label_source, label_source_new, which_layer, which_species, which_word, which_nohyphen, which_kind, color_picker, circle_radius, dot_size, dot_alpha, zoom_context, zoom_offset, zoomin, zoomout, reset, panleft, panright, allleft, allout, allright, save_indicator, label_count_widgets, label_text_widgets, play, play_callback, video_toggle, video_div, undo, redo, detect, misses, configuration_file, train, leaveoneout, leaveallout, xvalidate, mistakes, activations, cluster, visualize, accuracy, freeze, classify, ethogram, compare, congruence, status_ticker, waitfor, file_dialog_source, file_dialog_source, configuration_contents, logs, logs_folder, model, model_file, wavtfcsvfiles, wavtfcsvfiles_string, groundtruth, groundtruth_folder, validationfiles, testfiles, validationfiles_string, testfiles_string, wantedwords, wantedwords_string, labeltypes, labeltypes_string, prevalences, prevalences_string, copy, labelsounds, makepredictions, fixfalsepositives, fixfalsenegatives, generalize, tunehyperparameters, findnovellabels, examineerrors, testdensely, doit, time_sigma_string, time_smooth_ms_string, frequency_n_ms_string, frequency_nw_string, frequency_p_string, frequency_smooth_ms_string, nsteps_string, restore_from_string, save_and_validate_period_string, validate_percentage_string, mini_batch_string, kfold_string, activations_equalize_ratio_string, activations_max_samples_string, pca_fraction_variance_to_retain_string, tsne_perplexity_string, tsne_exaggeration_string, umap_neighbors_string, umap_distance_string, cluster_algorithm, cluster_these_layers, connection_type, precision_recall_ratios_string, context_ms_string, shiftby_ms_string, representation, window_ms_string, stride_ms_string, mel_dct_string, dropout_string, replicates_string, batch_seed_string, weights_seed_string, optimizer, learning_rate_string, kernel_sizes_string, last_conv_width_string, nfeatures_string, dilate_after_layer_string, stride_after_layer_string, editconfiguration, file_dialog_string, file_dialog_table, readme_contents, wordcounts, wizard_buttons, action_buttons, parameter_buttons, parameter_textinputs, wizard2actions, action2parameterbuttons, action2parametertextinputs = [None]*160
 
 class ScatterNd(LayoutDOM):
 
@@ -694,7 +694,10 @@ def context_update():
     istart = np.nan
     scales = [0]*M.audio_nchannels
     ywavs = [np.full(1,np.nan)]*M.audio_nchannels
-    xwavs = [[np.full(1,np.nan)]]*M.audio_nchannels
+    xwavs = [np.full(1,np.nan)]*M.audio_nchannels
+    M.spectrogram_freq = [np.full(1,np.nan)]*M.audio_nchannels
+    M.spectrogram_time = [np.full(1,np.nan)]*M.audio_nchannels
+    M.spectrogram_image = [np.full((1,1),np.nan)]*M.audio_nchannels
     xlabel, ylabel, tlabel = [], [], []
     xlabel_new, ylabel_new, tlabel_new = [], [], []
     left, right, top, bottom = [], [], [], []
@@ -766,6 +769,14 @@ def context_update():
                     song_min = np.min(wavi_trimmed) / scales[ichannel]
                     song_min /= M.audio_nchannels
                     song_min += (M.audio_nchannels-1-2*ichannel)/M.audio_nchannels
+
+                window_length = round(M.spectrogram_length_ms/1000*M.audio_tic_rate)
+                M.spectrogram_freq[ichannel], M.spectrogram_time[ichannel], M.spectrogram_image[ichannel] = \
+                        spectrogram(wavi,
+                                    fs=M.audio_tic_rate,
+                                    window=M.spectrogram_window,
+                                    nperseg=window_length,
+                                    noverlap=round(window_length*M.spectrogram_overlap))
 
             line_red_context.data.update(x=[xwavs[0][0],xwavs[0][0]])
             p_line_red_context.visible=True
@@ -850,6 +861,18 @@ def context_update():
                                 np.iinfo(np.int16).max *
                                 len(snippet_palette)))
         line_glyph[ichannel].glyph.line_color = snippet_palette[ipalette]
+        if not np.isnan(M.spectrogram_time[ichannel][0]):
+            ilow = np.argmin(np.abs(M.spectrogram_freq[ichannel]-M.spectrogram_low_hz))
+            ihigh = np.argmin(np.abs(M.spectrogram_freq[ichannel]-M.spectrogram_high_hz))
+            image_glyph[ichannel].glyph.x = M.spectrogram_time[ichannel][0]
+            image_glyph[ichannel].glyph.y = M.spectrogram_freq[ichannel][ilow] / M.spectrogram_freq_scale
+            image_glyph[ichannel].glyph.dw = M.spectrogram_time[ichannel][-1]
+            image_glyph[ichannel].glyph.dh = \
+                    (M.spectrogram_freq[ichannel][ihigh] - M.spectrogram_freq[ichannel][ilow]) / \
+                    M.spectrogram_freq_scale
+            spectrogram_source[ichannel].data.update(image=[np.log10(M.spectrogram_image[ichannel][ilow:ihigh,:])])
+        else:
+            spectrogram_source[ichannel].data.update(image=[])
     quad_grey_context_old.data.update(left=left, right=right, top=top, bottom=bottom)
     quad_grey_context_new.data.update(left=left_new, right=right_new,
                                       top=top_new, bottom=bottom_new)
@@ -1048,7 +1071,7 @@ async def status_ticker_update():
     status_ticker.text = status_ticker_pre+newtext+status_ticker_post
 
 def init(_bokeh_document):
-    global bokeh_document, cluster_dot_palette, snippet_palette, p_cluster, cluster_dots, p_cluster_dots, precomputed_dots, p_snippets, label_sources, label_sources_new, wav_sources, line_glyphs, quad_grey_snippets, dot_size_cluster, dot_alpha_cluster, circle_fuchsia_cluster, p_context, p_line_red_context, line_red_context, quad_grey_context_old, quad_grey_context_new, quad_grey_context_pan, quad_fuchsia_context, quad_fuchsia_snippets, wav_source, line_glyph, label_source, label_source_new, which_layer, which_species, which_word, which_nohyphen, which_kind, color_picker, circle_radius, dot_size, dot_alpha, zoom_context, zoom_offset, zoomin, zoomout, reset, panleft, panright, allleft, allout, allright, save_indicator, label_count_widgets, label_text_widgets, play, play_callback, video_toggle, video_div, undo, redo, detect, misses, configuration_file, train, leaveoneout, leaveallout, xvalidate, mistakes, activations, cluster, visualize, accuracy, freeze, classify, ethogram, compare, congruence, status_ticker, waitfor, file_dialog_source, file_dialog_source, configuration_contents, logs, logs_folder, model, model_file, wavtfcsvfiles, wavtfcsvfiles_string, groundtruth, groundtruth_folder, validationfiles, testfiles, validationfiles_string, testfiles_string, wantedwords, wantedwords_string, labeltypes, labeltypes_string, prevalences, prevalences_string, copy, labelsounds, makepredictions, fixfalsepositives, fixfalsenegatives, generalize, tunehyperparameters, findnovellabels, examineerrors, testdensely, doit, time_sigma_string, time_smooth_ms_string, frequency_n_ms_string, frequency_nw_string, frequency_p_string, frequency_smooth_ms_string, nsteps_string, restore_from_string, save_and_validate_period_string, validate_percentage_string, mini_batch_string, kfold_string, activations_equalize_ratio_string, activations_max_samples_string, pca_fraction_variance_to_retain_string, tsne_perplexity_string, tsne_exaggeration_string, umap_neighbors_string, umap_distance_string, cluster_algorithm, cluster_these_layers, connection_type, precision_recall_ratios_string, context_ms_string, shiftby_ms_string, representation, window_ms_string, stride_ms_string, mel_dct_string, dropout_string, replicates_string, batch_seed_string, weights_seed_string, optimizer, learning_rate_string, kernel_sizes_string, last_conv_width_string, nfeatures_string, dilate_after_layer_string, stride_after_layer_string, editconfiguration, file_dialog_string, file_dialog_table, readme_contents, wordcounts, wizard_buttons, action_buttons, parameter_buttons, parameter_textinputs, wizard2actions, action2parameterbuttons, action2parametertextinputs, status_ticker_update, status_ticker_pre, status_ticker_post
+    global bokeh_document, cluster_dot_palette, snippet_palette, p_cluster, cluster_dots, p_cluster_dots, precomputed_dots, p_snippets, label_sources, label_sources_new, wav_sources, line_glyphs, quad_grey_snippets, dot_size_cluster, dot_alpha_cluster, circle_fuchsia_cluster, p_context, p_spectrogram, spectrogram_source, image_glyph, p_line_red_context, line_red_context, quad_grey_context_old, quad_grey_context_new, quad_grey_context_pan, quad_fuchsia_context, quad_fuchsia_snippets, wav_source, line_glyph, label_source, label_source_new, which_layer, which_species, which_word, which_nohyphen, which_kind, color_picker, circle_radius, dot_size, dot_alpha, zoom_context, zoom_offset, zoomin, zoomout, reset, panleft, panright, allleft, allout, allright, save_indicator, label_count_widgets, label_text_widgets, play, play_callback, video_toggle, video_div, undo, redo, detect, misses, configuration_file, train, leaveoneout, leaveallout, xvalidate, mistakes, activations, cluster, visualize, accuracy, freeze, classify, ethogram, compare, congruence, status_ticker, waitfor, file_dialog_source, file_dialog_source, configuration_contents, logs, logs_folder, model, model_file, wavtfcsvfiles, wavtfcsvfiles_string, groundtruth, groundtruth_folder, validationfiles, testfiles, validationfiles_string, testfiles_string, wantedwords, wantedwords_string, labeltypes, labeltypes_string, prevalences, prevalences_string, copy, labelsounds, makepredictions, fixfalsepositives, fixfalsenegatives, generalize, tunehyperparameters, findnovellabels, examineerrors, testdensely, doit, time_sigma_string, time_smooth_ms_string, frequency_n_ms_string, frequency_nw_string, frequency_p_string, frequency_smooth_ms_string, nsteps_string, restore_from_string, save_and_validate_period_string, validate_percentage_string, mini_batch_string, kfold_string, activations_equalize_ratio_string, activations_max_samples_string, pca_fraction_variance_to_retain_string, tsne_perplexity_string, tsne_exaggeration_string, umap_neighbors_string, umap_distance_string, cluster_algorithm, cluster_these_layers, connection_type, precision_recall_ratios_string, context_ms_string, shiftby_ms_string, representation, window_ms_string, stride_ms_string, mel_dct_string, dropout_string, replicates_string, batch_seed_string, weights_seed_string, optimizer, learning_rate_string, kernel_sizes_string, last_conv_width_string, nfeatures_string, dilate_after_layer_string, stride_after_layer_string, editconfiguration, file_dialog_string, file_dialog_table, readme_contents, wordcounts, wizard_buttons, action_buttons, parameter_buttons, parameter_textinputs, wizard2actions, action2parameterbuttons, action2parametertextinputs, status_ticker_update, status_ticker_pre, status_ticker_post
 
     bokeh_document = _bokeh_document
 
@@ -1169,6 +1192,26 @@ def init(_bokeh_document):
     p_context.on_event(PanEnd, C.context_pan_end_callback)
 
     p_snippets.on_event(DoubleTap, C.snippets_doubletap_callback)
+
+    p_spectrogram = figure(plot_width=M.gui_width_pix, plot_height=150,
+                        background_fill_color='#FFFFFF', toolbar_location=None)
+    p_spectrogram.toolbar.active_drag = None
+    p_spectrogram.x_range.range_padding = p_spectrogram.y_range.range_padding = 0
+    p_spectrogram.grid.grid_line_width = 0.5
+    p_spectrogram.xaxis.visible = False
+    p_spectrogram.yaxis.axis_label = 'Frequency (' + M.spectrogram_units + ')'
+
+    spectrogram_source = [None]*M.audio_nchannels
+    image_glyph = [None]*M.audio_nchannels
+    for ichannel in range(M.audio_nchannels):
+        spectrogram_source[ichannel] = ColumnDataSource(data=dict(image=[]))
+        image_glyph[ichannel] = p_spectrogram.image('image', source=spectrogram_source[ichannel],
+                                                 palette=M.spectrogram_palette, level="image")
+
+    p_spectrogram.on_event(MouseWheel, C.spectrogram_mousewheel_callback)
+    p_spectrogram.on_event(PanStart, C.spectrogram_pan_start_callback)
+    p_spectrogram.on_event(PanEnd, C.spectrogram_pan_end_callback)
+    p_spectrogram.on_event(Tap, C.spectrogram_tap_callback)
 
     which_layer = Select(title="layer:")
     which_layer.on_change('value', lambda a,o,n: C.layer_callback(n))

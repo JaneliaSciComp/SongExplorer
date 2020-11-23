@@ -349,6 +349,40 @@ def allright_callback():
                           M.audio_tic_rate*1000
     M.context_offset_tic = int(np.rint(M.context_offset_ms/1000*M.audio_tic_rate))
     V.zoom_offset.value = str(M.context_offset_ms)
+
+spectrogram_mousewheel_last_change = time.time()
+
+def spectrogram_mousewheel_callback(event):
+    global spectrogram_mousewheel_last_change
+    this_change = time.time()
+    if this_change-spectrogram_mousewheel_last_change < 0.5:
+      return
+    spectrogram_mousewheel_last_change = this_change
+    if event.delta<0:
+      M.spectrogram_length_ms = min(float(V.context_ms_string.value), M.spectrogram_length_ms*2)
+    else:
+      M.spectrogram_length_ms = max(1, M.spectrogram_length_ms/2)
+    V.context_update()
+
+spectrogram_pan_start_y = None
+
+def spectrogram_pan_start_callback(event):
+    global spectrogram_pan_start_y
+    spectrogram_pan_start_y = event.y
+    
+def spectrogram_pan_end_callback(event):
+    if event.y > spectrogram_pan_start_y:
+        M.spectrogram_low_hz = spectrogram_pan_start_y * M.spectrogram_freq_scale
+        M.spectrogram_high_hz = min(M.spectrogram_high_hz, event.y * M.spectrogram_freq_scale)
+    else:
+        M.spectrogram_low_hz = event.y * M.spectrogram_freq_scale
+        M.spectrogram_high_hz = spectrogram_pan_start_y * M.spectrogram_freq_scale
+    V.context_update()
+    
+def spectrogram_tap_callback(event):
+    M.spectrogram_low_hz = 0
+    M.spectrogram_high_hz = M.audio_tic_rate/2
+    V.context_update()
     
 def toggle_annotation(idouble_tapped_sample):
     iannotated = M.isannotated(M.clustered_samples[idouble_tapped_sample])

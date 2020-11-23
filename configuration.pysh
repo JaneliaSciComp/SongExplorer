@@ -30,6 +30,14 @@ gui_nlabels=8
 gui_gui_width_pix=1250
 gui_context_width_ms=400
 gui_context_offset_ms=0
+gui_spectrogram=0
+gui_spectrogram_palette="Viridis256"
+gui_spectrogram_window="hann"
+gui_spectrogram_length_ms=10
+gui_spectrogram_overlap=0.5
+gui_spectrogram_units="kHz" # one of mHz, Hz, kHz, or MHz
+gui_spectrogram_low_hz=0
+gui_spectrogram_high_hz=2500
 
 # on what computer to do the computation
 default_where="local"

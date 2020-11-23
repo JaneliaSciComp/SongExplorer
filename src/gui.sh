@@ -127,6 +127,7 @@ isbinary() {
   [[ "${!1}" =~ $binary_re ]] || echo WARNING: $1 is not set or is not 0 or 1
 }
 
+isbinary gui_spectrogram
 isbinary activations_gpu
 isbinary classify_gpu
 isbinary generalize_gpu
@@ -135,6 +136,9 @@ isbinary xvalidate_gpu
 isbinary accuracy_parallelize
 isbinary cluster_parallelize
 isbinary congruence_parallelize
+
+[[ "$gui_spectrogram_units" == mHz || "$gui_spectrogram_units" == Hz || "$gui_spectrogram_units" == kHz || "$gui_spectrogram_units" == MHz ]] || \
+      echo WARNING: gui_spectrogram_units should be "mHz", "Hz", "kHz", or "MHz"
 
 readarray where_vars < <(set | grep _where=  )
 for var in "${where_vars[@]}"; do
