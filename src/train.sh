@@ -39,6 +39,12 @@ batch_seed=${29}
 weights_seed=${30}
 ireplicates=${31}
 
+if (( "$#" == 31 )) ; then
+  save_fingerprints=False
+else
+  save_fingerprints=${32}
+fi
+
 DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
 
 mkdir -p $logdir
@@ -97,9 +103,8 @@ while [[ $ireplicates =~ .*,.* ]] ; do
           --dropout_prob=$dropout \
           --representation=$representation \
           --optimizer=$optimizer \
+          --save_fingerprints=$save_fingerprints \
           --batch_size=$mini_batch"
-
-          #--save_fingerprints=True \
 
     cmd=${cmd}" $expr $redirect $logdir/train_${ireplicate}r.log & "
 done

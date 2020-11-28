@@ -161,6 +161,7 @@ class AudioProcessor(object):
   """Handles loading, partitioning, and preparing audio training data."""
 
   def __init__(self, data_url, data_dir, silence_percentage, unknown_percentage,
+               time_shift_ms, time_shift_random,
                wanted_words, labels_touse,
                validation_percentage, validation_offset_percentage, validation_files,
                testing_percentage, testing_files, subsample_skip, subsample_word,
@@ -172,6 +173,7 @@ class AudioProcessor(object):
     random.seed(None if random_seed_batch==-1 else random_seed_batch)
     np.random.seed(None if random_seed_batch==-1 else random_seed_batch)
     self.prepare_data_index(silence_percentage, unknown_percentage,
+                            time_shift_ms, time_shift_random,
                             wanted_words, labels_touse,
                             validation_percentage, validation_offset_percentage, validation_files,
                             testing_percentage, testing_files, subsample_skip, subsample_word,
@@ -223,6 +225,7 @@ class AudioProcessor(object):
     tarfile.open(filepath, 'r:gz').extractall(dest_directory)
 
   def prepare_data_index(self, silence_percentage, unknown_percentage,
+                         time_shift_ms, time_shift_random,
                          wanted_words, labels_touse,
                          validation_percentage, validation_offset_percentage, validation_files,
                          testing_percentage, testing_files, subsample_skip, subsample_word,
@@ -253,6 +256,7 @@ class AudioProcessor(object):
     Raises:
       Exception: If expected files are not found.
     """
+    time_shift_samples = int((time_shift_ms * model_settings["sample_rate"]) / 1000)
     # Make sure the shuffling and picking of unknowns is deterministic.
     wanted_words_index = {}
     for index, wanted_word in enumerate(wanted_words):
@@ -295,8 +299,14 @@ class AudioProcessor(object):
           _, data = spiowav.read(wav_path, mmap=True)
           wav_nsamples[wav_path] = len(data)
         nsamples = wav_nsamples[wav_path]
-        if ticks[0]<desired_samples or ticks[1]>(nsamples-desired_samples):
-          continue
+        if time_shift_random:
+          if ticks[0]<desired_samples+time_shift_samples or \
+             ticks[1]>(nsamples-desired_samples-time_shift_samples):
+            continue
+        else:
+          if ticks[0]<desired_samples+time_shift_samples or \
+             ticks[1]>(nsamples-desired_samples+time_shift_samples):
+            continue
         # Treat the '_background_noise_' folder as a special case, since we expect
         # it to contain long audio samples we mix in to improve training.
         if word == BACKGROUND_NOISE_DIR_NAME:
@@ -464,7 +474,6 @@ class AudioProcessor(object):
 
       - wav_filename_placeholder_: Filename of the WAV to load.
       - foreground_volume_placeholder_: How loud the main clip should be.
-      - time_shift_padding_placeholder_: Where to pad the clip.
       - time_shift_offset_placeholder_: How much to move the clip in time.
       - background_data_placeholder_: PCM sample data for background noise.
       - background_volume_placeholder_: Loudness of mixed-in background.
@@ -482,23 +491,13 @@ class AudioProcessor(object):
     self.foreground_volume_placeholder_ = tf.placeholder(tf.float32, [])
     scaled_foreground = tf.multiply(self.foreground_data_placeholder_,
                                     self.foreground_volume_placeholder_)
-    # Shift the sample's start position, and pad any gaps with zeros.
-    self.time_shift_padding_placeholder_ = tf.placeholder(tf.int32, [2, 2])
-    self.time_shift_offset_placeholder_ = tf.placeholder(tf.int32, [2])
-    padded_foreground = tf.pad(
-        scaled_foreground,
-        self.time_shift_padding_placeholder_,
-        mode='CONSTANT')
-    sliced_foreground = tf.slice(padded_foreground,
-                                 self.time_shift_offset_placeholder_,
-                                 [desired_samples, -1])
     # Mix in background noise.
     self.background_data_placeholder_ = tf.placeholder(tf.float32,
                                                        [desired_samples, channel_count])
     self.background_volume_placeholder_ = tf.placeholder(tf.float32, [])
     background_mul = tf.multiply(self.background_data_placeholder_,
                                  self.background_volume_placeholder_)
-    background_add = tf.add(background_mul, sliced_foreground)
+    background_add = tf.add(background_mul, scaled_foreground)
     background_clamp = tf.clip_by_value(background_add, -1.0, 1.0)
     # Run the spectrogram and MFCC ops to get a 2D 'fingerprint' of the audio.
     self.waveform_ = background_clamp
@@ -533,7 +532,7 @@ class AudioProcessor(object):
     return len(self.data_index[mode])
 
   def get_data(self, how_many, offset, model_settings, background_frequency,
-               background_volume_range, time_shift, time_shift_random, mode, sess):
+               background_volume_range, time_shift_ms, time_shift_random, mode, sess):
     """Gather samples from the data set, applying transformations as needed.
 
     When the mode is 'training', a random selection of samples will be returned,
@@ -557,6 +556,7 @@ class AudioProcessor(object):
     Returns:
       List of sample data for the transformed samples, and list of label indexes
     """
+    time_shift_samples = int((time_shift_ms * model_settings["sample_rate"]) / 1000)
     # Pick one of the partitions to choose samples from.
     candidates = self.data_index[mode]
     ncandidates = len(self.data_index[mode])
@@ -596,30 +596,21 @@ class AudioProcessor(object):
       nchannels = np.shape(song)[1]
       assert sample_rate == model_settings['sample_rate']
       assert nchannels == model_settings['channel_count']
-      foreground_clipped = song[foreground_offset-desired_samples//2 :
-                                foreground_offset+desired_samples//2,
+      if time_shift_samples > 0:
+        if time_shift_random:
+          time_shift_amount = np.random.randint(-time_shift_samples, time_shift_samples)
+        else:
+          time_shift_amount = time_shift_samples
+      else:
+        time_shift_amount = 0
+      foreground_clipped = song[foreground_offset-desired_samples//2 - time_shift_amount :
+                                foreground_offset+desired_samples//2 - time_shift_amount,
                                 :]
       foreground_float32 = foreground_clipped.astype(np.float32)
       foreground_scaled = foreground_float32 / abs(np.iinfo(np.int16).min) #extreme
       foreground_reshaped = foreground_scaled.reshape([nchannels, desired_samples], order='F')
       foreground_indexed = foreground_reshaped.reshape([desired_samples,nchannels])
       input_dict = { self.foreground_data_placeholder_: foreground_indexed }
-      # If we're time shifting, set up the offset for this sample.
-      if time_shift > 0:
-        if time_shift_random:
-          time_shift_amount = np.random.randint(-time_shift, time_shift)
-        else:
-          time_shift_amount = time_shift
-      else:
-        time_shift_amount = 0
-      if time_shift_amount > 0:
-        time_shift_padding = [[time_shift_amount, 0], [0, 0]]
-        time_shift_offset = [0, 0]
-      else:
-        time_shift_padding = [[0, -time_shift_amount], [0, 0]]
-        time_shift_offset = [-time_shift_amount, 0]
-      input_dict[self.time_shift_padding_placeholder_] = time_shift_padding
-      input_dict[self.time_shift_offset_placeholder_] = time_shift_offset
       # Choose a section of background noise to mix in.
       if use_background or sample['label'] == SILENCE_LABEL:
         background_index = np.random.randint(len(self.background_data))

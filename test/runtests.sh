@@ -2,7 +2,7 @@
 
 # run all of the tests
 
-# singularity exec -B /tmp:/opt/songexplorer/test/scratch <--nv> <songexplorer.sif> test/runtests.sh
+# ${SONGEXPLORER_BIN/-B/-B /tmp:/opt/songexplorer/test/scratch -B} bash -c "test/runtests.sh"
 
 repo_path=$(dirname $(dirname $(which detect.sh)))
 
@@ -46,3 +46,4 @@ $repo_path/test/seeds.py
 $repo_path/test/freeze-classify.py
 $repo_path/test/annotating.py
 $repo_path/test/congruence.py
+$repo_path/test/shiftby.sh ; $repo_path/test/shiftby.py

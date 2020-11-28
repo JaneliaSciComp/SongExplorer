@@ -136,7 +136,6 @@ def main(_):
       FLAGS.connection_type)
 
   fingerprint_size = model_settings['fingerprint_size']
-  time_shift_samples = int((FLAGS.time_shift_ms * FLAGS.sample_rate) / 1000)
   # Figure out the learning rates for each training phase. Since it's often
   # effective to have high learning rates at the start of training, followed by
   # lower levels towards the end, the number of steps and learning rates can be
@@ -256,6 +255,7 @@ def main(_):
   audio_processor = input_data.AudioProcessor(
       FLAGS.data_url, FLAGS.data_dir,
       FLAGS.silence_percentage, FLAGS.unknown_percentage,
+      FLAGS.time_shift_ms, FLAGS.time_shift_random,
       FLAGS.wanted_words.split(','), FLAGS.labels_touse.split(','),
       FLAGS.validation_percentage, FLAGS.validation_offset_percentage,
       FLAGS.validation_files.split(','),
@@ -272,7 +272,7 @@ def main(_):
       # pre-process a batch of data to make sure settings are valid
       train_fingerprints, train_ground_truth, _ = audio_processor.get_data(
           FLAGS.batch_size, 0, model_settings, FLAGS.background_frequency,
-          FLAGS.background_volume, time_shift_samples, FLAGS.time_shift_random, 'training', sess)
+          FLAGS.background_volume, FLAGS.time_shift_ms, FLAGS.time_shift_random, 'training', sess)
       sess.run([evaluation_step],
           feed_dict={
               fingerprint_input: train_fingerprints,
@@ -301,7 +301,7 @@ def main(_):
       # Pull the audio samples we'll use for training.
       train_fingerprints, train_ground_truth, _ = audio_processor.get_data(
           FLAGS.batch_size, 0, model_settings, FLAGS.background_frequency,
-          FLAGS.background_volume, time_shift_samples, FLAGS.time_shift_random, 'training', sess)
+          FLAGS.background_volume, FLAGS.time_shift_ms, FLAGS.time_shift_random, 'training', sess)
       # Run the graph with this batch of training data.
       train_summary, train_accuracy, cross_entropy_value, _, _ = sess.run(
           [
@@ -330,19 +330,19 @@ def main(_):
     is_last_step = (training_step == training_steps_max)
     if validation_set_size>0 and (is_last_step or (training_step % FLAGS.eval_step_interval) == 0):
       validate_and_test('validation', validation_set_size, model_settings, \
-                        time_shift_samples, sess, merged_summaries, evaluation_step, \
+                        sess, merged_summaries, evaluation_step, \
                         confusion_matrix, logits, hidden, validation_writer, \
                         audio_processor, is_last_step, fingerprint_input, \
                         ground_truth_input, actual_batch_size, dropout_prob, \
                         training_step, t0)
   if testing_set_size>0:
-    validate_and_test('testing', testing_set_size, model_settings, time_shift_samples, \
+    validate_and_test('testing', testing_set_size, model_settings, \
                       sess, merged_summaries, evaluation_step, confusion_matrix, \
                       logits, hidden, validation_writer, audio_processor, \
                       True, fingerprint_input, ground_truth_input, \
                       actual_batch_size, dropout_prob, training_steps_max, t0)
 
-def validate_and_test(set_kind, set_size, model_settings, time_shift_samples, sess, \
+def validate_and_test(set_kind, set_size, model_settings, sess, \
                       merged_summaries, evaluation_step, confusion_matrix, logits, \
                       hidden, validation_writer, audio_processor, is_last_step, \
                       fingerprint_input, ground_truth_input, actual_batch_size, \
@@ -352,7 +352,7 @@ def validate_and_test(set_kind, set_size, model_settings, time_shift_samples, se
   for isample in xrange(0, set_size, FLAGS.batch_size):
     fingerprints, ground_truth, samples = (
         audio_processor.get_data(FLAGS.batch_size, isample, model_settings, 0.0, 0.0,
-                                 0.0 if FLAGS.time_shift_random else time_shift_samples,
+                                 0.0 if FLAGS.time_shift_random else FLAGS.time_shift_ms,
                                  FLAGS.time_shift_random,
                                  set_kind, sess))
     needed = FLAGS.batch_size - fingerprints.shape[0]
@@ -401,9 +401,13 @@ def validate_and_test(set_kind, set_size, model_settings, time_shift_samples, se
                 hidden_vals[ihidden][:obtained,:,:,:]
       if FLAGS.save_fingerprints:
         if isample==0:
-          nW = round((FLAGS.clip_duration_ms - FLAGS.window_size_ms) / \
-                     FLAGS.window_stride_ms + 1)
-          nH = round(np.shape(fingerprints)[1]/nW)
+          if FLAGS.representation=='waveform':
+            nW = round(FLAGS.clip_duration_ms / 1000 * FLAGS.sample_rate)
+            nH = 1
+          else:
+            nW = round((FLAGS.clip_duration_ms - FLAGS.window_size_ms) / \
+                       FLAGS.window_stride_ms + 1)
+            nH = round(np.shape(fingerprints)[1]/nW)
           input_layer = np.empty((set_size,nW,nH))
         input_layer[isample:isample+obtained,:,:] = \
               np.reshape(fingerprints[:obtained,:],(obtained,nW,nH))
@@ -413,15 +417,15 @@ def validate_and_test(set_kind, set_size, model_settings, time_shift_samples, se
   tf.logging.info('Elapsed %f, Step %d: %s accuracy = %.1f%% (N=%d)' %
                   (t1.total_seconds(), training_step, set_kind.capitalize(), \
                    total_accuracy * 100, set_size))
-  np.savez(os.path.join(FLAGS.train_dir, \
-           'logits.'+set_kind+'.ckpt-'+str(training_step)+'.npz'), \
+  np.savez(os.path.join(FLAGS.train_dir, 'logits.'+set_kind+'.ckpt-'+str(training_step)+'.npz'), \
            samples=samples_data, groundtruth=groundtruth_data, logits=logit_data)
   if is_last_step:
     if FLAGS.save_hidden:
-      np.savez(os.path.join(FLAGS.data_dir,'hidden.npz'), \
+      np.savez(os.path.join(FLAGS.train_dir,'hidden.'+set_kind+'.ckpt-'+str(training_step)+'.npz'), \
                *hidden_layers, samples=samples_data)
     if FLAGS.save_fingerprints:
-      np.save(os.path.join(FLAGS.data_dir,'fingerprints.npy'), input_layer)
+      np.savez(os.path.join(FLAGS.train_dir,'fingerprints.'+set_kind+'.ckpt-'+str(training_step)+'.npz'), \
+              input_layer, samples=samples_data)
 
 def str2bool(v):
     if v.lower() in ('yes', 'true', 't', 'y', '1'):

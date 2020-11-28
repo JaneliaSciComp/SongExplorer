@@ -109,6 +109,7 @@ def main(_):
   audio_processor = input_data.AudioProcessor(
       FLAGS.data_url, FLAGS.data_dir,
       FLAGS.silence_percentage, FLAGS.unknown_percentage,
+      FLAGS.time_shift_ms, FLAGS.time_shift_random,
       FLAGS.wanted_words.split(','), FLAGS.labels_touse.split(','),
       FLAGS.validation_percentage, FLAGS.validation_offset_percentage,
       FLAGS.validation_files.split(','),
