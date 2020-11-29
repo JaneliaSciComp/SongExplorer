@@ -8,8 +8,8 @@ Table of Contents
    * [Citations and Repositories](#citations-and-repositories)
    * [Notation](#notation)
    * [Installation](#installation)
-      * [Singularity for Linux, Mac, and Windows](#singularity-for-linux-mac-and-windows)
-      * [Docker for Windows, Mac, and Linux](#docker-for-windows-mac-and-linux)
+      * [Singularity for Linux](#singularity-for-linux)
+      * [Docker for Windows and Mac](#docker-for-windows-and-mac)
       * [System Configuration](#system-configuration)
       * [Scheduling Jobs](#scheduling-jobs)
          * [Locally](#locally)
@@ -113,34 +113,35 @@ represent sections which you much customize.
 
 SongExplorer can be run on all three major platforms.  The installation
 procedure is different on each due to various support of the technologies used.
-We recommend using Singularity on Linux and Apple Macintosh, and Docker on
-Microsoft Windows.  Training your own classifier is fastest with an Nvidia
+We recommend using Singularity on Linux, and Docker on Microsoft Windows and
+Apple Macintosh.  Training your own classifier is fastest with an Nvidia
 graphics processing unit (GPU).
 
 TensorFlow, the machine learning framework from Google that SongExplorer uses,
-supports Ubuntu, Mac and Windows.  The catch is that Nvidia (and hence
+supports Ubuntu, Windows and Mac.  The catch is that Nvidia (and hence
 TensorFlow) currently doesn't support GPUs on Macs.  So while using a
 pre-trained classifier would be fine on a Mac, because inference is just as
-fast on the CPU, training your own would be ~10x slower.
+fast on the CPU, training your own would take several times longer.
 
 Docker, a popular container framework which provides an easy way to deploy
-software across platforms, supports Linux, Mac and Windows, but only supports
-GPUs on Linux.  Moreover, on Mac and Windows it runs within a heavy-weight
+software across platforms, supports Linux, Windows and Mac, but only supports
+GPUs on Linux.  Moreover, on Windows and Mac it runs within a heavy-weight
 virtual machine, and on all platforms it requires administrator privileges to
 both install and run.
 
-Singularity is an alternative to Docker that does not require root access.  For
-this reason it is required in certain high-performance computing (HPC)
-environments.  Currently it only natively supports Linux, and uses a
-light-weight virtual machine on Macs; you can run it on Windows within a
-virtual environment, like Docker does, but would have to set that up yourself.
-As with Docker, GPUs are only accessible on Linux.
+Singularity is an alternative to Docker that does not require root access.
+For this reason it is required in certain high-performance computing
+(HPC) environments.  Currently it only natively supports Linux.  There is
+a version for Macs which uses a light-weight virtual machine, but it is
+not being actively developed anymore.  You can run Singularity on Windows
+within a virtual environment, like Docker does, but would have to set that
+up yourself.  As with Docker, GPUs are only accessible on Linux.
 
 To use SongExplorer with a GPU on Windows one must install it manually, without
 the convenience of a container.  We're looking for volunteers to write a
 Conda recipe to make this easy.
 
-## Singularity for Linux and Mac ##
+## Singularity for Linux ##
 
 Platform-specific installation instructions can be found at
 [Sylabs](https://www.sylabs.io).  SongExplorer has been tested with version 3.4 on
@@ -190,11 +191,11 @@ and then specify the full path to that file in the alias definition (e.g.
 "$HOME/songexplorer/configuration.pysh").
 
 
-## Docker for Windows (and Mac and Linux) ##
+## Docker for Windows and Mac ##
 
 Platform-specific installation instructions can be found at
 [Docker](http://www.docker.com).  Once you have it installed, open the Command
-Prompt on Windows (or the Terminal on Mac), and download the [SongExplorer image
+Prompt on Windows, or the Terminal on Mac, and download the [SongExplorer image
 from
 cloud.docker.com](https://cloud.docker.com/u/bjarthur/repository/docker/bjarthur/songexplorer):
 
@@ -239,8 +240,8 @@ Add to these definitions any directories you want to access using the `-v`
 flag.  You might also need to use the `-u` flag to specify your username or
 userid.  Optionally specify the current working directory with the `-w` flag.
 All together these options would look something like `docker run -v C:\:/C -w
-/C/Users/%USERNAME% ...` on Windows, and `docker run -v /Users:/Users -u $(id
--u) -w $HOME ...` on Mac.
+/C/Users/%USERNAME% ...` on Windows, and `docker run -v /Users:/Users -w
+$HOME ...` on Mac.
 
 In [System Configuration](#system-configuration) we'll make a copy of the
 default configuration file.  For now, you just need to decide where you're
