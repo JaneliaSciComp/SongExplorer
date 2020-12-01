@@ -140,14 +140,6 @@ isbinary congruence_parallelize
 [[ "$gui_spectrogram_units" == mHz || "$gui_spectrogram_units" == Hz || "$gui_spectrogram_units" == kHz || "$gui_spectrogram_units" == MHz ]] || \
       echo WARNING: gui_spectrogram_units should be "mHz", "Hz", "kHz", or "MHz"
 
-readarray where_vars < <(set | grep _where=  )
-for var in "${where_vars[@]}"; do
-  lhs=${var%%=*}
-  (( "$lhs" == local )) || (( "$lhs" == server )) || (( "$lhs" == cluster )) || \
-        echo WARNING: $var should be "local", "server", or "cluster"
-done
-unset where_vars
-
 resource_kinds=(ncpu_cores ngpu_cards ngigabytes_memory)
 for resource_kind in "${resource_kinds[@]}"; do
   readarray job_resources < <(set | grep ${resource_kind}= | grep -v local_ | grep -v server_)

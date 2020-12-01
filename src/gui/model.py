@@ -215,6 +215,25 @@ def init(_bokeh_document, _configuration_file):
 
     exec(open(_configuration_file).read(), globals())
 
+    def is_local_server_or_cluster(varname, varvalue):
+        if varvalue not in ['local', 'server', 'cluster']:
+            bokehlog.info("WARNING: "+varname+" is '"+varvalue+"' but needs to be one of 'local', 'server', or 'cluster'")
+
+    is_local_server_or_cluster("detect_where", detect_where)
+    is_local_server_or_cluster("misses_where", misses_where)
+    is_local_server_or_cluster("train_where", train_where)
+    is_local_server_or_cluster("generalize_where", generalize_where)
+    is_local_server_or_cluster("xvalidate_where", xvalidate_where)
+    is_local_server_or_cluster("mistakes_where", mistakes_where)
+    is_local_server_or_cluster("activations_where", activations_where)
+    is_local_server_or_cluster("cluster_where", cluster_where)
+    is_local_server_or_cluster("accuracy_where", accuracy_where)
+    is_local_server_or_cluster("freeze_where", freeze_where)
+    is_local_server_or_cluster("classify_where", classify_where)
+    is_local_server_or_cluster("ethogram_where", ethogram_where)
+    is_local_server_or_cluster("compare_where", compare_where)
+    is_local_server_or_cluster("congruence_where", congruence_where)
+
     configuration_file = _configuration_file
     audio_tic_rate=int(audio_tic_rate)
     audio_nchannels=int(audio_nchannels)
