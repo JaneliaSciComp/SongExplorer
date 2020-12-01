@@ -26,7 +26,6 @@ print('cluster_algorithm: '+cluster_algorithm)
 print('cluster_ndims: '+cluster_ndims)
 print('cluster_parallelize: '+cluster_parallelize)
 these_layers = [int(x) for x in these_layers.split(',')]
-assert len(these_layers)>0
 pca_fraction_variance_to_retain = float(pca_fraction_variance_to_retain)
 pca_batch_size = int(pca_batch_size)
 cluster_algorithm = cluster_algorithm.lower()

@@ -24,6 +24,7 @@ predicted_events = {}
 for csv_file in csv_files:
   with open(csv_file) as fid:
     csvreader = csv.reader(fid)
+    unused_rows = False
     for row in csvreader:
       if row[3]=='detected':
         if row[0] not in detected_events:
@@ -34,9 +35,18 @@ for csv_file in csv_files:
           predicted_events[row[0]] = []
         predicted_events[row[0]].append(row)
       else:
-        assert False
+        unused_rows = True
+    if unused_rows:
+      print("WARNING: "+csv_file+" has some rows which are neither detected nor predicted events")
 
-assert detected_events.keys() == predicted_events.keys()
+if detected_events.keys() != predicted_events.keys():
+  d_not_p = set(detected_events.keys()) - set(predicted_events.keys())
+  if len(d_not_p)>0:
+    print("ERROR: "+str(d_not_p)+" has detected events but not predicted events")
+  p_not_d = set(predicted_events.keys()) - set(detected_events.keys())
+  if len(p_not_d)>0:
+    print("ERROR: "+str(p_not_d)+" has predicted events but not detected events")
+  exit()
 
 for wavfile in detected_events.keys():
   start_times, stop_times, ifeature = combine_events(

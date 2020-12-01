@@ -39,21 +39,31 @@ audio_tic_rate = int(audio_tic_rate)
 audio_nchannels = int(audio_nchannels)
 time_sigma_signal = int(time_sigma_signal)
 time_sigma_noise = int(time_sigma_noise)
-time_smooth = int(float(time_smooth_ms)/1000*audio_tic_rate)
-frequency_n = int(float(frequency_n_ms)/1000*audio_tic_rate)
+time_smooth = round(float(time_smooth_ms)/1000*audio_tic_rate)
+frequency_n = round(float(frequency_n_ms)/1000*audio_tic_rate)
 frequency_nw = int(frequency_nw)
 frequency_p_signal = float(frequency_p_signal)
 frequency_p_noise = float(frequency_p_noise)
-frequency_smooth = int(float(frequency_smooth_ms)/1000*audio_tic_rate) // (frequency_n//2)
+frequency_smooth = round(float(frequency_smooth_ms)/1000*audio_tic_rate) // (frequency_n//2)
 
 fs, song = spiowav.read(filename)
-assert fs==audio_tic_rate
-if audio_nchannels==1:
+if fs!=audio_tic_rate:
+  print("ERROR: sampling rate of WAV file (="+str(fs)+
+        ") is not the same as specified in the config file (="+str(audio_tic_rate)+")")
+  exit()
+
+if not (frequency_n & (frequency_n-1) == 0) or frequency_n == 0:
+  print("ERROR: 'freq N (msec)' should be a power of two when converted to sample ticks")
+  exit()
+
+if np.ndim(song)==1:
   song = np.expand_dims(song, axis=1)
 nsamples = np.shape(song)[0]
 nchannels = np.shape(song)[1]
-assert nchannels == audio_nchannels
-
+if nchannels != audio_nchannels:
+  print("ERROR: number of channels in WAV file (="+str(nchannels)+
+        ") is not the same as specified in the config file (="+str(audio_nchannels)+")")
+  exit()
 
 def bool2stamp(song_morphed, scale):
   timestamps_time = []
@@ -94,7 +104,6 @@ p_noise = 1/NFFT*frequency_p_noise
 selem = np.ones((frequency_smooth), dtype=np.uint8)
 
 chunk_size_samples = 1024*1024
-assert chunk_size_samples % N == 0
 
 timestamps_freq_signal = []
 timestamps_freq_noise = []

@@ -33,8 +33,14 @@ if len(argv)==9:
   labels,prevalences = argv[7:9]
   labels = np.array(labels.split(','))
   prevalences = np.array([float(x) for x in prevalences.split(',')])
-  assert len(labels)==len(prevalences)==len(model_labels)
-  assert set(labels)==set(model_labels)
+  if len(labels) != len(prevalences):
+    print("ERROR: length of 'wanted words' (="+str(len(labels))+
+          ") must equal length of 'prevalences' (="+str(len(prevalences))+")")
+    exit()
+  if set(labels) != set(model_labels):
+    print("ERROR: 'wanted words' must be the same as "+
+          os.path.join(logdir,model,'vgg_labels.txt'))
+    exit()
   prevalences /= np.sum(prevalences)
   iimodel_labels = np.argsort(np.argsort(model_labels))
   ilabels = np.argsort(labels)

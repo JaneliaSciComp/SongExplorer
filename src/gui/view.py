@@ -992,8 +992,10 @@ def buttons_update():
         else:
             textinput.disabled=True
     if M.action==congruence and \
-            (validationfiles_string.value!='' or testfiles_string.value!=''):
-        okay=True
+            (validationfiles_string.value=='' and testfiles_string.value==''):
+        okay=False
+    if M.action==cluster and len(cluster_these_layers.value)==0:
+        okay=False
     doit.button_type="default"
     if okay:
         doit.disabled=False
