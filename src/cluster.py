@@ -133,7 +133,7 @@ else:
 
 if cluster_algorithm=="pca":
   def do_cluster(ilayer):
-    return None, activations_tocluster[ilayer][:,:cluster_ndims]
+    return activations_tocluster[ilayer][:,:cluster_ndims]
 
 
 elif cluster_algorithm=="tsne":
@@ -141,12 +141,12 @@ elif cluster_algorithm=="tsne":
 
   def do_cluster(ilayer):
     if ilayer in these_layers:
-      return None, TSNE(n_components=cluster_ndims, verbose=3, \
+      return TSNE(n_components=cluster_ndims, verbose=3, \
                         perplexity=tsne_perplexity, \
                         early_exaggeration=tsne_exaggeration \
                        ).fit_transform(activations_tocluster[ilayer])
     else:
-      return None, None
+      return None
 
 
 elif cluster_algorithm=="umap":
@@ -154,33 +154,27 @@ elif cluster_algorithm=="umap":
 
   def do_cluster(ilayer):
     if ilayer in these_layers:
-      fit = UMAP(n_components=cluster_ndims, verbose=3, \
-                 n_neighbors=umap_n_neighbors, \
-                 min_dist=umap_min_distance \
-                ).fit(activations_tocluster[ilayer])
-      return fit, fit.transform(activations_tocluster[ilayer])
+      return UMAP(n_components=cluster_ndims, verbose=3, \
+                  n_neighbors=umap_n_neighbors, \
+                  min_dist=umap_min_distance \
+                 ).fit_transform(activations_tocluster[ilayer])
     else:
-      return None, None
+      return None
 
 
 if cluster_parallelize:
   from multiprocessing import Pool
   with Pool(nlayers) as p:
-    result = p.map(do_cluster, range(len(activations_tocluster)))
-    fits, activations_clustered = zip(*result)
+    activations_clustered = p.map(do_cluster, range(len(activations_tocluster)))
 else:
-  fits = [None]*nlayers
   activations_clustered = [None]*nlayers
   for ilayer in range(nlayers):
     if ilayer not in these_layers:
       continue
     print('layer '+str(ilayer))
-    fit, activation_clustered = do_cluster(ilayer)
-    fits[ilayer] = fit
-    activations_clustered[ilayer] = activation_clustered
+    activations_clustered[ilayer] = do_cluster(ilayer)
 
 np.savez(os.path.join(groundtruth_directory, 'cluster'), \
          samples=samples,
          activations_clustered=activations_clustered,
-         fits_pca=fits_pca,
-         fits=fits)
+         fits_pca=fits_pca)
