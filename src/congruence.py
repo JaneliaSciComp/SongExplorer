@@ -309,6 +309,7 @@ def plot_file(fig, fig_venn, only_data, not_data):
   ax = fig.add_subplot(nrows,ncols,iplot)
   if len(sorted_hm)<4:
     ax_venn = fig_venn.add_subplot(nrows,ncols,iplot)
+    ax_venn.set_title(os.path.basename(csvbase), fontsize=8)
   xdata=['everyone', *['only '+(x if x!=pr else 'songexplorer') for x in sorted_hm]]
   ydata=only_data
   if len(sorted_hm)>2:
@@ -324,7 +325,6 @@ def plot_file(fig, fig_venn, only_data, not_data):
     venn3(subsets=[ydata[x] for x in idx],
           set_labels=[x if x!=pr else 'songexplorer' for x in sorted_hm],
           ax=ax_venn)
-  ax_venn.set_title(os.path.basename(csvbase), fontsize=8)
   ax.bar(xdata, ydata, color='k')
   ax.set_title(os.path.basename(csvbase), fontsize=8)
   ax.set_xticklabels(xdata, rotation=40, ha='right')
@@ -333,6 +333,7 @@ def plot_sumfiles(fig, fig_venn, only_data, not_data):
   ax = fig.add_subplot(nrows,ncols,1)
   if len(sorted_hm)<4:
     ax_venn = fig_venn.add_subplot(nrows,ncols,1)
+    ax_venn.set_title('all files', fontsize=8)
   xdata=['everyone', *['only '+(x if x!=pr else 'songexplorer') for x in sorted_hm]]
   ydata=only_data
   if len(sorted_hm)>2:
@@ -348,7 +349,6 @@ def plot_sumfiles(fig, fig_venn, only_data, not_data):
     venn3(subsets=[ydata[x] for x in idx],
           set_labels=[x if x!=pr else 'songexplorer' for x in sorted_hm],
           ax=ax_venn)
-  ax_venn.set_title('all files', fontsize=8)
   ax.bar(xdata, ydata, color='k')
   ax.set_xticklabels(xdata, rotation=40, ha='right')
   ax.set_title('all files', fontsize=8)
