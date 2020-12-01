@@ -106,6 +106,9 @@ while [[ $ireplicates =~ .*,.* ]] ; do
           --save_fingerprints=$save_fingerprints \
           --batch_size=$mini_batch"
 
+          #--subsample_word=mel-pulse,mel-notpulse \
+          #--subsample_skip=4096 \
+
     cmd=${cmd}" $expr $redirect $logdir/train_${ireplicate}r.log & "
 done
 
