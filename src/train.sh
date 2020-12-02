@@ -109,6 +109,11 @@ while [[ $ireplicates =~ .*,.* ]] ; do
           #--subsample_word=mel-pulse,mel-notpulse \
           #--subsample_skip=4096 \
 
+          #--partition_word=mel-pulse,mel-notpulse \
+          #--partition_n=4 \
+          #--partition_training_files=PS_20130625111709_ch10.wav,PS_20130625111709_ch3.wav,PS_20130625155828_ch10.wav,PS_20130625155828_ch11.wav,PS_20130625155828_ch3.wav,PS_20130625155828_ch7.wav,PS_20130625155828_ch8.wav,PS_20130628144304_ch14.wav,PS_20130628144304_ch16.wav,PS_20130628144304_ch2.wav,PS_20130628144304_ch8.wav,PS_20130628165930_ch11.wav,PS_20130702114557_ch1.wav,PS_20130702114557_ch13.wav,PS_20130702114557_ch14.wav,PS_20130702144748_ch15.wav \
+          #--partition_validation_files=PS_20130625111709_ch7.wav,PS_20130625155828_ch6.wav,PS_20130628144304_ch15.wav,PS_20130702114557_ch10.wav \
+
     cmd=${cmd}" $expr $redirect $logdir/train_${ireplicate}r.log & "
 done
 

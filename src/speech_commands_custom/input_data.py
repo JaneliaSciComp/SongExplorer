@@ -275,10 +275,13 @@ class AudioProcessor(object):
     subsample_words = subsample_word.split(',')
     if '' in subsample_words:
       subsample_words.remove('')
+    partition_words = partition_word.split(',')
+    if '' in partition_words:
+      partition_words.remove('')
     for csv_path in gfile.Glob(search_path):
       annotation_reader = csv.reader(open(csv_path))
       annotation_list = list(annotation_reader)
-      if partition_word!='':
+      if len(partition_words)>0:
         random.shuffle(annotation_list)
       for (iannotation, annotation) in enumerate(annotation_list):
         wavfile=annotation[0]
@@ -290,7 +293,7 @@ class AudioProcessor(object):
         wav_path=os.path.join(os.path.dirname(csv_path),wavfile)
         if word in subsample_words and iannotation % subsample_skip != 0:
           continue
-        if partition_word==word:
+        if word in partition_words:
           if wavfile not in partition_training_files and \
              wavfile not in partition_validation_files:
             continue
@@ -319,7 +322,7 @@ class AudioProcessor(object):
           set_index = 'validation'
         elif wavfile in testing_files:
           set_index = 'testing'
-        elif partition_word == word:
+        elif word in partition_words:
           if wavfile in partition_validation_files:
             set_index = 'validation'
           elif wavfile in partition_training_files:
