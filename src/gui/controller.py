@@ -173,14 +173,16 @@ play_callback_code="""
 const aud = document.getElementById("context_audio")
 aud.src="data:audio/wav;base64,"+%r
 
-var x0 = line_red_context.data.x[0];
+var x0 = span_red_waveform.location;
 
 aud.ontimeupdate = function() {
-  line_red_context.data = { 'x': [x0+aud.currentTime, x0+aud.currentTime], 'y':[-1,0] };
+  span_red_waveform.location = x0+aud.currentTime
+  span_red_spectrogram.location = x0+aud.currentTime
 };
 
 aud.onended = function() {
-  line_red_context.data = { 'x': [x0, x0], 'y':[-1,0] };
+  span_red_waveform.location = x0
+  span_red_spectrogram.location = x0
 };
 
 const vid = document.getElementById("context_video")
@@ -212,10 +214,10 @@ def snippets_tap_callback(event):
     V.snippets_update(False)
     V.context_update()
 
-def context_doubletap_callback(event):
+def context_doubletap_callback(event, midpoint):
     x_tic = int(np.rint(event.x*M.audio_tic_rate))
     currfile = M.clustered_samples[M.isnippet]['file']
-    if event.y<0:
+    if event.y<midpoint:
         idouble_tapped_sample=-1
         if len(M.annotated_starts_sorted)>0:
             idouble_tapped_sample = np.searchsorted(M.annotated_starts_sorted, x_tic,
@@ -249,19 +251,20 @@ def context_doubletap_callback(event):
         if len(samples_shortest)>0:
             toggle_annotation(samples_shortest[0])
 
-def context_pan_start_callback(event):
+pan_start_x = pan_start_y = pan_start_sx = pan_start_sy = None
+
+def waveform_pan_start_callback(event):
     if M.state['labels'][M.ilabel]=='' or event.y>0:
         return
-    x_tic = int(np.rint(event.x*M.audio_tic_rate))
-    currfile = M.clustered_samples[M.isnippet]['file']
-    M.panned_sample = {'file':currfile, 'ticks':[x_tic,x_tic],
-                       'label':M.state['labels'][M.ilabel]}
-    V.quad_grey_context_pan.data.update(left=[x_tic/M.audio_tic_rate],
-                                        right=[x_tic/M.audio_tic_rate], top=[0],
-                                        bottom=[V.p_context.y_range.start +
-                                                V.p_context.y_range.range_padding])
+    global pan_start_x
+    pan_start_x = event.x
+    V.quad_grey_waveform_pan.data.update(left=[event.x],
+                                         right=[event.x],
+                                         top=[0],
+                                         bottom=[V.p_waveform.y_range.start +
+                                                 V.p_waveform.y_range.range_padding])
 
-def context_pan_callback(event):
+def waveform_pan_callback(event):
     if M.state['labels'][M.ilabel]=='':
         return
     x_tic = int(np.rint(event.x*M.audio_tic_rate))
@@ -269,15 +272,17 @@ def context_pan_callback(event):
     right_limit_tic = left_limit_tic + M.context_width_tic
     if x_tic < left_limit_tic or x_tic > right_limit_tic:
         return
-    M.panned_sample['ticks'][1]=x_tic
-    V.quad_grey_context_pan.data.update(right=[x_tic/M.audio_tic_rate])
+    V.quad_grey_waveform_pan.data.update(right=[event.x])
 
-def context_pan_end_callback(event):
+def waveform_pan_end_callback(event):
     if M.state['labels'][M.ilabel]=='':
         return
-    M.panned_sample['ticks'] = sorted(M.panned_sample['ticks'])
-    V.quad_grey_context_pan.data.update(left=[], right=[], top=[], bottom=[])
-    M.add_annotation(M.panned_sample)
+    V.quad_grey_waveform_pan.data.update(left=[], right=[], top=[], bottom=[])
+    x_tic0 = int(np.rint(event.x*M.audio_tic_rate))
+    x_tic1 = int(np.rint(pan_start_x*M.audio_tic_rate))
+    M.add_annotation({'file':M.clustered_samples[M.isnippet]['file'],
+                      'ticks':sorted([x_tic0,x_tic1]),
+                      'label':M.state['labels'][M.ilabel]})
 
 def zoom_context_callback(attr, old, new):
     M.context_width_ms = float(new)
@@ -364,19 +369,47 @@ def spectrogram_mousewheel_callback(event):
       M.spectrogram_length_ms = max(1, M.spectrogram_length_ms/2)
     V.context_update()
 
-spectrogram_pan_start_y = None
-
 def spectrogram_pan_start_callback(event):
-    global spectrogram_pan_start_y
-    spectrogram_pan_start_y = event.y
+    global pan_start_x, pan_start_y, pan_start_sx, pan_start_sy
+    pan_start_x, pan_start_y = event.x, event.y
+    pan_start_sx, pan_start_sy = event.sx, event.sy
+    V.quad_grey_spectrogram_pan.data.update(left=[event.x], right=[event.x],
+                                            top=[event.y], bottom=[event.y])
+
+def spectrogram_pan_callback(event):
+    if event.y < V.p_spectrogram.y_range.start or event.y > V.p_spectrogram.y_range.end: ###
+        return
+    x_tic = int(np.rint(event.x*M.audio_tic_rate))
+    left_limit_tic = M.context_midpoint_tic-M.context_width_tic//2 + M.context_offset_tic
+    right_limit_tic = left_limit_tic + M.context_width_tic
+    if x_tic < left_limit_tic or x_tic > right_limit_tic:
+        return
+    if abs(event.sx - pan_start_sx) < abs(event.sy - pan_start_sy):
+        V.quad_grey_spectrogram_pan.data.update(left=[V.p_spectrogram.x_range.start],
+                                                right=[V.p_spectrogram.x_range.end],
+                                                bottom=[pan_start_y],
+                                                top=[event.y])
+    elif M.state['labels'][M.ilabel]!='':
+        V.quad_grey_spectrogram_pan.data.update(left=[pan_start_x],
+                                                right=[event.x],
+                                                bottom=[V.p_spectrogram.y_range.start],
+                                                top=[V.p_spectrogram_y_range_midpoint])
     
 def spectrogram_pan_end_callback(event):
-    if event.y > spectrogram_pan_start_y:
-        M.spectrogram_low_hz = spectrogram_pan_start_y * M.spectrogram_freq_scale
-        M.spectrogram_high_hz = min(M.spectrogram_high_hz, event.y * M.spectrogram_freq_scale)
-    else:
-        M.spectrogram_low_hz = event.y * M.spectrogram_freq_scale
-        M.spectrogram_high_hz = spectrogram_pan_start_y * M.spectrogram_freq_scale
+    if abs(event.sx - pan_start_sx) < abs(event.sy - pan_start_sy):
+        if event.y > pan_start_y:
+            M.spectrogram_low_hz = pan_start_y * M.spectrogram_freq_scale
+            M.spectrogram_high_hz = min(M.spectrogram_high_hz, event.y * M.spectrogram_freq_scale)
+        else:
+            M.spectrogram_low_hz = event.y * M.spectrogram_freq_scale
+            M.spectrogram_high_hz = pan_start_y * M.spectrogram_freq_scale
+    elif M.state['labels'][M.ilabel]!='':
+      x_tic0 = int(np.rint(event.x*M.audio_tic_rate))
+      x_tic1 = int(np.rint(pan_start_x*M.audio_tic_rate))
+      M.add_annotation({'file':M.clustered_samples[M.isnippet]['file'],
+                        'ticks':sorted([x_tic0,x_tic1]),
+                        'label':M.state['labels'][M.ilabel]})
+    V.quad_grey_spectrogram_pan.data.update(left=[], right=[], top=[], bottom=[])
     V.context_update()
     
 def spectrogram_tap_callback(event):
@@ -400,6 +433,28 @@ def snippets_doubletap_callback(event):
     idouble_tapped_sample = M.nearest_samples[y_tic*M.nx + x_tic]
     toggle_annotation(idouble_tapped_sample)
 
+def _find_nearest_clustered_sample(history_idx):
+    M.isnippet = np.searchsorted(M.clustered_starts_sorted, \
+                                 M.history_stack[history_idx][1]['ticks'][0])
+    delta=0
+    while True:
+        if M.isnippet+delta < len(M.clustered_samples) and \
+                  M.clustered_samples[M.isnippet+delta]['file'] == \
+                  M.history_stack[history_idx][1]['file']:
+            M.isnippet += delta
+            break
+        elif M.isnippet-delta >= 0 and \
+                  M.clustered_samples[M.isnippet-delta]['file'] == \
+                  M.history_stack[history_idx][1]['file']:
+            M.isnippet -= delta
+            break
+        if M.isnippet+delta >= len(M.clustered_samples) and M.isnippet-delta < 0:
+            break
+        delta += 1
+    if M.clustered_samples[M.isnippet]['file'] != \
+            M.history_stack[history_idx][1]['file']:
+        bokehlog.info("WARNING: can't jump to undone annotation")
+
 def _undo_callback():
     time.sleep(0.5)
     if M.history_stack[M.history_idx][0]=='add':
@@ -418,10 +473,9 @@ def undo_callback():
         M.xcluster = M.ycluster = M.zcluster = np.nan
         M.isnippet = -1
         V.snippets_update(True)
-        M.isnippet = np.searchsorted(M.clustered_starts_sorted, \
-                                   M.history_stack[M.history_idx][1]['ticks'][0])
+        _find_nearest_clustered_sample(M.history_idx)
         M.context_offset_tic = M.history_stack[M.history_idx][1]['ticks'][0] - \
-                             M.clustered_starts_sorted[M.isnippet]
+                               M.clustered_starts_sorted[M.isnippet]
         M.context_offset_ms = M.context_offset_tic/M.audio_tic_rate*1000
         V.zoom_offset.value = str(M.context_offset_ms)
         V.context_update()
@@ -448,8 +502,7 @@ def redo_callback():
         M.xcluster = M.ycluster = M.zcluster = np.nan
         M.isnippet = -1
         V.snippets_update(True)
-        M.isnippet = np.searchsorted(M.clustered_starts_sorted, \
-                                   M.history_stack[M.history_idx-1][1]['ticks'][0])
+        _find_nearest_clustered_sample(M.history_idx-1)
         M.context_offset_tic = M.history_stack[M.history_idx-1][1]['ticks'][0] - \
                              M.clustered_starts_sorted[M.isnippet]
         M.context_offset_ms = M.context_offset_tic/M.audio_tic_rate*1000
