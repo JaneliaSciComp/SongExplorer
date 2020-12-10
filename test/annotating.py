@@ -69,7 +69,7 @@ wavfile = os.path.join(basepath, 'PS_20130625111709_ch3.wav')
 M.clustered_samples = [
   {'label': 'time', 'file': wavfile, 'ticks': [2, 5], 'kind': 'detected'},
   {'label': 'frequency', 'file': wavfile, 'ticks': [10, 15], 'kind': 'detected'},
-  {'label': 'ambient', 'file': wavfile, 'ticks': [20, 30], 'kind': 'detected'},
+  {'label': 'neither', 'file': wavfile, 'ticks': [20, 30], 'kind': 'detected'},
   ]
 M.clustered_starts_sorted = [x['ticks'][0] for x in M.clustered_samples]
 M.clustered_stops = [x['ticks'][1] for x in M.clustered_samples]

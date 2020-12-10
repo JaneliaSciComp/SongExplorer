@@ -50,7 +50,7 @@ check_file_exists ${wavpath_noext}-detect.log
 check_file_exists ${wavpath_noext}-detected.csv
 count_lines_with_word ${wavpath_noext}-detected.csv time 543
 count_lines_with_word ${wavpath_noext}-detected.csv frequency 45
-count_lines_with_word ${wavpath_noext}-detected.csv ambient 1138
+count_lines_with_word ${wavpath_noext}-detected.csv neither 1138
 
 context_ms=204.8
 shiftby_ms=0.0

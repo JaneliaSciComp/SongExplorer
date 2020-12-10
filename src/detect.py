@@ -66,17 +66,17 @@ if nchannels != audio_nchannels:
   exit()
 
 def bool2stamp(song_morphed, scale):
-  timestamps_time = []
+  intervals_time = []
   song_2D = np.array([song_morphed, song_morphed])
   song_labelled = skimage.measure.label(song_2D)
   song_props = skimage.measure.regionprops(song_labelled)
   ichannel_str = str(ichannel) if nchannels>1 else ''
   for iprop in range(len(song_props)):
-    timestamps_time.append(('',
+    intervals_time.append(('',
                             *scale(song_props[iprop]['bbox'][1],
                                    song_props[iprop]['bbox'][3]),
                             ichannel_str))
-  return timestamps_time
+  return intervals_time
 
 
 selem = np.ones((time_smooth), dtype=np.uint8)
@@ -87,11 +87,11 @@ for ichannel in range(nchannels):
 
   song_thresholded = np.abs(song[:,ichannel]-song_median) > time_sigma_signal*song_mad
   song_morphed = closing(song_thresholded, selem)
-  timestamps_time_signal = bool2stamp(song_morphed, lambda x,y: (x,y))
+  intervals_time_signal = bool2stamp(song_morphed, lambda x,y: (x,y))
 
   song_thresholded = np.abs(song[:,ichannel]-song_median) > time_sigma_noise*song_mad
   song_morphed = closing(song_thresholded, selem)
-  timestamps_time_noise = bool2stamp(song_morphed, lambda x,y: (x,y))
+  intervals_time_noise = bool2stamp(song_morphed, lambda x,y: (x,y))
 
 
 N = frequency_n
@@ -105,58 +105,58 @@ selem = np.ones((frequency_smooth), dtype=np.uint8)
 
 chunk_size_samples = 1024*1024
 
-timestamps_freq_signal = []
-timestamps_freq_noise = []
+intervals_freq_signal = []
+intervals_freq_noise = []
 for ichannel in range(nchannels):
   ioffset=0
   while ioffset < nsamples:
     ilast = min(nsamples, ioffset+chunk_size_samples)//N*N
     song_reshaped1 = np.reshape(song[ioffset : ilast, ichannel], (-1,N))
     f = utils.detect_lines(song_reshaped1, (NW, 2*NW), low_bias=True, NFFT=NFFT, p=p_signal)
-    timestamps_f1 = [2*i+0 for (i,ii) in enumerate(f) if ii!=()]
+    intervals_f1 = [2*i+0 for (i,ii) in enumerate(f) if ii!=()]
 
     ilast -= N//2
     song_reshaped2 = np.reshape(song[ioffset+N//2 : ilast, ichannel], (-1,N))
     f = utils.detect_lines(song_reshaped2, (NW, 2*NW), low_bias=True, NFFT=NFFT, p=p_signal)
-    timestamps_f2 = [2*i+1 for (i,ii) in enumerate(f) if ii!=()]
+    intervals_f2 = [2*i+1 for (i,ii) in enumerate(f) if ii!=()]
 
     song_thresholded = np.zeros((len(song_reshaped1)+len(song_reshaped2)), dtype=np.uint8)
-    song_thresholded[np.concatenate((timestamps_f1,timestamps_f2)).astype(np.int)] = 1
+    song_thresholded[np.concatenate((intervals_f1,intervals_f2)).astype(np.int)] = 1
     song_morphed = closing(opening(song_thresholded, selem), selem)
-    timestamps_freq_signal += bool2stamp(song_morphed,
+    intervals_freq_signal += bool2stamp(song_morphed,
                                          lambda x,y: (ioffset+x*N//2-N//4, ioffset+y*N//2+N//4))
 
     ilast = min(nsamples, ioffset+chunk_size_samples)//N*N
     song_reshaped1 = np.reshape(song[ioffset : ilast, ichannel], (-1,N))
     f = utils.detect_lines(song_reshaped1, (NW, 2*NW), low_bias=True, NFFT=NFFT, p=p_noise)
-    timestamps_f1 = [2*i+0 for (i,ii) in enumerate(f) if ii!=()]
+    intervals_f1 = [2*i+0 for (i,ii) in enumerate(f) if ii!=()]
 
     ilast -= N//2
     song_reshaped2 = np.reshape(song[ioffset+N//2 : ilast, ichannel], (-1,N))
     f = utils.detect_lines(song_reshaped2, (NW, 2*NW), low_bias=True, NFFT=NFFT, p=p_noise)
-    timestamps_f2 = [2*i+1 for (i,ii) in enumerate(f) if ii!=()]
+    intervals_f2 = [2*i+1 for (i,ii) in enumerate(f) if ii!=()]
 
     song_thresholded = np.zeros((len(song_reshaped1)+len(song_reshaped2)), dtype=np.uint8)
-    song_thresholded[np.concatenate((timestamps_f1,timestamps_f2)).astype(np.int)] = 1
+    song_thresholded[np.concatenate((intervals_f1,intervals_f2)).astype(np.int)] = 1
     song_morphed = closing(opening(song_thresholded, selem), selem)
-    timestamps_freq_noise += bool2stamp(song_morphed,
+    intervals_freq_noise += bool2stamp(song_morphed,
                                         lambda x,y: (ioffset+x*N//2-N//4, ioffset+y*N//2+N//4))
 
     ioffset += chunk_size_samples
 
 
-start_times, stop_times, ifeature = combine_events(
-      timestamps_time_noise, timestamps_freq_noise,
+start_times_neither, stop_times_neither, ifeature = combine_events(
+      intervals_time_noise, intervals_freq_noise,
       lambda x,y: np.logical_and(np.logical_not(x), np.logical_not(y)))
 
 
 basename = os.path.basename(filename)
 with open(os.path.splitext(filename)[0]+'-detected.csv', 'w') as fid:
   csvwriter = csv.writer(fid)
-  for i in timestamps_time_signal:
+  for i in intervals_time_signal:
     csvwriter.writerow([basename,i[1],i[2],'detected','time'+i[3]])
-  for i in timestamps_freq_signal:
+  for i in intervals_freq_signal:
     csvwriter.writerow([basename,i[1],i[2],'detected','frequency'+i[3]])
   csvwriter.writerows(zip(cycle([basename]), \
-                          start_times[:ifeature], stop_times[:ifeature], \
-                          cycle(['detected']), cycle(['ambient'])))
+                          start_times_neither[:ifeature], stop_times_neither[:ifeature], \
+                          cycle(['detected']), cycle(['neither'])))

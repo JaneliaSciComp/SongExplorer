@@ -1739,7 +1739,7 @@ def wizard_callback(wizard):
         wantedwords=[]
         for i in range(M.audio_nchannels):
             i_str = str(i) if M.audio_nchannels>1 else ''
-            wantedwords.append("time"+i_str+",frequency"+i_str+",ambient"+i_str)
+            wantedwords.append("time"+i_str+",frequency"+i_str+",neither"+i_str)
         V.wantedwords_string.value=','.join(wantedwords)
         V.labeltypes_string.value="detected"
         V.nsteps_string.value="0"
