@@ -254,36 +254,64 @@ def context_doubletap_callback(event, midpoint):
 pan_start_x = pan_start_y = pan_start_sx = pan_start_sy = None
 
 def waveform_pan_start_callback(event):
-    if M.state['labels'][M.ilabel]=='' or event.y>0:
-        return
-    global pan_start_x
-    pan_start_x = event.x
-    V.quad_grey_waveform_pan.data.update(left=[event.x],
-                                         right=[event.x],
-                                         top=[0],
-                                         bottom=[V.p_waveform.y_range.start +
-                                                 V.p_waveform.y_range.range_padding])
+    global pan_start_x, pan_start_y, pan_start_sx, pan_start_sy
+    pan_start_x, pan_start_y = event.x, event.y
+    pan_start_sx, pan_start_sy = event.sx, event.sy
+    V.quad_grey_waveform_pan.data.update(left=[event.x], right=[event.x],
+                                            top=[event.y], bottom=[event.y])
 
 def waveform_pan_callback(event):
-    if M.state['labels'][M.ilabel]=='':
-        return
     x_tic = int(np.rint(event.x*M.audio_tic_rate))
     left_limit_tic = M.context_midpoint_tic-M.context_width_tic//2 + M.context_offset_tic
     right_limit_tic = left_limit_tic + M.context_width_tic
     if x_tic < left_limit_tic or x_tic > right_limit_tic:
         return
-    V.quad_grey_waveform_pan.data.update(right=[event.x])
+    if abs(event.sx - pan_start_sx) < abs(event.sy - pan_start_sy):
+        ichannel_start = round((pan_start_y * M.audio_nchannels - M.audio_nchannels + 1) / -2)
+        ichannel_end = round((event.y * M.audio_nchannels - M.audio_nchannels + 1) / -2)
+        if ichannel_start != ichannel_end:
+            return
+        V.quad_grey_waveform_pan.data.update(left=[V.p_waveform.x_range.start],
+                                                right=[V.p_waveform.x_range.end],
+                                                bottom=[pan_start_y],
+                                                top=[event.y])
+    elif pan_start_y<0 and M.state['labels'][M.ilabel]!='':
+        if event.y < V.p_waveform.y_range.start or event.y > V.p_waveform.y_range.end:
+            return
+        V.quad_grey_waveform_pan.data.update(left=[pan_start_x],
+                                                right=[event.x],
+                                                bottom=[V.p_waveform.y_range.start],
+                                                top=[0])
+    
+def _waveform_scale(low_y, high_y, ichannel):
+    delta = M.waveform_high[ichannel] - M.waveform_low[ichannel]
+    return [(x+1)/2 * delta + M.waveform_low[ichannel] for x in [low_y, high_y]]
 
 def waveform_pan_end_callback(event):
-    if M.state['labels'][M.ilabel]=='':
-        return
+    if abs(event.sx - pan_start_sx) < abs(event.sy - pan_start_sy):
+        ichannel = round((pan_start_y * M.audio_nchannels - M.audio_nchannels + 1) / -2)
+        event_wy_start = pan_start_y * M.audio_nchannels - M.audio_nchannels + 1 + 2*ichannel
+        event_wy_end = event.y * M.audio_nchannels - M.audio_nchannels + 1 + 2*ichannel
+        if event.y > pan_start_y:
+            M.waveform_low[ichannel], M.waveform_high[ichannel] = \
+                    _waveform_scale(event_wy_start, min(event_wy_end, 1), ichannel)
+        else:
+            M.waveform_low[ichannel], M.waveform_high[ichannel] = \
+                    _waveform_scale(max(event_wy_end, -1), event_wy_start, ichannel)
+    elif pan_start_y<0 and M.state['labels'][M.ilabel]!='':
+        x_tic0 = int(np.rint(event.x*M.audio_tic_rate))
+        x_tic1 = int(np.rint(pan_start_x*M.audio_tic_rate))
+        M.add_annotation({'file':M.clustered_samples[M.isnippet]['file'],
+                          'ticks':sorted([x_tic0,x_tic1]),
+                          'label':M.state['labels'][M.ilabel]})
     V.quad_grey_waveform_pan.data.update(left=[], right=[], top=[], bottom=[])
-    x_tic0 = int(np.rint(event.x*M.audio_tic_rate))
-    x_tic1 = int(np.rint(pan_start_x*M.audio_tic_rate))
-    M.add_annotation({'file':M.clustered_samples[M.isnippet]['file'],
-                      'ticks':sorted([x_tic0,x_tic1]),
-                      'label':M.state['labels'][M.ilabel]})
+    V.context_update()
 
+def waveform_tap_callback(event):
+    M.waveform_low = [-1]*M.audio_nchannels
+    M.waveform_high = [1]*M.audio_nchannels
+    V.context_update()
+    
 def zoom_context_callback(attr, old, new):
     M.context_width_ms = float(new)
     M.context_width_tic = int(np.rint(M.context_width_ms/1000*M.audio_tic_rate))

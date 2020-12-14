@@ -767,17 +767,17 @@ def context_update():
 
                     scales[ichannel]=np.minimum(np.iinfo(np.int16).max-1,
                                                 np.max(np.abs(wavi_trimmed)))
+                    wavi_scaled = wavi_trimmed/scales[ichannel]
+                    icliplow = np.where((wavi_scaled < M.waveform_low[ichannel]))[0]
+                    icliphigh = np.where((wavi_scaled > M.waveform_high[ichannel]))[0]
+                    wavi_zoomed = np.copy(wavi_scaled)
+                    wavi_zoomed[icliplow] = M.waveform_low[ichannel]
+                    wavi_zoomed[icliphigh] = M.waveform_high[ichannel]
+                    ywavs[ichannel] = (wavi_zoomed - M.waveform_low[ichannel]) / \
+                                      (M.waveform_high[ichannel] - M.waveform_low[ichannel]) \
+                                      * 2 - 1
                     xwavs[ichannel]=[(istart+i*context_decimate_by)/M.audio_tic_rate \
                                      for i in range(len(wavi_trimmed))]
-                    ywavs[ichannel]=wavi_trimmed/scales[ichannel]
-                    if ichannel==0:
-                        song_max = np.max(wavi_trimmed) / scales[ichannel]
-                        song_max /= M.audio_nchannels
-                        song_max += (M.audio_nchannels-1-2*ichannel) / M.audio_nchannels
-                    if ichannel==M.audio_nchannels-1:
-                        song_min = np.min(wavi_trimmed) / scales[ichannel]
-                        song_min /= M.audio_nchannels
-                        song_min += (M.audio_nchannels-1-2*ichannel) / M.audio_nchannels
                 else:
                     xwavs[ichannel] = [istart/M.audio_tic_rate,
                                        (istart+(context_pix-1)*context_decimate_by)/M.audio_tic_rate]
@@ -826,7 +826,7 @@ def context_update():
                     if M.waveform:
                         quad_fuchsia_waveform.data.update(left=[L/M.audio_tic_rate],
                                                           right=[R/M.audio_tic_rate],
-                                                          top=[song_max],
+                                                          top=[1],
                                                           bottom=[0])
                     if M.spectrogram:
                         quad_fuchsia_spectrogram.data.update(left=[L/M.audio_tic_rate],
@@ -889,7 +889,6 @@ def context_update():
             span_red_spectrogram.location=0
             span_red_spectrogram.visible=False
         play_callback.code = C.play_callback_code % ("", "")
-        song_min = song_max = np.nan
 
     for ichannel in range(M.audio_nchannels):
         xdata = xwavs[ichannel]
@@ -915,17 +914,17 @@ def context_update():
     if M.waveform:
         quad_grey_waveform_clustered.data.update(left=left_clustered,
                                                  right=right_clustered,
-                                                 top=[song_max]*len(left_clustered),
+                                                 top=[1]*len(left_clustered),
                                                  bottom=[0]*len(left_clustered))
         quad_grey_waveform_annotated.data.update(left=left_annotated,
                                                  right=right_annotated,
                                                  top=[0]*len(left_annotated),
-                                                 bottom=[song_min]*len(left_annotated))
+                                                 bottom=[-1]*len(left_annotated))
         label_source_waveform_clustered.data.update(x=xlabel_clustered,
-                                                    y=[song_max]*len(xlabel_clustered),
+                                                    y=[1]*len(xlabel_clustered),
                                                     text=tlabel_clustered)
         label_source_waveform_annotated.data.update(x=xlabel_annotated,
-                                                    y=[song_min]*len(xlabel_annotated),
+                                                    y=[-1]*len(xlabel_annotated),
                                                     text=tlabel_annotated)
     if M.spectrogram:
         quad_grey_spectrogram_clustered.data.update(left=left_clustered,
@@ -1215,7 +1214,9 @@ def init(_bokeh_document):
     else:
         p_waveform.xaxis.axis_label = 'Time (sec)'
     p_waveform.yaxis.visible = False
-    p_waveform.x_range.range_padding = 0.0
+    p_waveform.x_range.range_padding = p_waveform.y_range.range_padding = 0.0
+    p_waveform.y_range.start = -1
+    p_waveform.y_range.end = 1
     p_waveform.title.text=' '
 
     span_red_waveform = Span(location=0, dimension='height', line_color='red')
@@ -1263,6 +1264,7 @@ def init(_bokeh_document):
     p_waveform.on_event(PanStart, C.waveform_pan_start_callback)
     p_waveform.on_event(Pan, C.waveform_pan_callback)
     p_waveform.on_event(PanEnd, C.waveform_pan_end_callback)
+    p_waveform.on_event(Tap, C.waveform_tap_callback)
 
     p_snippets.on_event(DoubleTap, C.snippets_doubletap_callback)
 
