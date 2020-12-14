@@ -1095,7 +1095,11 @@ def wordcounts_update():
                               os.listdir(os.path.join(groundtruth_folder.value, subdir))):
             filepath = os.path.join(groundtruth_folder.value, subdir, csvfile)
             if os.path.getsize(filepath) > 0:
-                dfs.append(pd.read_csv(filepath, header=None, index_col=False))
+                df = pd.read_csv(filepath, header=None, index_col=False)
+                if 5<=len(df.columns)<=6:
+                    dfs.append(df)
+                else:
+                    bokehlog.info("WARNING: "+csvfile+" is not in the correct format")
     if dfs:
         df = pd.concat(dfs)
         M.kinds = sorted(set(df[3]))
