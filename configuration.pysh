@@ -158,16 +158,18 @@ congruence_ngpu_cards=-1
 congruence_ngigabytes_memory=-1
 congruence_cluster_flags=""
 
-# used by `generalize` and `xvalidate` to simultaneously train multiple models on one GPU
+# simultaneously train multiple models on one GPU
 models_per_job=1
 
 # use incremental PCA to conserve memory when clustering if >0
 pca_batch_size=0 
 
-# paralellizing is faster but requires more RAM
-cluster_parallelize=0
-accuracy_parallelize=1
-congruence_parallelize=1
+# parallelizing is faster but requires more RAM.
+# use -1 to automatically use all CPU cores, 0 to not parallelize at all, 
+# or a positive integer to manually specify how many CPU cores to use.
+cluster_parallelize=-1
+accuracy_parallelize=-1
+congruence_parallelize=-1
 
 # how many points to use for the precision-recall and sensitivity-specificity curves
 nprobabilities=20

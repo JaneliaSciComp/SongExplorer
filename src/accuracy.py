@@ -32,7 +32,7 @@ print('nprobabilities: '+nprobabilities)
 print('accuracy_parallelize: '+accuracy_parallelize)
 error_ratios = [float(x) for x in error_ratios.split(',')]
 nprobabilities = int(nprobabilities)
-accuracy_parallelize=bool(int(accuracy_parallelize))
+accuracy_parallelize=int(accuracy_parallelize)
 
 train_accuracy, train_loss, train_time, train_step, \
       validation_precision, validation_recall, validation_accuracy, \
@@ -478,9 +478,10 @@ def doit(key_to_plot, ckpt):
   plt.close()
   return 1
 
-if accuracy_parallelize:
+if accuracy_parallelize!=0:
   from multiprocessing import Pool
-  pool = Pool()
+  nprocs = os.cpu_count() if accuracy_parallelize==-1 else accuracy_parallelize
+  pool = Pool(nprocs)
   results = []
 
 for key_to_plot in accuracies:
@@ -488,12 +489,12 @@ for key_to_plot in accuracies:
                filter(lambda x: 'validation' in x and x.endswith('.npz'), \
                       os.listdir(os.path.join(logdir,key_to_plot)))]:
 
-    if accuracy_parallelize:
+    if accuracy_parallelize!=0:
       results.append(pool.apply_async(doit, (key_to_plot,ckpt)))
     else:
       doit(key_to_plot, ckpt)
 
-if accuracy_parallelize:
+if accuracy_parallelize!=0:
   for result in results:
     result.get()
   pool.close()

@@ -35,7 +35,7 @@ print('congruence_parallelize: '+congruence_parallelize)
 wavfiles=set([os.path.basename(x) for x in wavfiles.split(',')])
 nprobabilities=int(nprobabilities)
 audio_tic_rate=int(audio_tic_rate)
-congruence_parallelize=bool(int(congruence_parallelize))
+congruence_parallelize=int(congruence_parallelize)
 
 wavdirs = {}
 for subdir in filter(lambda x: os.path.isdir(os.path.join(basepath,x)), \
@@ -248,9 +248,10 @@ def doit(intervals):
       
   return everyone, onlyone_tic, notone_tic, onlyone_word, notone_word
 
-if congruence_parallelize:
+if congruence_parallelize!=1:
   from multiprocessing import Pool
-  pool = Pool()
+  nprocs = os.cpu_count() if congruence_parallelize==-1 else congruence_parallelize
+  pool = Pool(nprocs)
 
 everyone = {}
 onlyone_tic = {}
@@ -297,7 +298,7 @@ for pr in precision_recalls:
         intervals[human] = interval(*[[x[1],x[2]] for _,x in \
                                           timestamps[word][csvbase][annotator_key].iterrows()])
       intervals[pr] &= interval([annotated_left, annotated_right])
-      if congruence_parallelize:
+      if congruence_parallelize!=0:
         everyone[pr][word][csvbase] = pool.apply_async(doit, (intervals,))
       else:
         everyone[pr][word][csvbase], \
@@ -380,7 +381,7 @@ for pr in precision_recalls:
       predicted_key = '-predicted-'+pr+'.csv'
       if predicted_key not in timestamps[word][csvbase]:
         continue
-      if congruence_parallelize:
+      if congruence_parallelize!=0:
         everyone[pr][word][csvbase], \
             onlyone_tic[pr][word][csvbase], notone_tic[pr][word][csvbase], \
             onlyone_word[pr][word][csvbase], notone_word[pr][word][csvbase] = \
@@ -499,7 +500,7 @@ for pr in precision_recalls:
                                                    for x in f]))
     roc_table_word[word][pr]['everyone'] = sum([len(f) for f in everyone[pr][word].values()])
 
-if congruence_parallelize:
+if congruence_parallelize!=0:
   pool.close()
 
 def plot_versus_thresholds(roc_table, kind):

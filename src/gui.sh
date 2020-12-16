@@ -121,6 +121,9 @@ isinteger compare_ngigabytes_memory
 isinteger congruence_ncpu_cores
 isinteger congruence_ngpu_cards
 isinteger congruence_ngigabytes_memory
+isinteger accuracy_parallelize
+isinteger cluster_parallelize
+isinteger congruence_parallelize
 
 isbinary() {
   binary_re='^[0-1]$'
@@ -133,9 +136,6 @@ isbinary classify_gpu
 isbinary generalize_gpu
 isbinary train_gpu
 isbinary xvalidate_gpu
-isbinary accuracy_parallelize
-isbinary cluster_parallelize
-isbinary congruence_parallelize
 
 [[ "$gui_spectrogram_units" == mHz || "$gui_spectrogram_units" == Hz || "$gui_spectrogram_units" == kHz || "$gui_spectrogram_units" == MHz ]] || \
       echo WARNING: gui_spectrogram_units should be "mHz", "Hz", "kHz", or "MHz"

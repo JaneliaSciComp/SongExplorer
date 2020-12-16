@@ -30,7 +30,7 @@ pca_fraction_variance_to_retain = float(pca_fraction_variance_to_retain)
 pca_batch_size = int(pca_batch_size)
 cluster_algorithm = cluster_algorithm.lower()
 cluster_ndims = int(cluster_ndims)
-cluster_parallelize = bool(int(cluster_parallelize))
+cluster_parallelize = int(cluster_parallelize)
 if cluster_algorithm=="pca":
   None
 elif cluster_algorithm=="tsne":
@@ -161,9 +161,10 @@ elif cluster_algorithm=="umap":
       return None
 
 
-if cluster_parallelize:
+if cluster_parallelize!=0:
   from multiprocessing import Pool
-  with Pool(nlayers) as p:
+  nprocs = os.cpu_count() if cluster_parallelize==-1 else cluster_parallelize
+  with Pool(min(nprocs,nlayers)) as p:
     activations_clustered = p.map(do_cluster, range(len(activations_tocluster)))
 else:
   activations_clustered = [None]*nlayers
