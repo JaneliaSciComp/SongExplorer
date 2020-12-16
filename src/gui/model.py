@@ -371,7 +371,7 @@ def init(_bokeh_document, _configuration_file):
                        'cluster_algorithm':'UMAP 2D', \
                        'cluster_these_layers':['0'], \
                        'connection_type':'plain', \
-                       'precision_recall_ratios':'0.5,1,2', \
+                       'precision_recall_ratios':'1.0', \
                        'context_ms':'204.8', \
                        'shiftby_ms':'0.0', \
                        'representation':'mel-cepstrum', \
