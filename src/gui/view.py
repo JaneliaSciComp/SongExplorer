@@ -660,6 +660,9 @@ def nparray2base64mp4(filename, start_sec, stop_sec):
 # ditto for _doit_callback() and _groundtruth_update()
 # see https://discourse.bokeh.org/t/bokeh-server-is-it-possible-to-push-updates-to-js-in-the-middle-of-a-python-callback/3455/4
 
+def reset_video():
+    play_callback.code = C.play_callback_code % ("", "")
+
 def __context_update(wavi, tapped_sample, istart_bounded, ilength):
     if video_toggle.active:
         sample_basename=os.path.basename(tapped_sample)
@@ -888,7 +891,7 @@ def context_update():
             quad_fuchsia_spectrogram.data.update(left=[], right=[], top=[], bottom=[])
             span_red_spectrogram.location=0
             span_red_spectrogram.visible=False
-        play_callback.code = C.play_callback_code % ("", "")
+        reset_video()
 
     for ichannel in range(M.audio_nchannels):
         xdata = xwavs[ichannel]
@@ -1047,15 +1050,23 @@ def buttons_update():
                         if cluster_algorithm.value.startswith('UMAP') else True
             else:
                 textinput.disabled=False
-            if textinput.disabled==False and textinput.value=='' and \
-                    textinput not in [testfiles_string, restore_from_string] and \
-                    (M.action!=classify or \
-                     textinput not in [wantedwords_string, prevalences_string]):
-                okay=False
+            if textinput.disabled==False and textinput.value=='':
+                if M.action==classify:
+                    if textinput not in [wantedwords_string, prevalences_string]:
+                        okay=False
+                elif M.action==congruence:
+                    if textinput not in [validationfiles_string, testfiles_string]:
+                        okay=False
+                else:
+                    if textinput not in [testfiles_string, restore_from_string]:
+                        okay=False
         else:
             textinput.disabled=True
+    if M.action==classify and \
+            prevalences_string.value!='' and wantedwords_string.value=='':
+        okay=False
     if M.action==congruence and \
-            (validationfiles_string.value=='' and testfiles_string.value==''):
+            validationfiles_string.value=='' and testfiles_string.value=='':
         okay=False
     if M.action==cluster and len(cluster_these_layers.value)==0:
         okay=False
@@ -1418,9 +1429,11 @@ def init(_bokeh_document):
                                        span_red_spectrogram=span_red_spectrogram),
                              code=C.play_callback_code % ("",""))
     play.js_on_event(ButtonClick, play_callback)
+    play.on_change('disabled', lambda a,o,n: reset_video())
+    play.js_on_change('disabled', play_callback)
 
     video_toggle = Toggle(label='video', active=False, disabled=True)
-    video_toggle.on_click(context_update)
+    video_toggle.on_click(lambda x: context_update())
 
     video_div = Div(text="""<video id="context_video"></video>""", width=0, height=0)
 
