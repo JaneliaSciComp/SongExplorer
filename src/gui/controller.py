@@ -9,6 +9,7 @@ import threading
 import csv
 import re
 import asyncio
+import math
 
 bokehlog = logging.getLogger("songexplorer") 
 #class Object(object):
@@ -389,12 +390,18 @@ def spectrogram_mousewheel_callback(event):
     global spectrogram_mousewheel_last_change
     this_change = time.time()
     if this_change-spectrogram_mousewheel_last_change < 0.5:
-      return
+        return
+    if not event.y:
+        return
+    ichannel = M.audio_nchannels-1 - int(np.floor(event.y))
+    if ichannel < 0 or ichannel >= M.audio_nchannels:
+        return
     spectrogram_mousewheel_last_change = this_change
     if event.delta<0:
-      M.spectrogram_length_ms = min(float(V.context_ms_string.value), M.spectrogram_length_ms*2)
+      M.spectrogram_length_ms[ichannel] = min(float(V.context_ms_string.value),
+                                              M.spectrogram_length_ms[ichannel]*2)
     else:
-      M.spectrogram_length_ms = max(1, M.spectrogram_length_ms/2)
+      M.spectrogram_length_ms[ichannel] = max(1, M.spectrogram_length_ms[ichannel]/2)
     V.context_update()
 
 def spectrogram_pan_start_callback(event):
@@ -405,7 +412,7 @@ def spectrogram_pan_start_callback(event):
                                             top=[event.y], bottom=[event.y])
 
 def spectrogram_pan_callback(event):
-    if event.y < V.p_spectrogram.y_range.start or event.y > V.p_spectrogram.y_range.end: ###
+    if event.y < math.floor(pan_start_y) or event.y > math.ceil(pan_start_y):
         return
     x_tic = int(np.rint(event.x*M.audio_tic_rate))
     left_limit_tic = M.context_midpoint_tic-M.context_width_tic//2 + M.context_offset_tic
@@ -421,16 +428,23 @@ def spectrogram_pan_callback(event):
         V.quad_grey_spectrogram_pan.data.update(left=[pan_start_x],
                                                 right=[event.x],
                                                 bottom=[V.p_spectrogram.y_range.start],
-                                                top=[V.p_spectrogram_y_range_midpoint])
+                                                top=[M.audio_nchannels/2])
     
 def spectrogram_pan_end_callback(event):
     if abs(event.sx - pan_start_sx) < abs(event.sy - pan_start_sy):
+        ichannel = M.audio_nchannels-1 - int(np.floor(pan_start_y))
+        freq_range = M.spectrogram_high_hz[ichannel] - M.spectrogram_low_hz[ichannel]
+        old_low_hz = M.spectrogram_low_hz[ichannel]
         if event.y > pan_start_y:
-            M.spectrogram_low_hz = pan_start_y * M.spectrogram_freq_scale
-            M.spectrogram_high_hz = min(M.spectrogram_high_hz, event.y * M.spectrogram_freq_scale)
+            M.spectrogram_low_hz[ichannel] = (pan_start_y - int(pan_start_y)) * \
+                                             freq_range + old_low_hz
+            M.spectrogram_high_hz[ichannel] = min(1, event.y - int(pan_start_y)) * \
+                                              freq_range + old_low_hz
         else:
-            M.spectrogram_low_hz = event.y * M.spectrogram_freq_scale
-            M.spectrogram_high_hz = pan_start_y * M.spectrogram_freq_scale
+            M.spectrogram_low_hz[ichannel] = max(0, event.y - int(pan_start_y)) * \
+                                             freq_range + old_low_hz
+            M.spectrogram_high_hz[ichannel] = (pan_start_y - int(pan_start_y)) * \
+                                              freq_range + old_low_hz
     elif M.state['labels'][M.ilabel]!='':
       x_tic0 = int(np.rint(event.x*M.audio_tic_rate))
       x_tic1 = int(np.rint(pan_start_x*M.audio_tic_rate))
@@ -441,8 +455,9 @@ def spectrogram_pan_end_callback(event):
     V.context_update()
     
 def spectrogram_tap_callback(event):
-    M.spectrogram_low_hz = 0
-    M.spectrogram_high_hz = M.audio_tic_rate/2
+    ichannel = M.audio_nchannels-1 - int(np.floor(event.y))
+    M.spectrogram_low_hz[ichannel] = 0
+    M.spectrogram_high_hz[ichannel] = M.audio_tic_rate/2
     V.context_update()
     
 def toggle_annotation(idouble_tapped_sample):

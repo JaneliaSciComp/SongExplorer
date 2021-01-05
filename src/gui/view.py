@@ -1,5 +1,6 @@
 import os
 from bokeh.models.widgets import RadioButtonGroup, TextInput, Button, Div, DateFormatter, TextAreaInput, Select, NumberFormatter, Slider, Toggle, ColorPicker, MultiSelect
+from bokeh.models.formatters import FuncTickFormatter
 from bokeh.models import ColumnDataSource, TableColumn, DataTable, LayoutDOM, Span
 from bokeh.plotting import figure
 from bokeh.transform import linear_cmap
@@ -691,11 +692,7 @@ def _context_update(wavi, tapped_sample, istart_bounded, ilength):
     bokeh_document.add_next_tick_callback(lambda: \
             __context_update(wavi, tapped_sample, istart_bounded, ilength))
 
-p_spectrogram_y_range_midpoint = None
-
 def context_update():
-    global p_spectrogram_y_range_midpoint
-
     p_waveform.title.text = p_spectrogram.title.text = ''
     tapped_ticks = [np.nan, np.nan]
     istart = np.nan
@@ -705,7 +702,8 @@ def context_update():
     M.spectrogram_freq = [np.full(1,np.nan)]*M.audio_nchannels
     M.spectrogram_time = [np.full(1,np.nan)]*M.audio_nchannels
     M.spectrogram_image = [np.full((1,1),np.nan)]*M.audio_nchannels
-    low_freq = middle_freq = high_freq = np.nan
+    ilow = [0]*M.audio_nchannels
+    ihigh = [1]*M.audio_nchannels
     xlabel_clustered, tlabel_clustered = [], []
     xlabel_annotated, tlabel_annotated = [], []
     left_clustered, right_clustered = [], []
@@ -786,25 +784,32 @@ def context_update():
                                        (istart+(context_pix-1)*context_decimate_by)/M.audio_tic_rate]
 
                 if M.spectrogram:
-                    window_length = round(M.spectrogram_length_ms/1000*M.audio_tic_rate)
+                    window_length = round(M.spectrogram_length_ms[ichannel]/1000*M.audio_tic_rate)
                     M.spectrogram_freq[ichannel], M.spectrogram_time[ichannel], M.spectrogram_image[ichannel] = \
                             spectrogram(wavi,
                                         fs=M.audio_tic_rate,
                                         window=M.spectrogram_window,
                                         nperseg=window_length,
                                         noverlap=round(window_length*M.spectrogram_overlap))
+                    ilow[ichannel] = np.argmin(np.abs(M.spectrogram_freq[ichannel] - \
+                                                      M.spectrogram_low_hz[ichannel]))
+                    ihigh[ichannel] = np.argmin(np.abs(M.spectrogram_freq[ichannel] - \
+                                                       M.spectrogram_high_hz[ichannel]))
 
             if M.spectrogram:
-                ilow = np.argmin(np.abs(M.spectrogram_freq[0]-M.spectrogram_low_hz))
-                ihigh = np.argmin(np.abs(M.spectrogram_freq[0]-M.spectrogram_high_hz))
-
-                low_freq = M.spectrogram_freq[0][ilow] / M.spectrogram_freq_scale
-                middle_freq = (M.spectrogram_freq[0][ilow] + \
-                               (M.spectrogram_freq[0][ihigh] - \
-                                M.spectrogram_freq[0][ilow]) / 2) / \
-                              M.spectrogram_freq_scale
-                high_freq = M.spectrogram_freq[0][ihigh] / M.spectrogram_freq_scale
-                p_spectrogram_y_range_midpoint = middle_freq
+                p_spectrogram.yaxis.formatter = FuncTickFormatter(
+                    args=dict(low_hz=[M.spectrogram_freq[i][x] / M.spectrogram_freq_scale \
+                                      for i,x in enumerate(ilow)],
+                              high_hz=[M.spectrogram_freq[i][x] / M.spectrogram_freq_scale \
+                                       for i,x in enumerate(ihigh)]),
+                    code="""
+                         if (tick==0) {
+                             return low_hz[low_hz.length-1] }
+                         else if (tick == high_hz.length) {
+                             return high_hz[0] }
+                         else {
+                             return low_hz[low_hz.length-tick-1] + "," + high_hz[high_hz.length-tick] }
+                         """)
 
             ileft = np.searchsorted(M.clustered_starts_sorted, istart+M.context_width_tic)
             samples_to_plot = set(range(0,ileft))
@@ -834,8 +839,8 @@ def context_update():
                     if M.spectrogram:
                         quad_fuchsia_spectrogram.data.update(left=[L/M.audio_tic_rate],
                                                              right=[R/M.audio_tic_rate],
-                                                             top=[high_freq],
-                                                             bottom=[middle_freq])
+                                                             top=[M.audio_nchannels],
+                                                             bottom=[M.audio_nchannels/2])
                     tapped_wav_in_view = True
 
             if M.waveform:
@@ -904,14 +909,11 @@ def context_update():
             line_glyph[ichannel].glyph.line_color = snippet_palette[ipalette]
         if M.spectrogram and not np.isnan(M.spectrogram_time[ichannel][0]):
             image_glyph[ichannel].glyph.x = xdata[0]
-            image_glyph[ichannel].glyph.y = M.spectrogram_freq[ichannel][ilow] / \
-                                            M.spectrogram_freq_scale
+            image_glyph[ichannel].glyph.y = M.audio_nchannels-1 - ichannel
             image_glyph[ichannel].glyph.dw = xdata[-1] - xdata[0]
-            image_glyph[ichannel].glyph.dh = \
-                    (M.spectrogram_freq[ichannel][ihigh] - M.spectrogram_freq[ichannel][ilow]) / \
-                    M.spectrogram_freq_scale
+            image_glyph[ichannel].glyph.dh = 1
             spectrogram_source[ichannel].data.update(image=[np.log10( \
-                    M.spectrogram_image[ichannel][ilow:1+ihigh,:])])
+                    M.spectrogram_image[ichannel][ilow[ichannel]:1+ihigh[ichannel],:])])
         else:
             spectrogram_source[ichannel].data.update(image=[])
     if M.waveform:
@@ -932,17 +934,17 @@ def context_update():
     if M.spectrogram:
         quad_grey_spectrogram_clustered.data.update(left=left_clustered,
                                                     right=right_clustered,
-                                                    top=[high_freq]*len(left_clustered),
-                                                    bottom=[middle_freq]*len(left_clustered))
+                                                    top=[M.audio_nchannels]*len(left_clustered),
+                                                    bottom=[M.audio_nchannels/2]*len(left_clustered))
         quad_grey_spectrogram_annotated.data.update(left=left_annotated,
                                                     right=right_annotated,
-                                                    top=[middle_freq]*len(left_annotated),
-                                                    bottom=[low_freq]*len(left_annotated))
+                                                    top=[M.audio_nchannels/2]*len(left_annotated),
+                                                    bottom=[0]*len(left_annotated))
         label_source_spectrogram_clustered.data.update(x=xlabel_clustered,
-                                                       y=[high_freq]*len(xlabel_clustered),
+                                                       y=[M.audio_nchannels]*len(xlabel_clustered),
                                                        text=tlabel_clustered)
         label_source_spectrogram_annotated.data.update(x=xlabel_annotated,
-                                                       y=[low_freq]*len(xlabel_annotated),
+                                                       y=[0]*len(xlabel_annotated),
                                                        text=tlabel_annotated)
 
 def save_update(n):
@@ -1283,9 +1285,11 @@ def init(_bokeh_document):
                         background_fill_color='#FFFFFF', toolbar_location=None)
     p_spectrogram.toolbar.active_drag = None
     p_spectrogram.x_range.range_padding = p_spectrogram.y_range.range_padding = 0
-    p_spectrogram.xgrid.visible = p_spectrogram.ygrid.visible = False
+    p_spectrogram.xgrid.visible = False
+    p_spectrogram.ygrid.visible = True
     p_spectrogram.xaxis.axis_label = 'Time (sec)'
     p_spectrogram.yaxis.axis_label = 'Frequency (' + M.spectrogram_units + ')'
+    p_spectrogram.yaxis.ticker = list(range(1+M.audio_nchannels))
 
     spectrogram_source = [None]*M.audio_nchannels
     image_glyph = [None]*M.audio_nchannels
@@ -1297,7 +1301,7 @@ def init(_bokeh_document):
     p_spectrogram.on_event(MouseWheel, C.spectrogram_mousewheel_callback)
 
     p_spectrogram.on_event(DoubleTap,
-                           lambda e: C.context_doubletap_callback(e, p_spectrogram_y_range_midpoint))
+                           lambda e: C.context_doubletap_callback(e, M.audio_nchannels/2))
 
     p_spectrogram.on_event(PanStart, C.spectrogram_pan_start_callback)
     p_spectrogram.on_event(Pan, C.spectrogram_pan_callback)

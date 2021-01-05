@@ -252,11 +252,11 @@ def init(_bokeh_document, _configuration_file):
     spectrogram=gui_spectrogram
     spectrogram_palette=gui_spectrogram_palette
     spectrogram_window=gui_spectrogram_window
-    spectrogram_length_ms=float(gui_spectrogram_length_ms)
+    spectrogram_length_ms=[float(gui_spectrogram_length_ms)]*audio_nchannels
     spectrogram_overlap=float(gui_spectrogram_overlap)
     spectrogram_units=gui_spectrogram_units
-    spectrogram_low_hz=float(gui_spectrogram_low_hz)
-    spectrogram_high_hz=float(gui_spectrogram_high_hz)
+    spectrogram_low_hz=[float(gui_spectrogram_low_hz)]*audio_nchannels
+    spectrogram_high_hz=[float(gui_spectrogram_high_hz)]*audio_nchannels
     spectrogram_freq = [np.full(1,np.nan)]*audio_nchannels
     spectrogram_time = [np.full(1,np.nan)]*audio_nchannels
     spectrogram_image = [np.full((1,1),np.nan)]*audio_nchannels
