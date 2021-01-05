@@ -1218,7 +1218,7 @@ def init(_bokeh_document):
     p_snippets.quad('left','right','top','bottom',source=quad_grey_snippets,
                 fill_color="lightgrey", line_color="lightgrey", level='underlay')
 
-    p_waveform = figure(plot_width=M.gui_width_pix, plot_height=150,
+    p_waveform = figure(plot_width=M.gui_width_pix, plot_height=M.waveform_height_pix,
                        background_fill_color='#FFFFFF', toolbar_location=None)
     p_waveform.toolbar.active_drag = None
     p_waveform.grid.visible = False
@@ -1226,7 +1226,8 @@ def init(_bokeh_document):
         p_waveform.xaxis.visible = False
     else:
         p_waveform.xaxis.axis_label = 'Time (sec)'
-    p_waveform.yaxis.visible = False
+    p_waveform.yaxis.axis_label = ""
+    p_waveform.yaxis.ticker = []
     p_waveform.x_range.range_padding = p_waveform.y_range.range_padding = 0.0
     p_waveform.y_range.start = -1
     p_waveform.y_range.end = 1
@@ -1281,7 +1282,7 @@ def init(_bokeh_document):
 
     p_snippets.on_event(DoubleTap, C.snippets_doubletap_callback)
 
-    p_spectrogram = figure(plot_width=M.gui_width_pix, plot_height=150,
+    p_spectrogram = figure(plot_width=M.gui_width_pix, plot_height=M.spectrogram_height_pix,
                         background_fill_color='#FFFFFF', toolbar_location=None)
     p_spectrogram.toolbar.active_drag = None
     p_spectrogram.x_range.range_padding = p_spectrogram.y_range.range_padding = 0
