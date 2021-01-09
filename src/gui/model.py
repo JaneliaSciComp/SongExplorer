@@ -11,7 +11,7 @@ bokehlog = logging.getLogger("songexplorer")
 
 import view as V
 
-bokeh_document, configuration_file, audio_tic_rate, audio_nchannels, snippets_ms, nx, ny, nlabels, gui_width_pix, context_width_ms0, context_offset_ms0, context_width_ms, context_offset_ms, waveform, waveform_height_pix, spectrogram, spectrogram_height_pix, spectrogram_window, spectrogram_length_ms, spectrogram_overlap, spectrogram_palette, spectrogram_units, spectrogram_low_hz, spectrogram_high_hz, waveform_low, waveform_high, spectrogram_freq, spectrogram_time, spectrogram_image, spectrogram_freq_scale, cluster_dot_colors, xcluster, ycluster, zcluster, ndcluster, filter_order, filter_ratio_max, snippet_width_pix, layer, specie, word, nohyphen, kind, nlayers, layers, species, words, nohyphens, kinds, snippets_gap_ms, snippets_tic, snippets_gap_tic, tic2pix, snippets_decimate_by, snippets_pix, snippets_gap_pix, context_width_tic, context_offset_tic, isnippet, xsnippet, ysnippet, file_nframes, context_midpoint_tic, context_decimate_by, ilabel, annotated_samples, annotated_starts_sorted, annotated_stops, iannotated_stops_sorted, annotated_csvfiles_all, nrecent_annotations, clustered_samples, clustered_activations, clustered_starts_sorted, clustered_stops, iclustered_stops_sorted, songexplorer_starttime, history_stack, history_idx, wizard, action, function, statepath, state, file_dialog_root, file_dialog_filter, nearest_samples, status_ticker_queue, waitfor_job, server_ipaddr, cluster_ipaddr, cluster_cmd, cluster_logfile_flag, source_path, cluster_circle_color, cluster_dot_colormap, snippet_colormap = [None]*97
+bokeh_document, configuration_file, audio_tic_rate, audio_nchannels, snippets_width_ms, snippets_nx, snippets_ny, snippets_waveform, snippets_spectrogram, nlabels, gui_width_pix, context_width_ms0, context_offset_ms0, context_width_ms, context_offset_ms, context_waveform, context_waveform_height_pix, context_spectrogram, context_spectrogram_height_pix, spectrogram_window, spectrogram_length_ms, spectrogram_overlap, spectrogram_colormap, context_spectrogram_units, spectrogram_low_hz, spectrogram_high_hz, context_waveform_low, context_waveform_high, context_spectrogram_freq_scale, cluster_dot_colors, xcluster, ycluster, zcluster, ndcluster, filter_order, filter_ratio_max, snippet_width_pix, layer, specie, word, nohyphen, kind, nlayers, layers, species, words, nohyphens, kinds, snippets_gap_ms, snippets_tic, snippets_gap_tic, snippets_decimate_by, snippets_pix, snippets_gap_pix, context_width_tic, context_offset_tic, isnippet, xsnippet, ysnippet, file_nframes, context_midpoint_tic, context_decimate_by, ilabel, annotated_samples, annotated_starts_sorted, annotated_stops, iannotated_stops_sorted, annotated_csvfiles_all, nrecent_annotations, clustered_samples, clustered_activations, clustered_starts_sorted, clustered_stops, iclustered_stops_sorted, songexplorer_starttime, history_stack, history_idx, wizard, action, function, statepath, state, file_dialog_root, file_dialog_filter, nearest_samples, status_ticker_queue, waitfor_job, server_ipaddr, cluster_ipaddr, cluster_cmd, cluster_logfile_flag, source_path, cluster_circle_color, cluster_dot_palette, snippets_colormap = [None]*95
 detect_where, detect_ncpu_cores, detect_ngpu_cards, detect_ngigabytes_memory, detect_cluster_flags, misses_where, misses_ncpu_cores, misses_ngpu_cards, misses_ngigabytes_memory, misses_cluster_flags, train_gpu, train_where, train_ncpu_cores, train_ngpu_cards, train_gpu_ngigabytes_memory, train_gpu_cluster_flags, train_ncpu_cores, train_ngpu_cards, train_cpu_ngigabytes_memory, train_cpu_cluster_flags, models_per_job, generalize_gpu, generalize_where, generalize_ncpu_cores, generalize_ngpu_cards, generalize_gpu_ngigabytes_memory, generalize_gpu_cluster_flags, generalize_ncpu_cores, generalize_ngpu_cards, generalize_cpu_ngigabytes_memory, generalize_cpu_cluster_flags, xvalidate_gpu, xvalidate_where, xvalidate_ncpu_cores, xvalidate_ngpu_cards, xvalidate_gpu_ngigabytes_memory, xvalidate_gpu_cluster_flags, xvalidate_ncpu_cores, xvalidate_ngpu_cards, xvalidate_cpu_ngigabytes_memory, xvalidate_cpu_cluster_flags, mistakes_where, mistakes_ncpu_cores, mistakes_ngpu_cards, mistakes_ngigabytes_memory, mistakes_cluster_flags, activations_gpu, activations_where, activations_ncpu_cores, activations_ngpu_cards, activations_gpu_ngigabytes_memory, activations_gpu_cluster_flags, activations_ncpu_cores, activations_ngpu_cards, activations_cpu_ngigabytes_memory, activations_cpu_cluster_flags, cluster_where, cluster_ncpu_cores, cluster_ngpu_cards, cluster_ngigabytes_memory, cluster_cluster_flags, accuracy_where, accuracy_ncpu_cores, accuracy_ngpu_cards, accuracy_ngigabytes_memory, accuracy_cluster_flags, freeze_where, freeze_ncpu_cores, freeze_ngpu_cards, freeze_ngigabytes_memory, freeze_cluster_flags, classify_gpu, classify_where, classify1_ncpu_cores, classify1_ngpu_cards, classify1_gpu_ngigabytes_memory, classify1_gpu_cluster_flags, classify1_ncpu_cores, classify1_ngpu_cards, classify1_cpu_ngigabytes_memory, classify1_cluster_cpu_flags, classify2_ncpu_cores, classify2_ngpu_cards, classify2_ngigabytes_memory, classify2_cluster_flags, ethogram_where, ethogram_ncpu_cores, ethogram_ngpu_cards, ethogram_ngigabytes_memory, ethogram_cluster_flags, compare_where, compare_ncpu_cores, compare_ngpu_cards, compare_ngigabytes_memory, compare_cluster_flags, congruence_where, congruence_ncpu_cores, congruence_ngpu_cards, congruence_ngigabytes_memory, congruence_cluster_flags, pca_batch_size, cluster_parallelize, accuracy_parallelize, congruence_parallelize, nprobabilities, nwindows = [None]*106
 
 def parse_model_file(filepath):
@@ -208,7 +208,7 @@ def finalize_annotation(redraw_snippets=True):
     V.context_update()
 
 def init(_bokeh_document, _configuration_file):
-    global bokeh_document, configuration_file, audio_tic_rate, audio_nchannels, snippets_ms, nx, ny, nlabels, gui_width_pix, context_width_ms0, context_offset_ms0, context_width_ms, context_offset_ms, waveform, waveform_height_pix, spectrogram, spectrogram_height_pix, spectrogram_window, spectrogram_length_ms, spectrogram_overlap, spectrogram_palette, spectrogram_units, spectrogram_low_hz, spectrogram_high_hz, waveform_low, waveform_high, spectrogram_freq, spectrogram_time, spectrogram_image, spectrogram_freq_scale, cluster_dot_colors, xcluster, ycluster, zcluster, ndcluster, filter_order, filter_ratio_max, snippet_width_pix, ilayer, ispecies, iword, inohyphen, ikind, nlayers, layers, species, words, nohyphens, kinds, snippets_gap_ms, snippets_tic, snippets_gap_tic, tic2pix, snippets_decimate_by, snippets_pix, snippets_gap_pix, context_width_tic, context_offset_tic, isnippet, xsnippet, ysnippet, file_nframes, context_midpoint_tic, context_decimate_by, ilabel, annotated_samples, annotated_starts_sorted, annotated_stops, iannotated_stops_sorted, annotated_csvfiles_all, nrecent_annotations, clustered_samples, clustered_activations, clustered_starts_sorted, clustered_stops, iclustered_stops_sorted, songexplorer_starttime, history_stack, history_idx, wizard, action, function, statepath, state, file_dialog_root, file_dialog_filter, nearest_samples, status_ticker_queue, waitfor_job, server_ipaddr, cluster_ipaddr, cluster_cmd, cluster_logfile_flag, source_path, cluster_circle_color, cluster_dot_colormap, snippet_colormap
+    global bokeh_document, configuration_file, audio_tic_rate, audio_nchannels, snippets_width_ms, snippets_nx, snippets_ny, snippets_waveform, snippets_spectrogram, nlabels, gui_width_pix, context_width_ms0, context_offset_ms0, context_width_ms, context_offset_ms, context_waveform, context_waveform_height_pix, context_spectrogram, context_spectrogram_height_pix, context_spectrogram_units, spectrogram_window, spectrogram_length_ms, spectrogram_overlap, spectrogram_colormap, spectrogram_low_hz, spectrogram_high_hz, context_waveform_low, context_waveform_high, context_spectrogram_freq_scale, cluster_dot_colors, xcluster, ycluster, zcluster, ndcluster, filter_order, filter_ratio_max, snippet_width_pix, ilayer, ispecies, iword, inohyphen, ikind, nlayers, layers, species, words, nohyphens, kinds, snippets_gap_ms, snippets_tic, snippets_gap_tic, snippets_decimate_by, snippets_pix, snippets_gap_pix, context_width_tic, context_offset_tic, isnippet, xsnippet, ysnippet, file_nframes, context_midpoint_tic, context_decimate_by, ilabel, annotated_samples, annotated_starts_sorted, annotated_stops, iannotated_stops_sorted, annotated_csvfiles_all, nrecent_annotations, clustered_samples, clustered_activations, clustered_starts_sorted, clustered_stops, iclustered_stops_sorted, songexplorer_starttime, history_stack, history_idx, wizard, action, function, statepath, state, file_dialog_root, file_dialog_filter, nearest_samples, status_ticker_queue, waitfor_job, server_ipaddr, cluster_ipaddr, cluster_cmd, cluster_logfile_flag, source_path, cluster_circle_color, cluster_dot_palette, snippets_colormap
     global detect_where, detect_local_resources, detect_cluster_flags, misses_where, misses_local_resources, misses_cluster_flags, train_gpu, train_where, train_local_resources_gpu, train_cluster_flags_gpu, train_local_resources_cpu, train_cluster_flags_cpu, models_per_job, generalize_gpu, generalize_where, generalize_local_resources_gpu, generalize_cluster_flags_gpu, generalize_local_resources_cpu, generalize_cluster_flags_cpu, xvalidate_gpu, xvalidate_where, xvalidate_local_resources_gpu, xvalidate_cluster_flags_gpu, xvalidate_local_resources_cpu, xvalidate_cluster_flags_cpu, mistakes_where, mistakes_local_resources, mistakes_cluster_flags, activations_gpu, activations_where, activations_local_resources_gpu, activations_cluster_flags_gpu, activations_local_resources_cpu, activations_cluster_flags_cpu, cluster_where, cluster_local_resources, cluster_cluster_flags, accuracy_where, accuracy_local_resources, accuracy_cluster_flags, freeze_where, freeze_local_resources, freeze_cluster_flags, classify_gpu, classify_where, classify1_local_resources_gpu, classify1_cluster_flags_gpu, classify1_local_resources_cpu, classify1_cluster_flags_cpu, classify2_local_resources, classify2_cluster_flags, ethogram_where, ethogram_local_resources, ethogram_cluster_flags, compare_where, compare_local_resources, compare_cluster_flags, congruence_where, congruence_local_resources, congruence_cluster_flags, pca_batch_size, cluster_parallelize, accuracy_parallelize, congruence_parallelize, nprobabilities, nwindows
 
     bokeh_document = _bokeh_document
@@ -237,9 +237,11 @@ def init(_bokeh_document, _configuration_file):
     configuration_file = _configuration_file
     audio_tic_rate=int(audio_tic_rate)
     audio_nchannels=int(audio_nchannels)
-    snippets_ms=float(gui_snippet_ms)
-    nx=int(gui_snippet_nx)
-    ny=int(gui_snippet_ny)
+    snippets_width_ms=float(gui_snippets_width_ms)
+    snippets_nx=int(gui_snippets_nx)
+    snippets_ny=int(gui_snippets_ny)
+    snippets_waveform=gui_snippets_waveform
+    snippets_spectrogram=gui_snippets_spectrogram
     nlabels=int(gui_nlabels)
     gui_width_pix=int(gui_gui_width_pix)
     context_width_ms0=float(gui_context_width_ms)
@@ -247,31 +249,28 @@ def init(_bokeh_document, _configuration_file):
     context_width_ms=float(gui_context_width_ms)
     context_offset_ms=float(gui_context_offset_ms)
 
-    waveform=gui_waveform
-    waveform_height_pix=int(gui_waveform_height_pix)
+    context_waveform=gui_context_waveform
+    context_waveform_height_pix=int(gui_context_waveform_height_pix)
 
-    spectrogram=gui_spectrogram
-    spectrogram_height_pix=int(gui_spectrogram_height_pix)
-    spectrogram_palette=gui_spectrogram_palette
+    context_spectrogram=gui_context_spectrogram
+    context_spectrogram_height_pix=int(gui_context_spectrogram_height_pix)
+    context_spectrogram_units=gui_context_spectrogram_units
+    spectrogram_colormap=gui_spectrogram_colormap
     spectrogram_window=gui_spectrogram_window
     spectrogram_length_ms=[float(gui_spectrogram_length_ms)]*audio_nchannels
     spectrogram_overlap=float(gui_spectrogram_overlap)
-    spectrogram_units=gui_spectrogram_units
     spectrogram_low_hz=[float(gui_spectrogram_low_hz)]*audio_nchannels
     spectrogram_high_hz=[float(gui_spectrogram_high_hz)]*audio_nchannels
-    spectrogram_freq = [np.full(1,np.nan)]*audio_nchannels
-    spectrogram_time = [np.full(1,np.nan)]*audio_nchannels
-    spectrogram_image = [np.full((1,1),np.nan)]*audio_nchannels
-    spectrogram_freq_scale = 0.001 if spectrogram_units=='mHz' else \
-                          1 if spectrogram_units=='Hz' else \
-                       1000 if spectrogram_units=='kHz' else \
-                    1000000
+    context_spectrogram_freq_scale = 0.001 if context_spectrogram_units=='mHz' else \
+                                     1 if context_spectrogram_units=='Hz' else \
+                                  1000 if context_spectrogram_units=='kHz' else \
+                               1000000
 
-    waveform_low = [-1]*audio_nchannels
-    waveform_high = [1]*audio_nchannels
+    context_waveform_low = [-1]*audio_nchannels
+    context_waveform_high = [1]*audio_nchannels
 
-    cluster_dot_colormap = gui_cluster_dot_colormap
-    snippet_colormap = gui_snippet_colormap
+    cluster_dot_palette = gui_cluster_dot_palette
+    snippets_colormap = gui_snippets_colormap
     cluster_circle_color = gui_cluster_circle_color
     cluster_dot_colors = {}
 
@@ -281,7 +280,7 @@ def init(_bokeh_document, _configuration_file):
     filter_order=2
     filter_ratio_max=4
 
-    snippet_width_pix = gui_width_pix/2/nx
+    snippet_width_pix = gui_width_pix/2/snippets_nx
 
     ilayer=0
     ispecies=0
@@ -296,9 +295,9 @@ def init(_bokeh_document, _configuration_file):
     nohyphens = []
     kinds = []
 
-    snippets_gap_ms=snippets_ms/10
+    snippets_gap_ms=snippets_width_ms/10
 
-    snippets_tic = int(np.rint(snippets_ms/1000*audio_tic_rate))
+    snippets_tic = int(np.rint(snippets_width_ms/1000*audio_tic_rate))
     snippets_gap_tic = int(np.rint(snippets_gap_ms/1000*audio_tic_rate))
     tic2pix = (snippets_gap_tic+snippets_tic) / snippet_width_pix
     snippets_decimate_by = round(tic2pix/filter_ratio_max) if tic2pix>filter_ratio_max else 1
@@ -404,7 +403,7 @@ def init(_bokeh_document, _configuration_file):
     clustered_samples, clustered_activations, clustered_starts_sorted = None, None, None
     clustered_stops, iclustered_stops_sorted = None, None
 
-    nearest_samples=[-1]*nx*ny
+    nearest_samples=[-1]*snippets_nx*snippets_ny
 
     status_ticker_queue = {}
 

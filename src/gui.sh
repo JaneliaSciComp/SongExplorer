@@ -50,13 +50,15 @@ isinteger() {
 
 isinteger audio_tic_rate
 isinteger audio_nchannels
-isinteger gui_snippet_ms
-isinteger gui_snippet_nx
-isinteger gui_snippet_ny
+isinteger gui_snippets_width_ms
+isinteger gui_snippets_nx
+isinteger gui_snippets_ny
 isinteger gui_nlabels
 isinteger gui_gui_width_pix
 isinteger gui_context_width_ms
 isinteger gui_context_offset_ms
+isinteger gui_context_waveform_height_pix
+isinteger gui_context_spectrogram_height_pix
 isinteger models_per_job
 isinteger pca_batch_size
 isinteger nprobabilities
@@ -130,15 +132,18 @@ isbinary() {
   [[ "${!1}" =~ $binary_re ]] || echo WARNING: $1 is not set or is not 0 or 1
 }
 
-isbinary gui_spectrogram
+isbinary gui_snippets_waveform
+isbinary gui_snippets_spectrogram
+isbinary gui_context_waveform
+isbinary gui_context_spectrogram
 isbinary activations_gpu
 isbinary classify_gpu
 isbinary generalize_gpu
 isbinary train_gpu
 isbinary xvalidate_gpu
 
-[[ "$gui_spectrogram_units" == mHz || "$gui_spectrogram_units" == Hz || "$gui_spectrogram_units" == kHz || "$gui_spectrogram_units" == MHz ]] || \
-      echo WARNING: gui_spectrogram_units should be "mHz", "Hz", "kHz", or "MHz"
+[[ "$gui_context_spectrogram_units" == mHz || "$gui_context_spectrogram_units" == Hz || "$gui_context_spectrogram_units" == kHz || "$gui_context_spectrogram_units" == MHz ]] || \
+      echo WARNING: gui_context_spectrogram_units should be "mHz", "Hz", "kHz", or "MHz"
 
 resource_kinds=(ncpu_cores ngpu_cards ngigabytes_memory)
 for resource_kind in "${resource_kinds[@]}"; do

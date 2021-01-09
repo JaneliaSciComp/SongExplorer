@@ -73,7 +73,7 @@ def generic_parameters_callback(n):
 
 def layer_callback(new):
     M.ilayer=M.layers.index(new)
-    V.circle_fuchsia_cluster.data.update(cx=[], cy=[], cz=[], cr=[], cc=[])
+    V.cluster_circle_fuchsia.data.update(cx=[], cy=[], cz=[], cr=[], cc=[])
     V.cluster_update()
     M.xcluster = M.ycluster = M.zcluster = np.nan
     M.isnippet = -1
@@ -153,8 +153,8 @@ def color_picker_callback(new):
     
 def circle_radius_callback(attr, old, new):
     M.state["circle_radius"]=new
-    if len(V.circle_fuchsia_cluster.data['cx'])==1:
-        V.circle_fuchsia_cluster.data.update(cr=[M.state["circle_radius"]])
+    if len(V.cluster_circle_fuchsia.data['cx'])==1:
+        V.cluster_circle_fuchsia.data.update(cr=[M.state["circle_radius"]])
     M.save_state_callback()
     V.snippets_update(True)
     M.isnippet = -1
@@ -174,16 +174,16 @@ play_callback_code="""
 const aud = document.getElementById("context_audio")
 aud.src="data:audio/wav;base64,"+%r
 
-var x0 = span_red_waveform.location;
+var x0 = waveform_span_red.location;
 
 aud.ontimeupdate = function() {
-  span_red_waveform.location = x0+aud.currentTime
-  span_red_spectrogram.location = x0+aud.currentTime
+  waveform_span_red.location = x0+aud.currentTime
+  spectrogram_span_red.location = x0+aud.currentTime
 };
 
 aud.onended = function() {
-  span_red_waveform.location = x0
-  span_red_spectrogram.location = x0
+  waveform_span_red.location = x0
+  spectrogram_span_red.location = x0
 };
 
 const vid = document.getElementById("context_video")
@@ -197,7 +197,7 @@ def cluster_tap_callback(event):
     M.xcluster, M.ycluster = event[0], event[1]
     if M.ndcluster==3:
       M.zcluster = event[2]
-    V.circle_fuchsia_cluster.data.update(cx=[M.xcluster],
+    V.cluster_circle_fuchsia.data.update(cx=[M.xcluster],
                                          cy=[M.ycluster],
                                          cz=[M.zcluster],
                                          cr=[M.state["circle_radius"]],
@@ -210,8 +210,8 @@ def snippets_tap_callback(event):
     if np.isnan(M.xcluster) or np.isnan(M.ycluster):
         return
     M.xsnippet = int(np.rint(event.x/(M.snippets_gap_pix+M.snippets_pix)-0.5))
-    M.ysnippet = int(np.rint(-event.y/2))
-    M.isnippet = M.nearest_samples[M.ysnippet*M.nx + M.xsnippet]
+    M.ysnippet = int(np.floor(-(event.y-1)/V.snippets_dy))
+    M.isnippet = M.nearest_samples[M.ysnippet*M.snippets_nx + M.xsnippet]
     V.snippets_update(False)
     V.context_update()
 
@@ -258,7 +258,7 @@ def waveform_pan_start_callback(event):
     global pan_start_x, pan_start_y, pan_start_sx, pan_start_sy
     pan_start_x, pan_start_y = event.x, event.y
     pan_start_sx, pan_start_sy = event.sx, event.sy
-    V.quad_grey_waveform_pan.data.update(left=[event.x], right=[event.x],
+    V.waveform_quad_grey_pan.data.update(left=[event.x], right=[event.x],
                                             top=[event.y], bottom=[event.y])
 
 def waveform_pan_callback(event):
@@ -272,21 +272,21 @@ def waveform_pan_callback(event):
         ichannel_end = round((event.y * M.audio_nchannels - M.audio_nchannels + 1) / -2)
         if ichannel_start != ichannel_end:
             return
-        V.quad_grey_waveform_pan.data.update(left=[V.p_waveform.x_range.start],
+        V.waveform_quad_grey_pan.data.update(left=[V.p_waveform.x_range.start],
                                                 right=[V.p_waveform.x_range.end],
                                                 bottom=[pan_start_y],
                                                 top=[event.y])
     elif pan_start_y<0 and M.state['labels'][M.ilabel]!='':
         if event.y < V.p_waveform.y_range.start or event.y > V.p_waveform.y_range.end:
             return
-        V.quad_grey_waveform_pan.data.update(left=[pan_start_x],
+        V.waveform_quad_grey_pan.data.update(left=[pan_start_x],
                                                 right=[event.x],
                                                 bottom=[V.p_waveform.y_range.start],
                                                 top=[0])
     
 def _waveform_scale(low_y, high_y, ichannel):
-    delta = M.waveform_high[ichannel] - M.waveform_low[ichannel]
-    return [(x+1)/2 * delta + M.waveform_low[ichannel] for x in [low_y, high_y]]
+    delta = M.context_waveform_high[ichannel] - M.context_waveform_low[ichannel]
+    return [(x+1)/2 * delta + M.context_waveform_low[ichannel] for x in [low_y, high_y]]
 
 def waveform_pan_end_callback(event):
     if abs(event.sx - pan_start_sx) < abs(event.sy - pan_start_sy):
@@ -294,10 +294,10 @@ def waveform_pan_end_callback(event):
         event_wy_start = pan_start_y * M.audio_nchannels - M.audio_nchannels + 1 + 2*ichannel
         event_wy_end = event.y * M.audio_nchannels - M.audio_nchannels + 1 + 2*ichannel
         if event.y > pan_start_y:
-            M.waveform_low[ichannel], M.waveform_high[ichannel] = \
+            M.context_waveform_low[ichannel], M.context_waveform_high[ichannel] = \
                     _waveform_scale(event_wy_start, min(event_wy_end, 1), ichannel)
         else:
-            M.waveform_low[ichannel], M.waveform_high[ichannel] = \
+            M.context_waveform_low[ichannel], M.context_waveform_high[ichannel] = \
                     _waveform_scale(max(event_wy_end, -1), event_wy_start, ichannel)
     elif pan_start_y<0 and M.state['labels'][M.ilabel]!='':
         x_tic0 = int(np.rint(event.x*M.audio_tic_rate))
@@ -305,12 +305,12 @@ def waveform_pan_end_callback(event):
         M.add_annotation({'file':M.clustered_samples[M.isnippet]['file'],
                           'ticks':sorted([x_tic0,x_tic1]),
                           'label':M.state['labels'][M.ilabel]})
-    V.quad_grey_waveform_pan.data.update(left=[], right=[], top=[], bottom=[])
+    V.waveform_quad_grey_pan.data.update(left=[], right=[], top=[], bottom=[])
     V.context_update()
 
 def waveform_tap_callback(event):
-    M.waveform_low = [-1]*M.audio_nchannels
-    M.waveform_high = [1]*M.audio_nchannels
+    M.context_waveform_low = [-1]*M.audio_nchannels
+    M.context_waveform_high = [1]*M.audio_nchannels
     V.context_update()
     
 def zoom_context_callback(attr, old, new):
@@ -408,7 +408,7 @@ def spectrogram_pan_start_callback(event):
     global pan_start_x, pan_start_y, pan_start_sx, pan_start_sy
     pan_start_x, pan_start_y = event.x, event.y
     pan_start_sx, pan_start_sy = event.sx, event.sy
-    V.quad_grey_spectrogram_pan.data.update(left=[event.x], right=[event.x],
+    V.spectrogram_quad_grey_pan.data.update(left=[event.x], right=[event.x],
                                             top=[event.y], bottom=[event.y])
 
 def spectrogram_pan_callback(event):
@@ -420,12 +420,12 @@ def spectrogram_pan_callback(event):
     if x_tic < left_limit_tic or x_tic > right_limit_tic:
         return
     if abs(event.sx - pan_start_sx) < abs(event.sy - pan_start_sy):
-        V.quad_grey_spectrogram_pan.data.update(left=[V.p_spectrogram.x_range.start],
+        V.spectrogram_quad_grey_pan.data.update(left=[V.p_spectrogram.x_range.start],
                                                 right=[V.p_spectrogram.x_range.end],
                                                 bottom=[pan_start_y],
                                                 top=[event.y])
     elif M.state['labels'][M.ilabel]!='':
-        V.quad_grey_spectrogram_pan.data.update(left=[pan_start_x],
+        V.spectrogram_quad_grey_pan.data.update(left=[pan_start_x],
                                                 right=[event.x],
                                                 bottom=[V.p_spectrogram.y_range.start],
                                                 top=[M.audio_nchannels/2])
@@ -451,7 +451,7 @@ def spectrogram_pan_end_callback(event):
       M.add_annotation({'file':M.clustered_samples[M.isnippet]['file'],
                         'ticks':sorted([x_tic0,x_tic1]),
                         'label':M.state['labels'][M.ilabel]})
-    V.quad_grey_spectrogram_pan.data.update(left=[], right=[], top=[], bottom=[])
+    V.spectrogram_quad_grey_pan.data.update(left=[], right=[], top=[], bottom=[])
     V.context_update()
     
 def spectrogram_tap_callback(event):
@@ -472,8 +472,8 @@ def toggle_annotation(idouble_tapped_sample):
 
 def snippets_doubletap_callback(event):
     x_tic = int(np.rint(event.x/(M.snippets_gap_pix+M.snippets_pix)-0.5))
-    y_tic = int(np.rint(-event.y/2))
-    idouble_tapped_sample = M.nearest_samples[y_tic*M.nx + x_tic]
+    y_tic = int(np.floor(-(event.y-1)/V.snippets_dy))
+    idouble_tapped_sample = M.nearest_samples[y_tic*M.snippets_nx + x_tic]
     toggle_annotation(idouble_tapped_sample)
 
 def _find_nearest_clustered_sample(history_idx):
@@ -512,7 +512,7 @@ def _undo_callback():
 def undo_callback():
     if M.history_idx>0:
         M.history_idx-=1
-        V.circle_fuchsia_cluster.data.update(cx=[], cy=[], cz=[], cr=[], cc=[])
+        V.cluster_circle_fuchsia.data.update(cx=[], cy=[], cz=[], cr=[], cc=[])
         M.xcluster = M.ycluster = M.zcluster = np.nan
         M.isnippet = -1
         V.snippets_update(True)
@@ -541,7 +541,7 @@ def _redo_callback():
 def redo_callback():
     if M.history_idx<len(M.history_stack):
         M.history_idx+=1
-        V.circle_fuchsia_cluster.data.update(cx=[], cy=[], cz=[], cr=[], cc=[])
+        V.cluster_circle_fuchsia.data.update(cx=[], cy=[], cz=[], cr=[], cc=[])
         M.xcluster = M.ycluster = M.zcluster = np.nan
         M.isnippet = -1
         V.snippets_update(True)
@@ -1183,17 +1183,12 @@ async def cluster_actuate():
 async def visualize_actuate():
     if not V.cluster_initialize():
         return
-    M.ilayer = 0
     V.which_layer.value = M.layers[M.ilayer]
-    M.ispecies = 0
     V.which_species.value = M.species[M.ispecies]
-    M.iword = 0
     V.which_word.value = M.words[M.iword]
-    M.inohyphen = 0
     V.which_nohyphen.value = M.nohyphens[M.inohyphen]
-    M.ikind = 0
     V.which_kind.value = M.kinds[M.ikind]
-    V.circle_fuchsia_cluster.data.update(cx=[], cy=[], cz=[], cr=[], cc=[])
+    V.cluster_circle_fuchsia.data.update(cx=[], cy=[], cz=[], cr=[], cc=[])
     V.cluster_update()
     M.xcluster = M.ycluster = M.zcluster = np.nan
     M.isnippet = -1
