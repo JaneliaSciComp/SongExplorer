@@ -27,6 +27,7 @@ sys.path.append(os.path.dirname(os.path.realpath(__file__)))
 from lib import *
 
 use_longest_human_interval=1  # otherwise use shortest
+convolve_ms=0
 
 _,basepath,wavfiles,nprobabilities,audio_tic_rate,congruence_parallelize = sys.argv
 print('basepath: '+basepath)
@@ -35,10 +36,13 @@ print('nprobabilities: '+nprobabilities)
 print('audio_tic_rate: '+audio_tic_rate)
 print('congruence_parallelize: '+congruence_parallelize)
 print('use_longest_human_interval: '+str(use_longest_human_interval))
+print('convolve_ms: '+str(convolve_ms))
 wavfiles=set([os.path.basename(x) for x in wavfiles.split(',')])
 nprobabilities=int(nprobabilities)
 audio_tic_rate=int(audio_tic_rate)
 congruence_parallelize=int(congruence_parallelize)
+
+convolve_tic = int(convolve_ms/1000*audio_tic_rate)
 
 wavdirs = {}
 for subdir in filter(lambda x: os.path.isdir(os.path.join(basepath,x)), \
@@ -115,6 +119,8 @@ for wavdir in wavdirs:
       humans.add(m.groups()[1])
     if '-predicted-' in csvfile:
       precision_recalls.add(m.groups()[1])
+    df[1] -= convolve_tic
+    df[2] += convolve_tic
     for word in set(df[4]):
       if word not in timestamps:
         timestamps[word] = {}
