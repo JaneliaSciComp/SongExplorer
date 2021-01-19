@@ -26,12 +26,15 @@ from scipy import interpolate
 sys.path.append(os.path.dirname(os.path.realpath(__file__)))
 from lib import *
 
+use_longest_human_interval=1  # otherwise use shortest
+
 _,basepath,wavfiles,nprobabilities,audio_tic_rate,congruence_parallelize = sys.argv
 print('basepath: '+basepath)
 print('wavfiles: '+wavfiles)
 print('nprobabilities: '+nprobabilities)
 print('audio_tic_rate: '+audio_tic_rate)
 print('congruence_parallelize: '+congruence_parallelize)
+print('use_longest_human_interval: '+str(use_longest_human_interval))
 wavfiles=set([os.path.basename(x) for x in wavfiles.split(',')])
 nprobabilities=int(nprobabilities)
 audio_tic_rate=int(audio_tic_rate)
@@ -287,16 +290,31 @@ for pr in precision_recalls:
       intervals = {}
       intervals[pr] = interval(*[[x[1],x[2]] for _,x in \
                                     timestamps[word][csvbase][predicted_key].iterrows()])
-      annotated_left = np.inf
-      annotated_right = 0
+      if use_longest_human_interval:
+        annotated_left = np.inf
+        annotated_right = 0
+      else:
+        annotated_left = 0
+        annotated_right = np.inf
       for human in humans:
         annotator_key = '-annotated-'+human+'.csv'
-        annotated_left = min(annotated_left, annotated_left, \
-                             *timestamps[word][csvbase][annotator_key][1])
-        annotated_right = max(annotated_right, annotated_right, \
-                              *timestamps[word][csvbase][annotator_key][2])
+        if use_longest_human_interval:
+          annotated_left = min(annotated_left, annotated_left, \
+                               *timestamps[word][csvbase][annotator_key][1])
+          annotated_right = max(annotated_right, annotated_right, \
+                                *timestamps[word][csvbase][annotator_key][2])
+        else:
+          annotated_left = max(annotated_left, \
+                               min(np.inf, np.inf, *timestamps[word][csvbase][annotator_key][1]))
+          annotated_right = min(annotated_right, \
+                                max(0, 0, *timestamps[word][csvbase][annotator_key][2]))
         intervals[human] = interval(*[[x[1],x[2]] for _,x in \
                                           timestamps[word][csvbase][annotator_key].iterrows()])
+      print('left = '+str(annotated_left))
+      print('right = '+str(annotated_right))
+      if not use_longest_human_interval:
+        for human in humans:
+          intervals[human] &= interval([annotated_left, annotated_right])
       intervals[pr] &= interval([annotated_left, annotated_right])
       if congruence_parallelize!=0:
         everyone[pr][word][csvbase] = pool.apply_async(doit, (intervals,))
