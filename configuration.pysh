@@ -178,9 +178,10 @@ congruence_parallelize=-1
 # how many points to use for the precision-recall and sensitivity-specificity curves
 nprobabilities=20
 
-# used by freeze and classify to specify how many `window`s to process in parallel
-# must be an integer multiple of the effective downsampling achieved by `stride after`
-nwindows=64
+# used by freeze and classify to specify how many `window`s to process in parallel.
+# must be one plus a non-negative integer multiple of the effective downsampling
+# achieved by `stride after`
+nwindows=65
 
 # used by developers to specifiy the location of writable code files
 source_path=""

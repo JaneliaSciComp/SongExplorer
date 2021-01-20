@@ -21,12 +21,12 @@ nwindows=${10}
 if [ "$representation" == "waveform" ] ; then
   stride_ms=`dc -e "16 k 1000 $audio_tic_rate / p"`
 fi
-clip_duration=$(dc -e "3 k $context_ms $stride_ms $nwindows 1 - * + p")
-clip_stride=$(dc -e "3 k $stride_ms $nwindows 1 - * p")
+clip_duration_ms=$(dc -e "3 k $context_ms $stride_ms $nwindows 1 - * + p")
+clip_stride_ms=$(dc -e "3 k $stride_ms $nwindows 1 - * p")
 frozenlog=$logdir/$model/frozen-graph.ckpt-${check_point}.log
 ndownsample2=`grep -e 'strides = \[1, 2' -e 'strides = 2' $frozenlog | wc -l`
 stride_ms=`dc -e "$stride_ms 2 $ndownsample2 ^ * p"`
-clip_stride=`dc -e "$clip_stride $stride_ms + p"`
+clip_stride_ms=`dc -e "$clip_stride_ms $stride_ms + p"`
 
 DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
 
@@ -37,8 +37,9 @@ expr="/usr/bin/python3 $DIR/speech_commands_custom/test_streaming_accuracy.py \
       --wav=$wavfile \
       --ground_truth=/opt/songexplorer/src/streaming_test_labels.txt \
       --verbose \
-      --clip_duration_ms=$clip_duration \
-      --clip_stride_ms=$clip_stride \
+      --clip_duration_ms=$clip_duration_ms \
+      --clip_stride_ms=$clip_stride_ms \
+      --window_stride_ms=$stride_ms \
       --output_name=output_layer:0"
 
 wavdir=`dirname $wavfile`

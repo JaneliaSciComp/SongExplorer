@@ -89,15 +89,6 @@ def load_graph(mode_file):
   return graph
 
 
-def read_label_file(file_name):
-  """Load a list of label."""
-  label_list = []
-  with open(file_name, 'r') as f:
-    for line in f:
-      label_list.append(line.strip())
-  return label_list
-
-
 def read_wav_file(filename):
   """Load a wav file and return sample_rate and numpy data of float64 type."""
   with tf.compat.v1.Session(graph=tf.Graph()) as sess:
@@ -109,16 +100,12 @@ def read_wav_file(filename):
 
 
 def main(_):
-  label_list = read_label_file(FLAGS.labels)
   sample_rate, data = read_wav_file(FLAGS.wav)
   print('sample rate is '+str(sample_rate))
 
-  all_found_words = []
-  data_samples = data.shape[0]
-  data_channels = data.shape[1]
-  clip_duration_samples = int(FLAGS.clip_duration_ms * sample_rate / 1000)
-  clip_stride_samples = int(FLAGS.clip_stride_ms * sample_rate / 1000)
-  audio_data_end = data_samples - clip_duration_samples
+  clip_duration_samples = np.round(FLAGS.clip_duration_ms * sample_rate / 1000).astype(np.int)
+  clip_stride_samples = np.round(FLAGS.clip_stride_ms * sample_rate / 1000).astype(np.int)
+  window_stride_samples = np.round(FLAGS.window_stride_ms * sample_rate / 1000).astype(np.int)
 
   # Load model and create a tf session to process audio pieces
   recognize_graph = load_graph(FLAGS.model)
@@ -131,25 +118,35 @@ def main(_):
       output_softmax_tensor = sess.graph.get_tensor_by_name(FLAGS.output_name)
 
       # Inference along audio stream.
-      for audio_data_offset in range(0, audio_data_end, clip_stride_samples):
+      for audio_data_offset in range(0, 1+data.shape[0], clip_stride_samples):
         input_start = audio_data_offset
         input_end = audio_data_offset + clip_duration_samples
+        pad_len = input_end - data.shape[0]
         outputs = sess.run(
             output_softmax_tensor,
             feed_dict={
                 data_tensor:
-                    #numpy.expand_dims(data[input_start:input_end], axis=-1),
-                    data[input_start:input_end,:],
+                    data[input_start:input_end,:] if pad_len<=0 else \
+                            np.pad(data[input_start:input_end,:],
+                                  ((0,pad_len),(0,0)), mode='median'),
                 sample_rate_tensor:
                     sample_rate
             })
-        #outputs = np.squeeze(outputs)
-        current_time_ms = int(audio_data_offset * 1000 / sample_rate)
-        tf.compat.v1.logging.info(str(current_time_ms)+'ms '+
-                                  FLAGS.output_name+' '+
-                                  np.array2string(outputs,
-                                                  separator=',',
-                                                  threshold=np.iinfo(np.int).max).replace('\n',''))
+        current_time_ms = np.round(audio_data_offset * 1000 / sample_rate).astype(np.int)
+        if pad_len>0:
+          discard_len = np.ceil(pad_len/window_stride_samples).astype(np.int)
+          tf.compat.v1.logging.info(str(current_time_ms)+'ms '+
+                                    FLAGS.output_name+' '+
+                                    np.array2string(outputs[:-discard_len,:],
+                                                    separator=',',
+                                                    threshold=np.iinfo(np.int).max).replace('\n',''))
+          break
+        else:
+          tf.compat.v1.logging.info(str(current_time_ms)+'ms '+
+                                    FLAGS.output_name+' '+
+                                    np.array2string(outputs,
+                                                    separator=',',
+                                                    threshold=np.iinfo(np.int).max).replace('\n',''))
 
 
 if __name__ == '__main__':
@@ -189,6 +186,11 @@ if __name__ == '__main__':
       type=float,
       default=30,
       help='Length of audio clip stride over main trap.')
+  parser.add_argument(
+      '--window_stride_ms',
+      type=float,
+      default=30,
+      help='')
   parser.add_argument(
       '--average_window_duration_ms',
       type=int,
