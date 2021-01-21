@@ -577,8 +577,8 @@ def plot_versus_thresholds(roc_table, kind):
       if 0<=th<=1 and not np.isnan(th):
         ax2.plot(fR(th), fP(th), '.', label='sparse P/R = '+pr)
     for (ith,th) in enumerate(thresholds_touse[word]):
-      ax2.plot(fR(th), fP(th), '.', label='dense P/R = '+str(desired_prs[ith]))
       if 0<=th<=1 and not np.isnan(th):
+        ax2.plot(fR(th), fP(th), '.', label='dense P/R = '+str(desired_prs[ith]))
         ax1.axvline(x=th, label='dense P/R = '+str(desired_prs[ith]),
                    color=next(ax1._get_lines.prop_cycler)['color'])
     ax2.set_xlim(0,1)
