@@ -474,6 +474,9 @@ for pr in precision_recalls:
       plt.savefig(os.path.join(basepath, 'congruence.word.'+word+'.'+pr+'-venn.pdf'))
       plt.close()
 
+if congruence_parallelize!=0:
+  pool.close()
+
 def to_csv(intervals, csvbase, whichset):
   with open(os.path.join(basepath,csvbase+'-disjoint-'+whichset+'.csv'), 'w') as fid:
     csvwriter = csv.writer(fid)
@@ -529,72 +532,69 @@ for pr in precision_recalls:
                                                    for x in f]))
     roc_table_word[word][pr]['everyone'] = sum([len(f) for f in everyone[pr][word].values()])
 
-if congruence_parallelize!=0:
-  pool.close()
-
 def plot_versus_thresholds(roc_table, kind):
   thresholds_touse = {}
   desired_prs = None
   for word in roc_table:
     thresholds = realsorted([x for x in roc_table[word].keys() if x.endswith('th')])
-    xdata = [float(x[:-2]) for x in thresholds]
-    desired_prs = natsorted([float(x[:-2]) for x in roc_table[word].keys()
-                             if x.endswith('pr')])
-
-    fig = plt.figure(figsize=(2*6.4, 4.8))
-    ax1 = fig.add_subplot(1,2,1)
-    for not_only_every in sorted(roc_table[word][thresholds[0]].keys()):
-      ydata = [roc_table[word][x][not_only_every] for x in thresholds]
-      ax1.plot(xdata, ydata, '.-' if len(xdata)<10 else '-', label=not_only_every)
-      if not_only_every=='everyone':
-        TP = ydata
-      elif not_only_every=='only songexplorer':
-        FP = ydata
-      else:
-        if len(humans)==1:
-          FN = ydata
-        elif not_only_every=='not songexplorer':
-          FN = ydata
-    for (ipr,pr) in enumerate(precision_recalls_sparse):
-      th = float([x[1:] for x in thresholds_sparse if x[0]==word][0][ipr])
-      if 0<=th<=1 and not np.isnan(th):
-        ax1.axvline(x=th, label='sparse P/R = '+pr,
-                   color=next(ax1._get_lines.prop_cycler)['color'])
-    ax1.set_ylabel('# Annotations')
-    ax1.set_xlabel('Threshold')
-    ax1.set_xlim(0,1)
-    ax2 = fig.add_subplot(1,2,2)
-    P = [tp/(tp+fp) if tp+fp>0 else np.nan for (tp,fp) in zip(TP,FP)]
-    R = [tp/(tp+fn) if tp+fn>0 else np.nan for (tp,fn) in zip(TP,FN)]
-    ax2.plot(R, P, '.-' if len(xdata)<10 else '-')
-    F1 = [2*p*r/(p+r) if p+r>0 else np.nan for (p,r) in zip(P,R)]
-    ax3 = ax1.twinx()
-    ax3.plot(xdata, F1, '.-' if len(xdata)<10 else '-', color='k', label='F1')
-    ax3.set_ylabel('F1 = 2PR/(P+R)', color='k')
-    ax3.legend(loc=(1.15, 0.0))
-    f = interpolate.interp1d([p/r if r!=0 else np.nan for (p,r) in zip(P,R)],
-                             xdata, fill_value="extrapolate")
-    thresholds_touse[word] = f(desired_prs)
-    fP = interpolate.interp1d(xdata, P, fill_value="extrapolate")
-    fR = interpolate.interp1d(xdata, R, fill_value="extrapolate")
-    for (ipr,pr) in enumerate(precision_recalls_sparse):
-      th = float([x[1:] for x in thresholds_sparse if x[0]==word][0][ipr])
-      if 0<=th<=1 and not np.isnan(th):
-        ax2.plot(fR(th), fP(th), '.', label='sparse P/R = '+pr)
-    for (ith,th) in enumerate(thresholds_touse[word]):
-      if 0<=th<=1 and not np.isnan(th):
-        ax2.plot(fR(th), fP(th), '.', label='dense P/R = '+str(desired_prs[ith]))
-        ax1.axvline(x=th, label='dense P/R = '+str(desired_prs[ith]),
-                   color=next(ax1._get_lines.prop_cycler)['color'])
-    ax2.set_xlim(0,1)
-    ax2.set_ylim(0,1)
-    ax2.set_xlabel('Recall = TP/(TP+FN)')
-    ax2.set_ylabel('Precision = TP/(TP+FP)')
-    ax2.legend(loc=(1.05, 0.0))
-    ax1.legend(loc=(1.2, 0.1))
-    fig.tight_layout()
-    plt.savefig(os.path.join(basepath,'congruence.'+kind+'.'+word+'.pdf'))
-    plt.close()
+    if len(thresholds)>0:
+      xdata = [float(x[:-2]) for x in thresholds]
+      desired_prs = natsorted([float(x[:-2]) for x in roc_table[word].keys()
+                               if x.endswith('pr')])
+      fig = plt.figure(figsize=(2*6.4, 4.8))
+      ax1 = fig.add_subplot(1,2,1)
+      for not_only_every in sorted(roc_table[word][thresholds[0]].keys()):
+        ydata = [roc_table[word][x][not_only_every] for x in thresholds]
+        ax1.plot(xdata, ydata, '.-' if len(xdata)<10 else '-', label=not_only_every)
+        if not_only_every=='everyone':
+          TP = ydata
+        elif not_only_every=='only songexplorer':
+          FP = ydata
+        else:
+          if len(humans)==1:
+            FN = ydata
+          elif not_only_every=='not songexplorer':
+            FN = ydata
+      for (ipr,pr) in enumerate(precision_recalls_sparse):
+        th = float([x[1:] for x in thresholds_sparse if x[0]==word][0][ipr])
+        if 0<=th<=1 and not np.isnan(th):
+          ax1.axvline(x=th, label='sparse P/R = '+pr,
+                     color=next(ax1._get_lines.prop_cycler)['color'])
+      ax1.set_ylabel('# Annotations')
+      ax1.set_xlabel('Threshold')
+      ax1.set_xlim(0,1)
+      ax2 = fig.add_subplot(1,2,2)
+      P = [tp/(tp+fp) if tp+fp>0 else np.nan for (tp,fp) in zip(TP,FP)]
+      R = [tp/(tp+fn) if tp+fn>0 else np.nan for (tp,fn) in zip(TP,FN)]
+      ax2.plot(R, P, '.-' if len(xdata)<10 else '-')
+      F1 = [2*p*r/(p+r) if p+r>0 else np.nan for (p,r) in zip(P,R)]
+      ax3 = ax1.twinx()
+      ax3.plot(xdata, F1, '.-' if len(xdata)<10 else '-', color='k', label='F1')
+      ax3.set_ylabel('F1 = 2PR/(P+R)', color='k')
+      ax3.legend(loc=(1.15, 0.0))
+      f = interpolate.interp1d([p/r if r!=0 else np.nan for (p,r) in zip(P,R)],
+                               xdata, fill_value="extrapolate")
+      thresholds_touse[word] = f(desired_prs)
+      fP = interpolate.interp1d(xdata, P, fill_value="extrapolate")
+      fR = interpolate.interp1d(xdata, R, fill_value="extrapolate")
+      for (ipr,pr) in enumerate(precision_recalls_sparse):
+        th = float([x[1:] for x in thresholds_sparse if x[0]==word][0][ipr])
+        if 0<=th<=1 and not np.isnan(th):
+          ax2.plot(fR(th), fP(th), '.', label='sparse P/R = '+pr)
+      for (ith,th) in enumerate(thresholds_touse[word]):
+        if 0<=th<=1 and not np.isnan(th):
+          ax2.plot(fR(th), fP(th), '.', label='dense P/R = '+str(desired_prs[ith]))
+          ax1.axvline(x=th, label='dense P/R = '+str(desired_prs[ith]),
+                     color=next(ax1._get_lines.prop_cycler)['color'])
+      ax2.set_xlim(0,1)
+      ax2.set_ylim(0,1)
+      ax2.set_xlabel('Recall = TP/(TP+FN)')
+      ax2.set_ylabel('Precision = TP/(TP+FP)')
+      ax2.legend(loc=(1.05, 0.0))
+      ax1.legend(loc=(1.2, 0.1))
+      fig.tight_layout()
+      plt.savefig(os.path.join(basepath,'congruence.'+kind+'.'+word+'.pdf'))
+      plt.close()
 
     with open(os.path.join(basepath,'congruence.'+kind+'.'+word+'.csv'), 'w') as fid:
       csvwriter = csv.writer(fid)
@@ -609,5 +609,6 @@ def plot_versus_thresholds(roc_table, kind):
 plot_versus_thresholds(roc_table_tic, kind='tic')
 thresholds_touse, desired_prs = plot_versus_thresholds(roc_table_word, kind='word')
  
-save_thresholds(logdir, model, ckpt, thresholds_touse, desired_prs,
-                list(thresholds_touse.keys()), True)
+if len(thresholds_touse)>0:
+  save_thresholds(logdir, model, ckpt, thresholds_touse, desired_prs,
+                  list(thresholds_touse.keys()), True)
