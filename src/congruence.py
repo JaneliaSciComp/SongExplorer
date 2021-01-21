@@ -52,6 +52,7 @@ for subdir in filter(lambda x: os.path.isdir(os.path.join(basepath,x)), \
     wavdirs[subdir] = commonsubfiles
 
 labels=None
+temp_files=[]
 for wavdir in wavdirs:
   for wavfile in wavdirs[wavdir]:
     wavfile_noext = os.path.splitext(wavfile)[0]
@@ -87,6 +88,7 @@ for wavdir in wavdirs:
                                                                 audio_tic_rate)
       filename = os.path.join(basepath, wavdir,
                               wavfile_noext+'-predicted-'+str(threshold)+'th.csv')
+      temp_files.append(filename)
       isort = np.argsort(start_tics)
       with open(filename,'w') as fid:
         csvwriter = csv.writer(fid)
@@ -129,6 +131,9 @@ for wavdir in wavdirs:
       timestamps[word][csvbase][annotator] = df.loc[df[4]==word, 1:2]
       timestamps[word][csvbase][annotator].sort_values(by=[1],inplace=True)
       annotator_keys.add(annotator)
+
+for filename in temp_files:
+  os.remove(filename)
 
 print('humans = '+str(humans))
 print('precision_recalls = '+str(precision_recalls))
