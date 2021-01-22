@@ -15,6 +15,7 @@ import math
 from natsort import realsorted
 from scipy.io import wavfile
 import csv
+from datetime import datetime
 
 sys.path.append(os.path.dirname(os.path.realpath(__file__)))
 from jitter import *
@@ -512,7 +513,9 @@ def read_thresholds(logdir, model, thresholds_file):
   return precision_recall_ratios, thresholds
 
 def save_thresholds(logdir, model, ckpt, thresholds, ratios, words, dense=False):
-  filename = 'thresholds'+('-dense' if dense else '')+'.ckpt-'+str(ckpt)+'.csv'
+  filename = 'thresholds'+\
+             ('-dense-'+datetime.strftime(datetime.now(),'%Y%m%dT%H%M%S') if dense else '')+\
+             '.ckpt-'+str(ckpt)+'.csv'
   fid = open(os.path.join(logdir,model,filename),"w")
   fidcsv = csv.writer(fid)
   fidcsv.writerow(['precision/recall'] + ratios)
