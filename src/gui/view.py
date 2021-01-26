@@ -1157,20 +1157,32 @@ def wordcounts_update():
     if dfs:
         df = pd.concat(dfs)
         M.kinds = sorted(set(df[3]))
+        words = sorted(set(df[4]))
         bkinds = {}
-        table_str = '<table><tr><th></th><th>'+'</th><th>'.join(M.kinds)+'</th></tr>'
-        for word in sorted(set(df[4])):
+        table = np.empty((1+len(words),len(M.kinds)), dtype=np.int)
+        for iword,word in enumerate(words):
             bword = np.array(df[4]==word)
-            table_str += '<tr><th>'+word+'</th>'
-            for kind in M.kinds:
+            for ikind,kind in enumerate(M.kinds):
                 if kind not in bkinds:
                     bkinds[kind] = np.array(df[3]==kind)
-                table_str += '<td align="center">'+str(np.sum(np.logical_and(bkinds[kind], bword)))+'</td>'
+                table[iword,ikind] = np.sum(np.logical_and(bkinds[kind], bword))
+        for ikind,kind in enumerate(M.kinds):
+            table[len(words),ikind] = np.sum(bkinds[kind])
+        words += ['TOTAL']
+
+        if len(words)>len(M.kinds):
+            rows = words
+            cols = M.kinds
+        else:
+            rows = M.kinds
+            cols = words
+            table = np.transpose(table)
+        table_str = '<table><tr><th></th><th nowrap>'+'</th><th nowrap>'.join(cols)+'</th></tr>'
+        for irow,row in enumerate(rows):
+            table_str += '<tr><th nowrap>'+row+'</th>'
+            for icol,col in enumerate(cols):
+                table_str += '<td align="center">'+str(table[irow,icol])+'</td>'
             table_str += '</tr>'
-        table_str += '<tr><th>TOTAL</th>'
-        for kind in M.kinds:
-            table_str += '<td align="center">'+str(np.sum(bkinds[kind]))+'</td>'
-        table_str += '</tr>'
         table_str += '</table>'
         wordcounts.text = table_str
     else:
