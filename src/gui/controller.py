@@ -398,10 +398,10 @@ def spectrogram_mousewheel_callback(event):
         return
     spectrogram_mousewheel_last_change = this_change
     if event.delta<0:
-      M.spectrogram_length_ms[ichannel] = min(float(V.context_ms_string.value),
+      M.spectrogram_length_ms[ichannel] = min(float(V.zoom_context.value),
                                               M.spectrogram_length_ms[ichannel]*2)
     else:
-      M.spectrogram_length_ms[ichannel] = max(1, M.spectrogram_length_ms[ichannel]/2)
+      M.spectrogram_length_ms[ichannel] = max(2, M.spectrogram_length_ms[ichannel]/2)
     V.context_update()
 
 def spectrogram_pan_start_callback(event):
