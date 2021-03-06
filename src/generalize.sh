@@ -99,6 +99,9 @@ while (( $# > 0 )) ; do
           --optimizer=$optimizer \
           --batch_size=$mini_batch"
 
+          #--subsample_word=mel-notpulse,mel-pulse,mel-time \
+          #--subsample_skip=2048,2048,256 \
+
     cmd=${cmd}" $expr $redirect $logdir/generalize_${model}.log & "
     shift 1
     (( isubset++ ))

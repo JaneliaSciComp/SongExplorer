@@ -272,9 +272,8 @@ class AudioProcessor(object):
     desired_samples = model_settings['desired_samples']
     search_path = os.path.join(self.data_dir, '*', '*.csv')
     wav_nsamples = {}
-    subsample_words = subsample_word.split(',')
-    if '' in subsample_words:
-      subsample_words.remove('')
+    subsample = {x:int(y) for x,y in zip(subsample_word.split(','),subsample_skip.split(','))
+                          if x != ''}
     partition_words = partition_word.split(',')
     if '' in partition_words:
       partition_words.remove('')
@@ -291,7 +290,7 @@ class AudioProcessor(object):
         if kind not in labels_touse:
           continue
         wav_path=os.path.join(os.path.dirname(csv_path),wavfile)
-        if word in subsample_words and iannotation % subsample_skip != 0:
+        if word in subsample and iannotation % subsample[word] != 0:
           continue
         if word in partition_words:
           if wavfile not in partition_training_files and \

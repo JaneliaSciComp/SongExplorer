@@ -239,8 +239,8 @@ if __name__ == '__main__':
       help='Train on only a subset of annotations for this word.')
   parser.add_argument(
       '--subsample_skip',
-      type=int,
-      default=1,
+      type=str,
+      default='',
       help='Take only every Nth annotation for the specified word.')
   parser.add_argument(
       '--partition_word',
