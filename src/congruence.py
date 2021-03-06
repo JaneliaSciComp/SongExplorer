@@ -340,20 +340,20 @@ def plot_file(fig, fig_venn, only_data, not_data):
   if len(sorted_hm)<4:
     ax_venn = fig_venn.add_subplot(nrows,ncols,iplot)
     ax_venn.set_title(os.path.basename(csvbase), fontsize=8)
-  xdata=['everyone', *['only '+(x if x!=pr else 'songexplorer') for x in sorted_hm]]
+  xdata=['Everyone', *['only '+(x if x!=pr else 'SongExplorer') for x in sorted_hm]]
   ydata=only_data
   if len(sorted_hm)>2:
-    xdata.extend(['not '+(x if x!=pr else 'songexplorer') for x in sorted_hm])
+    xdata.extend(['not '+(x if x!=pr else 'SongExplorer') for x in sorted_hm])
     ydata.extend(not_data)
   if len(sorted_hm)==2:
     idx = [1,2,0]  # Ab, aB, AB
     venn2(subsets=[ydata[x] for x in idx],
-          set_labels=[x if x!=pr else 'songexplorer' for x in sorted_hm],
+          set_labels=[x if x!=pr else 'SongExplorer' for x in sorted_hm],
           ax=ax_venn)
   elif len(sorted_hm)==3:
     idx = [1,2,6,3,5,4,0]  # Abc, aBc, ABc, abC, AbC, aBC, ABC
     venn3(subsets=[ydata[x] for x in idx],
-          set_labels=[x if x!=pr else 'songexplorer' for x in sorted_hm],
+          set_labels=[x if x!=pr else 'SongExplorer' for x in sorted_hm],
           ax=ax_venn)
   ax.bar(xdata, ydata, color='k')
   ax.set_title(os.path.basename(csvbase), fontsize=8)
@@ -364,20 +364,20 @@ def plot_sumfiles(fig, fig_venn, only_data, not_data):
   if len(sorted_hm)<4:
     ax_venn = fig_venn.add_subplot(nrows,ncols,1)
     ax_venn.set_title('all files', fontsize=8)
-  xdata=['everyone', *['only '+(x if x!=pr else 'songexplorer') for x in sorted_hm]]
+  xdata=['Everyone', *['only '+(x if x!=pr else 'SongExplorer') for x in sorted_hm]]
   ydata=only_data
   if len(sorted_hm)>2:
-    xdata.extend(['not '+(x if x!=pr else 'songexplorer') for x in sorted_hm])
+    xdata.extend(['not '+(x if x!=pr else 'SongExplorer') for x in sorted_hm])
     ydata.extend(not_data)
   if len(sorted_hm)==2:
     idx = [1,2,0]
     venn2(subsets=[ydata[x] for x in idx],
-          set_labels=[x if x!=pr else 'songexplorer' for x in sorted_hm],
+          set_labels=[x if x!=pr else 'SongExplorer' for x in sorted_hm],
           ax=ax_venn)
   elif len(sorted_hm)==3:
     idx = [1,2,6,3,5,4,0]
     venn3(subsets=[ydata[x] for x in idx],
-          set_labels=[x if x!=pr else 'songexplorer' for x in sorted_hm],
+          set_labels=[x if x!=pr else 'SongExplorer' for x in sorted_hm],
           ax=ax_venn)
   ax.bar(xdata, ydata, color='k')
   ax.set_xticklabels(xdata, rotation=40, ha='right')
@@ -517,20 +517,20 @@ for pr in precision_recalls:
     csvbase0 = next(iter(onlyone_tic[pr][word].keys()))
     sorted_hm = natsorted(onlyone_tic[pr][word][csvbase0].keys())
     for hm in sorted_hm:
-      key = 'only '+hm if hm!=pr else 'only songexplorer'
+      key = 'only '+hm if hm!=pr else 'only SongExplorer'
       roc_table_tic[word][pr][key] = int(sum([sum([y[1]-y[0]+1 for y in f[hm]]) \
                                               for f in onlyone_tic[pr][word].values()]))
       roc_table_word[word][pr][key] = sum([len(f[hm]) for f in onlyone_word[pr][word].values()])
       if len(sorted_hm)>2:
-        key = 'not '+hm if hm!=pr else 'not songexplorer'
+        key = 'not '+hm if hm!=pr else 'not SongExplorer'
         roc_table_tic[word][pr][key] = int(sum([sum([y[1]-y[0]+1 for y in f[hm]]) \
                                                 for f in notone_tic[pr][word].values()]))
         roc_table_word[word][pr][key] = sum([len(f[hm])
                                              for f in notone_word[pr][word].values()])
-    roc_table_tic[word][pr]['everyone'] = int(sum([x[1]-x[0]+1
+    roc_table_tic[word][pr]['Everyone'] = int(sum([x[1]-x[0]+1
                                                    for f in everyone[pr][word].values()
                                                    for x in f]))
-    roc_table_word[word][pr]['everyone'] = sum([len(f) for f in everyone[pr][word].values()])
+    roc_table_word[word][pr]['Everyone'] = sum([len(f) for f in everyone[pr][word].values()])
 
 def plot_versus_thresholds(roc_table, kind):
   thresholds_touse = {}
@@ -546,14 +546,14 @@ def plot_versus_thresholds(roc_table, kind):
       for not_only_every in sorted(roc_table[word][thresholds[0]].keys()):
         ydata = [roc_table[word][x][not_only_every] for x in thresholds]
         ax1.plot(xdata, ydata, '.-' if len(xdata)<10 else '-', label=not_only_every)
-        if not_only_every=='everyone':
+        if not_only_every=='Everyone':
           TP = ydata
-        elif not_only_every=='only songexplorer':
+        elif not_only_every=='only SongExplorer':
           FP = ydata
         else:
           if len(humans)==1:
             FN = ydata
-          elif not_only_every=='not songexplorer':
+          elif not_only_every=='not SongExplorer':
             FN = ydata
       for (ipr,pr) in enumerate(precision_recalls_sparse):
         th = float([x[1:] for x in thresholds_sparse if x[0]==word][0][ipr])

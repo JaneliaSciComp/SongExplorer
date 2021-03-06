@@ -65,158 +65,158 @@ for i in range(1,8):
 l1 = pd.read_csv(os.path.join(V.groundtruth_folder.value, "congruence.word.label1.csv"))
 pr1 = l1.loc[l1['Unnamed: 0'] == '1.0pr']
 
-check_value(pr1, "everyone", 1)
-check_value(pr1, "only person1", 2)
-check_value(pr1, "only person2", 3)
-check_value(pr1, "only songexplorer", 4)
-check_value(pr1, "not person1", 5)
-check_value(pr1, "not person2", 6)
-check_value(pr1, "not songexplorer", 7)
+check_value(pr1, "Everyone", 1)
+check_value(pr1, "only Person1", 2)
+check_value(pr1, "only Person2", 3)
+check_value(pr1, "only SongExplorer", 4)
+check_value(pr1, "not Person1", 5)
+check_value(pr1, "not Person2", 6)
+check_value(pr1, "not SongExplorer", 7)
 
 l2 = pd.read_csv(os.path.join(V.groundtruth_folder.value, "congruence.word.label2.csv"))
 pr1 = l2.loc[l2['Unnamed: 0'] == '1.0pr']
 
-check_value(pr1, "everyone", 1)
-check_value(pr1, "only person1", 2)
-check_value(pr1, "only person2", 3)
-check_value(pr1, "only songexplorer", 0)
-check_value(pr1, "not songexplorer", 0)
+check_value(pr1, "Everyone", 1)
+check_value(pr1, "only Person1", 2)
+check_value(pr1, "only Person2", 3)
+check_value(pr1, "only SongExplorer", 0)
+check_value(pr1, "not SongExplorer", 0)
 
 for i in range(3,8):
   li = pd.read_csv(os.path.join(V.groundtruth_folder.value,
                                 "congruence.word.label"+str(i)+".csv"))
   pr1 = li.loc[li['Unnamed: 0'] == '1.0pr']
-  check_value(pr1, "only person1", 1)
-  check_value(pr1, "not person2", 2)
+  check_value(pr1, "only Person1", 1)
+  check_value(pr1, "not Person2", 2)
 
 l1 = pd.read_csv(os.path.join(V.groundtruth_folder.value, "congruence.tic.label1.csv"))
 pr1 = l1.loc[l1['Unnamed: 0'] == '1.0pr']
 
-check_value(pr1, "everyone", 1)
-check_value(pr1, "only person1", 2)
-check_value(pr1, "only person2", 3)
-check_value(pr1, "only songexplorer", 4)
-check_value(pr1, "not person1", 5)
-check_value(pr1, "not person2", 6)
-check_value(pr1, "not songexplorer", 7)
+check_value(pr1, "Everyone", 1)
+check_value(pr1, "only Person1", 2)
+check_value(pr1, "only Person2", 3)
+check_value(pr1, "only SongExplorer", 4)
+check_value(pr1, "not Person1", 5)
+check_value(pr1, "not Person2", 6)
+check_value(pr1, "not SongExplorer", 7)
 
 l2 = pd.read_csv(os.path.join(V.groundtruth_folder.value, "congruence.tic.label2.csv"))
 pr1 = l2.loc[l2['Unnamed: 0'] == '1.0pr']
 
-check_value(pr1, "everyone", 1)
-check_value(pr1, "only person1", 2)
-check_value(pr1, "only person2", 3)
-check_value(pr1, "only songexplorer", 22)
-check_value(pr1, "not songexplorer", 0)
+check_value(pr1, "Everyone", 1)
+check_value(pr1, "only Person1", 2)
+check_value(pr1, "only Person2", 3)
+check_value(pr1, "only SongExplorer", 22)
+check_value(pr1, "not SongExplorer", 0)
 
 l3 = pd.read_csv(os.path.join(V.groundtruth_folder.value, "congruence.tic.label3.csv"))
 pr1 = l3.loc[l3['Unnamed: 0'] == '1.0pr']
 
-check_value(pr1, "only songexplorer", 10)
-check_value(pr1, "not songexplorer", 0)
-check_value(pr1, "only person1", 5)
-check_value(pr1, "not person1", 0)
-check_value(pr1, "only person2", 0)
-check_value(pr1, "not person2", 10)
-check_value(pr1, "everyone", 0)
+check_value(pr1, "only SongExplorer", 10)
+check_value(pr1, "not SongExplorer", 0)
+check_value(pr1, "only Person1", 5)
+check_value(pr1, "not Person1", 0)
+check_value(pr1, "only Person2", 0)
+check_value(pr1, "not Person2", 10)
+check_value(pr1, "Everyone", 0)
 
 l4 = pd.read_csv(os.path.join(V.groundtruth_folder.value, "congruence.tic.label4.csv"))
 pr1 = l4.loc[l4['Unnamed: 0'] == '1.0pr']
 
-check_value(pr1, "only songexplorer", 10)
-check_value(pr1, "not songexplorer", 0)
-check_value(pr1, "only person1", 6)
-check_value(pr1, "not person1", 0)
-check_value(pr1, "only person2", 0)
-check_value(pr1, "not person2", 9)
-check_value(pr1, "everyone", 0)
+check_value(pr1, "only SongExplorer", 10)
+check_value(pr1, "not SongExplorer", 0)
+check_value(pr1, "only Person1", 6)
+check_value(pr1, "not Person1", 0)
+check_value(pr1, "only Person2", 0)
+check_value(pr1, "not Person2", 9)
+check_value(pr1, "Everyone", 0)
 
 l5 = pd.read_csv(os.path.join(V.groundtruth_folder.value, "congruence.tic.label5.csv"))
 pr1 = l5.loc[l5['Unnamed: 0'] == '1.0pr']
 
-check_value(pr1, "only songexplorer", 10)
-check_value(pr1, "not songexplorer", 0)
-check_value(pr1, "only person1", 7)
-check_value(pr1, "not person1", 0)
-check_value(pr1, "only person2", 0)
-check_value(pr1, "not person2", 8)
-check_value(pr1, "everyone", 0)
+check_value(pr1, "only SongExplorer", 10)
+check_value(pr1, "not SongExplorer", 0)
+check_value(pr1, "only Person1", 7)
+check_value(pr1, "not Person1", 0)
+check_value(pr1, "only Person2", 0)
+check_value(pr1, "not Person2", 8)
+check_value(pr1, "Everyone", 0)
 
 l6 = pd.read_csv(os.path.join(V.groundtruth_folder.value, "congruence.tic.label6.csv"))
 pr1 = l6.loc[l6['Unnamed: 0'] == '1.0pr']
 
-check_value(pr1, "only songexplorer", 10)
-check_value(pr1, "not songexplorer", 0)
-check_value(pr1, "only person1", 5)
-check_value(pr1, "not person1", 0)
-check_value(pr1, "only person2", 0)
-check_value(pr1, "not person2", 4)
-check_value(pr1, "everyone", 0)
+check_value(pr1, "only SongExplorer", 10)
+check_value(pr1, "not SongExplorer", 0)
+check_value(pr1, "only Person1", 5)
+check_value(pr1, "not Person1", 0)
+check_value(pr1, "only Person2", 0)
+check_value(pr1, "not Person2", 4)
+check_value(pr1, "Everyone", 0)
 
 l7 = pd.read_csv(os.path.join(V.groundtruth_folder.value, "congruence.tic.label7.csv"))
 pr1 = l7.loc[l7['Unnamed: 0'] == '1.0pr']
 
-check_value(pr1, "only songexplorer", 10)
-check_value(pr1, "not songexplorer", 0)
-check_value(pr1, "only person1", 7)
-check_value(pr1, "not person1", 0)
-check_value(pr1, "only person2", 0)
-check_value(pr1, "not person2", 12)
-check_value(pr1, "everyone", 0)
+check_value(pr1, "only SongExplorer", 10)
+check_value(pr1, "not SongExplorer", 0)
+check_value(pr1, "only Person1", 7)
+check_value(pr1, "not Person1", 0)
+check_value(pr1, "only Person2", 0)
+check_value(pr1, "not Person2", 12)
+check_value(pr1, "Everyone", 0)
 
 correctvalues = [
   ["recording1-disjoint-everyone.csv", 1],
   ["recording1-disjoint-tic-not1.0pr.csv", 7],
-  ["recording1-disjoint-tic-notperson1.csv", 5],
-  ["recording1-disjoint-tic-notperson2.csv", 6],
+  ["recording1-disjoint-tic-notPerson1.csv", 5],
+  ["recording1-disjoint-tic-notPerson2.csv", 6],
   ["recording1-disjoint-tic-only1.0pr.csv", 4],
-  ["recording1-disjoint-tic-onlyperson1.csv", 2],
-  ["recording1-disjoint-tic-onlyperson2.csv", 3],
+  ["recording1-disjoint-tic-onlyPerson1.csv", 2],
+  ["recording1-disjoint-tic-onlyPerson2.csv", 3],
   ["recording1-disjoint-word-not1.0pr.csv", 7],
-  ["recording1-disjoint-word-notperson1.csv", 5],
-  ["recording1-disjoint-word-notperson2.csv", 6],
+  ["recording1-disjoint-word-notPerson1.csv", 5],
+  ["recording1-disjoint-word-notPerson2.csv", 6],
   ["recording1-disjoint-word-only1.0pr.csv", 4],
-  ["recording1-disjoint-word-onlyperson1.csv", 2],
-  ["recording1-disjoint-word-onlyperson2.csv", 3],
+  ["recording1-disjoint-word-onlyPerson1.csv", 2],
+  ["recording1-disjoint-word-onlyPerson2.csv", 3],
   ["recording2-disjoint-everyone.csv", 1],
   ["recording2-disjoint-tic-not1.0pr.csv", 0],
-  #["recording2-disjoint-tic-notperson1.csv", ],
-  #["recording2-disjoint-tic-notperson2.csv", ],
+  #["recording2-disjoint-tic-notPerson1.csv", ],
+  #["recording2-disjoint-tic-notPerson2.csv", ],
   ["recording2-disjoint-tic-only1.0pr.csv", 1],
-  ["recording2-disjoint-tic-onlyperson1.csv", 2],
-  ["recording2-disjoint-tic-onlyperson2.csv", 3],
+  ["recording2-disjoint-tic-onlyPerson1.csv", 2],
+  ["recording2-disjoint-tic-onlyPerson2.csv", 3],
   ["recording2-disjoint-word-not1.0pr.csv", 0],
-  #["recording2-disjoint-word-notperson1.csv", ],
-  #["recording2-disjoint-word-notperson2.csv", ],
+  #["recording2-disjoint-word-notPerson1.csv", ],
+  #["recording2-disjoint-word-notPerson2.csv", ],
   ["recording2-disjoint-word-only1.0pr.csv", 0],
-  ["recording2-disjoint-word-onlyperson1.csv", 2],
-  ["recording2-disjoint-word-onlyperson2.csv", 3],
+  ["recording2-disjoint-word-onlyPerson1.csv", 2],
+  ["recording2-disjoint-word-onlyPerson2.csv", 3],
   ["recording3-disjoint-everyone.csv", 0],
   ["recording3-disjoint-tic-not1.0pr.csv", 0],
-  ["recording3-disjoint-tic-notperson1.csv", 0],
-  ["recording3-disjoint-tic-notperson2.csv", 5],
+  ["recording3-disjoint-tic-notPerson1.csv", 0],
+  ["recording3-disjoint-tic-notPerson2.csv", 5],
   ["recording3-disjoint-tic-only1.0pr.csv", 0],
-  ["recording3-disjoint-tic-onlyperson1.csv", 4],
-  ["recording3-disjoint-tic-onlyperson2.csv", 0],
+  ["recording3-disjoint-tic-onlyPerson1.csv", 4],
+  ["recording3-disjoint-tic-onlyPerson2.csv", 0],
   ["recording3-disjoint-word-not1.0pr.csv", 0],
-  ["recording3-disjoint-word-notperson1.csv", 0],
-  ["recording3-disjoint-word-notperson2.csv", 5],
+  ["recording3-disjoint-word-notPerson1.csv", 0],
+  ["recording3-disjoint-word-notPerson2.csv", 5],
   ["recording3-disjoint-word-only1.0pr.csv", 0],
-  ["recording3-disjoint-word-onlyperson1.csv", 0],
-  ["recording3-disjoint-word-onlyperson2.csv", 0],
+  ["recording3-disjoint-word-onlyPerson1.csv", 0],
+  ["recording3-disjoint-word-onlyPerson2.csv", 0],
   ["recording4-disjoint-everyone.csv", 0],
   ["recording4-disjoint-tic-not1.0pr.csv", 0],
-  ["recording4-disjoint-tic-notperson1.csv", 0],
-  ["recording4-disjoint-tic-notperson2.csv", 5],
+  ["recording4-disjoint-tic-notPerson1.csv", 0],
+  ["recording4-disjoint-tic-notPerson2.csv", 5],
   ["recording4-disjoint-tic-only1.0pr.csv", 5],
-  ["recording4-disjoint-tic-onlyperson1.csv", 5],
-  ["recording4-disjoint-tic-onlyperson2.csv", 0],
+  ["recording4-disjoint-tic-onlyPerson1.csv", 5],
+  ["recording4-disjoint-tic-onlyPerson2.csv", 0],
   ["recording4-disjoint-word-not1.0pr.csv", 0],
-  ["recording4-disjoint-word-notperson1.csv", 0],
-  ["recording4-disjoint-word-notperson2.csv", 5],
+  ["recording4-disjoint-word-notPerson1.csv", 0],
+  ["recording4-disjoint-word-notPerson2.csv", 5],
   ["recording4-disjoint-word-only1.0pr.csv", 0],
-  ["recording4-disjoint-word-onlyperson1.csv", 5],
-  ["recording4-disjoint-word-onlyperson2.csv", 0],
+  ["recording4-disjoint-word-onlyPerson1.csv", 5],
+  ["recording4-disjoint-word-onlyPerson2.csv", 0],
   ]
 
 for filename, correctvalue in correctvalues:
