@@ -22,6 +22,7 @@ from functools import reduce
 from natsort import natsorted
 from matplotlib_venn import venn2, venn3
 from scipy import interpolate
+from sklearn import metrics
 
 sys.path.append(os.path.dirname(os.path.realpath(__file__)))
 from lib import *
@@ -596,13 +597,23 @@ def plot_versus_thresholds(roc_table, kind):
       plt.savefig(os.path.join(basepath,'congruence.'+kind+'.'+word+'.pdf'))
       plt.close()
 
+      inotnan = (~np.isnan(P) & ~np.isnan(R)).nonzero()[0]
+      r,p = [R[i] for i in inotnan], [P[i] for i in inotnan]
+      if len(np.unique(np.sign(np.diff(r))))==1:
+        print(kind+' '+word+' area = '+str(metrics.auc(r,p)))
+      else:
+        print(kind+' '+word+' area cannot be computed because recall is not monotonic')
+
     with open(os.path.join(basepath,'congruence.'+kind+'.'+word+'.csv'), 'w') as fid:
       csvwriter = csv.writer(fid)
       rows = roc_table[word].keys()
       cols = roc_table[word][next(iter(rows))].keys()
-      csvwriter.writerow(['']+list(cols))
+      csvwriter.writerow([''] + list(cols) + ['Precision','Recall'] if len(thresholds)>0 else [])
       for row in realsorted(rows):
-        csvwriter.writerow([row]+[roc_table[word][row][x] for x in cols])
+        pr = []
+        if row.endswith('th'):
+          pr = [P[thresholds.index(row)], R[thresholds.index(row)]]
+        csvwriter.writerow([row]+[roc_table[word][row][x] for x in cols]+pr)
 
   return thresholds_touse, desired_prs
 
