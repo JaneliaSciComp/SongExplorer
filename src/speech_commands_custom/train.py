@@ -327,14 +327,21 @@ def main(_):
         tf.logging.info('Saving to "%s-%d"', checkpoint_path, training_step)
         saver.save(sess, checkpoint_path, global_step=training_step)
 
-    is_last_step = (training_step == training_steps_max)
-    if validation_set_size>0 and (is_last_step or (training_step % FLAGS.eval_step_interval) == 0):
+    if validation_set_size>0 and training_step != training_steps_max and \
+                                 (training_step % FLAGS.eval_step_interval) == 0:
       validate_and_test('validation', validation_set_size, model_settings, \
                         sess, merged_summaries, evaluation_step, \
                         confusion_matrix, logits, hidden, validation_writer, \
-                        audio_processor, is_last_step, fingerprint_input, \
+                        audio_processor, False, fingerprint_input, \
                         ground_truth_input, actual_batch_size, dropout_prob, \
                         training_step, t0)
+  if validation_set_size>0:
+    validate_and_test('validation', validation_set_size, model_settings, \
+                        sess, merged_summaries, evaluation_step, \
+                        confusion_matrix, logits, hidden, validation_writer, \
+                        audio_processor, True, fingerprint_input, \
+                        ground_truth_input, actual_batch_size, dropout_prob, \
+                        training_steps_max, t0)
   if testing_set_size>0:
     validate_and_test('testing', testing_set_size, model_settings, \
                       sess, merged_summaries, evaluation_step, confusion_matrix, \
