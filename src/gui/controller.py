@@ -179,11 +179,13 @@ var x0 = waveform_span_red.location;
 aud.ontimeupdate = function() {
   waveform_span_red.location = x0+aud.currentTime
   spectrogram_span_red.location = x0+aud.currentTime
+  probablity_span_red.location = x0+aud.currentTime
 };
 
 aud.onended = function() {
   waveform_span_red.location = x0
   spectrogram_span_red.location = x0
+  probability_span_red.location = x0
 };
 
 const vid = document.getElementById("context_video")
