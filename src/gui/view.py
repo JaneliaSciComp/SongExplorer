@@ -427,6 +427,7 @@ def cluster_initialize(newcolors=True):
                             continue
                         if M.clustered_activations[ilayer] is None:
                             continue
+                        M.ilayer=ilayer
                         bidx = np.logical_and([specie in x['label'] and \
                                                word in x['label'] and \
                                                (nohyphen=="" or nohyphen==x['label']) and \
@@ -461,7 +462,6 @@ def cluster_initialize(newcolors=True):
     dot_size.disabled=False
     dot_alpha.disabled=False
 
-    M.ilayer=0
     M.ispecies=0
     M.iword=0
     M.inohyphen=0
