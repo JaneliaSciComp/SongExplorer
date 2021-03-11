@@ -102,7 +102,7 @@ SongExplorer: A deep learning workflow for discovery and segmentation of animal 
 # Notation #
 
 Throughout this document `Buttons` and `variables` in the SongExplorer graphical
-user interface (GUI) as well as `code` are highlighted like so.  Files and
+user interface (GUI) as well as `code` are highlighted with backticks.  Files and
 paths are enclosed in double quotes ("...").  The dollar sign ($) in code
 snippets signifies your computer terminal's command line.  Square brackets
 ([...]) in code indicate optional components, and angle brackets (<...>)
@@ -121,7 +121,7 @@ TensorFlow, the machine learning framework from Google that SongExplorer uses,
 supports Ubuntu, Windows and Mac.  The catch is that Nvidia (and hence
 TensorFlow) currently doesn't support GPUs on Macs.  So while using a
 pre-trained classifier would be fine on a Mac, because inference is just as
-fast on the CPU, training your own would take several times longer.
+fast on the CPU, training your own would take longer.
 
 Docker, a popular container framework which provides an easy way to deploy
 software across platforms, supports Linux, Windows and Mac, but only supports
@@ -169,7 +169,7 @@ might need an access token):
     total 16G
     -rwxr-xr-x  1 arthurb scicompsoft 1.5G Sep  2 08:16 songexplorer_latest.sif*
 
-Put these definitions in your .bashrc (or .zshrc file on Mac OS Catalina) file:
+Put these definitions in your .bashrc (or .zshrc file on Mac OS Catalina and newer) file:
 
     export SONGEXPLORER_BIN="singularity exec [--nv] [-B <disk-drive>] \
         [--vm-cpu] [--vm-ram] <path-to-songexplorer_latest.sif>"
@@ -197,7 +197,7 @@ Platform-specific installation instructions can be found at
 [Docker](http://www.docker.com).  Once you have it installed, open the Command
 Prompt on Windows, or the Terminal on Mac, and download the [SongExplorer image
 from
-cloud.docker.com](https://cloud.docker.com/u/bjarthur/repository/docker/bjarthur/songexplorer):
+cloud.docker.com](https://hub.docker.com/r/bjarthur/songexplorer):
 
     $ docker login
 
@@ -211,8 +211,7 @@ cloud.docker.com](https://cloud.docker.com/u/bjarthur/repository/docker/bjarthur
     REPOSITORY        TAG    IMAGE ID     CREATED      SIZE
     bjarthur/songexplorer latest b63784a710bb 20 hours ago 2.27GB
 
-Use `notepad` to create two ".bat" files.
-
+On Windows, use `notepad` to create two ".bat" files:
     
     "SONGEXPLORER_BIN.bat":
     docker run ^
@@ -226,7 +225,7 @@ Use `notepad` to create two ".bat" files.
         bjarthur/songexplorer gui.sh <path-to-configuration.pysh> 5006
 
 The equivalent on Mac and Linux is to put these definitions in your .bashrc (or
-.zshrc file on Mac OS X Catalina) file:
+.zshrc file on Mac OS X Catalina and newer) file:
 
     export SONGEXPLORER_BIN="docker run \
         [-v <disk-drive>] [-u <userid>] [-w <working-directory] \
@@ -247,7 +246,7 @@ In [System Configuration](#system-configuration) we'll make a copy of the
 default configuration file.  For now, you just need to decide where you're
 going to put it, and then specify the full path to that file in the alias
 definition (e.g.  "%HOMEPATH%/songexplorer/configuration.pysh" on Windows, or
-"$HOME/..." on Mac and Linux).
+"$HOME/songexplorer/configuration.pysh" on Mac and Linux).
 
 To quit out of SongExplorer you might need to open another terminal window and
 issue the `stop` command:
@@ -309,7 +308,7 @@ ones later in the file.  Other valid values for these variables are "server"
 for a remote workstation that you can `ssh` into, and "cluster" for an
 on-premise Beowulf-style cluster with a job scheduler.
 
-Note that "configuration.pysh" must be a valid python *and* bash file.  Hence
+Note that "configuration.pysh" must be a valid Python *and* Bash file.  Hence
 the unusual ".pysh" extension.
 
 ## Scheduling Jobs ##
@@ -350,10 +349,11 @@ Training the model in the [Tutorial](#tutorial) below, for example, only needs
 two CPU cores and a megabyte of memory.  So in this case you could set
 `train_gpu` to 0 and `train_cpu_{ncpu_cores,ngpu_cards,ngigabytes_memory}` to
 2, 0, and 1, respectively.  Doing so would then permit you to train multiple
-models at once even on not so fancy machines.  Alternatively, if you have a
+models at once even on a not so fancy machine.  Alternatively, if you have a
 GPU, you could set `train_gpu` to 1 and
 `train_gpu_{ncpu_cores,ngpu_cards,ngigabytes_memory}` to 2, 1, and 1.  As it
-happens, for models of this size, training is quicker *without* a GPU.
+happens, for the network architecture used in the tutorial, training is quicker
+*without* a GPU.
 
 Note that these settings don't actually limit the job to that amount of
 resources, but rather they just limit how many jobs are running simultaneously.
@@ -362,7 +362,7 @@ underestimate the resources required, particularly memory consumption.  To make
 an accurate assessment for your particular workflow, use the `top` and
 `nvidia-smi` commands to monitor jobs while they are running.
 
-    $ $SONGEXPLORER_BIN top -b | head -10
+    $ $SONGEXPLORER_BIN top
     top - 09:36:18 up 25 days,  1:18,  0 users,  load average: 11.40, 12.46, 12.36
     Tasks: 252 total,   1 running, 247 sleeping,   0 stopped,   4 zombie
     %Cpu(s):  0.7 us,  0.9 sy, 87.9 ni, 10.4 id,  0.1 wa,  0.0 hi,  0.0 si,  0.0 st
@@ -376,12 +376,9 @@ an accurate assessment for your particular workflow, use the `top` and
 
 The output above shows that a `python3` command, which is how a training session
 appears, is currently using 131.2% of a CPU core (e.g. 1.3 cores), and 6.9% of
-the 32702004 KiB of total system memory (so about 2.15 GiB).  To monitor how
-these numbers change throughout the course of an entire job, omit the `-b` flag
-and do *not* pipe the output into `head` (so just use `$SONGEXPLORER_BIN top`) and
-the screen will be refreshed every few seconds.
+the 32702004 KiB of total system memory (so about 2.15 GiB).
 
-The output below shows how to similarly monitor the GPU card.  The same
+Use the `nvidia-smi` command to similarly monitor the GPU card.  The same
 `python3` command as above is currently using 4946 MiB of GPU memory and 67% of
 the GPU cores.  Use the `watch` command to receive repeated updates (i.e.
 `$SONGEXPLORER_BIN watch nvidia-smi`).
@@ -422,12 +419,11 @@ can be run on your workstation.  In this case:
 "configuration.pysh", and all of your data.
 
 * Make the remote and local file paths match by creating a symbolic link.
-For example, if on a Mac you use SMB to mount as "/Volumes/sternlab"
-an NSF drive whose path is "/groups/stern/sternlab", then add `-[v|B]
-/groups/stern/sternlab` to `SONGEXPLORER_BIN` and `mkdir -p /groups/stern &&
-ln -s /Volumes/sternlab/ /groups/stern/sternlab`.  With Docker you'll
-additionally need to open the preferences panel and configure file sharing
-to bind "/groups".
+For example, if on a Mac you use SMB to mount as "/Volumes/MyLab" an NSF
+drive whose path is "/groups/MyLab", then add `-[v|B] /groups/MyLab`
+to `SONGEXPLORER_BIN` and `mkdir -p /groups && ln -s /Volumes/MyLab/
+/groups/MyLab`.  With Docker you'll additionally need to open the preferences
+panel and configure file sharing to bind "/groups".
 
 * Set the `SONGEXPLORER` environment variable plus the `songexplorer` alias on both
 your workstation and the server to point to this same image.
@@ -438,9 +434,9 @@ your workstation and the server to point to this same image.
 * You might need to use ssh flags `-i /ssh/id_rsa -o "StrictHostKeyChecking
 no"` in "configuration.pysh".
 
-If you do not have a shared file system, the SongExplorer image and configuration file
-must be separately installed on both computers, and you'll need to do all of
-the compute jobs remotely.
+If you do not have a shared file system, the SongExplorer image and
+configuration file must be separately installed on both computers, and
+you'll need to do all of the compute jobs remotely.
 
 Lastly, update "configuration.pysh" with the IP address of the server.  As when
 doing compute locally, SongExplorer uses a job scheduler on the server to manage
@@ -479,7 +475,7 @@ your system administrator.
     $ grep -A3 \'cluster configuration.pysh
     # specs of the 'cluster'
     cluster_ipaddr="login1"
-    cluster_cmd="bsub -Ne -Pstern"
+    cluster_cmd="bsub -Ne -Pmylab"
     cluster_logfile_flag="-oo"
 
 The syntax used to specify the resources required is unique to the particular
@@ -551,7 +547,7 @@ is my computer's name, but for you it will be different.  If that doesn't work,
 try "http://localhost:5006/gui".
 
 On the left you'll see three empty panels (two large squares side by side and
-one wide rectangle underneath) in which the sound recordings are displayed and
+three wide rectangles underneath) in which the sound recordings are displayed and
 annotated.  In the middle are buttons and text boxes used to train the
 classifier and make predictions with it, as well as a file browser and a large
 editable text box with "configuration.pysh".  On the right is this instruction
@@ -602,25 +598,25 @@ domain, plus intervals which did not exceed either.
   PS_20130625111709_ch3.wav,158224,158672,detected,frequency
   PS_20130625111709_ch3.wav,182864,182960,detected,frequency
 
-  $ grep -m 3 ambient groundtruth-data/round1/PS_20130625111709_ch3-detected.csv
-  PS_20130625111709_ch3.wav,388,795,detected,ambient
-  PS_20130625111709_ch3.wav,813,829,detected,ambient
-  PS_20130625111709_ch3.wav,868,2201,detected,ambient
+  $ grep -m 3 neither groundtruth-data/round1/PS_20130625111709_ch3-detected.csv
+  PS_20130625111709_ch3.wav,388,795,detected,neither
+  PS_20130625111709_ch3.wav,813,829,detected,neither
+  PS_20130625111709_ch3.wav,868,2201,detected,neither
 
 
 ## Visualizing Clusters ##
 
-To cluster these detected sounds we're going to use the same method that we'll
+To cluster these detected sounds we're going to use the same workflow that we'll
 later use to cluster the hidden state activations of a trained classifier.
 
 Click on the `Train` button to create a randomly initialized network.  Then use
 the `File Browser` to choose directories in which to put the log files (e.g.
 "untrained-classifier") and to find the ground-truth data.  The latter should
-point to a folder two-levels up in the file hierarchy from the WAV and CSV
+point to a folder one level up in the file hierarchy from the WAV and CSV
 files (i.e. "groundtruth-data" in this case).  Check to make sure that the
-`Label Types` button automatically set `# steps`, `validate period`, and
+`Label Types` button automatically sets `# steps`, `validate period`, and
 `validation %` to 0, `restore from` to blank, `wanted words` to
-"time,frequency,ambient", and `label types` to "detected".  The rest of the
+"time,frequency,neither", and `label types` to "detected".  The rest of the
 fields, most of which specify the network architecture, are filled in with
 default values the first time you ever use SongExplorer, and any changes you make
 to them, along with all of the other text fields, are saved to a file named
@@ -635,7 +631,7 @@ Use the `Activations` button to save the input to the neural network as well as
 its hidden state activations and output logits by mock-classifying these
 detected sounds with this untrained network.  You'll need to tell it which
 model to use by selecting the last checkpoint file in the untrained
-classifier's log files with the `File Browser` (i.e.
+classifier's log files with the `File Browser` (i.e. one of
 "untrained-classifier/train_1r/vgg.ckpt-0.{index,meta,data\*}" in this case).
 The time and amount of memory this takes depends directly on the number and
 dimensionality of detected sounds.  To limit the problem to a manageable size
@@ -667,7 +663,7 @@ results of the principal components analysis (PCA) if one was performed.
 
 Finally, click on the `Visualize` button to render the clusters in the
 left-most panel.  Adjust the size and transparency of the markers using the
-`Dot Size` and `Dot Alpha` sliders respectively.  Nominally there should be
+`Dot Size` and `Dot Alpha` sliders respectively.  There should be
 some structure to the clusters based on just the raw data alone.  This
 structure will become much more pronounced after a model is trained with
 annotated data.
@@ -677,9 +673,9 @@ fuchsia circle (or sphere if the clustering was done in 3D) will appear.  In
 the right panel are now displayed snippets of detected waveforms which are
 within that circle.  The size of the circle can be adjusted with the `Circle
 Radius` slider and the number of snippets displayed with `gui_snippet_n{x,y}`
-in "configuration.pysh".  Nominally the snippets are all similar to one another
+in "configuration.pysh".  The snippets should exhibit some similarity to one another
 since they are neighbors in the clustered space.  They will each be labeled
-"detected time", "detected frequency", or "detected ambient" to indicate which
+"detected time", "detected frequency", or "detected neither" to indicate which
 threshold criterion they passed and that they were detected (as opposed to
 annotated, predicted, or missed; see below).  The color is the scale bar--
 yellow is loud and purple is quiet.  Clicking on a snippet will show it in
@@ -691,7 +687,7 @@ well.
 
 ## Manually Annotating ##
 
-To record a manual annotation, first pick a waveform snippet that contains an
+To record a manual annotation, first pick a snippet that contains an
 unambiguous example of a particular word.  Type the word's name into one of the
 text boxes to the right of the pan and zoom controls and hit return to activate
 the corresponding counter to its left.  Hopefully the gray box in the upper
@@ -705,8 +701,8 @@ double clicking any of the gray boxes.
 
 For this tutorial, choose the words "mel-pulse", "mel-sine", "ambient", and
 "other".  We use the syntax "A-B" here, where A is the species (mel
-being short for *D.  melanogaster*) and B is the song type, but that is not
-strictly required.  The word syntax could nominally be anything.  The GUI
+being short for *D.  melanogaster*) and B is the song type.  That syntax is not
+required though-- the labels can be anything of your choosing.  The GUI
 does have a feature, however, to split labels at the hyphen and display
 groups of words that share a common prefix or suffix.
 
@@ -724,12 +720,12 @@ just made were saved into an "-annotated.csv" file in the ground-truth folder.
     ├── activations.log
     ├── activations-samples.log
     └── round1
-        ├── PS_20130625111709_ch3-annotated.csv
+        ├── PS_20130625111709_ch3-annotated-<timestamp>.csv
         ├── PS_20130625111709_ch3-detected.csv
         ├── PS_20130625111709_ch3-detect.log
         └── PS_20130625111709_ch3.wav
 
-    $ tail -5 groundtruth-data/round1/PS_20130625111709_ch3-annotated.csv
+    $ tail -5 groundtruth-data/round1/PS_20130625111709_ch3-annotated-<timestamp>.csv
     PS_20130625111709_ch3.wav,470151,470719,annotated,mel-sine
     PS_20130625111709_ch3.wav,471673,471673,annotated,mel-pulse
     PS_20130625111709_ch3.wav,471752,471752,annotated,mel-pulse
@@ -743,13 +739,10 @@ steps suffices for this amount of ground truth.  So we can accurately monitor
 the progress, withhold 40% of the annotations to validate on, and do so every
 10 steps.  Enter these values into the `# steps`, `validate %`, and `validate
 period` variables.  You'll also need to change the `wanted words` variable to
-"mel-pulse,mel-sine,ambient,other" and `label types` to "annotated" so that it
-will ignore the detected annotations in the ground-truth directory.  It's
-important to include "other" as a wanted word here, even if you haven't labeled
-any sounds as such, as it will be used later by SongExplorer to highlight false
-negatives ([see Correcting Misses](#correcting-misses)).  Note that the total
-number of annotations must exceed the size of the mini-batches, which is
-specified by the `mini-batch` variable.
+"mel-pulse,mel-sine,ambient,other", and `label types` to "annotated" so that it
+will ignore the detected annotations in the ground-truth directory.  Note that
+the total number of annotations must exceed the size of the mini-batches,
+which is specified by the `mini-batch` variable.
 
 With small data sets the network should just take a minute or so to train.
 As your example set grows, you might want to monitor the training progress
@@ -818,30 +811,30 @@ models, and each will have it's own point here calculated from their individual
 confusion matrices.
 
 * "validation-F1.pdf" plots the F1 score (the product divided by the sum of the
-precision and recall) over time for each of the `wanted words` separately.
+precision and recall, times two) over time for each of the `wanted words` separately.
 Check here to make sure that the accuracy of each word has converged.
 
 * "validation-PvR-<word>.pdf" plots, separately for each word, the trajectory
 of the precision versus recall curve over number of training steps.
 
-* "train_1r/precision-recall.ckpt-<>.pdf" and
-"train_1r/sensitivity-specificity.ckpt-<>.pdf" show how the ratio of false
+* "train_1r/precision-recall.ckpt-\*.pdf" and
+"train_1r/sensitivity-specificity.ckpt-\*.pdf" show how the ratio of false
 positives to false negatives changes as the threshold used to call an event
 changes.  The areas underneath these curves are widely-cited metrics of
 performance.
 
-* "train_1r/probability-density.ckpt-<>.pdf" shows, separately for each word,
+* "train_1r/probability-density.ckpt-\*.pdf" shows, separately for each word,
 histograms of the values of the classifier's output taps across all of that
 word's annotations.  The difference between a given word's probability
 distribution and the second most probable word can be used as a measure of the
 classifier's confidence.
 
-* "train_1r/thresholds.ckpt-<>.csv" lists the word-specific probability
+* "train_1r/thresholds.ckpt-\*.csv" lists the word-specific probability
 thresholds that one can use to achieve a specified precision-recall ratio.  Use
 the `P/Rs` variable to specify which ratios to include.  This file is used when
 creating ethograms ([see Making Predictions](#making-predictions)).
 
-* The CSV files in the "train_1r/predictions.ckpt-<>" directory list the
+* The CSV files in the "train_1r/predictions.ckpt-\*" directory list the
 specific annotations in the withheld validation set which were mis-classified
 (plus those that were correct).  The WAV files and time stamps therein can be
 used to look for patterns in the raw data ([see Examining
@@ -849,7 +842,7 @@ Errors](#examining-errors)).
 
 At this point in the tutorial we have just trained a single model, but SongExplorer
 does have workflows were multiple models are saved to a single `Logs Folder`
-(e.g. if `replicates` is >1, or if `Omit One`, `Omit All`, or `X-Validate` is
+(e.g. if `replicates` is >1, or if `Omit One` or `X-Validate` is
 used).  In these cases, the left panel of "accuracy.pdf" will show the sum of
 the confusion matrix across all models, the right panel will have a gray box
 showing the mean and standard deviation of the overall accuracy across all
@@ -878,10 +871,10 @@ First let's get some more data bundled with SongExplorer into your home director
 Use the `Freeze` button to save the classifier's neural network graph structure
 and weight parameters into the single file that TensorFlow needs for inference.
 You'll need to choose a checkpoint to use with the File Browser as you did
-before when saving the activations (i.e.
+before when saving the activations (i.e. one of
 "trained-classifier1/train_1r/vgg.ckpt-100.{index,meta,data\*}" in this case).
-Output into the log files directory are "freeze.ckpt-<>.log" and
-"frozen-graph.ckpt-<>.log" files for errors, and "frozen-graph.ckpt-<>.pb"
+Output into the log files directory are "freeze.ckpt-\*.log" and
+"frozen-graph.ckpt-\*.log" files for errors, and "frozen-graph.ckpt-\*.pb"
 containing the binary data.  This latter PB file can in future be chosen as the
 model instead of a checkpoint file.
 
@@ -889,8 +882,9 @@ Now use the `Classify` button to generate probabilities over time for each
 annotated word.  Specify which recordings using the `File Browser` and the `WAV
 Files` button.  Note that while the "Checkpoint File" button changed to "PB
 File", you can leave the text box as is;  all SongExplorer needs is a filename from
-which it can parse "ckpt-\*".  The probabilities are first stored in a file
-ending in ".tf", and then converted to WAV files for easy viewing.
+which it can parse "ckpt-\*".  The probabilities are first stored in a text file
+ending in ".tf", and then converted to binary WAV files for compact storage and
+easy viewing.
 
     $ ls groundtruth-data/round2/
     20161207T102314_ch1-ambient.wav    20161207T102314_ch1-other.wav
@@ -909,11 +903,9 @@ SongExplorer needs is a filename in the logs folder from which in can parse
 `TF Files` button.  Again, for convenience, you can specify the ".wav" files too,
 and hence leave this as it was when classifying.
 
-    $ ls -t1 groundtruth-data/round2/ | head -4
+    $ ls -t1 groundtruth-data/round2/ | head -2
     20161207T102314_ch1-ethogram.log
-    20161207T102314_ch1-predicted-0.5pr.csv
     20161207T102314_ch1-predicted-1.0pr.csv
-    20161207T102314_ch1-predicted-2.0pr.csv
 
     $ head -5 groundtruth-data/round2/20161207T102314_ch1-predicted-1.0pr.csv 
     20161207T102314_ch1.wav,19976,20008,predicted,mel-pulse
@@ -929,14 +921,14 @@ distinguishes whether these words were detected, annotated, or predicted.
 
 ## Correcting False Alarms ##
 
-In the preceding section we generated three sets of predicted sounds by
-applying three sets of word-specific thresholds to the probability waveforms:
+In the preceding section we generated a set of predicted sounds by
+applying word-specific thresholds to the probability waveforms:
 
     $ cat trained-classifier/thresholds.csv 
-    precision/recall,2.0,1.0,0.5
-    mel-pulse,0.9977890984593017,0.508651224000211,-1.0884193525904096
-    mel-sine,0.999982304641803,0.9986744484433365,0.9965472849431617
-    ambient,0.999900757998532,0.9997531463467944,0.9996660975683063
+    precision/recall,1.0
+    mel-pulse,0.508651224000211
+    mel-sine,0.9986744484433365
+    ambient,0.9997531463467944
 
 Higher thresholds result in fewer false positives and more false negatives.
 A precision-recall ratio of one means these two types of errors occur at
@@ -944,8 +936,6 @@ equal rates.  Your experimental design drives this choice.
 
 Let's manually check whether our classifier in hand accurately calls sounds
 using these thresholds.  First, click on the `Fix False Positives` button.
-Then choose one of the predicted CSV files that has a good mix of the labels
-and either delete or move outside of the ground-truth directory the others.
 Double check that the `label types` variable was auto-populated with
 "annotated,predicted".  Not having "detected" in this field ensures that
 "detected.csv" files in the ground-truth folder are ignored.  Finally, cluster
@@ -970,10 +960,13 @@ strictly false positives.
 
 ## Correcting Misses ##
 
-It's important that false negatives are corrected as well.  One way find them
-is to click on random snippets and look in the surrounding context in the
-window below for sounds that have not been predicted.  A better way is to home
-in on detected sounds that don't exceed the probability threshold.
+It's important that false negatives are corrected as well.  One way find
+them is to click on random snippets and look in the surrounding context in
+the window below for sounds that have not been predicted.  This only works
+though if all predicted sounds have been clustered, which is not the case
+if their number exceeds `max samples`.  This method is also cumbersome in
+that you have to scan through the recording.  A better way is to directly
+home in on detected sounds that don't exceed the probability threshold.
 
 To systematically label missed sounds, first click on the `Fix False Negatives`
 button.  Then detect sounds in the recording you just classified, using the
@@ -1044,22 +1037,24 @@ One should make an effort to choose a recording at each step that is most
 different from the ones trained upon so far.  Doing so will produce a
 classifier that generalizes better.
 
-Once a qualitatively acceptable number of errors in the ethograms is achieved,
-quantitatively measure your model's ability to generalize by leaving entire
-recordings out for validation ([see Measuring
-Generalization](#measuring-generalization)), and/or using cross validation (see
-[Searching Hyperparameters](#searching-hyperparameters)).  Then train a single
-model with nearly all of your annotations for use in your experiments.
-Optionally, use `replicates` to train multiple models with different batch
-orderings and/or initial weights to measure the variance.  Report accuracy on
-an entirely separate set of densely-annotated test data([see Testing
-Densely](#testing-densely)).
+Once a qualitatively acceptable number of errors in the ethograms is
+achieved, quantitatively measure your model's ability to generalize
+by leaving entire recordings out for validation ([see Measuring
+Generalization](#measuring-generalization)).  Use cross validation to
+maximize the accuracy by fine tuning the hyperparameters (see [Searching
+Hyperparameters](#searching-hyperparameters)).  Then train a single model
+with nearly all of your annotations for use in your experiments.  Optionally,
+use `replicates` to train multiple models with different batch orderings
+and initial weights to measure the variance.  These replicate models
+can also be combined into an ensemble model with even greater accuracy.
+Finally, report accuracy on an entirely separate set of densely-annotated
+test data([see Testing Densely](#testing-densely)).
 
 ## Double Checking Annotations
 
-If a mistake is made annotating, say the wrong label is applied to a particular
-time interval, and one notices this immediately, the `Undo` button can be used
-to correct it.
+If a mistake is made annotating, say the wrong label is applied to a
+particular time interval, and you notice this immediately, use the `Undo`
+button to correct it.
 
 Sometimes though, mistakes might slip into the ground truth and a model is
 trained with them.  These latter mistakes can be corrected in a fashion similar
@@ -1068,7 +1063,7 @@ state activations using the `Activations`, `Cluster`, and `Visualize` buttons
 as before making sure that "annotated" is in `label types`.  Then click on
 `annotated` in the `kind` pull-down menu and select one of your labels (e.g.
 `mel-` in `species` and `-pulse` in `word`).  Scan through the visualized
-clusters by click on several points and looking at the snippets therein.  If
+clusters by clicking on several points and looking at the snippets therein.  If
 you find an error, simply choose the correct label in one of the text boxes
 below and then double click on either the snippet itself or the corresponding
 gray box in the upper half of the wide context window.  If you want to remove
@@ -1198,14 +1193,14 @@ start striding the convolutional kernels by two.
 models with many layers converge.  See [He, Zhang, Ren, and Sun (2015;
 arXiv](https://arxiv.org/abs/1512.03385).
 
-* `weights seed` specifies whether to randomize the initial weights or not.  a
-value of -1 results in different values for each fold.  they are also different
-each time you run `x-validate`.  any other number results in a set of initial
+* `weights seed` specifies whether to randomize the initial weights or not.  A
+value of -1 results in different values for each fold.  They are also different
+each time you run `x-validate`.  Any other number results in a set of initial
 weights that is unique to that number across all folds and repeated runs.
 
 * `batch seed` similarly specifies whether to randomize the order in which
-samples are drawn from the groundtruth data set during training.  a value of
-"-1" results in a different order for each fold and run;  any other number
+samples are drawn from the ground-truth data set during training.  A value of
+-1 results in a different order for each fold and run;  any other number
 results in a unique order specific to that number across folds and runs.
 
 To perform a simple grid search for the optimal value for a particular
@@ -1234,8 +1229,8 @@ for each of the values tested.
 * "[suffix]-compare-overall-params-speed.pdf" plots the accuracy, number of
 trainable parameters, and training time for each model.
 
-* "[suffix]-compare-precision-recall.pdf" shows the final false negative and
-false positive rates for each model and wanted word.
+* "[suffix]-compare-precision-recall.pdf" shows the final error rates for each
+model and wanted word.
 
 ## Examining Errors ##
 
@@ -1274,7 +1269,7 @@ Similarly, the `Activations` button creates an "activations.npz" file
 containing the logits of the output layer (which is just a vector of word
 probabilities), as well as the correct answer from the ground-truth
 annotations.  To turn these data into a CSV file, use the `Mistakes` button.
-In the ground-truth sub-folders, CSV files are created for each WAV file, with
+In the ground-truth subfolders, CSV files are created for each WAV file, with
 an extra column just like above.  No need to copy any files here.
 
 Now detect sounds in the ground-truth recordings for which you haven't done so
@@ -1284,8 +1279,8 @@ visualize as before.  Select `mistaken` in the `kind` pull-down menu to look
 for a localized density.  View the snippets in any hot spots to examine the
 shapes of waveforms that are mis-classified-- the ones whose text label, which
 is the prediction, does not match the waveform.  Then select `detected` in the
-`kind` pull-down menu and manually annotate similar waveforms.  Nominally they
-will cluster at the same location.
+`kind` pull-down menu and manually annotate similar waveforms.  In principle they
+should cluster at the same location.
 
 ## Testing Densely ##
 
@@ -1303,27 +1298,27 @@ occurrences of any words of interest are annotated.
 To quantify an ethogram's accuracy, first select a set of recordings in your
 validation data that are collectively long enough to capture the variance in
 your data set but short enough that you are willing to manually label every
-word in them.  Then detect and cluster the sounds in these recordings using the
-`Detect`, `Activations`, `Cluster`, and `Visualize` buttons as described
+word in them.  Then detect and cluster the sounds in these recordings using
+the `Detect`, `Activations`, `Cluster`, and `Visualize` buttons as described
 earlier.  Annotate every occurrence of each word of interest by jumping to the
 beginning of each recording and panning all the way to the end.  Afterwards,
-manually suffix each resulting "annotated.csv" file with the name of the
-annotator (e.g. "annotated-<name>.csv").  Take your best model to date and make
-ethograms of these densely annotated recordings using the `Classify` and
-`Ethogram` buttons as before.  Finally, use the `Congruence` button to plot the
-fraction of false positives and negatives, specifying which files you've
-densely annotated with `ground truth` and either `validation files` or `test
-files` (a comma-separated list of .wav files, a text file of
-.wav filenames, or a folder of .wav files; see [Measuring
-Generalization](#measuring-generalization)).  If the accuracy is not
-acceptable, iteratively adjust the hyperparameters, train a new model, and make
-new ethograms and congruence plots until it is.  You might also need to add new
-annotations to your training set.
+manually replace the timestamp in each resulting "annotated-<timestamp>.csv"
+file with the name of the annotator (e.g. "annotated-<name>.csv").  Take your
+best model to date and make ethograms of these densely annotated recordings
+using the `Classify` and `Ethogram` buttons as before.  Finally, use the
+`Congruence` button to plot the fraction of false positives and negatives,
+specifying which files you've densely annotated with `ground truth`
+and either `validation files` or `test files` (a comma-separated list of
+.wav files, a text file of .wav filenames, or a folder of .wav files; see
+[Measuring Generalization](#measuring-generalization)).  If the accuracy
+is not acceptable, iteratively adjust the hyperparameters and/or add new
+annotations to your training set, train a new model, and make new ethograms
+and congruence plots until it is.
 
 Once the accuracy is acceptable on validation data, quantify the accuracy on a
 densely annotated test set.  The network should have never been trained or
 validated on these latter data before; otherwise the resulting accuracy could
-be spuriously better.  Label every word of interest as before, make ethograms
+be erroneously better.  Label every word of interest as before, make ethograms
 with your best model, and plot the congruence with SongExplorer's predictions.
 Hopefully the accuracy will be okay.  If not, and you want to change the
 hyperparameters or add more training data, then the proper thing to do is to
@@ -1343,33 +1338,38 @@ and a densely annotated test set by using
 "everyone|{tic,word}-{only,not}{1.0pr,annotator1,annotator2,...}" as the `label
 types`.  The Congruence button generates a bunch of "disjoint.csv" files:
 "disjoint-everyone.csv" contains the intersection of intervals that SongExplorer
-and all annotators agreed upon; "disjoint-only.csv" files contain the intervals
-which only SongExplorer or one particular annotator labelled; "disjoint-not.csv"
+and all annotators agreed upon; "disjoint-only\*.csv" files contain the intervals
+which only SongExplorer or one particular annotator labelled; "disjoint-not\*.csv"
 contains those which were labelled by everyone except SongExplorer or a given
 annotator.  Choose one or all of these label types and then use the
 `Activations`, `Cluster`, and `Visualize` buttons as before.
 
-Should no amount of adjustments to the hyperparameters yield acceptable
-accuracy, and annotating additional ground truth becomes tiresome, try
-specifying the *a priori* occurrence frequency of each word in `prevalences`.
-So for a given interval of time, enter a comma-separated list of expected
-durations for each entry in `wanted words` (e.g. 6,12,42 seconds for a minute
-of mel-pulse,mel-sine,ambient respectively); alternatively, the relative
-probability for each word can be given (e.g. 0.1,0.2,0.7).  The probability
-waveforms generated by `Classify` will now be adjusted on a word-specific basis
-to account for these known imbalanced distributions.  Note that a similar
-effect can be achieved by changing the `P/Rs` variable, but there the
-thresholds are adjusted instead of the probabilities, and they are changed
-equally for all words.
+When the overall accuracy as judged by, for example, F1 is acceptable, but
+there is an unacceptable balance between false postives and false negatives,
+there are two ways to cope.  First, the probability waveforms generated by
+`Classify` can be adjusted on a word-specific basis to account for known
+uneven distributions in the prevalence of the words.  So for a given interval
+of time, enter into `prevalences` a comma-separated list of *a priori*
+expected durations for each entry in `wanted words` (e.g. 6,12,42 seconds
+for a minute of mel-pulse,mel-sine,ambient respectively); alternatively,
+the relative probability for each word can be given (e.g. 0.1,0.2,0.7).
+The probability of relatively rare words will then be decreased in comparison
+to more common ones, and vice versa, thereby adjusting the precision-to-recall
+ratio accordingly.
 
-One can also use thresholds derived from this dense annotation to achieve
-better accuracy.  Doing so is particularly useful when making predictions on
-recordings that were made under different conditions than the data used to
-train and validate the model.  To do so, choose the
-"thresholds-dense.ckpt-\*.csv" file when making ethograms.  This file is
-created when the congruence is quantified.  The precision-recalls ratios
-therein are controlled by the "P/Rs" box when the sparse annotation accuracy
-was quantified with the Accuracy button.
+The alternative to adusting probabilities is to adjust thresholds.
+While this can be done by changing the `P/Rs` variable, doing so in this
+way changes them equally for all words.  A word-specific re-balancing of
+false negatives and false positives can be achieved using thresholds derived
+from dense annotations.  To do so, choose the "thresholds-dense.ckpt-\*.csv"
+file that was created when measuring congruence on the validation data set,
+instead of the sparse ones created with `Accuracy`, when making ethograms
+on the test data set.  In effect, this method measures the prevalence of
+each word, which is possible given a dense annotation, and adjusts the
+thresholds to achieve the desired precision-to-recall ratio in `P/Rs`.
+Note that these dense thresholds CSV files are suffixed with a timestamp,
+so that they are not overwritten by successive runs of `Congruence`.
+Take care to choose the correct one.
 
 
 ## Discovering Novel Sounds ##
@@ -1380,17 +1380,16 @@ One way to check for any missed types is to look for hot spots in the clusters
 of detected sounds that have no corresponding annotations.  Annotating known
 types in these spots should improve generalization too.
 
-First, set `label types` to "annotated" and train a model that includes "time"
-and "frequency" plus all of your existing wanted words
-("mel-pulse,mel-sine,ambient,other").  Then, use the `Detect` button to
-threshold the recordings that you want to search for novel sounds.  Save their
-hidden state activations, along with those of the manually annotated sounds,
-using the `Activations` button by setting the label types to "annotated,detected".
-Cluster and visualize as before.  Now rapidly and alternately switch between
-`annotated` and `detected` in the `kind` pull-down menu to find any differences
-in the density distributions.  Click on any new hot spots you find in the
-detected clusters, and annotate sounds which are labeled as detected but not
-annotated.  Create new word types as necessary.
+First, use the `Detect` button to threshold the recordings that you want to
+search for novel sounds.  Save their hidden state activations, along with
+those of the manually annotated sounds, using the `Activations` button by
+setting the label types to "annotated,detected".  Set `equalize ratio` to
+a small integer as well, so that words with few samples are not obscured
+by those with many.  Cluster and visualize as before.  Now rapidly and
+alternately switch between `annotated` and `detected` in the `kind` pull-down
+menu to find any differences in the density distributions.  Click on any new
+hot spots you find in the detected clusters, and annotate sounds which are
+labeled as detected but not annotated.  Create new word types as necessary.
 
 ## Scripting Automation ##
 
@@ -1398,7 +1397,7 @@ For some tasks it may be easier to write code instead of use the GUI-- tasks
 which require many tedious mouse clicks, for example, or simpler ones that must
 be performed repeatedly.  To facilitate coding your analysis, SongExplorer is
 structured such that each action button (`Detect`, `Misses`, `Activations`,
-etc.) is backed by a linux bash script.  At the top of each script is
+etc.) is backed by a Linux Bash script.  At the top of each script is
 documentation showing how to call it.  Here, for example, is the interface for
 `Detect`:
 
@@ -1407,16 +1406,18 @@ documentation showing how to call it.  Here, for example, is the interface for
 
     # threshold an audio recording in both the time and frequency spaces
 
-    # detect.sh <full-path-to-wavfile> <time-sigma> <time-smooth-ms>
-    #           <frequency-n-ms> <frequency-nw> <frequency-p> <frequency-smooth-ms>
+    # detect.sh <full-path-to-wavfile>
+    #           <time-sigma-signal> <time-sigma-noise> <time-smooth-ms>
+    #           <frequency-n-ms> <frequency-nw> <frequency-p-signal>
+    #           <frequency-p-noise> <frequency-smooth-ms>
     #           <audio-tic-rate> <audio-nchannels>
 
     # e.g.
-    # $SONGEXPLORER_BIN detect.sh \
-                    `pwd`/groundtruth-data/round2/20161207T102314_ch1_p1.wav \
-                    6 6.4 25.6 4 0.1 25.6 2500 1
+    # $SONGEXPLORER_BIN detect.sh
+    #                   `pwd`/groundtruth-data/round2/20161207T102314_ch1_p1.wav
+    #                   4 2 6.4 25.6 4 0.1 1.0 25.6 2500 1
 
-The following bash code directly calls this script to make predictions on a set
+The following Bash code directly calls this script to make predictions on a set
 of recordings in different folders:
 
     $ wavfiles=(
@@ -1426,13 +1427,13 @@ of recordings in different folders:
                )
 
     $ for wavfile in ${wavfiles[@]} ; do
-          $SONGEXPLORER_BIN detect.sh $wavfile 6 6.4 25.6 4 0.1 25.6 2500 1
+          $SONGEXPLORER_BIN detect.sh $wavfile 4 2 6.4 25.6 4 0.1 1.0 25.6 2500 1
       done
 
 The above workflow could also easily be performed in Julia, Python, Matlab, or
 any other language that can execute shell commands.
 
-Alternatively, one can also write a python script which invokes SongExplorer's GUI
+Alternatively, one can also write a Python script which invokes SongExplorer's GUI
 interface to programmatically fill text boxes with values and to push action
 buttons:
 
@@ -1455,11 +1456,11 @@ buttons:
          str(M.local_ngpu_cards), str(M.local_ngigabytes_memory)])
 
     # set the needed textbox variables
-    V.time_sigma_string.value = "6"
+    V.time_sigma_string.value = "4,2"
     V.time_smooth_ms_string.value = "6.4"
     V.frequency_n_ms_string.value = "25.6"
     V.frequency_nw_string.value = "4"
-    V.frequency_p_string.value = "0.1"
+    V.frequency_p_string.value = "0.1,1.0"
     V.frequency_smooth_ms_string.value = "25.6"
 
     # repeatedly push the Detect button
@@ -1476,7 +1477,7 @@ buttons:
     run(["hetero", "stop"], stdout=PIPE, stderr=STDOUT)
 
 For more details see the system tests in /opt/songexplorer/test/tutorial.{sh,py}.
-These two files implement, as bash and python scripts respectively, the entire
+These two files implement, as Bash and Python scripts respectively, the entire
 workflow presented in this [Tutorial](#tutorial), from [Detecting
 Sounds](#detecting-sounds) all the way to [Testing Densely](#testing-densely).
 
@@ -1545,7 +1546,7 @@ similarly if using a remote workstation or a cluster.
 
 ## Docker ##
 
-To start docker on linux and set permissions:
+To start docker on Linux and set permissions:
 
     $ service docker start
     $ setfacl -m user:$USER:rw /var/run/docker.sock
@@ -1568,8 +1569,8 @@ To run a container interactively add "-i --tty".
 
 SongExplorer comes with a comprehensive set of tests to facilitate easy validation
 that everything works both after you've first installed it as well as after any
-changes have been made to the code.  The tests exercise both the python GUI as
-well as the linux bash interfaces.  To run them, simply execute "runtests.sh":
+changes have been made to the code.  The tests exercise both the Python GUI as
+well as the Linux Bash interfaces.  To run them, simply execute "runtests.sh":
 
     $ singularity exec -B /tmp:/opt/songexplorer/test/scratch [--nv] <songexplorer.sif> \
             /opt/songexplorer/test/runtests.sh
