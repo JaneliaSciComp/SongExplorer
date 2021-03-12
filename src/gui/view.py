@@ -1491,7 +1491,7 @@ def init(_bokeh_document):
     which_kind = Select(title="kind:")
     which_kind.on_change('value', lambda a,o,n: C.kind_callback(n))
 
-    color_picker = ColorPicker(disabled=True)
+    color_picker = ColorPicker(title="color:", disabled=True)
     color_picker.on_change("color", lambda a,o,n: C.color_picker_callback(n))
 
     circle_radius = Slider(start=0, end=10, step=1, \
@@ -1524,31 +1524,31 @@ def init(_bokeh_document):
                             disabled=True)
     zoom_offset.on_change("value", C.zoom_offset_callback)
 
-    zoomin = Button(label='\u2191', disabled=True, width=40)
+    zoomin = Button(label='\u2191', disabled=True)
     zoomin.on_click(C.zoomin_callback)
 
-    zoomout = Button(label='\u2193', disabled=True, width=40)
+    zoomout = Button(label='\u2193', disabled=True)
     zoomout.on_click(C.zoomout_callback)
 
-    reset = Button(label='\u25ef', disabled=True, width=40)
+    reset = Button(label='\u25ef', disabled=True)
     reset.on_click(C.zero_callback)
 
-    panleft = Button(label='\u2190', disabled=True, width=40)
+    panleft = Button(label='\u2190', disabled=True)
     panleft.on_click(C.panleft_callback)
 
-    panright = Button(label='\u2192', disabled=True, width=40)
+    panright = Button(label='\u2192', disabled=True)
     panright.on_click(C.panright_callback)
 
-    allleft = Button(label='\u21e4', disabled=True, width=40)
+    allleft = Button(label='\u21e4', disabled=True)
     allleft.on_click(C.allleft_callback)
 
-    allout = Button(label='\u2913', disabled=True, width=40)
+    allout = Button(label='\u2913', disabled=True)
     allout.on_click(C.allout_callback)
 
-    allright = Button(label='\u21e5', disabled=True, width=40)
+    allright = Button(label='\u21e5', disabled=True)
     allright.on_click(C.allright_callback)
 
-    save_indicator = Button(label='0', width=40)
+    save_indicator = Button(label='0')
 
     label_count_callbacks=[]
     label_count_widgets=[]
@@ -1653,7 +1653,7 @@ def init(_bokeh_document):
     ]
     file_dialog_table = DataTable(source=file_dialog_source, \
                                   columns=file_dialog_columns, \
-                                  height=727, width=M.gui_width_pix//2-10, \
+                                  height=727, \
                                   index_position=None,
                                   fit_columns=False)
 

@@ -31,8 +31,8 @@ C.init(doc)
 
 cluster_buttons = row(V.which_layer, V.which_species, V.which_word,
                       V.which_nohyphen, V.which_kind,
-                      column(V.color_picker, width=75, align='end'),
-                      width=M.gui_width_pix-75)
+                      column(V.color_picker, width=75),
+                      width=M.gui_width_pix-9)
 navigate_buttons = row(column(Spacer(height=41,width=40),
                               column(V.panleft, width=50),
                               Spacer(height=41,width=40),
