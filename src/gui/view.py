@@ -393,7 +393,9 @@ def cluster_initialize(newcolors=True):
     M.nohyphens = set([x['label'] for x in M.clustered_samples if '-' not in x['label']])
     M.nohyphens |= set([''])
     M.nohyphens = natsorted(list(M.nohyphens))
-    M.kinds = natsorted(list(set([x['kind'] for x in M.clustered_samples])))
+    M.kinds = set([x['kind'] for x in M.clustered_samples])
+    M.kinds |= set([''])
+    M.kinds = natsorted(list(M.kinds))
 
     if newcolors:
         allcombos = [x[0][:-1]+x[1] for x in product(M.species[1:], M.words[1:])]
@@ -431,7 +433,7 @@ def cluster_initialize(newcolors=True):
                         bidx = np.logical_and([specie in x['label'] and \
                                                word in x['label'] and \
                                                (nohyphen=="" or nohyphen==x['label']) and \
-                                               kind==x['kind'] \
+                                               (kind=="" or kind==x['kind']) \
                                                for x in M.clustered_samples], \
                                                cluster_isnotnan)
                         if not any(bidx):
@@ -541,7 +543,8 @@ def snippets_update(redraw_wavs):
                       M.words[M.iword] in x['label'] and
                       (M.nohyphens[M.inohyphen]=="" or \
                        M.nohyphens[M.inohyphen]==x['label']) and
-                      M.kinds[M.ikind]==x['kind'] for x in M.clustered_samples])[0]
+                      (M.kinds[M.ikind]=="" or \
+                       M.kinds[M.ikind]==x['kind']) for x in M.clustered_samples])[0]
     origin = [M.xcluster,M.ycluster]
     if M.ndcluster==3:
         origin.append(M.zcluster)
