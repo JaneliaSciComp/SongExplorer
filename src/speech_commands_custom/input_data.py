@@ -115,48 +115,6 @@ def which_set(filename, validation_percentage, validation_offset_percentage, tes
   return result
 
 
-def load_wav_file(filename):
-  """Loads an audio file and returns a float PCM-encoded array of samples.
-
-  Args:
-    filename: Path to the .wav file to load.
-
-  Returns:
-    Numpy array holding the sample data as floats between -1.0 and 1.0.
-  """
-  with tf.Session(graph=tf.Graph()) as sess:
-    wav_filename_placeholder = tf.placeholder(tf.string, [])
-    wav_loader = io_ops.read_file(wav_filename_placeholder)
-    wav_decoder = audio_ops.decode_wav(wav_loader, desired_channels=1)
-    return sess.run(
-        wav_decoder,
-        feed_dict={wav_filename_placeholder: filename}).audio.flatten()
-
-
-def save_wav_file(filename, wav_data, sample_rate):
-  """Saves audio sample data to a .wav audio file.
-
-  Args:
-    filename: Path to save the file to.
-    wav_data: 2D array of float PCM-encoded audio data.
-    sample_rate: Samples per second to encode in the file.
-  """
-  with tf.Session(graph=tf.Graph()) as sess:
-    wav_filename_placeholder = tf.placeholder(tf.string, [])
-    sample_rate_placeholder = tf.placeholder(tf.int32, [])
-    wav_data_placeholder = tf.placeholder(tf.float32, [None, 1])
-    wav_encoder = audio_ops.encode_wav(wav_data_placeholder,
-                                           sample_rate_placeholder)
-    wav_saver = io_ops.write_file(wav_filename_placeholder, wav_encoder)
-    sess.run(
-        wav_saver,
-        feed_dict={
-            wav_filename_placeholder: filename,
-            sample_rate_placeholder: sample_rate,
-            wav_data_placeholder: np.reshape(wav_data, (-1, 1))
-        })
-
-
 class AudioProcessor(object):
   """Handles loading, partitioning, and preparing audio training data."""
 
@@ -169,7 +127,6 @@ class AudioProcessor(object):
                random_seed_batch,
                testing_equalize_ratio, testing_max_samples, model_settings):
     self.data_dir = data_dir
-    self.maybe_download_and_extract_dataset(data_url, data_dir)
     random.seed(None if random_seed_batch==-1 else random_seed_batch)
     np.random.seed(None if random_seed_batch==-1 else random_seed_batch)
     self.prepare_data_index(silence_percentage, unknown_percentage,
@@ -182,47 +139,6 @@ class AudioProcessor(object):
                             model_settings)
     self.prepare_background_data()
     self.prepare_processing_graph(model_settings)
-
-  def maybe_download_and_extract_dataset(self, data_url, dest_directory):
-    """Download and extract data set tar file.
-
-    If the data set we're using doesn't already exist, this function
-    downloads it from the TensorFlow.org website and unpacks it into a
-    directory.
-    If the data_url is none, don't download anything and expect the data
-    directory to contain the correct files already.
-
-    Args:
-      data_url: Web location of the tar file containing the data set.
-      dest_directory: File path to extract data to.
-    """
-    if not data_url:
-      return
-    if not os.path.exists(dest_directory):
-      os.makedirs(dest_directory)
-    filename = data_url.split('/')[-1]
-    filepath = os.path.join(dest_directory, filename)
-    if not os.path.exists(filepath):
-
-      def _progress(count, block_size, total_size):
-        sys.stdout.write(
-            '\r>> Downloading %s %.1f%%' %
-            (filename, float(count * block_size) / float(total_size) * 100.0))
-        sys.stdout.flush()
-
-      try:
-        filepath, _ = urllib.request.urlretrieve(data_url, filepath, _progress)
-      except:
-        tf.logging.error('Failed to download URL: %s to folder: %s', data_url,
-                         filepath)
-        tf.logging.error('Please make sure you have enough free space and'
-                         ' an internet connection')
-        raise
-      print()
-      statinfo = os.stat(filepath)
-      tf.logging.info('Successfully downloaded %s (%d bytes)', filename,
-                      statinfo.st_size)
-    tarfile.open(filepath, 'r:gz').extractall(dest_directory)
 
   def prepare_data_index(self, silence_percentage, unknown_percentage,
                          time_shift_ms, time_shift_random,
@@ -647,49 +563,3 @@ class AudioProcessor(object):
       labels[i - offset] = label_index
       samples.append(sample)
     return data, labels, samples
-
-  def get_unprocessed_data(self, how_many, model_settings, mode):
-    """Retrieve sample data for the given partition, with no transformations.
-
-    Args:
-      how_many: Desired number of samples to return. -1 means the entire
-        contents of this partition.
-      model_settings: Information about the current model being trained.
-      mode: Which partition to use, must be 'training', 'validation', or
-        'testing'.
-
-    Returns:
-      List of sample data for the samples, and list of labels in one-hot form.
-    """
-    candidates = self.data_index[mode]
-    if how_many == -1:
-      sample_count = len(candidates)
-    else:
-      sample_count = how_many
-    desired_samples = model_settings['desired_samples']
-    words_list = self.words_list
-    data = np.zeros((sample_count, desired_samples))
-    labels = []
-    with tf.Session(graph=tf.Graph()) as sess:
-      wav_filename_placeholder = tf.placeholder(tf.string, [])
-      wav_loader = io_ops.read_file(wav_filename_placeholder)
-      wav_decoder = audio_ops.decode_wav(
-          wav_loader, desired_channels=1, desired_samples=desired_samples)
-      foreground_volume_placeholder = tf.placeholder(tf.float32, [])
-      scaled_foreground = tf.multiply(wav_decoder.audio,
-                                      foreground_volume_placeholder)
-      for i in range(sample_count):
-        if how_many == -1:
-          sample_index = i
-        else:
-          sample_index = np.random.randint(len(candidates))
-        sample = candidates[sample_index]
-        input_dict = {wav_filename_placeholder: sample['file']}
-        if sample['label'] == SILENCE_LABEL:
-          input_dict[foreground_volume_placeholder] = 0
-        else:
-          input_dict[foreground_volume_placeholder] = 1
-        data[i, :] = sess.run(scaled_foreground, feed_dict=input_dict).flatten()
-        label_index = self.word_to_index[sample['label']]
-        labels.append(words_list[label_index])
-    return data, labels
