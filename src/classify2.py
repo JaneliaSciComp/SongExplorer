@@ -26,7 +26,7 @@ context_ms = float(context_ms)
 shift_ms = float(shift_ms)
 stride_ms = float(stride_ms)
 
-with open(os.path.join(logdir,model,'vgg_labels.txt'), 'r') as fid:
+with open(os.path.join(logdir,model,'labels.txt'), 'r') as fid:
   model_labels = fid.read().splitlines()
 
 if len(argv)==9:
@@ -39,7 +39,7 @@ if len(argv)==9:
     exit()
   if set(labels) != set(model_labels):
     print("ERROR: 'wanted words' must be the same as "+
-          os.path.join(logdir,model,'vgg_labels.txt'))
+          os.path.join(logdir,model,'labels.txt'))
     exit()
   prevalences /= np.sum(prevalences)
   iimodel_labels = np.argsort(np.argsort(model_labels))

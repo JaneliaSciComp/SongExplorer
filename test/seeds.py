@@ -79,7 +79,7 @@ for batch_seed in ["1", "-1"]:
     check_file_exists(os.path.join(V.logs_folder.value, "train1.log"))
     check_file_exists(os.path.join(V.logs_folder.value, "train_1r.log"))
     check_file_exists(os.path.join(V.logs_folder.value,
-                                   "train_1r", "vgg.ckpt-"+V.nsteps_string.value+".index"))
+                                   "train_1r", "ckpt-"+V.nsteps_string.value+".index"))
 
 run(["hetero", "stop"], stdout=PIPE, stderr=STDOUT)
 
@@ -87,10 +87,10 @@ run(["hetero", "stop"], stdout=PIPE, stderr=STDOUT)
 import tensorflow as tf
 import numpy as np
 
-same_weights = ["trained-classifier-bs=1-ws=1/train_1r/vgg.ckpt-0",
-                "trained-classifier-bs=-1-ws=1/train_1r/vgg.ckpt-0"]
-diff_weights = ["trained-classifier-bs=1-ws=-1/train_1r/vgg.ckpt-0",
-                "trained-classifier-bs=-1-ws=-1/train_1r/vgg.ckpt-0"]
+same_weights = ["trained-classifier-bs=1-ws=1/train_1r/ckpt-0",
+                "trained-classifier-bs=-1-ws=1/train_1r/ckpt-0"]
+diff_weights = ["trained-classifier-bs=1-ws=-1/train_1r/ckpt-0",
+                "trained-classifier-bs=-1-ws=-1/train_1r/ckpt-0"]
 
 model0_var_names = None
 for model in [*same_weights, *diff_weights]:

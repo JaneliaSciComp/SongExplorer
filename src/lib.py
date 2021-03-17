@@ -79,7 +79,7 @@ def parse_confusion_matrix(logfile, nwanted_words, which_one=0, test=False):
 def parse_confusion_matrices(logdir, kind, idx_time=None, test=False):
   models = list(filter(lambda x: x.startswith(kind+'_') and \
                           os.path.isdir(os.path.join(logdir,x)), os.listdir(logdir)))
-  labels_path = os.path.join(logdir,list(models)[0],'vgg_labels.txt')
+  labels_path = os.path.join(logdir,list(models)[0],'labels.txt')
   nwanted_words = sum(1 for line in open(labels_path))
 
   confusion_matrices={}

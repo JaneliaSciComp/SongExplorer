@@ -90,10 +90,15 @@ import datetime as dt
 
 import json
 
+import importlib
+
 FLAGS = None
 
 
 def main(_):
+  sys.path.append(os.path.dirname(FLAGS.model_architecture))
+  model = importlib.import_module(os.path.basename(FLAGS.model_architecture))
+
   # We want to see all the logging messages for this tutorial.
   tf.logging.set_verbosity(tf.logging.INFO)
   np.set_printoptions(threshold=np.inf,linewidth=10000)
@@ -156,10 +161,9 @@ def main(_):
   fingerprint_input = tf.placeholder(
       tf.float32, [None, fingerprint_size], name='fingerprint_input')
 
-  hidden, logits, dropout_prob = models.create_model(
+  hidden, logits, dropout_prob = model.create_model(
       fingerprint_input,
       model_settings,
-      FLAGS.model_architecture,
       is_training=True)
 
   # Define loss and optimizer
@@ -227,13 +231,11 @@ def main(_):
   tf.logging.info('Training from time %s, step: %d ', t0.isoformat(), start_step)
 
   # Save graph.pbtxt.
-  tf.train.write_graph(sess.graph_def, FLAGS.train_dir,
-                       FLAGS.model_architecture + '.pbtxt')
+  tf.train.write_graph(sess.graph_def, FLAGS.train_dir, 'graph.pbtxt')
 
   # Save list of words.
   if FLAGS.start_checkpoint=='':
-    with gfile.GFile(os.path.join(FLAGS.train_dir, \
-                                  FLAGS.model_architecture + '_labels.txt'), 'w') as f:
+    with gfile.GFile(os.path.join(FLAGS.train_dir, 'labels.txt'), 'w') as f:
       f.write(FLAGS.wanted_words.replace(',','\n'))
 
   # log complexity of model
@@ -246,8 +248,7 @@ def main(_):
       total_parameters += variable_parameters
   tf.logging.info('number of trainable parameters: %d',total_parameters)
 
-  checkpoint_path = os.path.join(FLAGS.train_dir,
-                                 FLAGS.model_architecture + '.ckpt')
+  checkpoint_path = os.path.join(FLAGS.train_dir, 'ckpt')
   if FLAGS.start_checkpoint=='':
     tf.logging.info('Saving to "%s-%d"', checkpoint_path, 0)
     saver.save(sess, checkpoint_path, global_step=0)

@@ -52,6 +52,7 @@ count_lines_with_word ${wavpath_noext}-detected.csv time 543
 count_lines_with_word ${wavpath_noext}-detected.csv frequency 45
 count_lines_with_word ${wavpath_noext}-detected.csv neither 1138
 
+architecture=convolutional
 context_ms=204.8
 shiftby_ms=0.0
 representation=mel-cepstrum
@@ -83,6 +84,7 @@ weights_seed=1
 ireplicates=1
 mkdir $logdir
 train.sh \
+      $architecture \
       $context_ms $shiftby_ms $representation $window_ms $mel $dct $stride_ms $dropout \
       $optimizer $learning_rate $kernel_sizes $last_conv_width $nfeatures \
       $dilate_after_layer $stride_after_layer $connection_type \
@@ -95,12 +97,13 @@ train.sh \
 
 check_file_exists $logdir/train1.log
 check_file_exists $logdir/train_1r.log
-check_file_exists $logdir/train_1r/vgg.ckpt-$nsteps.index
+check_file_exists $logdir/train_1r/ckpt-$nsteps.index
 
 check_point=$nsteps
 equalize_ratio=1000
 max_samples=10000
 activations.sh \
+      $architecture \
       $context_ms $shiftby_ms $representation $window_ms $mel $dct $stride_ms \
       $kernel_sizes $last_conv_width $nfeatures \
       $dilate_after_layer $stride_after_layer $connection_type \
@@ -142,6 +145,7 @@ save_and_test_interval=10
 validation_percentage=40
 mkdir $logdir
 train.sh \
+      $architecture \
       $context_ms $shiftby_ms $representation $window_ms $mel $dct $stride_ms $dropout \
       $optimizer $learning_rate $kernel_sizes $last_conv_width $nfeatures \
       $dilate_after_layer $stride_after_layer $connection_type \
@@ -154,7 +158,7 @@ train.sh \
 
 check_file_exists $logdir/train1.log
 check_file_exists $logdir/train_1r.log
-check_file_exists $logdir/train_1r/vgg.ckpt-$nsteps.index
+check_file_exists $logdir/train_1r/ckpt-$nsteps.index
 check_file_exists $logdir/train_1r/logits.validation.ckpt-$nsteps.npz
 
 precision_recall_ratios=0.5,1.0,2.0
@@ -175,6 +179,7 @@ done
 
 check_point=$nsteps
 freeze.sh \
+      $architecture \
       $context_ms $representation $window_ms $stride_ms $mel $dct \
       $kernel_sizes $last_conv_width $nfeatures \
       $dilate_after_layer $stride_after_layer $connection_type \
@@ -250,6 +255,7 @@ labels_touse=annotated,missed
 equalize_ratio=1000
 max_samples=10000
 activations.sh \
+      $architecture \
       $context_ms $shiftby_ms $representation $window_ms $mel $dct $stride_ms \
       $kernel_sizes $last_conv_width $nfeatures \
       $dilate_after_layer $stride_after_layer $connection_type \
@@ -289,6 +295,7 @@ mkdir $logdir
 ioffsets=$(seq 0 $(dc -e "${#wavfiles[@]} 1 - p"))
 for ioffset in $ioffsets ; do
   generalize.sh \
+        $architecture \
         $context_ms $shiftby_ms $representation $window_ms $mel $dct $stride_ms $dropout \
         $optimizer $learning_rate $kernel_sizes $last_conv_width $nfeatures \
         $dilate_after_layer $stride_after_layer $connection_type \
@@ -304,7 +311,7 @@ for ioffset in $ioffsets ; do
   ioffset1=$(dc -e "${ioffset} 1 + p")
   check_file_exists $logdir/generalize${ioffset1}.log
   check_file_exists $logdir/generalize_${ioffset1}w.log
-  check_file_exists $logdir/generalize_${ioffset1}w/vgg.ckpt-$nsteps.index
+  check_file_exists $logdir/generalize_${ioffset1}w/ckpt-$nsteps.index
   check_file_exists $logdir/generalize_${ioffset1}w/logits.validation.ckpt-$nsteps.npz
 done
 
@@ -335,6 +342,7 @@ for nfeatures in ${nfeaturess[@]} ; do
   mkdir $logdir
   for ifold in $ifolds ; do
     xvalidate.sh \
+          $architecture \
           $context_ms $shiftby_ms $representation $window_ms $mel $dct $stride_ms $dropout \
           $optimizer $learning_rate $kernel_sizes $last_conv_width $nfeatures \
           $dilate_after_layer $stride_after_layer $connection_type \
@@ -349,7 +357,7 @@ for nfeatures in ${nfeaturess[@]} ; do
   for ifold in $ifolds ; do
     check_file_exists $logdir/xvalidate${ifold}.log
     check_file_exists $logdir/xvalidate_${ifold}k.log
-    check_file_exists $logdir/xvalidate_${ifold}k/vgg.ckpt-$nsteps.index
+    check_file_exists $logdir/xvalidate_${ifold}k/ckpt-$nsteps.index
     check_file_exists $logdir/xvalidate_${ifold}k/logits.validation.ckpt-$nsteps.npz
   done
 
@@ -391,6 +399,7 @@ nsteps=100
 validation_percentage=20
 mkdir $logdir
 train.sh \
+      $architecture \
       $context_ms $shiftby_ms $representation $window_ms $mel $dct $stride_ms $dropout \
       $optimizer $learning_rate $kernel_sizes $last_conv_width $nfeatures \
       $dilate_after_layer $stride_after_layer $connection_type \
@@ -403,7 +412,7 @@ train.sh \
 
 check_file_exists $logdir/train1.log
 check_file_exists $logdir/train_1r.log
-check_file_exists $logdir/train_1r/vgg.ckpt-$nsteps.index
+check_file_exists $logdir/train_1r/ckpt-$nsteps.index
 check_file_exists $logdir/train_1r/logits.validation.ckpt-$nsteps.npz
 
 precision_recall_ratios=1.0
@@ -423,6 +432,7 @@ for word in $(echo $wanted_words | sed "s/,/ /g") ; do
 done
 
 freeze.sh \
+      $architecture \
       $context_ms $representation $window_ms $stride_ms $mel $dct \
       $kernel_sizes $last_conv_width $nfeatures \
       $dilate_after_layer $stride_after_layer $connection_type \

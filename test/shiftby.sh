@@ -17,6 +17,7 @@ cp $repo_path/data/PS_20130625111709_ch3.wav \
 cp $repo_path/data/PS_20130625111709_ch3-annotated-person1.csv \
    $repo_path/test/scratch/shiftby/groundtruth-data/round1
 
+architecture=convolutional
 context_ms=204.8
 shiftby_ms=0.0
 representation=waveform
@@ -49,6 +50,7 @@ ireplicates=1
 mkdir $logdir
 
 train.sh \
+      $architecture \
       $context_ms $shiftby_ms $representation $window_ms $mel $dct $stride_ms $dropout \
       $optimizer $learning_rate $kernel_sizes $last_conv_width $nfeatures \
       $dilate_after_layer $stride_after_layer $connection_type \
@@ -65,6 +67,7 @@ logdir=$repo_path/test/scratch/shiftby/shiftby-$shiftby_ms
 mkdir $logdir
 
 train.sh \
+      $architecture \
       $context_ms $shiftby_ms $representation $window_ms $mel $dct $stride_ms $dropout \
       $optimizer $learning_rate $kernel_sizes $last_conv_width $nfeatures \
       $dilate_after_layer $stride_after_layer $connection_type \

@@ -84,11 +84,11 @@ for representation in ["waveform", "spectrogram", "mel-cepstrum"]:
     check_file_exists(os.path.join(V.logs_folder.value, "train1.log"))
     check_file_exists(os.path.join(V.logs_folder.value, "train_1r.log"))
     check_file_exists(os.path.join(V.logs_folder.value,
-                                   "train_1r", "vgg.ckpt-"+V.nsteps_string.value+".index"))
+                                   "train_1r", "ckpt-"+V.nsteps_string.value+".index"))
 
     V.model_file.value = os.path.join(V.logs_folder.value,
                                       "train_"+V.replicates_string.value+"r",
-                                      "vgg.ckpt-"+V.nsteps_string.value+".meta")
+                                      "ckpt-"+V.nsteps_string.value+".meta")
     V.wavtfcsvfiles_string.value = os.path.join(repo_path,
           "test/scratch/freeze-classify/groundtruth-data/round1/PS_20130625111709_ch3.wav")
     V.prevalences_string.value = ""

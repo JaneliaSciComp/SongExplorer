@@ -73,7 +73,7 @@ for wavdir in wavdirs:
             m=re.search('ckpt-([0-9]+)',thresholds_file)
             ckpt = m.group(1)
             break
-      with open(os.path.join(logdir,model,'vgg_labels.txt'), 'r') as fid:
+      with open(os.path.join(logdir,model,'labels.txt'), 'r') as fid:
         labels = fid.read().splitlines()
       precision_recalls_sparse, thresholds_sparse = read_thresholds(logdir, model,
                                                                     thresholds_file)

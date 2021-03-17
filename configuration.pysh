@@ -45,6 +45,9 @@ gui_spectrogram_overlap=0.5
 gui_spectrogram_low_hz=0
 gui_spectrogram_high_hz=1250
 
+# neural network architecture to use
+architecture="convolutional"
+
 # on what computer to do the computation
 default_where="local"
 

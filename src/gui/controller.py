@@ -565,7 +565,7 @@ def action_callback(thisaction, thisactuate):
 
 def classify_callback():
     labels_file = os.path.dirname(V.model_file.value)
-    wantedwords_update(os.path.join(labels_file, "vgg_labels.txt"))
+    wantedwords_update(os.path.join(labels_file, "labels.txt"))
     action_callback(V.classify, classify_actuate)
 
 async def actuate_monitor(displaystring, results, idx, isrunningfun, isdonefun, succeededfun):
@@ -797,8 +797,8 @@ def _train_succeeded(logdir, kind, model, reftime):
         bokehlog.info("ERROR: "+train_dir+"/ does not exist.")
         return False
     train_files = os.listdir(train_dir)
-    if "vgg_labels.txt" not in train_files:
-        bokehlog.info("ERROR: "+train_dir+"/vgg_labels.txt does not exist.")
+    if "labels.txt" not in train_files:
+        bokehlog.info("ERROR: "+train_dir+"/labels.txt does not exist.")
         return False
     eval_step_interval = save_step_interval = how_many_training_steps = None
     with open(train_dir+".log") as fid:
@@ -817,10 +817,10 @@ def _train_succeeded(logdir, kind, model, reftime):
         return False
     if save_step_interval>0:
         nckpts = how_many_training_steps // save_step_interval + 1
-        if len(list(filter(lambda x: x.startswith("vgg.ckpt-"), \
+        if len(list(filter(lambda x: x.startswith("ckpt-"), \
                            train_files))) != 3*nckpts:
             bokehlog.info("ERROR: "+train_dir+"/ should contain "+ \
-                          str(3*nckpts)+" vgg.ckpt-* files.")
+                          str(3*nckpts)+" ckpt-* files.")
             return False
     if eval_step_interval>0:
         nevals = how_many_training_steps // eval_step_interval 
@@ -887,7 +887,8 @@ async def train_actuate():
     nreplicates = int(V.replicates_string.value)
     for ireplicate in range(1, 1+nreplicates, M.models_per_job):
         logfile = os.path.join(V.logs_folder.value, "train"+str(ireplicate)+".log")
-        args = [V.context_ms_string.value, V.shiftby_ms_string.value, \
+        args = [M.architecture, \
+                V.context_ms_string.value, V.shiftby_ms_string.value, \
                 V.representation.value, V.window_ms_string.value, \
                 *V.mel_dct_string.value.split(','), V.stride_ms_string.value, \
                 V.dropout_string.value, V.optimizer.value, V.learning_rate_string.value, \
@@ -960,7 +961,8 @@ async def leaveout_actuate(comma):
     os.makedirs(V.logs_folder.value, exist_ok=True)
     for ivalidation_file in range(0, len(validation_files), M.models_per_job):
         logfile = os.path.join(V.logs_folder.value, "generalize"+str(1+ivalidation_file)+".log")
-        args = [V.context_ms_string.value, \
+        args = [M.architecture, \
+                V.context_ms_string.value, \
                 V.shiftby_ms_string.value, V.representation.value, \
                 V.window_ms_string.value, \
                 *V.mel_dct_string.value.split(','), V.stride_ms_string.value, \
@@ -1016,7 +1018,8 @@ async def xvalidate_actuate():
     kfolds = int(V.kfold_string.value)
     for ifold in range(1, 1+kfolds, M.models_per_job):
         logfile = os.path.join(V.logs_folder.value, "xvalidate"+str(ifold)+".log")
-        args = [V.context_ms_string.value, \
+        args = [M.architecture, \
+                V.context_ms_string.value, \
                 V.shiftby_ms_string.value, V.representation.value, \
                 V.window_ms_string.value, \
                 *V.mel_dct_string.value.split(','), V.stride_ms_string.value, \
@@ -1107,7 +1110,8 @@ async def activations_actuate():
     currtime = time.time()
     logdir, model, _, check_point = M.parse_model_file(V.model_file.value)
     logfile = os.path.join(V.groundtruth_folder.value, "activations.log")
-    args = [V.context_ms_string.value, \
+    args = [M.architecture, \
+            V.context_ms_string.value, \
             V.shiftby_ms_string.value, V.representation.value, \
             V.window_ms_string.value, \
             *V.mel_dct_string.value.split(','), V.stride_ms_string.value, \
@@ -1207,7 +1211,7 @@ def accuracy_succeeded(logdir, reftime):
     if len(traindirs)>1:
         toplevelfiles.append("train-overlay.pdf")
         toplevelfiles.append("confusion-matrices.pdf")
-    with open(os.path.join(logdir, traindirs[0], 'vgg_labels.txt'), 'r') as fid:
+    with open(os.path.join(logdir, traindirs[0], 'labels.txt'), 'r') as fid:
         labels = fid.read().splitlines()
     for label in labels:
         toplevelfiles.append("validation-PvR-"+label+".pdf")
@@ -1302,6 +1306,7 @@ async def _freeze_actuate(ckpts):
                             M.freeze_ngigabytes_memory,
                             "",
                             M.freeze_cluster_flags,
+                            M.architecture, \
                             V.context_ms_string.value, \
                             V.representation.value, V.window_ms_string.value, \
                             V.stride_ms_string.value, *V.mel_dct_string.value.split(','), \
@@ -1338,7 +1343,7 @@ def classify_succeeded(modeldir, wavfile, reftime):
     tffile = wavfile[:-4]+".tf"
     if not tffile_succeeded(tffile, reftime):
         return False
-    with open(os.path.join(modeldir, 'vgg_labels.txt'), 'r') as fid:
+    with open(os.path.join(modeldir, 'labels.txt'), 'r') as fid:
         labels = fid.read().splitlines()
     for x in labels:
         if not recent_file_exists(wavfile[:-4]+'-'+x+'.wav', reftime, True):

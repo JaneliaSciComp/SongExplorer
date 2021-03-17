@@ -2,47 +2,48 @@
 
 # train a neural network with the annotations
 
-# train.sh <context-ms> <shiftby-ms> <representation> <window-ms> <mel> <dct> <stride-ms> <dropout> <optimizer> <learning-rate> <kernel-sizes> <last-conv-width> <nfeatures> <dilate-after-layer> <stride-after-layer> <connection-type> <logdir> <path-to-groundtruth> <word1>,<word2>,...,<wordN> <label-types> <nsteps> <restore-from> <save-and-test-interval> <validation-percentage> <mini-batch> <testing-files> <audio-tic-rate> <audio-nchannels> <batch-seed> <weights-seed> <ireplicates>
+# train.sh <model-architecture> <context-ms> <shiftby-ms> <representation> <window-ms> <mel> <dct> <stride-ms> <dropout> <optimizer> <learning-rate> <kernel-sizes> <last-conv-width> <nfeatures> <dilate-after-layer> <stride-after-layer> <connection-type> <logdir> <path-to-groundtruth> <word1>,<word2>,...,<wordN> <label-types> <nsteps> <restore-from> <save-and-test-interval> <validation-percentage> <mini-batch> <testing-files> <audio-tic-rate> <audio-nchannels> <batch-seed> <weights-seed> <ireplicates>
 
 # e.g.
-# $SONGEXPLORER_BIN train.sh 204.8 0.0 waveform 6.4 7 7 1.6 0.5 adam 0.0002 5,3,3 130 256,256,256 65535 65535 plain `pwd`/trained-classifier `pwd`/groundtruth-data mel-sine,mel-pulse,ambient,other annotated 50 '' 10 40 32 "" 5000 1 -1 -1 1,2,3,4
+# $SONGEXPLORER_BIN train.sh convolutional 204.8 0.0 waveform 6.4 7 7 1.6 0.5 adam 0.0002 5,3,3 130 256,256,256 65535 65535 plain `pwd`/trained-classifier `pwd`/groundtruth-data mel-sine,mel-pulse,ambient,other annotated 50 '' 10 40 32 "" 5000 1 -1 -1 1,2,3,4
 
-context_ms=$1
-shiftby_ms=$2
-representation=$3
-window_ms=$4
-mel=$5
-dct=$6
-stride_ms=$7
-dropout=$8
-optimizer=$9
-learning_rate=${10}
-kernel_sizes=${11}
-last_conv_width=${12}
-nfeatures=${13}
-dilate_after_layer=${14}
-stride_after_layer=${15}
-connection_type=${16}
-logdir=${17}
-data_dir=${18}
-wanted_words=${19}
-labels_touse=${20}
-nsteps=${21}
-restore_from=${22}
-save_and_test_interval=${23}
-validation_percentage=${24}
-mini_batch=${25}
-testing_files=${26}
-audio_tic_rate=${27}
-audio_nchannels=${28}
-batch_seed=${29}
-weights_seed=${30}
-ireplicates=${31}
+architecture=$1
+context_ms=$2
+shiftby_ms=$3
+representation=$4
+window_ms=$5
+mel=$6
+dct=$7
+stride_ms=$8
+dropout=$9
+optimizer=${10}
+learning_rate=${11}
+kernel_sizes=${12}
+last_conv_width=${13}
+nfeatures=${14}
+dilate_after_layer=${15}
+stride_after_layer=${16}
+connection_type=${17}
+logdir=${18}
+data_dir=${19}
+wanted_words=${20}
+labels_touse=${21}
+nsteps=${22}
+restore_from=${23}
+save_and_test_interval=${24}
+validation_percentage=${25}
+mini_batch=${26}
+testing_files=${27}
+audio_tic_rate=${28}
+audio_nchannels=${29}
+batch_seed=${30}
+weights_seed=${31}
+ireplicates=${32}
 
-if (( "$#" == 31 )) ; then
+if (( "$#" == 32 )) ; then
   save_fingerprints=False
 else
-  save_fingerprints=${32}
+  save_fingerprints=${33}
 fi
 
 DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
@@ -54,7 +55,7 @@ if [ -z "$restore_from" ] ; then
   start_checkpoint=
 else
   redirect='&>>'
-  start_checkpoint=$logdir/train_MODEL/vgg.ckpt-$restore_from
+  start_checkpoint=$logdir/train_MODEL/${architecture}.ckpt-$restore_from
 fi
 
 cmd="date; hostname; echo $CUDA_VISIBLE_DEVICES; nvidia-smi; "
@@ -93,7 +94,7 @@ while [[ $ireplicates =~ .*,.* ]] ; do
           --time_shift_random False \
           --filterbank_channel_count=$mel \
           --dct_coefficient_count=$dct \
-          --model_architecture=vgg \
+          --model_architecture=$architecture \
           --filter_counts=$nfeatures \
           --dilate_after_layer=$dilate_after_layer \
           --stride_after_layer=$stride_after_layer \

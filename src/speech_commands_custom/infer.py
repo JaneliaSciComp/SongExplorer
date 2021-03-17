@@ -39,10 +39,15 @@ import datetime as dt
 
 import json
 
+import importlib
+
 FLAGS = None
 
 
 def main(_):
+  sys.path.append(os.path.dirname(FLAGS.model_architecture))
+  model = importlib.import_module(os.path.basename(FLAGS.model_architecture))
+
   # We want to see all the logging messages for this tutorial.
   tf.logging.set_verbosity(tf.logging.INFO)
   np.set_printoptions(threshold=np.inf,linewidth=10000)
@@ -58,7 +63,7 @@ def main(_):
   #config.log_device_placement = False
   sess = tf.InteractiveSession(config=config)
 
-  label_file = os.path.join(os.path.dirname(FLAGS.start_checkpoint), "vgg_labels.txt")
+  label_file = os.path.join(os.path.dirname(FLAGS.start_checkpoint), "labels.txt")
   fid = open(label_file)
   labels = []
   for line in fid:
@@ -87,10 +92,9 @@ def main(_):
   fingerprint_input = tf.placeholder(
       tf.float32, [None, fingerprint_size], name='fingerprint_input')
 
-  hidden, logits = models.create_model(
+  hidden, logits = model.create_model(
       fingerprint_input,
       model_settings,
-      FLAGS.model_architecture,
       is_training=False)
 
   tf.global_variables_initializer().run()

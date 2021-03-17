@@ -89,11 +89,11 @@ wait_for_job(M.status_ticker_queue)
 check_file_exists(os.path.join(V.logs_folder.value, "train1.log"))
 check_file_exists(os.path.join(V.logs_folder.value, "train_1r.log"))
 check_file_exists(os.path.join(V.logs_folder.value,
-                               "train_1r","vgg.ckpt-"+V.nsteps_string.value+".index"))
+                               "train_1r","ckpt-"+V.nsteps_string.value+".index"))
 
 V.model_file.value = os.path.join(repo_path, "test/scratch/tutorial-py/untrained-classifier",
                                   "train_"+V.replicates_string.value+"r",
-                                  "vgg.ckpt-"+V.nsteps_string.value+".meta")
+                                  "ckpt-"+V.nsteps_string.value+".meta")
 V.activations_equalize_ratio_string.value = "1000"
 V.activations_max_samples_string.value = "10000"
 asyncio.run(C.activations_actuate())
@@ -134,7 +134,7 @@ wait_for_job(M.status_ticker_queue)
 check_file_exists(os.path.join(V.logs_folder.value, "train1.log"))
 check_file_exists(os.path.join(V.logs_folder.value, "train_1r.log"))
 check_file_exists(os.path.join(V.logs_folder.value, "train_1r",
-                               "vgg.ckpt-"+V.nsteps_string.value+".index"))
+                               "ckpt-"+V.nsteps_string.value+".index"))
 check_file_exists(os.path.join(V.logs_folder.value, "train_1r",
                                "logits.validation.ckpt-"+V.nsteps_string.value+".npz"))
 
@@ -157,7 +157,7 @@ for word in V.wantedwords_string.value.split(','):
   check_file_exists(os.path.join(V.logs_folder.value, "validation-PvR-"+word+".pdf"))
 
 V.model_file.value = os.path.join(V.logs_folder.value, "train_"+V.replicates_string.value+"r",
-                                  "vgg.ckpt-"+V.nsteps_string.value+".meta")
+                                  "ckpt-"+V.nsteps_string.value+".meta")
 asyncio.run(C.freeze_actuate())
 
 wait_for_job(M.status_ticker_queue)
@@ -224,7 +224,7 @@ for file in glob.glob(os.path.join(V.groundtruth_folder.value, "cluster*")):
 
 V.model_file.value = os.path.join(repo_path, "test/scratch/tutorial-py/trained-classifier1", \
                                   "train_"+V.replicates_string.value+"r", \
-                                  "vgg.ckpt-"+V.nsteps_string.value+".meta")
+                                  "ckpt-"+V.nsteps_string.value+".meta")
 V.labeltypes_string.value = "annotated,missed"
 V.activations_equalize_ratio_string.value = "1000"
 V.activations_max_samples_string.value = "10000"
@@ -263,7 +263,7 @@ for ifile in range(1,1+len(V.validationfiles_string.value.split(','))):
   check_file_exists(os.path.join(V.logs_folder.value, "generalize"+str(ifile)+".log"))
   check_file_exists(os.path.join(V.logs_folder.value, "generalize_"+str(ifile)+"w.log"))
   check_file_exists(os.path.join(V.logs_folder.value, "generalize_"+str(ifile)+"w",
-                                 "vgg.ckpt-"+V.nsteps_string.value+".index"))
+                                 "ckpt-"+V.nsteps_string.value+".index"))
   check_file_exists(os.path.join(V.logs_folder.value, "generalize_"+str(ifile)+"w",
                                  "logits.validation.ckpt-"+V.nsteps_string.value+".npz"))
 
@@ -302,7 +302,7 @@ for nfeatures in nfeaturess:
     check_file_exists(os.path.join(V.logs_folder.value, "xvalidate"+str(ifold)+".log"))
     check_file_exists(os.path.join(V.logs_folder.value, "xvalidate_"+str(ifold)+"k.log"))
     check_file_exists(os.path.join(V.logs_folder.value, "xvalidate_"+str(ifold)+"k",
-                                   "vgg.ckpt-"+V.nsteps_string.value+".index"))
+                                   "ckpt-"+V.nsteps_string.value+".index"))
     check_file_exists(os.path.join(V.logs_folder.value, "xvalidate_"+str(ifold)+"k",
                                    "logits.validation.ckpt-"+V.nsteps_string.value+".npz"))
 
@@ -358,7 +358,7 @@ wait_for_job(M.status_ticker_queue)
 check_file_exists(os.path.join(V.logs_folder.value, "train1.log"))
 check_file_exists(os.path.join(V.logs_folder.value, "train_1r.log"))
 check_file_exists(os.path.join(V.logs_folder.value, "train_1r",
-                               "vgg.ckpt-"+V.nsteps_string.value+".index"))
+                               "ckpt-"+V.nsteps_string.value+".index"))
 check_file_exists(os.path.join(V.logs_folder.value, "train_1r",
                                "logits.validation.ckpt-"+V.nsteps_string.value+".npz"))
 
@@ -381,7 +381,7 @@ for word in V.wantedwords_string.value.split(','):
   check_file_exists(os.path.join(V.logs_folder.value, "validation-PvR-"+word+".pdf"))
 
 V.model_file.value = os.path.join(V.logs_folder.value, "train_"+V.replicates_string.value+"r",
-                                  "vgg.ckpt-"+V.nsteps_string.value+".meta")
+                                  "ckpt-"+V.nsteps_string.value+".meta")
 asyncio.run(C.freeze_actuate())
 
 wait_for_job(M.status_ticker_queue)

@@ -33,7 +33,7 @@ DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
 model_str=$logdir/$model/frozen-graph.ckpt-${check_point}.pb
 expr="/usr/bin/python3 $DIR/speech_commands_custom/test_streaming_accuracy.py \
       --model=$model_str \
-      --labels=$logdir/$model/vgg_labels.txt \
+      --labels=$logdir/$model/labels.txt \
       --wav=$wavfile \
       --ground_truth=/opt/songexplorer/src/streaming_test_labels.txt \
       --verbose \

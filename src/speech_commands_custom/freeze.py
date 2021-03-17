@@ -53,6 +53,8 @@ from tensorflow.python.framework import graph_util
 from tensorflow.python.platform import tf_logging as logging
 logging.get_logger().propagate = False
 
+import importlib
+
 FLAGS = None
 
 
@@ -81,6 +83,9 @@ def create_inference_graph(wanted_words, sample_rate, nchannels, clip_duration_m
     model_architecture: Name of the kind of model to generate.
   """
 
+  sys.path.append(os.path.dirname(FLAGS.model_architecture))
+  model = importlib.import_module(os.path.basename(FLAGS.model_architecture))
+
   words_list = input_data.prepare_words_list(wanted_words.split(','),
                                              silence_percentage, unknown_percentage)
   model_settings = models.prepare_model_settings(
@@ -90,8 +95,6 @@ def create_inference_graph(wanted_words, sample_rate, nchannels, clip_duration_m
       filter_counts, filter_sizes, final_filter_len,
       dropout_prob, batch_size, dilate_after_layer, stride_after_layer,
       connection_type)
-
-  runtime_settings = {'clip_stride_ms': clip_stride_ms}
 
   wav_data_placeholder = tf.placeholder(tf.string, [], name='wav_data')
   decoded_sample_data = audio_ops.decode_wav(
@@ -127,9 +130,8 @@ def create_inference_graph(wanted_words, sample_rate, nchannels, clip_duration_m
   reshaped_input = tf.reshape(fingerprint_input, [
       -1, model_settings['fingerprint_size']])
 
-  hidden_layers, final = models.create_model(
-      reshaped_input, model_settings, model_architecture, is_training=False,
-      runtime_settings=runtime_settings)
+  hidden_layers, final = model.create_model(
+      reshaped_input, model_settings, is_training=False)
 
   # Create an output to use for inference.
   for i in range(len(hidden_layers)):

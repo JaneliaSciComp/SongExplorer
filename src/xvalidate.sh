@@ -2,42 +2,43 @@
 
 # train several networks on different subsets of the annotations
 
-# xvalidate.sh <context-ms> <shiftby-ms> <representation> <window-ms> <mel> <dct> <stride_ms> <dropout> <optimizer> <learning-rate> <kernel-sizes> <last-conv-width> <nfeatures> <dilate-after-layer> <stride-after-layer> <connection-type> <logdir> <path-to-groundtruth> <word1>,<word2>,...,<wordN> <label-types> <nsteps> <restore-from> <save-and-test-interval> <mini-batch> <testing-files> <audio-tic-rate> <audio-nchannels> <batch-seed> <weights-seed> <kfold> <ifolds>
+# xvalidate.sh <model-architecture> <context-ms> <shiftby-ms> <representation> <window-ms> <mel> <dct> <stride_ms> <dropout> <optimizer> <learning-rate> <kernel-sizes> <last-conv-width> <nfeatures> <dilate-after-layer> <stride-after-layer> <connection-type> <logdir> <path-to-groundtruth> <word1>,<word2>,...,<wordN> <label-types> <nsteps> <restore-from> <save-and-test-interval> <mini-batch> <testing-files> <audio-tic-rate> <audio-nchannels> <batch-seed> <weights-seed> <kfold> <ifolds>
 
 # e.g.
-# $SONGEXPLORER_BIN xvalidate.sh 204.8 0.0 6.4 7 7 1.6 0.5 adam 0.0002 5,3,3 130 256,256,256 65535 65535 plain `pwd`/cross-validate `pwd`/groundtruth-data mel-pulse,mel-sine,ambient,other annotated 50 '' 10 32 "" 5000 1 -1 -1 8 1,2
+# $SONGEXPLORER_BIN convolutional xvalidate.sh 204.8 0.0 6.4 7 7 1.6 0.5 adam 0.0002 5,3,3 130 256,256,256 65535 65535 plain `pwd`/cross-validate `pwd`/groundtruth-data mel-pulse,mel-sine,ambient,other annotated 50 '' 10 32 "" 5000 1 -1 -1 8 1,2
 
-context_ms=$1
-shiftby_ms=$2
-representation=$3
-window_ms=$4
-mel=$5
-dct=$6
-stride_ms=$7
-dropout=$8
-optimizer=$9
-learning_rate=${10}
-kernel_sizes=${11}
-last_conv_width=${12}
-nfeatures=${13}
-dilate_after_layer=${14}
-stride_after_layer=${15}
-connection_type=${16}
-logdir=${17}
-data_dir=${18}
-wanted_words=${19}
-labels_touse=${20}
-nsteps=${21}
-restore_from=${22}
-save_and_test_interval=${23}
-mini_batch=${24}
-testing_files=${25}
-audio_tic_rate=${26}
-audio_nchannels=${27}
-batch_seed=${28}
-weights_seed=${29}
-kfold=${30}
-ifolds=${31}
+architecture=$1
+context_ms=$2
+shiftby_ms=$3
+representation=$4
+window_ms=$5
+mel=$6
+dct=$7
+stride_ms=$8
+dropout=$9
+optimizer=${10}
+learning_rate=${11}
+kernel_sizes=${12}
+last_conv_width=${13}
+nfeatures=${14}
+dilate_after_layer=${15}
+stride_after_layer=${16}
+connection_type=${17}
+logdir=${18}
+data_dir=${19}
+wanted_words=${20}
+labels_touse=${21}
+nsteps=${22}
+restore_from=${23}
+save_and_test_interval=${24}
+mini_batch=${25}
+testing_files=${26}
+audio_tic_rate=${27}
+audio_nchannels=${28}
+batch_seed=${29}
+weights_seed=${30}
+kfold=${31}
+ifolds=${32}
 
 DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
 
@@ -48,7 +49,7 @@ if [ -z "$restore_from" ] ; then
   start_checkpoint=
 else
   redirect='&>>'
-  start_checkpoint=$logdir/xvalidate_MODEL/vgg.ckpt-$restore_from
+  start_checkpoint=$logdir/xvalidate_MODEL/${architecture}.ckpt-$restore_from
 fi
 
 cmd="date; hostname; echo $CUDA_VISIBLE_DEVICES; nvidia-smi; "
@@ -89,7 +90,7 @@ while [[ $ifolds =~ .*,.* ]] ; do
           --time_shift_random False \
           --filterbank_channel_count=$mel \
           --dct_coefficient_count=$dct \
-          --model_architecture=vgg \
+          --model_architecture=$architecture \
           --filter_counts=$nfeatures \
           --dilate_after_layer=$dilate_after_layer \
           --stride_after_layer=$stride_after_layer \
