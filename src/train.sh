@@ -2,48 +2,42 @@
 
 # train a neural network with the annotations
 
-# train.sh <model-architecture> <context-ms> <shiftby-ms> <representation> <window-ms> <mel> <dct> <stride-ms> <dropout> <optimizer> <learning-rate> <kernel-sizes> <last-conv-width> <nfeatures> <dilate-after-layer> <stride-after-layer> <connection-type> <logdir> <path-to-groundtruth> <word1>,<word2>,...,<wordN> <label-types> <nsteps> <restore-from> <save-and-test-interval> <validation-percentage> <mini-batch> <testing-files> <audio-tic-rate> <audio-nchannels> <batch-seed> <weights-seed> <ireplicates>
+# train.sh <context-ms> <shiftby-ms> <representation> <window_ms> <stride_ms> <mel> <dct> <optimizer> <learning_rate> <model-architecture> <model-parameters-json> <logdir> <path-to-groundtruth> <word1>,<word2>,...,<wordN> <label-types> <nsteps> <restore-from> <save-and-test-interval> <validation-percentage> <mini-batch> <testing-files> <audio-tic-rate> <audio-nchannels> <batch-seed> <weights-seed> <ireplicates>
 
 # e.g.
-# $SONGEXPLORER_BIN train.sh convolutional 204.8 0.0 waveform 6.4 7 7 1.6 0.5 adam 0.0002 5,3,3 130 256,256,256 65535 65535 plain `pwd`/trained-classifier `pwd`/groundtruth-data mel-sine,mel-pulse,ambient,other annotated 50 '' 10 40 32 "" 5000 1 -1 -1 1,2,3,4
+# $SONGEXPLORER_BIN train.sh 204.8 0.0 waveform 6.4 1.6 7 7 adam 0.0002 convolutional '{"dropout":0.5, "kernel_sizes":5,3,3", last_conv_width":130, "nfeatures":"256,256,256", "dilate_after_layer":65535, "stride_after_layer":65535, "connection_type":"plain"}' `pwd`/trained-classifier `pwd`/groundtruth-data mel-sine,mel-pulse,ambient,other annotated 50 '' 10 40 32 "" 5000 1 -1 -1 1,2,3,4
 
-architecture=$1
-context_ms=$2
-shiftby_ms=$3
-representation=$4
-window_ms=$5
+context_ms=$1
+shiftby_ms=$2
+representation=$3
+window_ms=$4
+stride_ms=$5
 mel=$6
 dct=$7
-stride_ms=$8
-dropout=$9
-optimizer=${10}
-learning_rate=${11}
-kernel_sizes=${12}
-last_conv_width=${13}
-nfeatures=${14}
-dilate_after_layer=${15}
-stride_after_layer=${16}
-connection_type=${17}
-logdir=${18}
-data_dir=${19}
-wanted_words=${20}
-labels_touse=${21}
-nsteps=${22}
-restore_from=${23}
-save_and_test_interval=${24}
-validation_percentage=${25}
-mini_batch=${26}
-testing_files=${27}
-audio_tic_rate=${28}
-audio_nchannels=${29}
-batch_seed=${30}
-weights_seed=${31}
-ireplicates=${32}
+optimizer=$8
+learning_rate=$9
+architecture=${10}
+model_parameters=${11}
+logdir=${12}
+data_dir=${13}
+wanted_words=${14}
+labels_touse=${15}
+nsteps=${16}
+restore_from=${17}
+save_and_test_interval=${18}
+validation_percentage=${19}
+mini_batch=${20}
+testing_files=${21}
+audio_tic_rate=${22}
+audio_nchannels=${23}
+batch_seed=${24}
+weights_seed=${25}
+ireplicates=${26}
 
-if (( "$#" == 32 )) ; then
+if (( "$#" == 26 )) ; then
   save_fingerprints=False
 else
-  save_fingerprints=${33}
+  save_fingerprints=${27}
 fi
 
 DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
@@ -77,10 +71,6 @@ while [[ $ireplicates =~ .*,.* ]] ; do
           --summaries_dir=$logdir/summaries_${ireplicate}r \
           --sample_rate=$audio_tic_rate \
           --nchannels=$audio_nchannels \
-          --clip_duration_ms=$context_ms \
-          --window_size_ms=$window_ms \
-          --window_stride_ms=$stride_ms \
-          --learning_rate=${learning_rate} \
           --random_seed_batch=$batch_seed \
           --random_seed_weights=$weights_seed \
           --background_frequency=0.0 \
@@ -92,18 +82,16 @@ while [[ $ireplicates =~ .*,.* ]] ; do
           --testing_files=$testing_files \
           --time_shift_ms=$shiftby_ms \
           --time_shift_random False \
+          --clip_duration_ms=$context_ms \
+          --representation=$representation \
+          --window_size_ms=$window_ms \
+          --window_stride_ms=$stride_ms \
           --filterbank_channel_count=$mel \
           --dct_coefficient_count=$dct \
-          --model_architecture=$architecture \
-          --filter_counts=$nfeatures \
-          --dilate_after_layer=$dilate_after_layer \
-          --stride_after_layer=$stride_after_layer \
-          --connection_type=$connection_type \
-          --filter_sizes=$kernel_sizes \
-          --final_filter_len=$last_conv_width \
-          --dropout_prob=$dropout \
-          --representation=$representation \
           --optimizer=$optimizer \
+          --learning_rate=${learning_rate} \
+          --model_architecture=$architecture \
+          --model_parameters='$model_parameters' \
           --save_fingerprints=$save_fingerprints \
           --batch_size=$mini_batch"
 

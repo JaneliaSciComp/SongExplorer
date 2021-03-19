@@ -107,6 +107,7 @@ def main(_):
   for key in sorted(flags.keys()):
     tf.logging.info('%s = %s', key, flags[key])
 
+  FLAGS.model_parameters = json.loads(FLAGS.model_parameters)
   if FLAGS.random_seed_weights!=-1:
       tf.random.set_random_seed(FLAGS.random_seed_weights)
 
@@ -129,16 +130,13 @@ def main(_):
       label_count,
       FLAGS.sample_rate,
       FLAGS.nchannels,
+      1,
+      FLAGS.batch_size,
       FLAGS.clip_duration_ms,
       FLAGS.representation,
-      FLAGS.window_size_ms, FLAGS.window_stride_ms, 1,
+      FLAGS.window_size_ms, FLAGS.window_stride_ms,
       FLAGS.dct_coefficient_count, FLAGS.filterbank_channel_count,
-      [int(x) for x in FLAGS.filter_counts.split(',')],
-      [int(x) for x in FLAGS.filter_sizes.split(',')],
-      FLAGS.final_filter_len,
-      FLAGS.dropout_prob, FLAGS.batch_size,
-      FLAGS.dilate_after_layer, FLAGS.stride_after_layer,
-      FLAGS.connection_type)
+      FLAGS.model_parameters)
 
   fingerprint_size = model_settings['fingerprint_size']
   # Figure out the learning rates for each training phase. Since it's often
@@ -161,7 +159,7 @@ def main(_):
   fingerprint_input = tf.placeholder(
       tf.float32, [None, fingerprint_size], name='fingerprint_input')
 
-  hidden, logits, dropout_prob = model.create_model(
+  hidden, logits = model.create_model(
       fingerprint_input,
       model_settings,
       is_training=True)
@@ -280,7 +278,6 @@ def main(_):
               ground_truth_input: train_ground_truth,
               learning_rate_input: learning_rates_list[0],
               actual_batch_size: [FLAGS.batch_size],
-              dropout_prob: model_settings['dropout_prob']
           })
       return
 
@@ -314,7 +311,6 @@ def main(_):
               ground_truth_input: train_ground_truth,
               learning_rate_input: learning_rate_value,
               actual_batch_size: [FLAGS.batch_size],
-              dropout_prob: model_settings['dropout_prob']
           })
       train_writer.add_summary(train_summary, training_step)
       t1=dt.datetime.now()-t0
@@ -334,27 +330,27 @@ def main(_):
                         sess, merged_summaries, evaluation_step, \
                         confusion_matrix, logits, hidden, validation_writer, \
                         audio_processor, False, fingerprint_input, \
-                        ground_truth_input, actual_batch_size, dropout_prob, \
+                        ground_truth_input, actual_batch_size,  \
                         training_step, t0)
   if validation_set_size>0:
     validate_and_test('validation', validation_set_size, model_settings, \
                         sess, merged_summaries, evaluation_step, \
                         confusion_matrix, logits, hidden, validation_writer, \
                         audio_processor, True, fingerprint_input, \
-                        ground_truth_input, actual_batch_size, dropout_prob, \
+                        ground_truth_input, actual_batch_size,  \
                         training_steps_max, t0)
   if testing_set_size>0:
     validate_and_test('testing', testing_set_size, model_settings, \
                       sess, merged_summaries, evaluation_step, confusion_matrix, \
                       logits, hidden, validation_writer, audio_processor, \
                       True, fingerprint_input, ground_truth_input, \
-                      actual_batch_size, dropout_prob, training_steps_max, t0)
+                      actual_batch_size,  training_steps_max, t0)
 
 def validate_and_test(set_kind, set_size, model_settings, sess, \
                       merged_summaries, evaluation_step, confusion_matrix, logits, \
                       hidden, validation_writer, audio_processor, is_last_step, \
                       fingerprint_input, ground_truth_input, actual_batch_size, \
-                      dropout_prob, training_step, t0):
+                       training_step, t0):
   total_accuracy = 0
   total_conf_matrix = None
   for isample in xrange(0, set_size, FLAGS.batch_size):
@@ -379,7 +375,6 @@ def validate_and_test(set_kind, set_size, model_settings, sess, \
             fingerprint_input: fingerprints,
             ground_truth_input: ground_truth,
             actual_batch_size: [FLAGS.batch_size - needed],
-            dropout_prob: 1.0
         })
     if set_kind=='validation':
       validation_writer.add_summary(summary, training_step)
@@ -592,6 +587,21 @@ if __name__ == '__main__':
       default=40,
       help='How many output bins to use for the MFCC fingerprint',)
   parser.add_argument(
+      '--learning_rate',
+      type=str,
+      default='0.001,0.0001',
+      help='How large a learning rate to use when training.')
+  parser.add_argument(
+      '--representation',
+      type=str,
+      default='waveform',
+      help='What input representation to use.  One of waveform, spectrogram, or mel-cepstrum.')
+  parser.add_argument(
+      '--optimizer',
+      type=str,
+      default='sgd',
+      help='What optimizer to use.  One of sgd, adam, adagrad, or rmsprop.')
+  parser.add_argument(
       '--how_many_training_steps',
       type=str,
       default='15000,3000',
@@ -601,11 +611,6 @@ if __name__ == '__main__':
       type=int,
       default=400,
       help='How often to evaluate the training results.')
-  parser.add_argument(
-      '--learning_rate',
-      type=str,
-      default='0.001,0.0001',
-      help='How large a learning rate to use when training.')
   parser.add_argument(
       '--batch_size',
       type=int,
@@ -642,21 +647,6 @@ if __name__ == '__main__':
       default='',
       help='If specified, restore this pretrained model before any training.')
   parser.add_argument(
-      '--filter_counts',
-      type=str,
-      default='64,64,64',
-      help='A vector of length 3 specifying how many filters to use for the conv layers in the conv and vgg models')
-  parser.add_argument(
-      '--filter_sizes',
-      type=str,
-      default='3,3,3',
-      help='A vector of length 3 specifying the filter sizes to use for the conv layers in the vgg model')
-  parser.add_argument(
-      '--final_filter_len',
-      type=int,
-      default=[110],
-      help='The length of the final conv1d layer in the vgg model.  Must be even.')
-  parser.add_argument(
       '--random_seed_batch',
       type=int,
       default=59185,
@@ -666,16 +656,6 @@ if __name__ == '__main__':
       type=int,
       default=59185,
       help='Randomize weight initialization if -1; otherwise use supplied number as seed.')
-  parser.add_argument(
-      '--dilate_after_layer',
-      type=int,
-      default=65535,
-      help='Convolutional layer at which to start exponentially dilating.')
-  parser.add_argument(
-      '--stride_after_layer',
-      type=int,
-      default=65535,
-      help='Convolutional layer at which to start striding by 2.')
   parser.add_argument(
       '--testing_equalize_ratio',
       type=int,
@@ -687,30 +667,15 @@ if __name__ == '__main__':
       default=0,
       help='Limit number of test samples to this number.')
   parser.add_argument(
-      '--dropout_prob',
-      type=float,
-      default=0.5,
-      help='Dropout probability during training')
-  parser.add_argument(
-      '--representation',
-      type=str,
-      default='waveform',
-      help='What input representation to use.  One of waveform, spectrogram, or mel-cepstrum.')
-  parser.add_argument(
-      '--optimizer',
-      type=str,
-      default='sgd',
-      help='What optimizer to use.  One of sgd, adam, adagrad, or rmsprop.')
-  parser.add_argument(
       '--model_architecture',
       type=str,
       default='conv',
       help='What model architecture to use')
   parser.add_argument(
-      '--connection_type',
+      '--model_parameters',
       type=str,
-      default='plain',
-      help='Either plain or residual.')
+      default='{}',
+      help='What model parameters to use')
   parser.add_argument(
       '--check_nans',
       type=str2bool,

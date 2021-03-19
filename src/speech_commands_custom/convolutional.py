@@ -3,9 +3,19 @@ import math
 import tensorflow.compat.v1 as tf
 tf.disable_v2_behavior()
 
+model_parameters = [
+  ["dropout",            "dropout",          '', '0.5'],
+  ["kernel_sizes",       "kernels",          '', '5,3,3'],
+  ["last_conv_width",    "last conv width",  '', '130'],
+  ["nfeatures",          "# features",       '', '64,64,64'],
+  ["dilate_after_layer", "dilate after",     '', '65535'],
+  ["stride_after_layer", "stride after",     '', '65535'],
+  ["connection_type",    "connection",       ["plain", "residual"], 'plain'],
+  ]
+
 def create_model(fingerprint_input, model_settings, is_training):
   if is_training:
-    dropout_prob = tf.placeholder(tf.float32, name='dropout_prob')
+    dropout_prob = float(model_settings['dropout'])
   if model_settings['representation']=='waveform':
     input_frequency_size = 1
     input_time_size = model_settings['desired_samples']
@@ -16,14 +26,13 @@ def create_model(fingerprint_input, model_settings, is_training):
     input_frequency_size = model_settings['dct_coefficient_count']
     input_time_size = model_settings['spectrogram_length']
   input_channel_size = model_settings['channel_count']
-  filter_counts = model_settings['filter_counts']
-  filter_sizes = model_settings['filter_sizes']
-  final_filter_len = model_settings['final_filter_len']
-  filter_sizes = model_settings['filter_sizes']
+  filter_counts = [int(x) for x in model_settings['nfeatures'].split(',')]
+  filter_sizes = [int(x) for x in model_settings['kernel_sizes'].split(',')]
+  final_filter_len = int(model_settings['last_conv_width'])
   batch_size = model_settings['batch_size']
   nwindows = model_settings['nwindows']
-  dilate_after_layer = model_settings['dilate_after_layer']
-  stride_after_layer = model_settings['stride_after_layer']
+  dilate_after_layer = int(model_settings['dilate_after_layer'])
+  stride_after_layer = int(model_settings['stride_after_layer'])
   residual = True if model_settings['connection_type']=='residual' else False
 
   fingerprint_4d = tf.reshape(fingerprint_input,
@@ -151,6 +160,6 @@ def create_model(fingerprint_input, model_settings, is_training):
   tf.logging.info('final layer: in_shape = %s, conv_shape = %s, strides = %s' %
         (inarg.get_shape(), weights.get_shape(), str(strides)))
   if is_training:
-    return hidden_layers, tf.squeeze(final), dropout_prob
+    return hidden_layers, tf.squeeze(final)
   else:
     return hidden_layers, tf.squeeze(final)

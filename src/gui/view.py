@@ -27,13 +27,14 @@ import ast
 from bokeh.core.properties import Instance, String, List, Float
 from bokeh.util.compiler import TypeScript
 import asyncio
+from collections import OrderedDict
 
 bokehlog = logging.getLogger("songexplorer") 
 
 import model as M
 import controller as C
 
-bokeh_document, cluster_dot_palette, snippet_palette, p_cluster, cluster_dots, p_snippets, snippets_label_sources_clustered, snippets_label_sources_annotated, snippets_wave_sources, snippets_wave_glyphs, snippets_gram_sources, snippets_gram_glyphs, snippets_quad_grey, dot_size_cluster, dot_alpha_cluster, cluster_circle_fuchsia, p_waveform, p_spectrogram, p_probability, probability_source, probability_glyph, spectrogram_source, spectrogram_glyph, waveform_span_red, spectrogram_span_red, waveform_quad_grey_clustered, waveform_quad_grey_annotated, waveform_quad_grey_pan, waveform_quad_fuchsia, spectrogram_quad_grey_clustered, spectrogram_quad_grey_annotated, spectrogram_quad_grey_pan, spectrogram_quad_fuchsia, snippets_quad_fuchsia, waveform_source, waveform_glyph, waveform_label_source_clustered, waveform_label_source_annotated, spectrogram_label_source_clustered, spectrogram_label_source_annotated, which_layer, which_species, which_word, which_nohyphen, which_kind, color_picker, circle_radius, dot_size, dot_alpha, zoom_context, zoom_offset, zoomin, zoomout, reset, panleft, panright, allleft, allout, allright, save_indicator, label_count_widgets, label_text_widgets, play, play_callback, video_toggle, video_div, undo, redo, detect, misses, configuration_file, train, leaveoneout, leaveallout, xvalidate, mistakes, activations, cluster, visualize, accuracy, freeze, classify, ethogram, compare, congruence, status_ticker, waitfor, file_dialog_source, file_dialog_source, configuration_contents, logs, logs_folder, model, model_file, wavtfcsvfiles, wavtfcsvfiles_string, groundtruth, groundtruth_folder, validationfiles, testfiles, validationfiles_string, testfiles_string, wantedwords, wantedwords_string, labeltypes, labeltypes_string, prevalences, prevalences_string, copy, labelsounds, makepredictions, fixfalsepositives, fixfalsenegatives, generalize, tunehyperparameters, findnovellabels, examineerrors, testdensely, doit, time_sigma_string, time_smooth_ms_string, frequency_n_ms_string, frequency_nw_string, frequency_p_string, frequency_smooth_ms_string, nsteps_string, restore_from_string, save_and_validate_period_string, validate_percentage_string, mini_batch_string, kfold_string, activations_equalize_ratio_string, activations_max_samples_string, pca_fraction_variance_to_retain_string, tsne_perplexity_string, tsne_exaggeration_string, umap_neighbors_string, umap_distance_string, cluster_algorithm, cluster_these_layers, connection_type, precision_recall_ratios_string, context_ms_string, shiftby_ms_string, representation, window_ms_string, stride_ms_string, mel_dct_string, dropout_string, replicates_string, batch_seed_string, weights_seed_string, optimizer, learning_rate_string, kernel_sizes_string, last_conv_width_string, nfeatures_string, dilate_after_layer_string, stride_after_layer_string, editconfiguration, file_dialog_string, file_dialog_table, readme_contents, wordcounts, wizard_buttons, action_buttons, parameter_buttons, parameter_textinputs, wizard2actions, action2parameterbuttons, action2parametertextinputs = [None]*171
+bokeh_document, cluster_dot_palette, snippet_palette, p_cluster, cluster_dots, p_snippets, snippets_label_sources_clustered, snippets_label_sources_annotated, snippets_wave_sources, snippets_wave_glyphs, snippets_gram_sources, snippets_gram_glyphs, snippets_quad_grey, dot_size_cluster, dot_alpha_cluster, cluster_circle_fuchsia, p_waveform, p_spectrogram, p_probability, probability_source, probability_glyph, spectrogram_source, spectrogram_glyph, waveform_span_red, spectrogram_span_red, waveform_quad_grey_clustered, waveform_quad_grey_annotated, waveform_quad_grey_pan, waveform_quad_fuchsia, spectrogram_quad_grey_clustered, spectrogram_quad_grey_annotated, spectrogram_quad_grey_pan, spectrogram_quad_fuchsia, snippets_quad_fuchsia, waveform_source, waveform_glyph, waveform_label_source_clustered, waveform_label_source_annotated, spectrogram_label_source_clustered, spectrogram_label_source_annotated, which_layer, which_species, which_word, which_nohyphen, which_kind, color_picker, circle_radius, dot_size, dot_alpha, zoom_context, zoom_offset, zoomin, zoomout, reset, panleft, panright, allleft, allout, allright, save_indicator, label_count_widgets, label_text_widgets, play, play_callback, video_toggle, video_div, undo, redo, detect, misses, configuration_file, train, leaveoneout, leaveallout, xvalidate, mistakes, activations, cluster, visualize, accuracy, freeze, classify, ethogram, compare, congruence, status_ticker, waitfor, file_dialog_source, file_dialog_source, configuration_contents, logs, logs_folder, model, model_file, wavtfcsvfiles, wavtfcsvfiles_string, groundtruth, groundtruth_folder, validationfiles, testfiles, validationfiles_string, testfiles_string, wantedwords, wantedwords_string, labeltypes, labeltypes_string, prevalences, prevalences_string, copy, labelsounds, makepredictions, fixfalsepositives, fixfalsenegatives, generalize, tunehyperparameters, findnovellabels, examineerrors, testdensely, doit, time_sigma_string, time_smooth_ms_string, frequency_n_ms_string, frequency_nw_string, frequency_p_string, frequency_smooth_ms_string, nsteps_string, restore_from_string, save_and_validate_period_string, validate_percentage_string, mini_batch_string, kfold_string, activations_equalize_ratio_string, activations_max_samples_string, pca_fraction_variance_to_retain_string, tsne_perplexity_string, tsne_exaggeration_string, umap_neighbors_string, umap_distance_string, cluster_algorithm, cluster_these_layers, precision_recall_ratios_string, context_ms_string, shiftby_ms_string, representation, window_ms_string, stride_ms_string, mel_dct_string, optimizer, learning_rate_string, replicates_string, batch_seed_string, weights_seed_string, editconfiguration, file_dialog_string, file_dialog_table, readme_contents, wordcounts, wizard_buttons, action_buttons, parameter_buttons, parameter_textinputs, wizard2actions, action2parameterbuttons, action2parametertextinputs, model_parameters = [None]*165
 
 class ScatterNd(LayoutDOM):
 
@@ -1246,7 +1247,7 @@ async def status_ticker_update():
     status_ticker.text = status_ticker_pre+newtext+status_ticker_post
 
 def init(_bokeh_document):
-    global bokeh_document, cluster_dot_palette, snippet_palette, p_cluster, cluster_dots, p_cluster_dots, precomputed_dots, snippets_dy, p_snippets, snippets_label_sources_clustered, snippets_label_sources_annotated, snippets_wave_sources, snippets_wave_glyphs, snippets_gram_sources, snippets_gram_glyphs, snippets_quad_grey, dot_size_cluster, dot_alpha_cluster, cluster_circle_fuchsia, p_waveform, p_spectrogram, p_probability, probability_source, probability_glyph, spectrogram_source, spectrogram_glyph, waveform_span_red, spectrogram_span_red, waveform_quad_grey_clustered, waveform_quad_grey_annotated, waveform_quad_grey_pan, waveform_quad_fuchsia, spectrogram_quad_grey_clustered, spectrogram_quad_grey_annotated, spectrogram_quad_grey_pan, spectrogram_quad_fuchsia, snippets_quad_fuchsia, waveform_source, waveform_glyph, waveform_label_source_clustered, waveform_label_source_annotated, spectrogram_label_source_clustered, spectrogram_label_source_annotated, which_layer, which_species, which_word, which_nohyphen, which_kind, color_picker, circle_radius, dot_size, dot_alpha, zoom_context, zoom_offset, zoomin, zoomout, reset, panleft, panright, allleft, allout, allright, save_indicator, label_count_widgets, label_text_widgets, play, play_callback, video_toggle, video_div, undo, redo, detect, misses, configuration_file, train, leaveoneout, leaveallout, xvalidate, mistakes, activations, cluster, visualize, accuracy, freeze, classify, ethogram, compare, congruence, status_ticker, waitfor, file_dialog_source, file_dialog_source, configuration_contents, logs, logs_folder, model, model_file, wavtfcsvfiles, wavtfcsvfiles_string, groundtruth, groundtruth_folder, validationfiles, testfiles, validationfiles_string, testfiles_string, wantedwords, wantedwords_string, labeltypes, labeltypes_string, prevalences, prevalences_string, copy, labelsounds, makepredictions, fixfalsepositives, fixfalsenegatives, generalize, tunehyperparameters, findnovellabels, examineerrors, testdensely, doit, time_sigma_string, time_smooth_ms_string, frequency_n_ms_string, frequency_nw_string, frequency_p_string, frequency_smooth_ms_string, nsteps_string, restore_from_string, save_and_validate_period_string, validate_percentage_string, mini_batch_string, kfold_string, activations_equalize_ratio_string, activations_max_samples_string, pca_fraction_variance_to_retain_string, tsne_perplexity_string, tsne_exaggeration_string, umap_neighbors_string, umap_distance_string, cluster_algorithm, cluster_these_layers, connection_type, precision_recall_ratios_string, context_ms_string, shiftby_ms_string, representation, window_ms_string, stride_ms_string, mel_dct_string, dropout_string, replicates_string, batch_seed_string, weights_seed_string, optimizer, learning_rate_string, kernel_sizes_string, last_conv_width_string, nfeatures_string, dilate_after_layer_string, stride_after_layer_string, editconfiguration, file_dialog_string, file_dialog_table, readme_contents, wordcounts, wizard_buttons, action_buttons, parameter_buttons, parameter_textinputs, wizard2actions, action2parameterbuttons, action2parametertextinputs, status_ticker_update, status_ticker_pre, status_ticker_post
+    global bokeh_document, cluster_dot_palette, snippet_palette, p_cluster, cluster_dots, p_cluster_dots, precomputed_dots, snippets_dy, p_snippets, snippets_label_sources_clustered, snippets_label_sources_annotated, snippets_wave_sources, snippets_wave_glyphs, snippets_gram_sources, snippets_gram_glyphs, snippets_quad_grey, dot_size_cluster, dot_alpha_cluster, cluster_circle_fuchsia, p_waveform, p_spectrogram, p_probability, probability_source, probability_glyph, spectrogram_source, spectrogram_glyph, waveform_span_red, spectrogram_span_red, waveform_quad_grey_clustered, waveform_quad_grey_annotated, waveform_quad_grey_pan, waveform_quad_fuchsia, spectrogram_quad_grey_clustered, spectrogram_quad_grey_annotated, spectrogram_quad_grey_pan, spectrogram_quad_fuchsia, snippets_quad_fuchsia, waveform_source, waveform_glyph, waveform_label_source_clustered, waveform_label_source_annotated, spectrogram_label_source_clustered, spectrogram_label_source_annotated, which_layer, which_species, which_word, which_nohyphen, which_kind, color_picker, circle_radius, dot_size, dot_alpha, zoom_context, zoom_offset, zoomin, zoomout, reset, panleft, panright, allleft, allout, allright, save_indicator, label_count_widgets, label_text_widgets, play, play_callback, video_toggle, video_div, undo, redo, detect, misses, configuration_file, train, leaveoneout, leaveallout, xvalidate, mistakes, activations, cluster, visualize, accuracy, freeze, classify, ethogram, compare, congruence, status_ticker, waitfor, file_dialog_source, file_dialog_source, configuration_contents, logs, logs_folder, model, model_file, wavtfcsvfiles, wavtfcsvfiles_string, groundtruth, groundtruth_folder, validationfiles, testfiles, validationfiles_string, testfiles_string, wantedwords, wantedwords_string, labeltypes, labeltypes_string, prevalences, prevalences_string, copy, labelsounds, makepredictions, fixfalsepositives, fixfalsenegatives, generalize, tunehyperparameters, findnovellabels, examineerrors, testdensely, doit, time_sigma_string, time_smooth_ms_string, frequency_n_ms_string, frequency_nw_string, frequency_p_string, frequency_smooth_ms_string, nsteps_string, restore_from_string, save_and_validate_period_string, validate_percentage_string, mini_batch_string, kfold_string, activations_equalize_ratio_string, activations_max_samples_string, pca_fraction_variance_to_retain_string, tsne_perplexity_string, tsne_exaggeration_string, umap_neighbors_string, umap_distance_string, cluster_algorithm, cluster_these_layers, precision_recall_ratios_string, context_ms_string, shiftby_ms_string, representation, window_ms_string, stride_ms_string, mel_dct_string, optimizer, learning_rate_string, replicates_string, batch_seed_string, weights_seed_string, editconfiguration, file_dialog_string, file_dialog_table, readme_contents, wordcounts, wizard_buttons, action_buttons, parameter_buttons, parameter_textinputs, wizard2actions, action2parameterbuttons, action2parametertextinputs, status_ticker_update, status_ticker_pre, status_ticker_post, model_parameters
 
     bokeh_document = _bokeh_document
 
@@ -1648,7 +1649,7 @@ def init(_bokeh_document):
     file_dialog_source.selected.on_change('indices', C.file_dialog_callback)
 
     file_dialog_columns = [
-        TableColumn(field="names", title="Name", width=M.gui_width_pix//2-50-115-10),
+        TableColumn(field="names", title="Name", width=M.gui_width_pix//2-50-115-30),
         TableColumn(field="sizes", title="Size", width=50, \
                     formatter=NumberFormatter(format="0 b")),
         TableColumn(field="dates", title="Date", width=115, \
@@ -1656,17 +1657,12 @@ def init(_bokeh_document):
     ]
     file_dialog_table = DataTable(source=file_dialog_source, \
                                   columns=file_dialog_columns, \
-                                  height=727, \
+                                  height=727, width=M.gui_width_pix//2-11, \
                                   index_position=None,
                                   fit_columns=False)
 
     waitfor = Toggle(label='wait for last job', active=False, disabled=True, width=100)
     waitfor.on_click(C.waitfor_callback)
-
-    configuration_contents = TextAreaInput(rows=46, max_length=50000, \
-                                        disabled=True, css_classes=['fixedwidth'])
-    configuration_contents_update()
-    configuration_contents.on_change('value', C.configuration_textarea_callback)
 
     logs = Button(label='logs folder:', width=110)
     logs.on_click(C.logs_callback)
@@ -1838,7 +1834,7 @@ def init(_bokeh_document):
                                                title="P/Rs", \
                                                disabled=False)
     precision_recall_ratios_string.on_change('value', lambda a,o,n: C.generic_parameters_callback(n))
-
+    
     context_ms_string = TextInput(value=M.state['context_ms'], \
                                   title="context (msec)", \
                                   disabled=False)
@@ -1853,24 +1849,6 @@ def init(_bokeh_document):
                             value=M.state['representation'], \
                             options=["waveform", "spectrogram", "mel-cepstrum"])
     representation.on_change('value', lambda a,o,n: C.generic_parameters_callback(''))
-
-    cluster_algorithm = Select(title="cluster", height=50, \
-                               value=M.state['cluster_algorithm'], \
-                               options=["PCA 2D", "PCA 3D", \
-                                        "tSNE 2D", "tSNE 3D", \
-                                        "UMAP 2D", "UMAP 3D"])
-    cluster_algorithm.on_change('value', lambda a,o,n: C.generic_parameters_callback(''))
-
-    cluster_these_layers = MultiSelect(title='layers', height=108, \
-                                       value=M.state['cluster_these_layers'], \
-                                       options=[])
-    cluster_these_layers.on_change('value', lambda a,o,n: C.generic_parameters_callback(''))
-    cluster_these_layers_update()
-
-    connection_type = Select(title="connection", height=50, \
-                             value=M.state['connection_type'], \
-                             options=["plain", "residual"])
-    connection_type.on_change('value', lambda a,o,n: C.generic_parameters_callback(''))
 
     window_ms_string = TextInput(value=M.state['window_ms'], \
                                  title="window (msec)", \
@@ -1887,10 +1865,50 @@ def init(_bokeh_document):
                                disabled=False)
     mel_dct_string.on_change('value', lambda a,o,n: C.generic_parameters_callback(n))
 
-    dropout_string = TextInput(value=M.state['dropout'], \
-                               title="dropout", \
-                               disabled=False)
-    dropout_string.on_change('value', lambda a,o,n: C.generic_parameters_callback(n))
+    optimizer = Select(title="optimizer", height=50, \
+                       value=M.state['optimizer'], \
+                       options=[("sgd","SGD"), ("adam","Adam"), ("adagrad","AdaGrad"), \
+                                ("rmsprop","RMSProp")])
+    optimizer.on_change('value', lambda a,o,n: C.generic_parameters_callback(''))
+
+    learning_rate_string = TextInput(value=M.state['learning_rate'], \
+                                     title="learning rate", \
+                                     disabled=False)
+    learning_rate_string.on_change('value', lambda a,o,n: C.generic_parameters_callback(n))
+
+    model_parameters = OrderedDict()
+    for parameter in M.model_parameters:
+      if parameter[2]=='':
+        thisparameter = TextInput(value=M.state[parameter[0]], \
+                                  title=parameter[1], \
+                                  disabled=False, width=94)
+        thisparameter.on_change('value', lambda a,o,n: C.generic_parameters_callback(n))
+      else:
+        thisparameter = Select(value=M.state[parameter[0]], \
+                               title=parameter[1], \
+                               options=parameter[2], \
+                               height=50, width=94)
+      model_parameters[parameter[0]] = thisparameter
+
+    configuration_contents = TextAreaInput(rows=49-3*np.ceil(len(model_parameters)/6).astype(np.int),
+                                           max_length=50000, \
+                                           disabled=True, css_classes=['fixedwidth'])
+    configuration_contents_update()
+    configuration_contents.on_change('value', C.configuration_textarea_callback)
+
+    cluster_algorithm = Select(title="cluster", height=50, \
+                               value=M.state['cluster_algorithm'], \
+                               options=["PCA 2D", "PCA 3D", \
+                                        "tSNE 2D", "tSNE 3D", \
+                                        "UMAP 2D", "UMAP 3D"])
+    cluster_algorithm.on_change('value', lambda a,o,n: C.generic_parameters_callback(''))
+
+    cluster_these_layers = MultiSelect(title='layers', \
+                                       value=M.state['cluster_these_layers'], \
+                                       options=[],
+                                       height=108)
+    cluster_these_layers.on_change('value', lambda a,o,n: C.generic_parameters_callback(''))
+    cluster_these_layers_update()
 
     replicates_string = TextInput(value=M.state['replicates'], \
                                   title="replicates", \
@@ -1906,42 +1924,6 @@ def init(_bokeh_document):
                                     title="weights seed", \
                                     disabled=False)
     weights_seed_string.on_change('value', lambda a,o,n: C.generic_parameters_callback(n))
-
-    optimizer = Select(title="optimizer", height=50, \
-                       value=M.state['optimizer'], \
-                       options=[("sgd","SGD"), ("adam","Adam"), ("adagrad","AdaGrad"), \
-                                ("rmsprop","RMSProp")])
-    optimizer.on_change('value', lambda a,o,n: C.generic_parameters_callback(''))
-
-    learning_rate_string = TextInput(value=M.state['learning_rate'], \
-                                     title="learning rate", \
-                                     disabled=False)
-    learning_rate_string.on_change('value', lambda a,o,n: C.generic_parameters_callback(n))
-
-    kernel_sizes_string = TextInput(value=M.state['kernel_sizes'], \
-                                    title="kernels", \
-                                    disabled=False)
-    kernel_sizes_string.on_change('value', lambda a,o,n: C.generic_parameters_callback(n))
-
-    last_conv_width_string = TextInput(value=M.state['last_conv_width'], \
-                                       title="last conv width", \
-                                       disabled=False)
-    last_conv_width_string.on_change('value', lambda a,o,n: C.generic_parameters_callback(n))
-
-    nfeatures_string = TextInput(value=M.state['nfeatures'], \
-                                 title="# features", \
-                                 disabled=False)
-    nfeatures_string.on_change('value', lambda a,o,n: C.generic_parameters_callback(n))
-
-    dilate_after_layer_string = TextInput(value=M.state['dilate_after_layer'], \
-                                          title="dilate after", \
-                                          disabled=False)
-    dilate_after_layer_string.on_change('value', lambda a,o,n: C.generic_parameters_callback(n))
-
-    stride_after_layer_string = TextInput(value=M.state['stride_after_layer'], \
-                                          title="stride after", \
-                                          disabled=False)
-    stride_after_layer_string.on_change('value', lambda a,o,n: C.generic_parameters_callback(n))
 
     editconfiguration = Button(label='edit', button_type="default")
     editconfiguration.on_click(C.editconfiguration_callback)
@@ -2030,25 +2012,21 @@ def init(_bokeh_document):
         umap_distance_string,
         cluster_algorithm,
         cluster_these_layers,
-        connection_type,
         precision_recall_ratios_string,
+        replicates_string,
+        batch_seed_string,
+        weights_seed_string,
+
         context_ms_string,
         shiftby_ms_string,
         representation,
         window_ms_string,
         stride_ms_string,
         mel_dct_string,
-        dropout_string,
-        replicates_string,
-        batch_seed_string,
-        weights_seed_string,
         optimizer,
-        learning_rate_string,
-        kernel_sizes_string,
-        last_conv_width_string,
-        nfeatures_string,
-        dilate_after_layer_string,
-        stride_after_layer_string])
+        learning_rate_string] +
+
+        list(model_parameters.values()))
 
     wizard2actions = {
             labelsounds: [detect,train,activations,cluster,visualize],
@@ -2083,17 +2061,17 @@ def init(_bokeh_document):
 
     action2parametertextinputs = {
             detect: [wavtfcsvfiles_string, time_sigma_string, time_smooth_ms_string, frequency_n_ms_string, frequency_nw_string, frequency_p_string, frequency_smooth_ms_string],
-            train: [context_ms_string, shiftby_ms_string, representation, window_ms_string, stride_ms_string, mel_dct_string, dropout_string, replicates_string, batch_seed_string, weights_seed_string, optimizer, learning_rate_string, kernel_sizes_string, last_conv_width_string, nfeatures_string, dilate_after_layer_string, stride_after_layer_string, connection_type, logs_folder, groundtruth_folder, testfiles_string, wantedwords_string, labeltypes_string, nsteps_string, restore_from_string, save_and_validate_period_string, validate_percentage_string, mini_batch_string],
-            leaveoneout: [context_ms_string, shiftby_ms_string, representation, window_ms_string, stride_ms_string, mel_dct_string, dropout_string, batch_seed_string, weights_seed_string, optimizer, learning_rate_string, kernel_sizes_string, last_conv_width_string, nfeatures_string, dilate_after_layer_string, stride_after_layer_string, connection_type, logs_folder, groundtruth_folder, validationfiles_string, testfiles_string, wantedwords_string, labeltypes_string, nsteps_string, restore_from_string, save_and_validate_period_string, mini_batch_string],
-            leaveallout: [context_ms_string, shiftby_ms_string, representation, window_ms_string, stride_ms_string, mel_dct_string, dropout_string, batch_seed_string, weights_seed_string, optimizer, learning_rate_string, kernel_sizes_string, last_conv_width_string, nfeatures_string, dilate_after_layer_string, stride_after_layer_string, connection_type, logs_folder, groundtruth_folder, validationfiles_string, testfiles_string, wantedwords_string, labeltypes_string, nsteps_string, restore_from_string, save_and_validate_period_string, mini_batch_string],
-            xvalidate: [context_ms_string, shiftby_ms_string, representation, window_ms_string, stride_ms_string, mel_dct_string, dropout_string, batch_seed_string, weights_seed_string, optimizer, learning_rate_string, kernel_sizes_string, last_conv_width_string, nfeatures_string, dilate_after_layer_string, stride_after_layer_string, connection_type, logs_folder, groundtruth_folder, testfiles_string, wantedwords_string, labeltypes_string, nsteps_string, restore_from_string, save_and_validate_period_string, mini_batch_string, kfold_string],
+            train: [context_ms_string, shiftby_ms_string, representation, window_ms_string, stride_ms_string, mel_dct_string, optimizer, learning_rate_string, replicates_string, batch_seed_string, weights_seed_string, logs_folder, groundtruth_folder, testfiles_string, wantedwords_string, labeltypes_string, nsteps_string, restore_from_string, save_and_validate_period_string, validate_percentage_string, mini_batch_string] + list(model_parameters.values()),
+            leaveoneout: [context_ms_string, shiftby_ms_string, representation, window_ms_string, stride_ms_string, mel_dct_string, optimizer, learning_rate_string, batch_seed_string, weights_seed_string, logs_folder, groundtruth_folder, validationfiles_string, testfiles_string, wantedwords_string, labeltypes_string, nsteps_string, restore_from_string, save_and_validate_period_string, mini_batch_string] + list(model_parameters.values()),
+            leaveallout: [context_ms_string, shiftby_ms_string, representation, window_ms_string, stride_ms_string, mel_dct_string, optimizer, learning_rate_string, batch_seed_string, weights_seed_string, logs_folder, groundtruth_folder, validationfiles_string, testfiles_string, wantedwords_string, labeltypes_string, nsteps_string, restore_from_string, save_and_validate_period_string, mini_batch_string] + list(model_parameters.values()),
+            xvalidate: [context_ms_string, shiftby_ms_string, representation, window_ms_string, stride_ms_string, mel_dct_string, optimizer, learning_rate_string, batch_seed_string, weights_seed_string, logs_folder, groundtruth_folder, testfiles_string, wantedwords_string, labeltypes_string, nsteps_string, restore_from_string, save_and_validate_period_string, mini_batch_string, kfold_string] + list(model_parameters.values()),
             mistakes: [groundtruth_folder],
-            activations: [context_ms_string, shiftby_ms_string, representation, window_ms_string, stride_ms_string, mel_dct_string, kernel_sizes_string, last_conv_width_string, nfeatures_string, dilate_after_layer_string, stride_after_layer_string, connection_type, logs_folder, model_file, groundtruth_folder, wantedwords_string, labeltypes_string, activations_equalize_ratio_string, activations_max_samples_string, mini_batch_string],
+            activations: [context_ms_string, shiftby_ms_string, representation, window_ms_string, stride_ms_string, mel_dct_string, logs_folder, model_file, groundtruth_folder, wantedwords_string, labeltypes_string, activations_equalize_ratio_string, activations_max_samples_string, mini_batch_string] + list(model_parameters.values()),
             cluster: [groundtruth_folder, cluster_algorithm, cluster_these_layers, pca_fraction_variance_to_retain_string, tsne_perplexity_string, tsne_exaggeration_string, umap_neighbors_string, umap_distance_string],
             visualize: [groundtruth_folder],
             accuracy: [logs_folder, precision_recall_ratios_string],
-            freeze: [context_ms_string, representation, window_ms_string, stride_ms_string, mel_dct_string, kernel_sizes_string, last_conv_width_string, nfeatures_string, dilate_after_layer_string, stride_after_layer_string, connection_type, logs_folder, model_file],
-            classify: [context_ms_string, shiftby_ms_string, representation, stride_ms_string, logs_folder, model_file, wavtfcsvfiles_string, wantedwords_string, prevalences_string],
+            freeze: [context_ms_string, representation, window_ms_string, stride_ms_string, mel_dct_string, logs_folder, model_file] + list(model_parameters.values()),
+            classify: [context_ms_string, shiftby_ms_string, representation, stride_ms_string, logs_folder, model_file, wavtfcsvfiles_string, wantedwords_string, prevalences_string] + list(model_parameters.values()),
             ethogram: [model_file, wavtfcsvfiles_string],
             misses: [wavtfcsvfiles_string],
             compare: [logs_folder],

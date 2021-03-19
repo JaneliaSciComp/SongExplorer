@@ -18,7 +18,7 @@ cluster_cmd=""
 cluster_logfile_flag=""
 
 # GUI
-gui_nlabels=8
+gui_nlabels=7
 gui_gui_width_pix=1250
 #gui_cluster_dot_palette="Category10_10"
 # https://graphicdesign.stackexchange.com/questions/3682/where-can-i-find-a-large-palette-set-of-contrasting-colors-for-coloring-many-d

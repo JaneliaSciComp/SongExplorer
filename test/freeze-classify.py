@@ -45,17 +45,17 @@ shutil.copy(os.path.join(repo_path, "data/PS_20130625111709_ch3-annotated-person
 
 V.context_ms_string.value = "204.8"
 V.shiftby_ms_string.value = "0.0"
-V.window_ms_string.value = "6.4"
-V.mel_dct_string.value = "7,7"
-V.stride_ms_string.value = "1.6"
-V.dropout_string.value = "0.5"
 V.optimizer.value = "adam"
 V.learning_rate_string.value = "0.0002"
-V.kernel_sizes_string.value = "5,3,128"
-V.last_conv_width_string.value = "130"
-V.nfeatures_string.value = "64,64,64"
-V.dilate_after_layer_string.value = "65535"
-V.connection_type.value = "plain"
+V.window_ms_string.value = "6.4"
+V.stride_ms_string.value = "1.6"
+V.mel_dct_string.value = "7,7"
+V.model_parameters["dropout"].value = "0.5"
+V.model_parameters["kernel_sizes"].value = "5,3,128"
+V.model_parameters["last_conv_width"].value = "130"
+V.model_parameters["nfeatures"].value = "64,64,64"
+V.model_parameters["dilate_after_layer"].value = "65535"
+V.model_parameters["connection_type"].value = "plain"
 V.groundtruth_folder.value = os.path.join(repo_path,
                                           "test/scratch/freeze-classify/groundtruth-data")
 V.wantedwords_string.value = "mel-pulse,mel-sine,ambient"
@@ -73,7 +73,7 @@ V.replicates_string.value = "1"
 for representation in ["waveform", "spectrogram", "mel-cepstrum"]:
   V.representation.value = representation
   for stride_after_layer in ["0", "65535"]:
-    V.stride_after_layer_string.value = stride_after_layer
+    V.model_parameters["stride_after_layer"].value = stride_after_layer
     V.logs_folder.value = os.path.join(repo_path,
           "test/scratch/freeze-classify",
           "trained-classifier-r="+representation+"-s="+stride_after_layer)

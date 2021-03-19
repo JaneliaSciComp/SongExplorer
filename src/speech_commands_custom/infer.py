@@ -75,16 +75,13 @@ def main(_):
       label_count,
       FLAGS.sample_rate,
       FLAGS.nchannels,
+      1,
+      FLAGS.batch_size,
       FLAGS.clip_duration_ms,
       FLAGS.representation,
-      FLAGS.window_size_ms, FLAGS.window_stride_ms, 1,
+      FLAGS.window_size_ms, FLAGS.window_stride_ms,
       FLAGS.dct_coefficient_count, FLAGS.filterbank_channel_count,
-      [int(x) for x in FLAGS.filter_counts.split(',')],
-      [int(x) for x in FLAGS.filter_sizes.split(',')],
-      FLAGS.final_filter_len,
-      FLAGS.dropout_prob, FLAGS.batch_size,
-      FLAGS.dilate_after_layer, FLAGS.stride_after_layer,
-      FLAGS.connection_type)
+      FLAGS.model_parameters)
 
   fingerprint_size = model_settings['fingerprint_size']
   time_shift_samples = int((FLAGS.time_shift_ms * FLAGS.sample_rate) / 1000)
@@ -337,31 +334,6 @@ if __name__ == '__main__':
       default='',
       help='If specified, restore this pretrained model before any training.')
   parser.add_argument(
-      '--filter_counts',
-      type=str,
-      default='64,64,64',
-      help='A vector of length 3 specifying how many filters to use for the conv layers in the conv and vgg models')
-  parser.add_argument(
-      '--filter_sizes',
-      type=str,
-      default='3,3,3',
-      help='A vector of length 3 specifying the filter sizes to use for the conv layers in the vgg model')
-  parser.add_argument(
-      '--final_filter_len',
-      type=int,
-      default=[110],
-      help='The length of the final conv1d layer in the vgg model.  Must be even.')
-  parser.add_argument(
-      '--dilate_after_layer',
-      type=int,
-      default=65535,
-      help='Convolutional layer at which to start exponentially dilating.')
-  parser.add_argument(
-      '--stride_after_layer',
-      type=int,
-      default=65535,
-      help='Convolutional layer at which to start striding by 2.')
-  parser.add_argument(
       '--testing_equalize_ratio',
       type=int,
       default=0,
@@ -371,11 +343,6 @@ if __name__ == '__main__':
       type=int,
       default=0,
       help='Limit number of test samples to this number.')
-  parser.add_argument(
-      '--dropout_prob',
-      type=float,
-      default=0.5,
-      help='Dropout probability during training')
   parser.add_argument(
       '--representation',
       type=str,
@@ -392,10 +359,10 @@ if __name__ == '__main__':
       default='conv',
       help='What model architecture to use')
   parser.add_argument(
-      '--connection_type',
-      type=str,
-      default='plain',
-      help='Either plain or residual.')
+      '--model_parameters',
+      type=json.loads,
+      default='{}',
+      help='What model parameters to use')
   parser.add_argument(
       '--save_activations',
       type=str2bool,

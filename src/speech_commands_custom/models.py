@@ -22,12 +22,12 @@ from __future__ import print_function
 import tensorflow.compat.v1 as tf
 tf.disable_v2_behavior()
 
-def prepare_model_settings(label_count, sample_rate, nchannels, clip_duration_ms,
-                           representation, window_size_ms, window_stride_ms, nwindows,
+def prepare_model_settings(label_count, sample_rate, nchannels, 
+                           nwindows, batch_size,
+                           clip_duration_ms, representation,
+                           window_size_ms, window_stride_ms,
                            dct_coefficient_count, filterbank_channel_count,
-                           filter_counts, filter_sizes, final_filter_len,
-                           dropout_prob, batch_size, dilate_after_layer,
-                           stride_after_layer, connection_type):
+                           model_parameters):
   """Calculates common settings needed for all models.
 
   Args:
@@ -59,29 +59,21 @@ def prepare_model_settings(label_count, sample_rate, nchannels, clip_duration_ms
   tf.logging.info('nchannels = %d' % (nchannels))
   tf.logging.info('window_size_samples = %d' % (window_size_samples))
   tf.logging.info('window_stride_samples = %d' % (window_stride_samples))
-  return {
-      'desired_samples': desired_samples,
-      'channel_count': nchannels,
-      'representation': representation,
-      'window_size_samples': window_size_samples,
-      'window_stride_samples': window_stride_samples,
-      'nwindows': nwindows,
-      'spectrogram_length': spectrogram_length,
-      'dct_coefficient_count': dct_coefficient_count,
-      'filterbank_channel_count': filterbank_channel_count,
-      'fingerprint_size': fingerprint_size,
-      'label_count': label_count,
-      'sample_rate': sample_rate,
-      'filter_counts': filter_counts,
-      'filter_sizes': filter_sizes,
-      'final_filter_len': final_filter_len,
-      'dropout_prob': dropout_prob,
-      'batch_size': batch_size,
-      'dilate_after_layer': dilate_after_layer,
-      'stride_after_layer': stride_after_layer,
-      'connection_type': connection_type,
-  }
-
+  return {**{'desired_samples': desired_samples,
+             'channel_count': nchannels,
+             'representation': representation,
+             'window_size_samples': window_size_samples,
+             'window_stride_samples': window_stride_samples,
+             'nwindows': nwindows,
+             'spectrogram_length': spectrogram_length,
+             'dct_coefficient_count': dct_coefficient_count,
+             'filterbank_channel_count': filterbank_channel_count,
+             'fingerprint_size': fingerprint_size,
+             'label_count': label_count,
+             'sample_rate': sample_rate,
+             'batch_size': batch_size,
+            },
+          **model_parameters}
 
 def load_variables_from_checkpoint(sess, start_checkpoint):
   """Utility function to centralize checkpoint restoration.

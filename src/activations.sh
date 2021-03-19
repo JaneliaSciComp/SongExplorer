@@ -2,36 +2,31 @@
 
 # save input, hidden, and output layer activations at specified time points
 
-# activations.sh <model-architecture> <context_ms> <shiftby_ms> <representation> <window_ms> <mel> <dct> <stride_ms> <kernel_sizes> <last_conv_width> <nfeatures> <dilate-after-layer> <stride-after-layer> <connection-type> <logdir> <model> <check-point> <path-to-wavfiles> <wanted-words> <label-types> <equalize-ratio> <max-samples> <mini-batch> <audio-tic-rate> <audio-nchannels>
+# activations.sh <context_ms> <shiftby_ms> <representation> <window_ms> <stride_ms> <mel> <dct> <model-architecture> <model-parameters> <logdir> <model> <check-point> <path-to-wavfiles> <wanted-words> <label-types> <equalize-ratio> <max-samples> <mini-batch> <audio-tic-rate> <audio-nchannels>
 
 # e.g.
-# $SONGEXPLORER_BIN activations.sh convolutional 204.8 0.0 6.4 7 7 1.6 5,3,3 130 256,256,256 65535 65535 plain `pwd`/trained-classifier 1k 50 `pwd`/groundtruth-data mel-sine,mel-pulse,ambient,other annotated 1000 10000 32 5000 1
+# $SONGEXPLORER_BIN activations.sh 204.8 0.0 6.4 1.6 7 7 convolutional '{"dropout":0.5, "kernel_sizes":5,3,3", last_conv_width":130, "nfeatures":"256,256,256", "dilate_after_layer":65535, "stride_after_layer":65535, "connection_type":"plain"}' `pwd`/trained-classifier 1k 50 `pwd`/groundtruth-data mel-sine,mel-pulse,ambient,other annotated 1000 10000 32 5000 1
 
-architecture=$1
-context_ms=$2
-shiftby_ms=$3
-representation=$4
-window_ms=$5
+context_ms=$1
+shiftby_ms=$2
+representation=$3
+window_ms=$4
+stride_ms=$5
 mel=$6
 dct=$7
-stride_ms=$8
-kernel_sizes=$9
-last_conv_width=${10}
-nfeatures=${11}
-dilate_after_layer=${12}
-stride_after_layer=${13}
-connection_type=${14}
-logdir=${15}
-model=${16}
-check_point=${17}
-data_dir=${18}
-wanted_words=${19}
-labels_touse=${20}
-equalize_ratio=${21}
-max_samples=${22}
-mini_batch=${23}
-audio_tic_rate=${24}
-audio_nchannels=${25}
+architecture=$8
+model_parameters=$9
+logdir=${10}
+model=${11}
+check_point=${12}
+data_dir=${13}
+wanted_words=${14}
+labels_touse=${15}
+equalize_ratio=${16}
+max_samples=${17}
+mini_batch=${18}
+audio_tic_rate=${19}
+audio_nchannels=${20}
 
 DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
 
@@ -57,12 +52,7 @@ expr="/usr/bin/python3 $DIR/speech_commands_custom/infer.py \
       --dct_coefficient_count=$dct \
       --filterbank_channel_count=$mel \
       --model_architecture=$architecture \
-      --filter_counts $nfeatures \
-      --dilate_after_layer=$dilate_after_layer \
-      --stride_after_layer=$stride_after_layer \
-      --connection_type=$connection_type \
-      --filter_sizes $kernel_sizes \
-      --final_filter_len $last_conv_width \
+      --model_parameters='$model_parameters' \
       --representation=$representation \
       --batch_size=$mini_batch \
       --save_activations=True"

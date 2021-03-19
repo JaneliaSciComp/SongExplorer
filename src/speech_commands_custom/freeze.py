@@ -53,19 +53,19 @@ from tensorflow.python.framework import graph_util
 from tensorflow.python.platform import tf_logging as logging
 logging.get_logger().propagate = False
 
+import json
+
 import importlib
 
 FLAGS = None
 
 
 def create_inference_graph(wanted_words, sample_rate, nchannels, clip_duration_ms,
-                           clip_stride_ms, representation, window_size_ms,
+                           representation, window_size_ms,
                            window_stride_ms, nwindows,
                            dct_coefficient_count, filterbank_channel_count,
-                           model_architecture, filter_counts, filter_sizes, final_filter_len,
-                           dropout_prob, batch_size,
-                           dilate_after_layer, stride_after_layer,
-                           connection_type,
+                           model_architecture, model_parameters,
+                           batch_size,
                            silence_percentage, unknown_percentage):
   """Creates an audio model with the nodes needed for inference.
 
@@ -90,11 +90,9 @@ def create_inference_graph(wanted_words, sample_rate, nchannels, clip_duration_m
                                              silence_percentage, unknown_percentage)
   model_settings = models.prepare_model_settings(
       len(words_list), sample_rate, nchannels,
-      clip_duration_ms, representation, window_size_ms,
-      window_stride_ms, nwindows, dct_coefficient_count, filterbank_channel_count,
-      filter_counts, filter_sizes, final_filter_len,
-      dropout_prob, batch_size, dilate_after_layer, stride_after_layer,
-      connection_type)
+      nwindows, batch_size, clip_duration_ms, representation, window_size_ms,
+      window_stride_ms, dct_coefficient_count, filterbank_channel_count,
+      model_parameters)
 
   wav_data_placeholder = tf.placeholder(tf.string, [], name='wav_data')
   decoded_sample_data = audio_ops.decode_wav(
@@ -149,16 +147,11 @@ def main(_):
   # Create the model and load its weights.
   sess = tf.InteractiveSession()
   create_inference_graph(FLAGS.wanted_words, FLAGS.sample_rate, FLAGS.nchannels,
-                         FLAGS.clip_duration_ms, FLAGS.clip_stride_ms, FLAGS.representation,
+                         FLAGS.clip_duration_ms, FLAGS.representation,
                          FLAGS.window_size_ms, FLAGS.window_stride_ms, FLAGS.nwindows,
                          FLAGS.dct_coefficient_count, FLAGS.filterbank_channel_count,
-                         FLAGS.model_architecture,
-                         [int(x) for x in FLAGS.filter_counts.split(',')],
-                         [int(x) for x in FLAGS.filter_sizes.split(',')],
-                         FLAGS.final_filter_len,
-                         FLAGS.dropout_prob, FLAGS.batch_size,
-                         FLAGS.dilate_after_layer, FLAGS.stride_after_layer,
-                         FLAGS.connection_type,
+                         FLAGS.model_architecture, FLAGS.model_parameters,
+                         FLAGS.batch_size,
                          FLAGS.silence_percentage, FLAGS.unknown_percentage)
   models.load_variables_from_checkpoint(sess, FLAGS.start_checkpoint)
 
@@ -192,11 +185,6 @@ if __name__ == '__main__':
       type=float,
       default=1000,
       help='Expected duration in milliseconds of the wavs',)
-  parser.add_argument(
-      '--clip_stride_ms',
-      type=float,
-      default=30,
-      help='How often to run recognition. Useful for models with cache.',)
   parser.add_argument(
       '--representation',
       type=str,
@@ -238,45 +226,15 @@ if __name__ == '__main__':
       default='',
       help='If specified, restore this pretrained model before any training.')
   parser.add_argument(
-      '--filter_counts',
-      type=str,
-      default='64,64,64',
-      help='A vector of length 3 specifying how many filters to use for the conv layers in the conv and vgg models')
-  parser.add_argument(
-      '--filter_sizes',
-      type=str,
-      default='3,3,3',
-      help='A vector of length 3 specifying the filter sizes to use for the conv layers in the vgg model')
-  parser.add_argument(
-      '--final_filter_len',
-      type=int,
-      default=[110],
-      help='The length of the final conv1d layer in the vgg model.  Must be even.')
-  parser.add_argument(
-      '--dilate_after_layer',
-      type=int,
-      default=65535,
-      help='Convolutional layer at which to start exponentially dilating.')
-  parser.add_argument(
-      '--stride_after_layer',
-      type=int,
-      default=65535,
-      help='Convolutional layer at which to start striding by 2.')
-  parser.add_argument(
-      '--dropout_prob',
-      type=float,
-      default=0.5,
-      help='Dropout probability during training')
-  parser.add_argument(
       '--model_architecture',
       type=str,
       default='conv',
       help='What model architecture to use')
   parser.add_argument(
-      '--connection_type',
-      type=str,
-      default='plain',
-      help='Either plain or residual.')
+      '--model_parameters',
+      type=json.loads,
+      default='{}',
+      help='What model parameters to use')
   parser.add_argument(
       '--silence_percentage',
       type=float,

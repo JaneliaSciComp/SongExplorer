@@ -2,30 +2,25 @@
 
 # prepare the best network to use as a classifier
 
-# freeze.sh <model-architecture> <context-ms> <representation> <window-ms> <stride-ms> <mel> <dct> <kernel-sizes> <last-conv-width> <nfeatures> <dilate-after-layer> <stride-after-layer> <connection-type> <logdir> <model> <check-point> <nwindows> <audio-tic-rate> <audio-nchannels>
+# freeze.sh <context-ms> <representation> <window-ms> <stride-ms> <mel> <dct> <model-architecture> <model-parameters> <logdir> <model> <check-point> <nwindows> <audio-tic-rate> <audio-nchannels>
 
 # e.g.
-# $SONGEXPLORER_BIN freeze.sh convolutional 204.8 waveform 6.4 1.6 7 7 5,3,3 130 256,256,256 65535 65535 plain `pwd`/trained-classifier 1k 50 65536 5000 1
+# $SONGEXPLORER_BIN freeze.sh 204.8 waveform 6.4 1.6 7 7 convolutional '{"dropout":0.5, "kernel_sizes":5,3,3", last_conv_width":130, "nfeatures":"256,256,256", "dilate_after_layer":65535, "stride_after_layer":65535, "connection_type":"plain"}' `pwd`/trained-classifier 1k 50 65536 5000 1
 
-architecture=$1
-context_ms=$2
-representation=$3
-window_ms=$4
-stride_ms=$5
-mel=$6
-dct=$7
-kernel_sizes=$8
-last_conv_width=$9
-nfeatures=${10}
-dilate_after_layer=${11}
-stride_after_layer=${12}
-connection_type=${13}
-logdir=${14}
-model=${15}
-check_point=${16}
-nwindows=${17}
-audio_tic_rate=${18}
-audio_nchannels=${19}
+context_ms=$1
+representation=$2
+window_ms=$3
+stride_ms=$4
+mel=$5
+dct=$6
+architecture=$7
+model_parameters=$8
+logdir=$9
+model=${10}
+check_point=${11}
+nwindows=${12}
+audio_tic_rate=${13}
+audio_nchannels=${14}
 
 if [ "$representation" == "waveform" ] ; then
   stride_ms=`dc -e "16 k 1000 $audio_tic_rate / p"`
@@ -53,12 +48,7 @@ expr="/usr/bin/python3 $DIR/speech_commands_custom/freeze.py \
       --filterbank_channel_count=$mel \
       --dct_coefficient_count=$dct \
       --model_architecture=${architecture} \
-      --filter_counts=$nfeatures \
-      --dilate_after_layer=$dilate_after_layer \
-      --stride_after_layer=$stride_after_layer \
-      --connection_type=$connection_type \
-      --filter_sizes=$kernel_sizes \
-      --final_filter_len=$last_conv_width \
+      --model_parameters='$model_parameters' \
       --batch_size=1"
 
 cmd="date; \

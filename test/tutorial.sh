@@ -52,23 +52,17 @@ count_lines_with_word ${wavpath_noext}-detected.csv time 543
 count_lines_with_word ${wavpath_noext}-detected.csv frequency 45
 count_lines_with_word ${wavpath_noext}-detected.csv neither 1138
 
-architecture=convolutional
 context_ms=204.8
 shiftby_ms=0.0
 representation=mel-cepstrum
 window_ms=6.4
+stride_ms=1.6
 mel=7
 dct=7
-stride_ms=1.6
-dropout=0.5
 optimizer=adam
 learning_rate=0.0002
-kernel_sizes=5,3,3
-last_conv_width=130
-nfeatures=64,64,64
-dilate_after_layer=65535
-stride_after_layer=65535
-connection_type=plain
+architecture=convolutional
+model_parameters='{"dropout": "0.5", "kernel_sizes": "5,3,3", "last_conv_width": "130", "nfeatures": "64,64,64", "dilate_after_layer": "65535", "stride_after_layer": "65535", "connection_type": "plain"}'
 logdir=$repo_path/test/scratch/tutorial-sh/untrained-classifier
 data_dir=$repo_path/test/scratch/tutorial-sh/groundtruth-data
 wanted_words=time,frequency
@@ -84,10 +78,9 @@ weights_seed=1
 ireplicates=1
 mkdir $logdir
 train.sh \
-      $architecture \
-      $context_ms $shiftby_ms $representation $window_ms $mel $dct $stride_ms $dropout \
-      $optimizer $learning_rate $kernel_sizes $last_conv_width $nfeatures \
-      $dilate_after_layer $stride_after_layer $connection_type \
+      $context_ms $shiftby_ms $representation $window_ms $stride_ms $mel $dct \
+      $optimizer $learning_rate \
+      $architecture "$model_parameters" \
       $logdir $data_dir $wanted_words $labels_touse \
       $nsteps "$restore_from" $save_and_test_interval $validation_percentage \
       $mini_batch "$testing_files" \
@@ -103,10 +96,8 @@ check_point=$nsteps
 equalize_ratio=1000
 max_samples=10000
 activations.sh \
-      $architecture \
-      $context_ms $shiftby_ms $representation $window_ms $mel $dct $stride_ms \
-      $kernel_sizes $last_conv_width $nfeatures \
-      $dilate_after_layer $stride_after_layer $connection_type \
+      $context_ms $shiftby_ms $representation $window_ms $stride_ms $mel $dct \
+      $architecture "$model_parameters" \
       $logdir train_${ireplicates}r $check_point \
       $data_dir $wanted_words $labels_touse \
       $equalize_ratio $max_samples $mini_batch \
@@ -145,10 +136,9 @@ save_and_test_interval=10
 validation_percentage=40
 mkdir $logdir
 train.sh \
-      $architecture \
-      $context_ms $shiftby_ms $representation $window_ms $mel $dct $stride_ms $dropout \
-      $optimizer $learning_rate $kernel_sizes $last_conv_width $nfeatures \
-      $dilate_after_layer $stride_after_layer $connection_type \
+      $context_ms $shiftby_ms $representation $window_ms $stride_ms $mel $dct \
+      $optimizer $learning_rate  \
+      $architecture "$model_parameters" \
       $logdir $data_dir $wanted_words $labels_touse \
       $nsteps "$restore_from" $save_and_test_interval $validation_percentage \
       $mini_batch "$testing_files" \
@@ -179,10 +169,8 @@ done
 
 check_point=$nsteps
 freeze.sh \
-      $architecture \
       $context_ms $representation $window_ms $stride_ms $mel $dct \
-      $kernel_sizes $last_conv_width $nfeatures \
-      $dilate_after_layer $stride_after_layer $connection_type \
+      $architecture "$model_parameters" \
       $logdir train_${ireplicates}r $check_point $nwindows \
       $audio_tic_rate $audio_nchannels \
       &> $logdir/train_${ireplicates}r/freeze.ckpt-$check_point.log
@@ -255,10 +243,8 @@ labels_touse=annotated,missed
 equalize_ratio=1000
 max_samples=10000
 activations.sh \
-      $architecture \
-      $context_ms $shiftby_ms $representation $window_ms $mel $dct $stride_ms \
-      $kernel_sizes $last_conv_width $nfeatures \
-      $dilate_after_layer $stride_after_layer $connection_type \
+      $context_ms $shiftby_ms $representation $window_ms $stride_ms $mel $dct \
+      $architecture "$model_parameters" \
       $logdir $model $check_point \
       $data_dir $wanted_words $labels_touse \
       $equalize_ratio $max_samples $mini_batch \
@@ -295,10 +281,9 @@ mkdir $logdir
 ioffsets=$(seq 0 $(dc -e "${#wavfiles[@]} 1 - p"))
 for ioffset in $ioffsets ; do
   generalize.sh \
-        $architecture \
-        $context_ms $shiftby_ms $representation $window_ms $mel $dct $stride_ms $dropout \
-        $optimizer $learning_rate $kernel_sizes $last_conv_width $nfeatures \
-        $dilate_after_layer $stride_after_layer $connection_type \
+        $context_ms $shiftby_ms $representation $window_ms $stride_ms $mel $dct \
+        $optimizer $learning_rate \
+        $architecture "$model_parameters" \
         $logdir $data_dir $wanted_words $labels_touse \
         $nsteps "$restore_from" $save_and_test_interval $mini_batch \
         "$testing_files" $audio_tic_rate $audio_nchannels \
@@ -342,10 +327,9 @@ for nfeatures in ${nfeaturess[@]} ; do
   mkdir $logdir
   for ifold in $ifolds ; do
     xvalidate.sh \
-          $architecture \
-          $context_ms $shiftby_ms $representation $window_ms $mel $dct $stride_ms $dropout \
-          $optimizer $learning_rate $kernel_sizes $last_conv_width $nfeatures \
-          $dilate_after_layer $stride_after_layer $connection_type \
+          $context_ms $shiftby_ms $representation $window_ms $stride_ms $mel $dct \
+          $optimizer $learning_rate  \
+          $architecture "$model_parameters" \
           $logdir $data_dir $wanted_words $labels_touse \
           $nsteps "$restore_from" $save_and_test_interval $mini_batch \
           "$testing_files" $audio_tic_rate $audio_nchannels \
@@ -399,10 +383,9 @@ nsteps=100
 validation_percentage=20
 mkdir $logdir
 train.sh \
-      $architecture \
-      $context_ms $shiftby_ms $representation $window_ms $mel $dct $stride_ms $dropout \
-      $optimizer $learning_rate $kernel_sizes $last_conv_width $nfeatures \
-      $dilate_after_layer $stride_after_layer $connection_type \
+      $context_ms $shiftby_ms $representation $window_ms $stride_ms $mel $dct \
+      $optimizer $learning_rate  \
+      $architecture "$model_parameters" \
       $logdir $data_dir $wanted_words $labels_touse \
       $nsteps "$restore_from" $save_and_test_interval $validation_percentage \
       $mini_batch "$testing_files" \
@@ -432,10 +415,8 @@ for word in $(echo $wanted_words | sed "s/,/ /g") ; do
 done
 
 freeze.sh \
-      $architecture \
       $context_ms $representation $window_ms $stride_ms $mel $dct \
-      $kernel_sizes $last_conv_width $nfeatures \
-      $dilate_after_layer $stride_after_layer $connection_type \
+      $architecture "$model_parameters" \
       $logdir train_${ireplicates}r $check_point $nwindows \
       $audio_tic_rate $audio_nchannels \
       &> $logdir/train_${ireplicates}r/freeze.ckpt-$check_point.log

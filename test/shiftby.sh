@@ -17,7 +17,6 @@ cp $repo_path/data/PS_20130625111709_ch3.wav \
 cp $repo_path/data/PS_20130625111709_ch3-annotated-person1.csv \
    $repo_path/test/scratch/shiftby/groundtruth-data/round1
 
-architecture=convolutional
 context_ms=204.8
 shiftby_ms=0.0
 representation=waveform
@@ -25,15 +24,10 @@ window_ms=6.4
 mel=7
 dct=7
 stride_ms=1.6
-dropout=0.5
 optimizer=adam
 learning_rate=0.000001
-kernel_sizes=5,3,128
-last_conv_width=158
-nfeatures=8,8,8
-dilate_after_layer=65535
-stride_after_layer=0
-connection_type=plain
+architecture=convolutional
+model_parameters='{"dropout": "0.5", "kernel_sizes": "5,3,128", "last_conv_width": "158", "nfeatures": "8,8,8", "dilate_after_layer": "65535", "stride_after_layer": "0", "connection_type": "plain"}'
 logdir=$repo_path/test/scratch/shiftby/shiftby-$shiftby_ms
 data_dir=$repo_path/test/scratch/shiftby/groundtruth-data
 wanted_words=mel-pulse,mel-sine,ambient
@@ -50,10 +44,9 @@ ireplicates=1
 mkdir $logdir
 
 train.sh \
-      $architecture \
-      $context_ms $shiftby_ms $representation $window_ms $mel $dct $stride_ms $dropout \
-      $optimizer $learning_rate $kernel_sizes $last_conv_width $nfeatures \
-      $dilate_after_layer $stride_after_layer $connection_type \
+      $context_ms $shiftby_ms $representation $window_ms $stride_ms $mel $dct \
+      $optimizer $learning_rate \
+      $architecture "$model_parameters" \
       $logdir $data_dir $wanted_words $labels_touse \
       $nsteps "$restore_from" $save_and_test_interval $validation_percentage \
       $mini_batch "$testing_files" \
@@ -67,10 +60,9 @@ logdir=$repo_path/test/scratch/shiftby/shiftby-$shiftby_ms
 mkdir $logdir
 
 train.sh \
-      $architecture \
-      $context_ms $shiftby_ms $representation $window_ms $mel $dct $stride_ms $dropout \
-      $optimizer $learning_rate $kernel_sizes $last_conv_width $nfeatures \
-      $dilate_after_layer $stride_after_layer $connection_type \
+      $context_ms $shiftby_ms $representation $window_ms $stride_ms $mel $dct \
+      $optimizer $learning_rate \
+      $architecture "$model_parameters" \
       $logdir $data_dir $wanted_words $labels_touse \
       $nsteps "$restore_from" $save_and_test_interval $validation_percentage \
       $mini_batch "$testing_files" \

@@ -10,6 +10,7 @@ import csv
 import re
 import asyncio
 import math
+import json
 
 bokehlog = logging.getLogger("songexplorer") 
 #class Object(object):
@@ -44,7 +45,7 @@ def generic_actuate(cmd, logfile, where,
     elif where == "server":
         p = run(["ssh", M.server_ipaddr, "export SINGULARITYENV_PREPEND_PATH="+M.source_path+";",
                  "$SONGEXPLORER_BIN", "hetero", "submit",
-                 "\"{ export CUDA_VISIBLE_DEVICES=\$QUEUE1; "+cmd+" "+' '.join(args)+"; } &> "+logfile+"\"",
+                 "\"{ export CUDA_VISIBLE_DEVICES=\$QUEUE1; "+cmd+" "+' '.join(args).replace('"','\\"')+"; } &> "+logfile+"\"",
                  str(ncpu_cores), str(ngpu_cards), str(ngigabyes_memory), "'"+localdeps+"'"],
                 stdout=PIPE, stderr=STDOUT)
         jobid = p.stdout.decode('ascii').rstrip()
@@ -887,15 +888,14 @@ async def train_actuate():
     nreplicates = int(V.replicates_string.value)
     for ireplicate in range(1, 1+nreplicates, M.models_per_job):
         logfile = os.path.join(V.logs_folder.value, "train"+str(ireplicate)+".log")
-        args = [M.architecture, \
-                V.context_ms_string.value, V.shiftby_ms_string.value, \
+        args = [V.context_ms_string.value, V.shiftby_ms_string.value, \
                 V.representation.value, V.window_ms_string.value, \
-                *V.mel_dct_string.value.split(','), V.stride_ms_string.value, \
-                V.dropout_string.value, V.optimizer.value, V.learning_rate_string.value, \
-                V.kernel_sizes_string.value, V.last_conv_width_string.value, \
-                V.nfeatures_string.value, V.dilate_after_layer_string.value, \
-                V.stride_after_layer_string.value, \
-                V.connection_type.value, V.logs_folder.value, \
+                V.stride_ms_string.value, \
+                *V.mel_dct_string.value.split(','),
+                V.optimizer.value, V.learning_rate_string.value, \
+                M.architecture, \
+                "'"+json.dumps({k:v.value for k,v in V.model_parameters.items()})+"'", \
+                V.logs_folder.value, \
                 V.groundtruth_folder.value, V.wantedwords_string.value, \
                 V.labeltypes_string.value, V.nsteps_string.value, V.restore_from_string.value, \
                 V.save_and_validate_period_string.value, \
@@ -961,16 +961,14 @@ async def leaveout_actuate(comma):
     os.makedirs(V.logs_folder.value, exist_ok=True)
     for ivalidation_file in range(0, len(validation_files), M.models_per_job):
         logfile = os.path.join(V.logs_folder.value, "generalize"+str(1+ivalidation_file)+".log")
-        args = [M.architecture, \
-                V.context_ms_string.value, \
+        args = [V.context_ms_string.value, \
                 V.shiftby_ms_string.value, V.representation.value, \
-                V.window_ms_string.value, \
-                *V.mel_dct_string.value.split(','), V.stride_ms_string.value, \
-                V.dropout_string.value, V.optimizer.value, \
-                V.learning_rate_string.value, V.kernel_sizes_string.value, \
-                V.last_conv_width_string.value, V.nfeatures_string.value, \
-                V.dilate_after_layer_string.value, V.stride_after_layer_string.value, \
-                V.connection_type.value, \
+                V.window_ms_string.value, V.stride_ms_string.value, \
+                *V.mel_dct_string.value.split(','), \
+                V.optimizer.value, \
+                V.learning_rate_string.value, \
+                M.architecture, \
+                "'"+json.dumps({k:v.value for k,v in V.model_parameters.items()})+"'", \
                 V.logs_folder.value, V.groundtruth_folder.value, \
                 V.wantedwords_string.value, V.labeltypes_string.value, \
                 V.nsteps_string.value, V.restore_from_string.value, \
@@ -1018,16 +1016,14 @@ async def xvalidate_actuate():
     kfolds = int(V.kfold_string.value)
     for ifold in range(1, 1+kfolds, M.models_per_job):
         logfile = os.path.join(V.logs_folder.value, "xvalidate"+str(ifold)+".log")
-        args = [M.architecture, \
-                V.context_ms_string.value, \
+        args = [V.context_ms_string.value, \
                 V.shiftby_ms_string.value, V.representation.value, \
-                V.window_ms_string.value, \
-                *V.mel_dct_string.value.split(','), V.stride_ms_string.value, \
-                V.dropout_string.value, V.optimizer.value, \
-                V.learning_rate_string.value, V.kernel_sizes_string.value, \
-                V.last_conv_width_string.value, V.nfeatures_string.value, \
-                V.dilate_after_layer_string.value, V.stride_after_layer_string.value, \
-                V.connection_type.value, \
+                V.window_ms_string.value, V.stride_ms_string.value, \
+                *V.mel_dct_string.value.split(','), \
+                V.optimizer.value, \
+                V.learning_rate_string.value, \
+                M.architecture, \
+                "'"+json.dumps({k:v.value for k,v in V.model_parameters.items()})+"'", \
                 V.logs_folder.value, V.groundtruth_folder.value, \
                 V.wantedwords_string.value, V.labeltypes_string.value, \
                 V.nsteps_string.value, V.restore_from_string.value, \
@@ -1110,15 +1106,12 @@ async def activations_actuate():
     currtime = time.time()
     logdir, model, _, check_point = M.parse_model_file(V.model_file.value)
     logfile = os.path.join(V.groundtruth_folder.value, "activations.log")
-    args = [M.architecture, \
-            V.context_ms_string.value, \
+    args = [V.context_ms_string.value, \
             V.shiftby_ms_string.value, V.representation.value, \
-            V.window_ms_string.value, \
-            *V.mel_dct_string.value.split(','), V.stride_ms_string.value, \
-            V.kernel_sizes_string.value, V.last_conv_width_string.value, \
-            V.nfeatures_string.value, V.dilate_after_layer_string.value, \
-            V.stride_after_layer_string.value, \
-            V.connection_type.value, \
+            V.window_ms_string.value, V.stride_ms_string.value, \
+            *V.mel_dct_string.value.split(','), \
+            M.architecture, \
+            "'"+json.dumps({k:v.value for k,v in V.model_parameters.items()})+"'", \
             logdir, model, check_point, V.groundtruth_folder.value, \
             V.wantedwords_string.value, V.labeltypes_string.value, \
             V.activations_equalize_ratio_string.value, \
@@ -1306,15 +1299,11 @@ async def _freeze_actuate(ckpts):
                             M.freeze_ngigabytes_memory,
                             "",
                             M.freeze_cluster_flags,
-                            M.architecture, \
                             V.context_ms_string.value, \
                             V.representation.value, V.window_ms_string.value, \
                             V.stride_ms_string.value, *V.mel_dct_string.value.split(','), \
-                            V.kernel_sizes_string.value, \
-                            V.last_conv_width_string.value, V.nfeatures_string.value, \
-                            V.dilate_after_layer_string.value, \
-                            V.stride_after_layer_string.value, \
-                            V.connection_type.value, \
+                            M.architecture, \
+                            "'"+json.dumps({k:v.value for k,v in V.model_parameters.items()})+"'", \
                             logdir, model, check_point, str(M.nwindows), \
                             str(M.audio_tic_rate), str(M.audio_nchannels))
     displaystring = "FREEZE " + \
@@ -1685,9 +1674,6 @@ def _copy_callback():
             elif "time_shift_ms" in line:
                 m=re.search('time_shift_ms = (.*)', line)
                 V.shiftby_ms_string.value = m.group(1)
-            elif "connection_type" in line:
-                m=re.search('connection_type = (.*)', line)
-                V.connection_type.value = m.group(1)
             elif "data_dir" in line:
                 m=re.search('data_dir = (.*)', line)
                 V.groundtruth_folder.value = m.group(1)
@@ -1695,15 +1681,6 @@ def _copy_callback():
                 m=re.search('dct_coefficient_count = (\d+)', line)
                 currmel, currdct = V.mel_dct_string.value.split(',')
                 V.mel_dct_string.value = ','.join([currmel, m.group(1)])
-            elif "dilate_after_layer" in line:
-                m=re.search('dilate_after_layer = (\d+)', line)
-                V.dilate_after_layer_string.value = m.group(1)
-            elif "stride_after_layer" in line:
-                m=re.search('stride_after_layer = (\d+)', line)
-                V.stride_after_layer_string.value = m.group(1)
-            elif "dropout_prob" in line:
-                m=re.search('dropout_prob = (.*)', line)
-                V.dropout_string.value = m.group(1)
             elif "random_seed_batch" in line:
                 m=re.search('random_seed_batch = (.*)', line)
                 V.batch_seed_string.value = m.group(1)
@@ -1713,19 +1690,10 @@ def _copy_callback():
             elif "eval_step_interval" in line:
                 m=re.search('eval_step_interval = (\d+)', line)
                 V.save_and_validate_period_string.value = m.group(1)
-            elif "filter_counts" in line:
-                m=re.search('filter_counts = (.*)', line)
-                V.nfeatures_string.value = m.group(1)
-            elif "filter_sizes" in line:
-                m=re.search('filter_sizes = (.*)', line)
-                V.kernel_sizes_string.value = m.group(1)
             elif "filterbank_channel_count" in line:
                 m=re.search('filterbank_channel_count = (\d+)', line)
                 currmel, currdct = V.mel_dct_string.value.split(',')
                 V.mel_dct_string.value = ','.join([m.group(1), currdct])
-            elif "final_filter_len" in line:
-                m=re.search('final_filter_len = (\d+)', line)
-                V.last_conv_width_string.value = m.group(1)
             elif "how_many_training_steps" in line:
                 m=re.search('how_many_training_steps = (\d+)', line)
                 V.nsteps_string.value = m.group(1)
@@ -1770,6 +1738,11 @@ def _copy_callback():
             elif "window_stride_ms" in line:
                 m=re.search('window_stride_ms = (.*)', line)
                 V.stride_ms_string.value = m.group(1)
+            elif "model_parameters" in line:
+                m=re.search('model_parameters = ({.*})', line)
+                params = json.loads(m.group(1))
+                for k,v in params.items():
+                  V.model_parameters[k].value = v
     _copy_callback_finalize()
     
 def copy_callback():
