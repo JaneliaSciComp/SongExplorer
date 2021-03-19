@@ -1553,12 +1553,6 @@ def waitfor_callback(arg):
     else:
         V.waitfor.button_type="default"
 
-def configuration_textarea_callback(attr, old, new):
-    with open(M.configuration_file, 'w') as fid:
-        fid.write(V.configuration_contents.value)
-    V.editconfiguration.button_type="default"
-    V.configuration_contents.disabled=True
-
 def logs_callback():
     if len(V.file_dialog_source.selected.indices)>=2:
         bokehlog.info('ERROR: a directory must be selected in the file browser')
@@ -1807,14 +1801,6 @@ def doit_callback():
     V.doit.button_type="warning"
     V.doit.disabled=True
     bokeh_document.add_next_tick_callback(_doit_callback)
-
-def editconfiguration_callback():
-    if V.editconfiguration.button_type=="default":
-        V.editconfiguration.button_type="danger"
-        V.configuration_contents.disabled=False
-    else:
-        V.editconfiguration.button_type="default"
-        V.configuration_contents.disabled=True
 
 def file_dialog_callback(attr, old, new):
     if len(V.file_dialog_source.selected.indices)==1:
