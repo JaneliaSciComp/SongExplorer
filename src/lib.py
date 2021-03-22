@@ -217,19 +217,15 @@ def read_log(frompath, logfile):
         if validation_restart_correction==0.0:
           nlayers += 1
         if 'conv layer 0' in line:
-          m=re.search('.*conv layer 0: in_shape = \(\d+, (\d+), (\d+), (\d+)\), ',line)
+          m=re.search('in_shape = \(\d+, (\d+), (\d+), (\d+)\), ',line)
           if not m:
-            m=re.search('.*conv layer 0: in_shape = \(\d+, (\d+), (\d+)\), ',line)
+            m=re.search('in_shape = \(\d+, (\d+), (\d+)\), ',line)
             input_size = int(m.group(1)) * int(m.group(2))
           else:
             input_size = int(m.group(1)) * int(m.group(2)) * int(m.group(3))
         elif "final layer" in line:
-          if "weight" in line:
-            m=re.search('weight_shape = \((\d+), (\d+)\)',line)
-            nparameters_finallayer = int(m.group(1)) * int(m.group(2))
-          if "conv" in line:
-            m=re.search('conv_shape = \((\d+), (\d+), (\d+)\)',line)
-            nparameters_finallayer = int(m.group(1)) * int(m.group(2)) * int(m.group(3))
+          m=re.search('conv_shape = \((\d+), (\d+), (\d+), (\d+)\)',line)
+          nparameters_finallayer = int(m.group(1)) * int(m.group(2)) * int(m.group(3)) * int(m.group(4))
       elif "cross entropy" in line:
         m=re.search('Elapsed (.*), Step #(.*):.*accuracy (.*)%.*cross entropy (.*)$', line)
         train_time_value = float(m.group(1))

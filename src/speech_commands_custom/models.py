@@ -51,10 +51,16 @@ def prepare_model_settings(label_count, sample_rate, nchannels,
     spectrogram_length = 1 + int(length_minus_window / window_stride_samples)
   if representation=='waveform':
     fingerprint_size = desired_samples * nchannels
+    input_frequency_size = 1
+    input_time_size = desired_samples
   elif representation=='spectrogram':
     fingerprint_size = (window_size_samples//2 + 1) * spectrogram_length * nchannels
+    input_frequency_size = window_size_samples//2+1
+    input_time_size = spectrogram_length
   elif representation=='mel-cepstrum':
     fingerprint_size = dct_coefficient_count * spectrogram_length * nchannels
+    input_frequency_size = dct_coefficient_count
+    input_time_size = spectrogram_length
   tf.logging.info('desired_samples = %d' % (desired_samples))
   tf.logging.info('nchannels = %d' % (nchannels))
   tf.logging.info('window_size_samples = %d' % (window_size_samples))
@@ -64,6 +70,8 @@ def prepare_model_settings(label_count, sample_rate, nchannels,
              'representation': representation,
              'window_size_samples': window_size_samples,
              'window_stride_samples': window_stride_samples,
+             'input_frequency_size': input_frequency_size,
+             'input_time_size': input_time_size,
              'nwindows': nwindows,
              'spectrogram_length': spectrogram_length,
              'dct_coefficient_count': dct_coefficient_count,

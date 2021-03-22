@@ -32,6 +32,7 @@ Table of Contents
       * [Testing Densely](#testing-densely)
       * [Discovering Novel Sounds](#discovering-novel-sounds)
       * [Scripting Automation](#scripting-automation)
+      * [Customizing Architectures](#customizing-architectures)
    * [Troubleshooting](#troubleshooting)
    * [Frequently Asked Questions](#frequently-asked-questions)
    * [Reporting Problems](#reporting-problems)
@@ -1110,13 +1111,12 @@ Hyperparameters](#searching-hyperparameters))
 ## Searching Hyperparameters ##
 
 Achieving high accuracy is not just about annotating lots of data, it also
-depends on choosing the right model architecture.  While SongExplorer is
-(currently) set up solely for convolutional neural networks, there are many
-free parameters by which to tune its architecture.  You configure them by
-editing the variables itemized below, and then use cross-validation to compare
-different choices.  One could of course also modify the source code to permit
-radically different neural architectures, or even something other than neural
-networks.
+depends on choosing the right model architecture.  SongExplorer by default
+uses convolutional neural networks, and there are many free parameters by
+which to tune its architecture.  You configure them by editing the variables
+itemized below, and then use cross-validation to compare different choices.
+[Customizing Architectures](#customizing-architectures) describes how to
+use recurrent networks instead, or anything else of your choosing.
 
 * `context` is the temporal duration, in milliseconds, that the classifier
 inputs
@@ -1158,9 +1158,6 @@ values for each, and are what is recommended.  See the code in
 |10000      |3.2   |7,7    |
 | 6000      |10.7  |19,19  |
 
-* `dropout` is the fraction of hidden units on each forward pass to omit
-during training.  See [Srivastava, Hinton, *et al* (2014; J. Machine Learning Res.)](http://jmlr.org/papers/v15/srivastava14a.html).
-
 * `optimizer` can be one of stochastic gradient descent (SGD),
 [Adam](https://arxiv.org/abs/1412.6980),
 [AdaGrad](http://www.jmlr.org/papers/volume12/duchi11a/duchi11a.pdf), or
@@ -1171,12 +1168,15 @@ by at each training step.  Set it such that the training curve accuracy in
 "train-loss.pdf" does not saturate until after at least one epoch of ground
 truth has been trained upon.
 
-* `kernels` is a 3-vector of the size of the convolutional kernels.  The first
-value is used for each layer until the tensor height in the frequency axis is
-smaller than it.  Then the second value is then repeatedly used until the
-height is again smaller than it.  Finally the third value is used until the
-width is less than `last conv width`.  Only the third value matters when
-`representation` is "waveform".
+The above apply to all architectures.  Specific to convolutional networks are:
+
+* `kernels` is a 2-vector of the size of the convolutional kernels.  The first
+value is the size of the square 2D convolutions that are successively used
+for each layer until the tensor height in the frequency axis is smaller than
+the kernel.  Then full-height 1D convolutions are repeatedly applied whose
+width is the second value in `kernels`.  No further layers are added if
+`# layers` is reached, or the width becomes less than the second number in
+`kernels`.  Only the second value matters when `representation` is "waveform".
 
 * `# features` is the number of feature maps to use at each of the
 corresponding stages in `kernel_sizes`.  See [LeCun *et al* (1989; Neural
@@ -1192,6 +1192,11 @@ start striding the convolutional kernels by two.
 * `connection` specifies whether to use identity bypasses, which can help
 models with many layers converge.  See [He, Zhang, Ren, and Sun (2015;
 arXiv](https://arxiv.org/abs/1512.03385).
+
+* `dropout` is the fraction of hidden units on each forward pass to omit
+during training.  See [Srivastava, Hinton, *et al* (2014; J. Machine Learning Res.)](http://jmlr.org/papers/v15/srivastava14a.html).
+
+There is also:
 
 * `weights seed` specifies whether to randomize the initial weights or not.  A
 value of -1 results in different values for each fold.  They are also different
@@ -1480,6 +1485,26 @@ For more details see the system tests in /opt/songexplorer/test/tutorial.{sh,py}
 These two files implement, as Bash and Python scripts respectively, the entire
 workflow presented in this [Tutorial](#tutorial), from [Detecting
 Sounds](#detecting-sounds) all the way to [Testing Densely](#testing-densely).
+
+## Customizing Architectures ##
+
+The default network architecture is a set of layered convolutions, the
+depth and width of which can be configured as shown above.  SongExplorer
+also comes with a recurrent network as an alternative.  To plug this in,
+set `architecture` in "configuration.pysh" to "recurrent".  The buttons
+immediately above the configuration textbox in the GUI will change to reflect
+the different hyperparameters used by this architecture.  All the workflows
+described above (detecting sounds, making predicions, fixing mistakes, etc)
+can be used with recurrent networks in an identical manner.
+
+One can also supply your own tensorflow code that implements a
+whiz bang architecture of any arbitrary design.  Use the examples in
+"src/speech_commands_custom/{convolutional,recurrent}.py" as a template.
+Two objects must be supplied in this python file:  (1) a list of
+`model_parameters` which defines the variable names, titles, and default
+values to appear in the GUI, and (2) a function `create_model` which
+builds and returns the network graph.  Specify as the `architecture` in
+"configuration.pysh" the full path to this file, without the ".py" suffix.
 
 
 # Troubleshooting #
