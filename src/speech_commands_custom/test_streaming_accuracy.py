@@ -158,11 +158,6 @@ if __name__ == '__main__':
   parser.add_argument(
       '--wav', type=str, default='', help='The wave file path to evaluate.')
   parser.add_argument(
-      '--ground_truth',
-      type=str,
-      default='',
-      help='The ground truth file path corresponding to wav file.')
-  parser.add_argument(
       '--labels',
       type=str,
       default='',

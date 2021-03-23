@@ -35,7 +35,6 @@ expr="/usr/bin/python3 $DIR/speech_commands_custom/test_streaming_accuracy.py \
       --model=$model_str \
       --labels=$logdir/$model/labels.txt \
       --wav=$wavfile \
-      --ground_truth=/opt/songexplorer/src/streaming_test_labels.txt \
       --verbose \
       --clip_duration_ms=$clip_duration_ms \
       --clip_stride_ms=$clip_stride_ms \
