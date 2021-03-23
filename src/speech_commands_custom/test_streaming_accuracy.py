@@ -1,3 +1,7 @@
+#This file, originally from the TensorFlow speech recognition tutorial,
+#has been heavily modified for use by SongExplorer.
+
+
 # Copyright 2019 The TensorFlow Authors. All Rights Reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
