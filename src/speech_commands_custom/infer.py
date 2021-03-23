@@ -109,7 +109,6 @@ def main(_):
 
   audio_processor = input_data.AudioProcessor(
       FLAGS.data_url, FLAGS.data_dir,
-      FLAGS.silence_percentage, FLAGS.unknown_percentage,
       FLAGS.time_shift_ms, FLAGS.time_shift_random,
       FLAGS.wanted_words.split(','), FLAGS.labels_touse.split(','),
       FLAGS.validation_percentage, FLAGS.validation_offset_percentage,
@@ -126,7 +125,7 @@ def main(_):
 
   for isample in xrange(0, testing_set_size, FLAGS.batch_size):
     fingerprints, _, samples = (
-        audio_processor.get_data(FLAGS.batch_size, isample, model_settings, 0.0, 0.0,
+        audio_processor.get_data(FLAGS.batch_size, isample, model_settings,
                                  0.0 if FLAGS.time_shift_random else time_shift_samples,
                                  FLAGS.time_shift_random,
                                  'testing', sess))
@@ -194,20 +193,6 @@ if __name__ == '__main__':
       default='/tmp/speech_dataset/',
       help="""\
       Where to download the speech training data to.
-      """)
-  parser.add_argument(
-      '--silence_percentage',
-      type=float,
-      default=10.0,
-      help="""\
-      How much of the training data should be silence.
-      """)
-  parser.add_argument(
-      '--unknown_percentage',
-      type=float,
-      default=10.0,
-      help="""\
-      How much of the training data should be unknown words.
       """)
   parser.add_argument(
       '--time_shift_ms',

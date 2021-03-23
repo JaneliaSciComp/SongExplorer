@@ -122,9 +122,7 @@ def main(_):
   # training data of your own, use `--data_url= ` on the command line to avoid
   # downloading.
 
-  label_count = len(input_data.prepare_words_list(FLAGS.wanted_words.split(','),
-                                                  FLAGS.silence_percentage,
-                                                  FLAGS.unknown_percentage))
+  label_count = len(FLAGS.wanted_words.split(','))
 
   model_settings = models.prepare_model_settings(
       label_count,
@@ -253,7 +251,6 @@ def main(_):
 
   audio_processor = input_data.AudioProcessor(
       FLAGS.data_url, FLAGS.data_dir,
-      FLAGS.silence_percentage, FLAGS.unknown_percentage,
       FLAGS.time_shift_ms, FLAGS.time_shift_random,
       FLAGS.wanted_words.split(','), FLAGS.labels_touse.split(','),
       FLAGS.validation_percentage, FLAGS.validation_offset_percentage,
@@ -270,8 +267,8 @@ def main(_):
   if FLAGS.how_many_training_steps=='0':
       # pre-process a batch of data to make sure settings are valid
       train_fingerprints, train_ground_truth, _ = audio_processor.get_data(
-          FLAGS.batch_size, 0, model_settings, FLAGS.background_frequency,
-          FLAGS.background_volume, FLAGS.time_shift_ms, FLAGS.time_shift_random, 'training', sess)
+          FLAGS.batch_size, 0, model_settings, FLAGS.time_shift_ms, FLAGS.time_shift_random,
+          'training', sess)
       sess.run([evaluation_step],
           feed_dict={
               fingerprint_input: train_fingerprints,
@@ -298,8 +295,8 @@ def main(_):
           break
       # Pull the audio samples we'll use for training.
       train_fingerprints, train_ground_truth, _ = audio_processor.get_data(
-          FLAGS.batch_size, 0, model_settings, FLAGS.background_frequency,
-          FLAGS.background_volume, FLAGS.time_shift_ms, FLAGS.time_shift_random, 'training', sess)
+          FLAGS.batch_size, 0, model_settings, FLAGS.time_shift_ms, FLAGS.time_shift_random,
+          'training', sess)
       # Run the graph with this batch of training data.
       train_summary, train_accuracy, cross_entropy_value, _, _ = sess.run(
           [
@@ -355,7 +352,7 @@ def validate_and_test(set_kind, set_size, model_settings, sess, \
   total_conf_matrix = None
   for isample in xrange(0, set_size, FLAGS.batch_size):
     fingerprints, ground_truth, samples = (
-        audio_processor.get_data(FLAGS.batch_size, isample, model_settings, 0.0, 0.0,
+        audio_processor.get_data(FLAGS.batch_size, isample, model_settings,
                                  0.0 if FLAGS.time_shift_random else FLAGS.time_shift_ms,
                                  FLAGS.time_shift_random,
                                  set_kind, sess))
@@ -453,34 +450,6 @@ if __name__ == '__main__':
       default='/tmp/speech_dataset/',
       help="""\
       Where to download the speech training data to.
-      """)
-  parser.add_argument(
-      '--background_volume',
-      type=float,
-      default=0.1,
-      help="""\
-      How loud the background noise should be, between 0 and 1.
-      """)
-  parser.add_argument(
-      '--background_frequency',
-      type=float,
-      default=0.8,
-      help="""\
-      How many of the training samples have background noise mixed in.
-      """)
-  parser.add_argument(
-      '--silence_percentage',
-      type=float,
-      default=10.0,
-      help="""\
-      How much of the training data should be silence.
-      """)
-  parser.add_argument(
-      '--unknown_percentage',
-      type=float,
-      default=10.0,
-      help="""\
-      How much of the training data should be unknown words.
       """)
   parser.add_argument(
       '--time_shift_ms',

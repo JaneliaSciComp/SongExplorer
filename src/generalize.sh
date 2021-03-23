@@ -70,9 +70,6 @@ while (( $# > 0 )) ; do
           --learning_rate=$learning_rate \
           --random_seed_batch=$batch_seed \
           --random_seed_weights=$weights_seed \
-          --background_frequency=0.0 \
-          --silence_percentage=0.0 \
-          --unknown_percentage=0.0 \
           --validation_files=$1 \
           --validation_percentage=0 \
           --validation_offset_percentage=0 \

@@ -65,8 +65,7 @@ def create_inference_graph(wanted_words, sample_rate, nchannels, clip_duration_m
                            window_stride_ms, nwindows,
                            dct_coefficient_count, filterbank_channel_count,
                            model_architecture, model_parameters,
-                           batch_size,
-                           silence_percentage, unknown_percentage):
+                           batch_size):
   """Creates an audio model with the nodes needed for inference.
 
   Uses the supplied arguments to create a model, and inserts the input and
@@ -86,8 +85,7 @@ def create_inference_graph(wanted_words, sample_rate, nchannels, clip_duration_m
   sys.path.append(os.path.dirname(FLAGS.model_architecture))
   model = importlib.import_module(os.path.basename(FLAGS.model_architecture))
 
-  words_list = input_data.prepare_words_list(wanted_words.split(','),
-                                             silence_percentage, unknown_percentage)
+  words_list = wanted_words.split(',')
   model_settings = models.prepare_model_settings(
       len(words_list), sample_rate, nchannels,
       nwindows, batch_size, clip_duration_ms, representation, window_size_ms,
@@ -151,8 +149,7 @@ def main(_):
                          FLAGS.window_size_ms, FLAGS.window_stride_ms, FLAGS.nwindows,
                          FLAGS.dct_coefficient_count, FLAGS.filterbank_channel_count,
                          FLAGS.model_architecture, FLAGS.model_parameters,
-                         FLAGS.batch_size,
-                         FLAGS.silence_percentage, FLAGS.unknown_percentage)
+                         FLAGS.batch_size)
   models.load_variables_from_checkpoint(sess, FLAGS.start_checkpoint)
 
   # Turn all the variables into inline constants inside the graph and save it.
@@ -235,20 +232,6 @@ if __name__ == '__main__':
       type=json.loads,
       default='{}',
       help='What model parameters to use')
-  parser.add_argument(
-      '--silence_percentage',
-      type=float,
-      default=10.0,
-      help="""\
-      How much of the training data should be silence.
-      """)
-  parser.add_argument(
-      '--unknown_percentage',
-      type=float,
-      default=10.0,
-      help="""\
-      How much of the training data should *not* be from the wanted words list.
-      """)
   parser.add_argument(
       '--wanted_words',
       type=str,
