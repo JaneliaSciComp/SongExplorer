@@ -47,9 +47,9 @@ V.context_ms_string.value = "204.8"
 V.shiftby_ms_string.value = "0.0"
 V.optimizer.value = "adam"
 V.learning_rate_string.value = "0.0002"
-V.window_ms_string.value = "6.4"
-V.stride_ms_string.value = "1.6"
-V.mel_dct_string.value = "7,7"
+V.window_ms_string.value = "3.2"
+V.stride_ms_string.value = "0.8"
+V.mel_dct_string.value = "3,3"
 V.model_parameters["dropout"].value = "0.5"
 V.model_parameters["kernel_sizes"].value = "5,3,128"
 V.model_parameters["nlayers"].value = "2"
@@ -72,7 +72,7 @@ V.replicates_string.value = "1"
 
 for representation in ["waveform", "spectrogram", "mel-cepstrum"]:
   V.representation.value = representation
-  for stride_after_layer in ["0", "65535"]:
+  for stride_after_layer in ["2", "65535"]:
     V.model_parameters["stride_after_layer"].value = stride_after_layer
     V.logs_folder.value = os.path.join(repo_path,
           "test/scratch/freeze-classify",
@@ -116,16 +116,19 @@ for representation in ["waveform", "spectrogram", "mel-cepstrum"]:
       check_file_exists(wavpath_noext+".tf")
       check_file_exists(wavpath_noext+"-classify1.log")
       check_file_exists(wavpath_noext+"-classify2.log")
+      shutil.move(wavpath_noext+"-classify1.log", outpath)
+      shutil.move(wavpath_noext+"-classify2.log", outpath)
       for word in V.wantedwords_string.value.split(','):
         check_file_exists(wavpath_noext+"-"+word+".wav")
-        shutil.copy(wavpath_noext+"-"+word+".wav", outpath)
+        shutil.move(wavpath_noext+"-"+word+".wav", outpath)
 
     outpath = os.path.join(repo_path, 
                            "test/scratch/freeze-classify",
                            "trained-classifier-r="+representation+"-s="+stride_after_layer)
     for word in V.wantedwords_string.value.split(','):
-      outpath1 = os.path.join(outpath, "1", wavpath_noext+"-"+word+".wav")
-      outpath9 = os.path.join(outpath, "9", wavpath_noext+"-"+word+".wav")
+      wavbase_noext = os.path.basename(wavpath_noext)
+      outpath1 = os.path.join(outpath, "1", wavbase_noext+"-"+word+".wav")
+      outpath9 = os.path.join(outpath, "9", wavbase_noext+"-"+word+".wav")
       if not filecmp.cmp(outpath1, outpath9, shallow=False):
         print("ERROR: "+outpath1+" and "+outpath9+" are different")
 
