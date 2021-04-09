@@ -19,12 +19,7 @@
 """Model definitions for simple speech recognition.
 
 """
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
-
-import tensorflow.compat.v1 as tf
-tf.disable_v2_behavior()
+import tensorflow as tf
 
 def prepare_model_settings(label_count, sample_rate, nchannels, 
                            nwindows, batch_size,
@@ -65,10 +60,10 @@ def prepare_model_settings(label_count, sample_rate, nchannels,
     fingerprint_size = dct_coefficient_count * spectrogram_length * nchannels
     input_frequency_size = dct_coefficient_count
     input_time_size = spectrogram_length
-  tf.logging.info('desired_samples = %d' % (desired_samples))
-  tf.logging.info('nchannels = %d' % (nchannels))
-  tf.logging.info('window_size_samples = %d' % (window_size_samples))
-  tf.logging.info('window_stride_samples = %d' % (window_stride_samples))
+  print('desired_samples = %d' % (desired_samples))
+  print('nchannels = %d' % (nchannels))
+  print('window_size_samples = %d' % (window_size_samples))
+  print('window_stride_samples = %d' % (window_stride_samples))
   return {**{'desired_samples': desired_samples,
              'channel_count': nchannels,
              'representation': representation,
@@ -86,13 +81,3 @@ def prepare_model_settings(label_count, sample_rate, nchannels,
              'batch_size': batch_size,
             },
           **model_parameters}
-
-def load_variables_from_checkpoint(sess, start_checkpoint):
-  """Utility function to centralize checkpoint restoration.
-
-  Args:
-    sess: TensorFlow session.
-    start_checkpoint: Path to saved checkpoint on disk.
-  """
-  saver = tf.train.Saver(tf.global_variables())
-  saver.restore(sess, start_checkpoint)

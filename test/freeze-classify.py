@@ -100,7 +100,8 @@ for representation in ["waveform", "spectrogram", "mel-cepstrum"]:
       check_file_exists(os.path.join(V.logs_folder.value, "train_1r",
                                      "freeze.ckpt-"+V.nsteps_string.value+".log"))
       check_file_exists(os.path.join(V.logs_folder.value, "train_1r",
-                                     "frozen-graph.ckpt-"+V.nsteps_string.value+".pb"))
+                                     "frozen-graph.ckpt-"+V.nsteps_string.value+".pb",
+                                     "saved_model.pb"))
 
       asyncio.run(C.classify_actuate())
 

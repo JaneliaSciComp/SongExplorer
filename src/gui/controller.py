@@ -819,9 +819,9 @@ def _train_succeeded(logdir, kind, model, reftime):
     if save_step_interval>0:
         nckpts = how_many_training_steps // save_step_interval + 1
         if len(list(filter(lambda x: x.startswith("ckpt-"), \
-                           train_files))) != 3*nckpts:
+                           train_files))) != 2*nckpts:
             bokehlog.info("ERROR: "+train_dir+"/ should contain "+ \
-                          str(3*nckpts)+" ckpt-* files.")
+                          str(2*nckpts)+" ckpt-* files.")
             return False
     if eval_step_interval>0:
         nevals = how_many_training_steps // eval_step_interval 
@@ -1275,10 +1275,7 @@ def freeze_succeeded(modeldir, ckpt, reftime):
     logfile = os.path.join(modeldir, "freeze.ckpt-"+str(ckpt)+".log")
     if not logfile_succeeded(logfile, reftime):
         return False
-    logfile = os.path.join(modeldir, "frozen-graph.ckpt-"+str(ckpt)+".log")
-    if not logfile_succeeded(logfile, reftime):
-        return False
-    pbfile = os.path.join(modeldir, "frozen-graph.ckpt-"+str(ckpt)+".pb")
+    pbfile = os.path.join(modeldir, "frozen-graph.ckpt-"+str(ckpt)+".pb", "saved_model.pb")
     if not pbfile_succeeded(pbfile, reftime):
         return False
     return True
@@ -1563,7 +1560,17 @@ def logs_callback():
         return
     V.logs_folder.value = M.file_dialog_root
 
-def _dialog2list():
+def model_callback():
+    if len(V.file_dialog_source.selected.indices)==0:
+        V.model_file.value = M.file_dialog_root
+    elif len(V.file_dialog_source.selected.indices)==1 and \
+            V.file_dialog_source.data['names'][V.file_dialog_source.selected.indices[0]] != '.':
+        filename = V.file_dialog_source.data['names'][V.file_dialog_source.selected.indices[0]]
+        V.model_file.value = os.path.join(M.file_dialog_root, filename)
+    else:
+        bokehlog.info('ERROR: a directory or file must be selected in the file browser')
+
+def wavtfcsv_files_callback():
     if len(V.file_dialog_source.selected.indices)==0:
         bokehlog.info('ERROR: a file(s) must be selected in the file browser')
         return
@@ -1572,13 +1579,7 @@ def _dialog2list():
     for i in range(1, len(V.file_dialog_source.selected.indices)):
         filename = V.file_dialog_source.data['names'][V.file_dialog_source.selected.indices[i]]
         files += ','+os.path.join(M.file_dialog_root, filename)
-    return files
-
-def model_callback():
-    V.model_file.value = _dialog2list()
-
-def wavtfcsvfiles_callback():
-    V.wavtfcsvfiles_string.value = _dialog2list()
+    V.wavtfcsvfiles.value = files
 
 def groundtruth_callback():
     if len(V.file_dialog_source.selected.indices)>=2:

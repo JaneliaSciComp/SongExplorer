@@ -1093,7 +1093,7 @@ def buttons_update():
     else:
         wavtfcsvfiles.label='wav,tf,csv files:'
     if M.action == classify:
-        model.label='pb file:'
+        model.label='pb folder:'
     elif M.action == ethogram:
         model.label='threshold file:'
     else:

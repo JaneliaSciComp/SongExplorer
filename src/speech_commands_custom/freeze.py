@@ -38,31 +38,22 @@ raw PCM data (as floats in the range -1.0 to 1.0) called 'decoded_sample_data',
 and the output is called 'labels_softmax'.
 
 """
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
-
 import argparse
 import os.path
 import sys
 
-import tensorflow.compat.v1 as tf
-tf.disable_v2_behavior()
+import tensorflow as tf
 
-from tensorflow.python.ops import gen_audio_ops as audio_ops
 import input_data
 import models
-from tensorflow.python.framework import graph_util
-
-from tensorflow.python.platform import tf_logging as logging
-logging.get_logger().propagate = False
 
 import json
 
 import importlib
 
-FLAGS = None
+from representation import *
 
+FLAGS = None
 
 def create_inference_graph(wanted_words, sample_rate, nchannels, clip_duration_ms,
                            representation, window_size_ms,
@@ -85,88 +76,56 @@ def create_inference_graph(wanted_words, sample_rate, nchannels, clip_duration_m
     dct_coefficient_count: Number of frequency bands to analyze.
     model_architecture: Name of the kind of model to generate.
   """
-
   sys.path.append(os.path.dirname(FLAGS.model_architecture))
   model = importlib.import_module(os.path.basename(FLAGS.model_architecture))
 
-  words_list = wanted_words.split(',')
+  words_list = FLAGS.wanted_words.split(',')
   model_settings = models.prepare_model_settings(
-      len(words_list), sample_rate, nchannels,
-      nwindows, batch_size, clip_duration_ms, representation, window_size_ms,
-      window_stride_ms, dct_coefficient_count, filterbank_channel_count,
-      model_parameters)
+      len(words_list), FLAGS.sample_rate, FLAGS.nchannels,
+      FLAGS.nwindows, FLAGS.batch_size, FLAGS.clip_duration_ms, FLAGS.representation,
+      FLAGS.window_size_ms, FLAGS.window_stride_ms,
+      FLAGS.dct_coefficient_count, FLAGS.filterbank_channel_count,
+      FLAGS.model_parameters)
 
-  wav_data_placeholder = tf.placeholder(tf.string, [], name='wav_data')
-  decoded_sample_data = audio_ops.decode_wav(
-      wav_data_placeholder,
-      desired_channels=nchannels,
-      desired_samples=model_settings['desired_samples'],
-      name='decoded_sample_data')
-  spectrograms = []
-  for ichannel in range(nchannels):
-    spectrograms.append(audio_ops.audio_spectrogram(
-        decoded_sample_data.audio,
-        window_size=model_settings['window_size_samples'],
-        stride=model_settings['window_stride_samples'],
-        magnitude_squared=True))
-  spectrogram = tf.stack(spectrograms, -1)
-  mfccs = []
-  for ichannel in range(nchannels):
-    mfccs.append(audio_ops.mfcc(
-        spectrograms[ichannel],
-        decoded_sample_data.sample_rate,
-        upper_frequency_limit=sample_rate//2,
-        filterbank_channel_count=filterbank_channel_count,
-        dct_coefficient_count=dct_coefficient_count))
-  mfcc = tf.stack(mfccs, -1)
+  thismodel = model.create_model(model_settings)
+  thismodel.summary()
 
-  if representation=='waveform':
-    fingerprint_input = decoded_sample_data.audio
-  elif representation=='spectrogram':
-    fingerprint_input = spectrogram
-  elif representation=='mel-cepstrum':
-    fingerprint_input = mfcc
+  checkpoint = tf.train.Checkpoint(thismodel=thismodel)
+  checkpoint.read(FLAGS.start_checkpoint).expect_partial()
 
-  reshaped_input = tf.reshape(fingerprint_input, [
-      -1, model_settings['fingerprint_size']])
+  class InferenceStep(tf.Module):
+      def __init__(self, thismodel):
+          self.thismodel = thismodel
 
-  hidden_layers, final = model.create_model(
-      reshaped_input, model_settings, is_training=False)
+      @tf.function(input_signature=[tf.TensorSpec(shape=None, dtype=tf.float32)])
+      def inference_step(self, waveform):
+          if representation=='waveform':
+              fingerprint_input = scale_foreground(waveform, 1.0, model_settings)
+          elif representation=='spectrogram':
+              fingerprint_input = compute_spectrograms(waveform, 1.0, model_settings)
+          elif representation=='mel-cepstrum':
+              fingerprint_input = compute_mfccs(waveform, 1.0, model_settings)
+          hidden, output = self.thismodel(tf.reshape(fingerprint_input, [1,-1]), training=False)
+          return hidden, tf.nn.softmax(output)
 
-  # Create an output to use for inference.
-  for i in range(len(hidden_layers)):
-    tf.identity(hidden_layers[i], name='hidden_layer'+str(i))
-  tf.nn.softmax(final, name='output_layer')
+  return InferenceStep(thismodel)
 
 
-def main(_):
-
-  tf.logging.set_verbosity(tf.logging.INFO)
+def main():
   flags = vars(FLAGS)
   for key in sorted(flags.keys()):
-    tf.logging.info('%s = %s', key, flags[key])
+    print('%s = %s' % (key, flags[key]))
 
   # Create the model and load its weights.
-  sess = tf.InteractiveSession()
-  create_inference_graph(FLAGS.wanted_words, FLAGS.sample_rate, FLAGS.nchannels,
-                         FLAGS.clip_duration_ms, FLAGS.representation,
-                         FLAGS.window_size_ms, FLAGS.window_stride_ms, FLAGS.nwindows,
-                         FLAGS.dct_coefficient_count, FLAGS.filterbank_channel_count,
-                         FLAGS.model_architecture, FLAGS.model_parameters,
-                         FLAGS.batch_size)
-  models.load_variables_from_checkpoint(sess, FLAGS.start_checkpoint)
+  thismodel = create_inference_graph(FLAGS.wanted_words, FLAGS.sample_rate, FLAGS.nchannels,
+                                     FLAGS.clip_duration_ms, FLAGS.representation,
+                                     FLAGS.window_size_ms, FLAGS.window_stride_ms, FLAGS.nwindows,
+                                     FLAGS.dct_coefficient_count, FLAGS.filterbank_channel_count,
+                                     FLAGS.model_architecture, FLAGS.model_parameters,
+                                     FLAGS.batch_size)
 
-  # Turn all the variables into inline constants inside the graph and save it.
-  varnames = [n.name for n in tf.get_default_graph().as_graph_def().node if n.name[:12]=='hidden_layer']
-  varnames.append('output_layer')
-  frozen_graph_def = graph_util.convert_variables_to_constants(
-      sess, sess.graph_def, varnames)
-  tf.train.write_graph(
-      frozen_graph_def,
-      os.path.dirname(FLAGS.output_file),
-      os.path.basename(FLAGS.output_file),
-      as_text=False)
-  tf.logging.info('Saved frozen graph to %s', FLAGS.output_file)
+  tf.saved_model.save(thismodel, FLAGS.output_file+'/')
+  print('Saved frozen graph to %s' % FLAGS.output_file)
 
 
 if __name__ == '__main__':
@@ -244,4 +203,4 @@ if __name__ == '__main__':
   parser.add_argument(
       '--output_file', type=str, help='Where to save the frozen graph.')
   FLAGS, unparsed = parser.parse_known_args()
-  tf.app.run(main=main, argv=[sys.argv[0]] + unparsed)
+  main()

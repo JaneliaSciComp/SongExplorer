@@ -184,24 +184,20 @@ def read_log(frompath, logfile):
   validation_time=[]; validation_step=[]
   validation_precision=[]; validation_recall=[]; validation_accuracy=[]
   test_precision=[]; test_recall=[]; test_accuracy=[]
-  #test_accuracy=np.nan
   nlayers=0
-  input_size=None
   with open(os.path.join(frompath,logfile),'r') as fid:
     train_restart_correction=0.0
     validation_restart_correction=0.0
     count_train_state=False
     for line in fid:
-      if not line.startswith('INFO:tensorflow:') and not line.startswith(' ['):
-        continue
       if "num training labels" in line:
         count_train_state=True
         word_counts = {}
       elif count_train_state:
-        if "conv layer" in line or "Elapsed " in line:
+        if "Model: " in line:
           count_train_state = False
         else:
-          m=re.search('INFO:tensorflow:\s*(\d+)\s(.*)',line)
+          m=re.search('\s*(\d+)\s(.*)',line)
           word_counts[m.group(2)]=int(m.group(1))
       if "wanted_words" in line:
         m=re.search('wanted_words = (.+)',line)
@@ -210,22 +206,14 @@ def read_log(frompath, logfile):
       elif "batch_size" in line:
         m=re.search('batch_size = (\d+)',line)
         batch_size = int(m.group(1))
-      elif "trainable parameters" in line:
-        m=re.search('trainable parameters: (\d+)',line)
-        nparameters_total = int(m.group(1))
-      elif ' layer' in line:
+      elif "Trainable params" in line:
+        m=re.search('Trainable params: ([,\d]+)',line)
+        nparameters_total = int(m.group(1).replace(',',''))
+      elif 'Conv2D' in line:
         if validation_restart_correction==0.0:
           nlayers += 1
-        if 'conv layer 0' in line:
-          m=re.search('in_shape = \(\d+, (\d+), (\d+), (\d+)\), ',line)
-          if not m:
-            m=re.search('in_shape = \(\d+, (\d+), (\d+)\), ',line)
-            input_size = int(m.group(1)) * int(m.group(2))
-          else:
-            input_size = int(m.group(1)) * int(m.group(2)) * int(m.group(3))
-        elif "final layer" in line:
-          m=re.search('conv_shape = \((\d+), (\d+), (\d+), (\d+)\)',line)
-          nparameters_finallayer = int(m.group(1)) * int(m.group(2)) * int(m.group(3)) * int(m.group(4))
+        m=re.search('[^,] (\d+)',line)
+        nparameters_finallayer = int(m.group(1))
       elif "cross entropy" in line:
         m=re.search('Elapsed (.*), Step #(.*):.*accuracy (.*)%.*cross entropy (.*)$', line)
         train_time_value = float(m.group(1))
@@ -236,7 +224,7 @@ def read_log(frompath, logfile):
         train_step.append(int(m.group(2)))
         train_accuracy.append(float(m.group(3)))
         train_loss.append(float(m.group(4)))
-      elif " [" in line and " ['" not in line:
+      elif " [" in line and " ['" not in line and 'None' not in line:
         if " [[" in line:
           confusion_string=line
         else:
@@ -269,7 +257,7 @@ def read_log(frompath, logfile):
          test_precision, test_recall, test_accuracy, \
          wanted_words, word_counts, \
          nparameters_total, nparameters_finallayer, \
-         batch_size, nlayers, input_size
+         batch_size, nlayers
          #test_accuracy, \
 
 
@@ -284,7 +272,6 @@ def read_logs(frompath):
   nparameters_finallayer={}
   batch_size={}
   nlayers={}
-  input_size={}
   for logfile in filter(lambda x: re.match('(train|xvalidate|generalize)_.*log',x), \
                         os.listdir(frompath)):
     model=logfile[:-4]
@@ -294,7 +281,7 @@ def read_logs(frompath):
           test_precision[model], test_recall[model], test_accuracy[model], \
           wanted_words[model], word_counts[model], \
           nparameters_total[model], nparameters_finallayer[model], \
-          batch_size[model], nlayers[model], input_size[model] = \
+          batch_size[model], nlayers[model] = \
           read_log(frompath, logfile)
           #test_accuracy[model], \
 
@@ -304,7 +291,7 @@ def read_logs(frompath):
          test_precision, test_recall, test_accuracy, \
          wanted_words, word_counts, \
          nparameters_total, nparameters_finallayer, \
-         batch_size, nlayers, input_size
+         batch_size, nlayers
          #test_accuracy, \
 
 

@@ -19,10 +19,6 @@
 """Model definitions for simple speech recognition.
 
 """
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
-
 import hashlib
 import math
 import os.path
@@ -34,15 +30,9 @@ import csv
 import scipy.io.wavfile as spiowav
 
 import numpy as np
-from six.moves import urllib
-from six.moves import xrange  # pylint: disable=redefined-builtin
-import tensorflow.compat.v1 as tf
-tf.disable_v2_behavior()
+import tensorflow as tf
 
-from tensorflow.python.ops import gen_audio_ops as audio_ops
-from tensorflow.python.ops import io_ops
-from tensorflow.python.platform import gfile
-from tensorflow.python.util import compat
+from representation import *
 
 MAX_NUM_WAVS_PER_CLASS = 2**27 - 1  # ~134M
 
@@ -83,7 +73,7 @@ def which_set(filename, validation_percentage, validation_offset_percentage, tes
   # To do that, we need a stable way of deciding based on just the file name
   # itself, so we do a hash of that and then use that to generate a
   # probability value that we use to assign it.
-  hash_name_hashed = hashlib.sha1(compat.as_bytes(hash_name)).hexdigest()
+  hash_name_hashed = hashlib.sha1(tf.compat.as_bytes(hash_name)).hexdigest()
   percentage_hash = ((int(hash_name_hashed, 16) %
                       (MAX_NUM_WAVS_PER_CLASS + 1)) *
                      (100.0 / MAX_NUM_WAVS_PER_CLASS))
@@ -100,7 +90,7 @@ def which_set(filename, validation_percentage, validation_offset_percentage, tes
 class AudioProcessor(object):
   """Handles loading, partitioning, and preparing audio training data."""
 
-  def __init__(self, data_url, data_dir,
+  def __init__(self, data_dir,
                time_shift_ms, time_shift_random,
                wanted_words, labels_touse,
                validation_percentage, validation_offset_percentage, validation_files,
@@ -166,7 +156,7 @@ class AudioProcessor(object):
     partition_words = partition_word.split(',')
     if '' in partition_words:
       partition_words.remove('')
-    for csv_path in gfile.Glob(search_path):
+    for csv_path in tf.io.gfile.glob(search_path):
       annotation_reader = csv.reader(open(csv_path))
       annotation_list = list(annotation_reader)
       if len(partition_words)>0:
@@ -229,11 +219,11 @@ class AudioProcessor(object):
           print('WARNING: '+wanted_word+' not in labels')
     # equalize
     for set_index in ['validation', 'testing', 'training']:
-      tf.logging.info('num %s labels', set_index)
+      print('num %s labels' % set_index)
       words = [sample['label'] for sample in self.data_index[set_index]]
       if set_index != 'testing':
         for uniqword in sorted(set(words)):
-          tf.logging.info('%8d %s', sum([word==uniqword for word in words]), uniqword)
+          print('%8d %s' % (sum([word==uniqword for word in words]), uniqword))
       if set_index == 'validation' or len(self.data_index[set_index])==0:
         continue
       word_indices = {}
@@ -269,7 +259,7 @@ class AudioProcessor(object):
       if set_index == 'testing':
         words = [sample['label'] for sample in self.data_index[set_index]]
         for uniqword in sorted(set(words)):
-          tf.logging.info('%7d %s', sum([word==uniqword for word in words]), uniqword)
+          print('%7d %s' % (sum([word==uniqword for word in words]), uniqword))
     # Make sure the ordering is random.
     for set_index in ['validation', 'testing', 'training']:
       random.shuffle(self.data_index[set_index])
@@ -298,35 +288,9 @@ class AudioProcessor(object):
     Args:
       model_settings: Information about the current model being trained.
     """
-    desired_samples = model_settings['desired_samples']
-    channel_count = model_settings['channel_count']
-    sample_rate = model_settings['sample_rate']
-    self.foreground_data_placeholder_ = tf.placeholder(tf.float32,
-                                                       [desired_samples, channel_count])
-    # Allow the audio sample's volume to be adjusted.
-    self.foreground_volume_placeholder_ = tf.placeholder(tf.float32, [])
-    scaled_foreground = tf.multiply(self.foreground_data_placeholder_,
-                                    self.foreground_volume_placeholder_)
-    # Run the spectrogram and MFCC ops to get a 2D 'fingerprint' of the audio.
-    self.waveform_ = scaled_foreground
-    spectrograms = []
-    for ichannel in range(channel_count):
-      spectrograms.append(audio_ops.audio_spectrogram(
-          tf.slice(scaled_foreground, [0, ichannel], [-1, 1]),
-          window_size=model_settings['window_size_samples'],
-          stride=model_settings['window_stride_samples'],
-          magnitude_squared=True))
-    self.spectrogram_ = tf.stack(spectrograms, -1)
-    mfccs = []
-    for ichannel in range(channel_count):
-      mfccs.append(audio_ops.mfcc(
-          spectrograms[ichannel],
-          sample_rate,
-          upper_frequency_limit=model_settings['sample_rate']//2,
-          filterbank_channel_count=model_settings['filterbank_channel_count'],
-          dct_coefficient_count=model_settings['dct_coefficient_count']))
-    self.mfcc_ = tf.stack(mfccs, -1)
-
+    self.waveform_ = scale_foreground
+    self.spectrogram_ = compute_spectrograms
+    self.mfcc_ = compute_mfccs
 
   def set_size(self, mode):
     """Calculates the number of samples in the dataset partition.
@@ -340,7 +304,7 @@ class AudioProcessor(object):
     return len(self.data_index[mode])
 
   def get_data(self, how_many, offset, model_settings, 
-               time_shift_ms, time_shift_random, mode, sess):
+               time_shift_ms, time_shift_random, mode):
     """Gather samples from the data set, applying transformations as needed.
 
     When the mode is 'training', a random selection of samples will be returned,
@@ -369,11 +333,9 @@ class AudioProcessor(object):
       sample_count = ncandidates
     else:
       sample_count = max(0, min(how_many, ncandidates - offset))
-    # Data and labels will be populated and returned.
-    data = np.zeros((sample_count, model_settings['fingerprint_size']))
-    labels = np.zeros(sample_count)
     samples = []
     desired_samples = model_settings['desired_samples']
+    channel_count = model_settings['channel_count']
     pick_deterministically = (mode != 'training')
     if model_settings['representation']=='waveform':
       input_to_use = self.waveform_
@@ -381,9 +343,11 @@ class AudioProcessor(object):
       input_to_use = self.spectrogram_
     elif model_settings['representation']=='mel-cepstrum':
       input_to_use = self.mfcc_
-    # Use the processing graph we created earlier to repeatedly to generate the
-    # final output sample data we'll use in training.
-    for i in xrange(offset, offset + sample_count):
+    foreground_indexed = np.zeros((sample_count, channel_count, desired_samples),
+                                  dtype=np.float32)
+    labels = np.zeros(sample_count, dtype=np.int)
+    # repeatedly to generate the final output sample data we'll use in training.
+    for i in range(offset, offset + sample_count):
       # Pick which audio sample to use.
       if how_many == -1 or pick_deterministically:
         sample_index = i
@@ -399,7 +363,7 @@ class AudioProcessor(object):
         song = np.expand_dims(song, axis=1)
       nchannels = np.shape(song)[1]
       assert sample_rate == model_settings['sample_rate']
-      assert nchannels == model_settings['channel_count']
+      assert nchannels == channel_count
       if time_shift_samples > 0:
         if time_shift_random:
           time_shift_amount = np.random.randint(-time_shift_samples, time_shift_samples)
@@ -412,13 +376,11 @@ class AudioProcessor(object):
                                 :]
       foreground_float32 = foreground_clipped.astype(np.float32)
       foreground_scaled = foreground_float32 / abs(np.iinfo(np.int16).min) #extreme
-      foreground_reshaped = foreground_scaled.reshape([nchannels, desired_samples], order='F')
-      foreground_indexed = foreground_reshaped.reshape([desired_samples,nchannels])
-      input_dict = { self.foreground_data_placeholder_: foreground_indexed }
-      input_dict[self.foreground_volume_placeholder_] = 1
-      # Run the graph to produce the output audio.
-      data[i - offset, :] = sess.run(input_to_use, feed_dict=input_dict).flatten()
+      foreground_indexed[i - offset,:,:] = foreground_scaled.transpose()
       label_index = self.word_to_index[sample['label']]
       labels[i - offset] = label_index
       samples.append(sample)
+    # Run the graph to produce the output audio.
+    data = tf.reshape(input_to_use(foreground_indexed, 1.0, model_settings),
+                      [sample_count, -1])
     return data, labels, samples

@@ -165,7 +165,8 @@ wait_for_job(M.status_ticker_queue)
 check_file_exists(os.path.join(V.logs_folder.value, "train_1r",
                                "freeze.ckpt-"+V.nsteps_string.value+".log"))
 check_file_exists(os.path.join(V.logs_folder.value, "train_1r",
-                               "frozen-graph.ckpt-"+V.nsteps_string.value+".pb"))
+                               "frozen-graph.ckpt-"+V.nsteps_string.value+".pb",
+                               "saved_model.pb"))
 
 os.makedirs(os.path.join(repo_path, "test/scratch/tutorial-py/groundtruth-data/round2"))
 shutil.copy(os.path.join(repo_path, "data/20161207T102314_ch1.wav"),
@@ -389,7 +390,8 @@ wait_for_job(M.status_ticker_queue)
 check_file_exists(os.path.join(V.logs_folder.value, "train_1r",
                                "freeze.ckpt-"+V.nsteps_string.value+".log"))
 check_file_exists(os.path.join(V.logs_folder.value, "train_1r",
-                               "frozen-graph.ckpt-"+V.nsteps_string.value+".pb"))
+                               "frozen-graph.ckpt-"+V.nsteps_string.value+".pb",
+                               "saved_model.pb"))
 
 os.mkdir(os.path.join(repo_path, "test/scratch/tutorial-py/groundtruth-data/congruence"))
 shutil.copy(os.path.join(repo_path, "data/20190122T093303a-7.wav"),

@@ -40,21 +40,29 @@ Stage: build
     pip3 install pyinterval 
 
     # install CUDA
-    apt-get -y install gnupg
-    wget https://developer.download.nvidia.com/compute/cuda/repos/ubuntu1804/x86_64/cuda-ubuntu1804.pin
-    mv cuda-ubuntu1804.pin /etc/apt/preferences.d/cuda-repository-pin-600
-    wget http://developer.download.nvidia.com/compute/cuda/10.2/Prod/local_installers/cuda-repo-ubuntu1804-10-2-local-10.2.89-440.33.01_1.0-1_amd64.deb
-    dpkg -i cuda-repo-ubuntu1804-10-2-local-10.2.89-440.33.01_1.0-1_amd64.deb
-    apt-key add /var/cuda-repo-10-2-local-10.2.89-440.33.01/7fa2af80.pub
+    apt-get -y install gnupg software-properties-common
+
+    wget https://developer.download.nvidia.com/compute/cuda/repos/ubuntu2004/x86_64/cuda-ubuntu2004.pin
+    mv cuda-ubuntu2004.pin /etc/apt/preferences.d/cuda-repository-pin-600
+    wget https://developer.download.nvidia.com/compute/cuda/11.3.0/local_installers/cuda-repo-ubuntu2004-11-3-local_11.3.0-465.19.01-1_amd64.deb
+    dpkg -i cuda-repo-ubuntu2004-11-3-local_11.3.0-465.19.01-1_amd64.deb
+    apt-key add /var/cuda-repo-ubuntu2004-11-3-local/7fa2af80.pub
     apt-get update
-    DEBIAN_FRONTEND=noninteractive apt-get -y --no-install-recommends install cuda
-    rm cuda-repo-ubuntu1804-10-2-local-10.2.89-440.33.01_1.0-1_amd64.deb
-    ln -s /usr/local/cuda/lib64/libcudart.so.10.2 /usr/local/cuda/lib64/libcudart.so.10.1
-    wget http://developer.download.nvidia.com/compute/machine-learning/repos/ubuntu1804/x86_64/libcudnn7_7.6.5.32-1+cuda10.2_amd64.deb
-    apt install ./libcudnn7_7.6.5.32-1+cuda10.2_amd64.deb
+    DEBIAN_FRONTEND=noninteractive apt-get -y install cuda
+    rm cuda-repo-ubuntu2004-11-3-local_11.3.0-465.19.01-1_amd64.deb
+
+    # fix for TF 2.4
+    cd /usr/local/cuda
+    ln -s libcusolver.so.11.1.1.58 libcusolver.so.10
+    cd -
+
+    wget https://developer.download.nvidia.com/compute/cuda/repos/ubuntu2004/x86_64/cuda-ubuntu2004.pin
+    mv cuda-ubuntu2004.pin /etc/apt/preferences.d/cuda-repository-pin-600
+    apt-key adv --fetch-keys https://developer.download.nvidia.com/compute/cuda/repos/ubuntu2004/x86_64/7fa2af80.pub
+    add-apt-repository "deb https://developer.download.nvidia.com/compute/cuda/repos/ubuntu2004/x86_64/ /"
     apt-get update
-    apt-get install --no-install-recommends libcudnn7
-    rm libcudnn7_7.6.5.32-1+cuda10.2_amd64.deb
+    apt-get install libcudnn8
+
     wget http://developer.download.nvidia.com/compute/machine-learning/repos/ubuntu1804/x86_64/libnvinfer7_7.0.0-1+cuda10.2_amd64.deb
     apt install ./libnvinfer7_7.0.0-1+cuda10.2_amd64.deb
     wget http://developer.download.nvidia.com/compute/machine-learning/repos/ubuntu1804/x86_64/libnvinfer-plugin7_7.0.0-1+cuda10.2_amd64.deb
@@ -65,4 +73,5 @@ Stage: build
     rm libnvinfer-plugin7_7.0.0-1+cuda10.2_amd64.deb
 
     # clean up
-    rm -rf /var/cuda-repo-10-2-local-10.2.89-440.33.01
+    rm -rf /var/cuda-repo-ubuntu2004-11-3-local/
+    rm NVIDIA* Miniconda* cuda_11* libnvinfer7* node-v12*

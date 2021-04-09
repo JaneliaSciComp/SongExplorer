@@ -30,8 +30,8 @@ audio_nchannels=${20}
 
 DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
 
-expr="/usr/bin/python3 $DIR/speech_commands_custom/infer.py \
-      --data_url= --data_dir=$data_dir \
+expr="/usr/bin/python3 $DIR/speech_commands_custom/infer-sparse.py \
+      --data_dir=$data_dir \
       --wanted_words=$wanted_words \
       --labels_touse=$labels_touse \
       --start_checkpoint=$logdir/${model}/ckpt-$check_point \

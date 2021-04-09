@@ -40,7 +40,6 @@ nparameters_total={}
 nparameters_finallayer={}
 batch_size={}
 nlayers={}
-input_size={}
 hyperparameters={}
 
 logdirs = list(filter(lambda x: x.startswith(dirname+'-') and \
@@ -54,7 +53,7 @@ for logdir in logdirs:
           _, _, _, \
           wanted_words[logdir], word_counts[logdir], \
           nparameters_total[logdir], nparameters_finallayer[logdir], \
-          batch_size[logdir], nlayers[logdir], input_size[logdir] = \
+          batch_size[logdir], nlayers[logdir] = \
           read_logs(os.path.join(basename,logdir))
   if len(set([tuple(x) for x in wanted_words[logdir].values()]))>1:
     print('WARNING: not all wanted_words are the same')
@@ -67,8 +66,6 @@ for logdir in logdirs:
     print('WARNING: not all batch_size are the same')
   if len(set(nlayers[logdir].values()))>1:
     print('WARNING: not all nlayers are the same')
-  if len(set(input_size[logdir].values()))>1:
-    print('WARNING: not all input_size are the same')
   if len(validation_accuracy)>0:
     if set([tuple(x) for x in wanted_words[logdirs[0]].values()])!=set([tuple(x) for x in wanted_words[logdir].values()]):
       print('WARNING: not all wanted_words are the same')
@@ -81,8 +78,6 @@ for logdir in logdirs:
       print('WARNING: not all batch_size are the same')
     if set(nlayers[logdirs[0]].values())!=set(nlayers[logdir].values()):
       print('WARNING: not all nlayers are the same')
-    if set(input_size[logdirs[0]].values())!=set(input_size[logdir].values()):
-      print('WARNING: not all input_size are the same')
 
 commonparameters = reduce(lambda x,y: x&y, hyperparameters.values())
 differentparameters = {x:','.join(natsorted(list(hyperparameters[x]-commonparameters))) \

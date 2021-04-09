@@ -38,7 +38,7 @@ train_accuracy, train_loss, train_time, train_step, \
       validation_precision, validation_recall, validation_accuracy, \
       validation_time, validation_step, \
       _, _, _, \
-      wanted_words, word_counts, _, _, batch_size, _, _ = \
+      wanted_words, word_counts, _, _, batch_size, _ = \
       read_logs(logdir)
 training_set_size = {x: len(word_counts[x]) * np.max(list(word_counts[x].values())) \
                                 for x in word_counts.keys()}

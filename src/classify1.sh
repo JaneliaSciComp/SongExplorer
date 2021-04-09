@@ -21,25 +21,18 @@ nwindows=${10}
 if [ "$representation" == "waveform" ] ; then
   stride_ms=`dc -e "16 k 1000 $audio_tic_rate / p"`
 fi
-clip_duration_ms=$(dc -e "3 k $context_ms $stride_ms $nwindows 1 - * + p")
-clip_stride_ms=$(dc -e "3 k $stride_ms $nwindows 1 - * p")
-frozenlog=$logdir/$model/frozen-graph.ckpt-${check_point}.log
-ndownsample2=`grep -e 'strides = \[1, 2' -e 'strides = 2' $frozenlog | wc -l`
-stride_ms=`dc -e "$stride_ms 2 $ndownsample2 ^ * p"`
-clip_stride_ms=`dc -e "$clip_stride_ms $stride_ms + p"`
 
 DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
 
 model_str=$logdir/$model/frozen-graph.ckpt-${check_point}.pb
-expr="/usr/bin/python3 $DIR/speech_commands_custom/test_streaming_accuracy.py \
+expr="/usr/bin/python3 $DIR/speech_commands_custom/infer-dense.py \
       --model=$model_str \
       --labels=$logdir/$model/labels.txt \
       --wav=$wavfile \
       --verbose \
-      --clip_duration_ms=$clip_duration_ms \
-      --clip_stride_ms=$clip_stride_ms \
-      --window_stride_ms=$stride_ms \
-      --output_name=output_layer:0"
+      --context_ms=$context_ms \
+      --stride_ms=$stride_ms \
+      --nwindows=$nwindows"
 
 wavdir=`dirname $wavfile`
 wavbase=`basename $wavfile`
@@ -49,10 +42,6 @@ cmd="date; \
      hostname; \
      echo $CUDA_VISIBLE_DEVICES; \
      nvidia-smi; \
-     echo model=$model_str; \
-     unset JAVA_HOME; \
-     unset TF_CPP_MIN_LOG_LEVEL; \
-     ulimit -c 0; \
      $expr &> $tffile; \
      sync; \
      date"

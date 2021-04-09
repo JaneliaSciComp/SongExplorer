@@ -49,7 +49,7 @@ if [ -z "$restore_from" ] ; then
   start_checkpoint=
 else
   redirect='&>>'
-  start_checkpoint=$logdir/train_MODEL/${architecture}.ckpt-$restore_from
+  start_checkpoint=$logdir/train_MODEL/ckpt-$restore_from
 fi
 
 cmd="date; hostname; echo $CUDA_VISIBLE_DEVICES; nvidia-smi; "
@@ -60,7 +60,7 @@ while [[ $ireplicates =~ .*,.* ]] ; do
     ireplicates=${ireplicates#*,}
 
     expr="/usr/bin/python3 $DIR/speech_commands_custom/train.py \
-          --data_url= --data_dir=$data_dir \
+          --data_dir=$data_dir \
           --wanted_words=$wanted_words \
           --labels_touse=$labels_touse \
           --how_many_training_steps=$nsteps \

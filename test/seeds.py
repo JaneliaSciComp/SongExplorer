@@ -104,9 +104,7 @@ for model in [*same_weights, *diff_weights]:
     print(model_path+" vars: "+str(model_var_names))
 
 for var_name in model0_var_names:
-  if any(x in var_name[0] for x in ["Adam", "global_step", "beta1_power", "beta2_power"]):
-    continue
-  if len(var_name[1])==1:  # biases
+  if len(var_name[1])<2:  # biases
     continue
   model_path = os.path.join(repo_path, "test/scratch/seeds", same_weights[0])
   same0_var_value = tf.train.load_variable(model_path, var_name[0])

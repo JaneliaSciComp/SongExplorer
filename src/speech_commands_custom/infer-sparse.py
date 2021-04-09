@@ -19,25 +19,15 @@
 r"""
 run just the forward pass of model on the test set
 """
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
-
 import argparse
 import os.path
 import sys
 
 import numpy as np
-from six.moves import xrange  # pylint: disable=redefined-builtin
-import tensorflow.compat.v1 as tf
-tf.disable_v2_behavior()
+import tensorflow as tf
 
 import input_data
 import models
-from tensorflow.python.platform import gfile
-
-from tensorflow.python.platform import tf_logging as logging
-logging.get_logger().propagate = False
 
 import datetime as dt
 
@@ -48,32 +38,24 @@ import importlib
 FLAGS = None
 
 
-def main(_):
+def main():
   sys.path.append(os.path.dirname(FLAGS.model_architecture))
   model = importlib.import_module(os.path.basename(FLAGS.model_architecture))
 
-  # We want to see all the logging messages for this tutorial.
-  tf.logging.set_verbosity(tf.logging.INFO)
-  np.set_printoptions(threshold=np.inf,linewidth=10000)
-
   flags = vars(FLAGS)
   for key in sorted(flags.keys()):
-    tf.logging.info('%s = %s', key, flags[key])
+    print('%s = %s' % (key, flags[key]))
 
-  # Start a new TensorFlow session.
-  config = tf.ConfigProto()
-  config.gpu_options.allow_growth = True
-  config.allow_soft_placement = True
-  #config.log_device_placement = False
-  sess = tf.InteractiveSession(config=config)
+  for physical_device in tf.config.experimental.list_physical_devices('GPU'):
+    tf.config.experimental.set_memory_growth(physical_device, True)
+  tf.config.set_soft_device_placement(True)
 
   label_file = os.path.join(os.path.dirname(FLAGS.start_checkpoint), "labels.txt")
-  fid = open(label_file)
-  labels = []
-  for line in fid:
-    labels.append(line.rstrip())
-  label_count = len(labels)
-  fid.close()
+  with open(label_file) as fid:
+    labels = []
+    for line in fid:
+      labels.append(line.rstrip())
+    label_count = len(labels)
 
   model_settings = models.prepare_model_settings(
       label_count,
@@ -87,32 +69,8 @@ def main(_):
       FLAGS.dct_coefficient_count, FLAGS.filterbank_channel_count,
       FLAGS.model_parameters)
 
-  fingerprint_size = model_settings['fingerprint_size']
-  time_shift_samples = int((FLAGS.time_shift_ms * FLAGS.sample_rate) / 1000)
-
-  fingerprint_input = tf.placeholder(
-      tf.float32, [None, fingerprint_size], name='fingerprint_input')
-
-  hidden, logits = model.create_model(
-      fingerprint_input,
-      model_settings,
-      is_training=False)
-
-  tf.global_variables_initializer().run()
-
-  models.load_variables_from_checkpoint(sess, FLAGS.start_checkpoint)
-
-  total_parameters = 0
-  for variable in tf.trainable_variables():
-      shape = variable.get_shape()
-      variable_parameters = 1
-      for dim in shape:
-          variable_parameters *= int(dim)
-      total_parameters += variable_parameters
-  tf.logging.info('number of trainable parameters: %d',total_parameters)
-
   audio_processor = input_data.AudioProcessor(
-      FLAGS.data_url, FLAGS.data_dir,
+      FLAGS.data_dir,
       FLAGS.time_shift_ms, FLAGS.time_shift_random,
       FLAGS.wanted_words.split(','), FLAGS.labels_touse.split(','),
       FLAGS.validation_percentage, FLAGS.validation_offset_percentage,
@@ -125,41 +83,43 @@ def main(_):
       FLAGS.testing_equalize_ratio, FLAGS.testing_max_samples,
       model_settings)
 
+  thismodel = model.create_model(model_settings)
+  thismodel.summary()
+
+  checkpoint = tf.train.Checkpoint(thismodel=thismodel)
+  checkpoint.read(FLAGS.start_checkpoint)
+
+  time_shift_samples = int((FLAGS.time_shift_ms * FLAGS.sample_rate) / 1000)
+
   testing_set_size = audio_processor.set_size('testing')
 
-  for isample in xrange(0, testing_set_size, FLAGS.batch_size):
-    fingerprints, _, samples = (
-        audio_processor.get_data(FLAGS.batch_size, isample, model_settings,
+  def infer_step(isample):
+    fingerprints, _, samples = audio_processor.get_data(
+                                 FLAGS.batch_size, isample, model_settings,
                                  0.0 if FLAGS.time_shift_random else time_shift_samples,
                                  FLAGS.time_shift_random,
-                                 'testing', sess))
+                                 'testing')
     needed = FLAGS.batch_size - fingerprints.shape[0]
-    if needed>0:
-      fingerprints = np.append(fingerprints,
-            np.repeat(fingerprints[[0],:],needed,axis=0), axis=0)
-      for _ in range(needed):
-        samples.append(samples[0])
-    logit_vals, hidden_vals = sess.run(
-        [logits, hidden],
-        feed_dict={
-            fingerprint_input: fingerprints,
-        })
-    batch_size = min(FLAGS.batch_size, testing_set_size - isample)
+    hidden_activations, logits = thismodel(fingerprints, training=False)
+    return fingerprints, samples, needed, logits, hidden_activations
+
+  for isample in range(0, testing_set_size, FLAGS.batch_size):
+    fingerprints, samples, needed, logits, hidden_activations = infer_step(isample)
     obtained = FLAGS.batch_size - needed
     if isample==0:
       samples_data = [None]*testing_set_size
-    samples_data[isample:isample+obtained] = samples[:obtained]
+    samples_data[isample:isample+obtained] = samples
     if FLAGS.save_activations:
       if isample==0:
         activations = []
-        for ihidden in range(len(hidden_vals)):
-          nHWC = np.shape(hidden_vals[ihidden])[1:]
+        for ihidden in range(len(hidden_activations)):
+          nHWC = np.shape(hidden_activations[ihidden])[1:]
           activations.append(np.empty((testing_set_size, *nHWC)))
-        activations.append(np.empty((testing_set_size, np.shape(logit_vals)[1])))
-      for ihidden in range(len(hidden_vals)):
+        activations.append(np.empty((testing_set_size, np.shape(logits)[2])))
+      for ihidden in range(len(hidden_activations)):
         activations[ihidden][isample:isample+obtained,:,:] = \
-              hidden_vals[ihidden][:obtained,:,:,:]
-      activations[-1][isample:isample+obtained,:] = logit_vals[:obtained,:]
+              hidden_activations[ihidden]
+      activations[-1][isample:isample+obtained,:] = logits[:,0,:]
     if FLAGS.save_fingerprints:
       if isample==0:
         nW = round((FLAGS.clip_duration_ms - FLAGS.window_size_ms) / \
@@ -167,7 +127,7 @@ def main(_):
         nH = round(np.shape(fingerprints)[1]/nW)
         input_layer = np.empty((testing_set_size,nW,nH))
       input_layer[isample:isample+obtained,:,:] = \
-            np.reshape(fingerprints[:obtained,:],(obtained,nW,nH))
+            np.reshape(fingerprints,(obtained,nW,nH))
   if FLAGS.save_activations:
     np.savez(os.path.join(FLAGS.data_dir,'activations.npz'), \
              *activations, samples=samples_data, labels=labels)
@@ -184,13 +144,6 @@ def str2bool(v):
 
 if __name__ == '__main__':
   parser = argparse.ArgumentParser()
-  parser.add_argument(
-      '--data_url',
-      type=str,
-      # pylint: disable=line-too-long
-      default='http://download.tensorflow.org/data/speech_commands_v0.02.tar.gz',
-      # pylint: enable=line-too-long
-      help='Location of speech training data archive on the web.')
   parser.add_argument(
       '--data_dir',
       type=str,
@@ -364,4 +317,4 @@ if __name__ == '__main__':
       help='Whether to save fingerprint input layer during processing')
 
   FLAGS, unparsed = parser.parse_known_args()
-  tf.app.run(main=main, argv=[sys.argv[0]] + unparsed)
+  main()

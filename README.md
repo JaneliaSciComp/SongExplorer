@@ -633,7 +633,7 @@ its hidden state activations and output logits by mock-classifying these
 detected sounds with this untrained network.  You'll need to tell it which
 model to use by selecting the last checkpoint file in the untrained
 classifier's log files with the `File Browser` (i.e. one of
-"untrained-classifier/train_1r/vgg.ckpt-0.{index,meta,data\*}" in this case).
+"untrained-classifier/train_1r/vgg.ckpt-0.{index,data\*}" in this case).
 The time and amount of memory this takes depends directly on the number and
 dimensionality of detected sounds.  To limit the problem to a manageable size
 one can use `max samples` to randomly choose a subset of samples to cluster.
@@ -870,14 +870,14 @@ First let's get some more data bundled with SongExplorer into your home director
             $PWD/groundtruth-data/round2 [%CD%/... on Windows]
 
 Use the `Freeze` button to save the classifier's neural network graph structure
-and weight parameters into the single file that TensorFlow needs for inference.
+and weight parameters into the file format that TensorFlow needs for inference.
 You'll need to choose a checkpoint to use with the File Browser as you did
 before when saving the activations (i.e. one of
-"trained-classifier1/train_1r/vgg.ckpt-100.{index,meta,data\*}" in this case).
+"trained-classifier1/train_1r/vgg.ckpt-100.{index,data\*}" in this case).
 Output into the log files directory are "freeze.ckpt-\*.log" and
-"frozen-graph.ckpt-\*.log" files for errors, and "frozen-graph.ckpt-\*.pb"
-containing the binary data.  This latter PB file can in future be chosen as the
-model instead of a checkpoint file.
+"frozen-graph.ckpt-\*.log" files for errors, and a "frozen-graph.ckpt-\*.pb/" folder
+containing the binary data.  This latter PB folder, or the "saved_model.pb" file
+therein, can in future be chosen as the model instead of a checkpoint file.
 
 Now use the `Classify` button to generate probabilities over time for each
 annotated word.  Specify which recordings using the `File Browser` and the `WAV
@@ -1135,28 +1135,20 @@ arbitrary features that spectrograms and cepstrums might be blind to, but need
 more annotations to make the training converge.
 
 * `window` is the length of the temporal slices, in milliseconds, that
-constitute the spectrogram.  `window` / 1000 * `audio_tic_rate` should round
-down to a power of two.
+constitute the spectrogram.  `window` / 1000 * `audio_tic_rate` is the
+window length in tics and should round down to a power of two.
 
 * `stride` is the time, in milliseconds, by which the `window`s in the
 spectrogram are shifted.  1000/`stride` must be an integer.
 
-* `mel & DCT` specifies how many taps to use in the mel-frequency cepstrum.  The
-first number is for the mel-frequency resampling and the second for the
-discrete cosine transform.  Modifying these is tricky as valid values depend on
-`audio_tic_rate` and `window`.  The table below shows the maximum permissible
-values for each, and are what is recommended.  See the code in
-"tensorflow/contrib/lite/kernels/internal/mfcc.cc" for more details.
-
-|sample rate|window|mel,DCT|
-|:---------:|:----:|:-----:|
-|10000      |12.8  |28,28  |
-|10000      |6.4   |15,15  |
-| 5000      |6.4   |11,11  |
-| 2500      |6.4   |7,7    |
-| 1250      |6.4   |3,3    |
-|10000      |3.2   |7,7    |
-| 6000      |10.7  |19,19  |
+* `mel & DCT` controls the frequency resolution of the mel-frequency cepstrum.
+The first number specifies how many frequencies to use when resampling the
+linear-frequency spectrogram into mel-frequency space, and the second is
+how many of the lowest frequency coefficients to keep after the subsequent
+discrete cosine transform.  The second number should always be less than
+or equal to the first, and neither should greatly exceed the number of
+frequencies in the original spectrogram, which is one plus half of the
+`window` length in tics.
 
 * `optimizer` can be one of stochastic gradient descent (SGD),
 [Adam](https://arxiv.org/abs/1412.6980),

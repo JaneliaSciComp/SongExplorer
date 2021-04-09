@@ -29,8 +29,6 @@ if [ "$representation" == "waveform" ] ; then
   stride_ms=`dc -e "16 k 1000 $audio_tic_rate / p"`
 fi
 frozenlog=$logdir/$model/frozen-graph.ckpt-${check_point}.log
-ndownsample2=`grep -e 'strides = \[1, 2' -e 'strides = 2' $frozenlog | wc -l`
-stride_ms=`dc -e "$stride_ms 2 $ndownsample2 ^ * p"`
 
 DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
 

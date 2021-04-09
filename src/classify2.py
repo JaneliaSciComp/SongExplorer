@@ -53,12 +53,17 @@ else:
 print('labels: '+str(labels))
 print('prevalences: '+str(prevalences))
 
-npadding = round((context_ms/2+shift_ms)/stride_ms)
-probability_matrix = np.zeros((npadding, len(labels)))
-regex=re.compile('INFO:tensorflow:[0-9]+ms output_layer:0 (.+)')
+regex=re.compile('[0-9]+ms (.+)')
 
 with open(tffile) as fid:
   for line in fid:
+    if "downsample_by" in line:
+      m=re.search('downsample_by = (\d+)',line)
+      downsample_by = int(m.group(1))
+      stride_ms *= downsample_by
+      npadding = round((context_ms/2+shift_ms)/stride_ms)
+      probability_matrix = np.zeros((npadding, len(labels)))
+      continue
     m = regex.match(line)
     if m==None:
       print(line)

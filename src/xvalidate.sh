@@ -43,7 +43,7 @@ if [ -z "$restore_from" ] ; then
   start_checkpoint=
 else
   redirect='&>>'
-  start_checkpoint=$logdir/xvalidate_MODEL/${architecture}.ckpt-$restore_from
+  start_checkpoint=$logdir/xvalidate_MODEL/ckpt-$restore_from
 fi
 
 cmd="date; hostname; echo $CUDA_VISIBLE_DEVICES; nvidia-smi; "
@@ -56,7 +56,7 @@ while [[ $ifolds =~ .*,.* ]] ; do
     kpercent=$(dc -e "3 k 100 $kfold / p")
     koffset=$(dc -e "$kpercent $ifold 1 - * p")
     expr="/usr/bin/python3 $DIR/speech_commands_custom/train.py \
-          --data_url= --data_dir=$data_dir \
+          --data_dir=$data_dir \
           --wanted_words=$wanted_words \
           --labels_touse=$labels_touse \
           --how_many_training_steps=$nsteps \
