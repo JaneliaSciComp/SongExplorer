@@ -141,20 +141,6 @@ def main(_):
       FLAGS.model_parameters)
 
   fingerprint_size = model_settings['fingerprint_size']
-  # Figure out the learning rates for each training phase. Since it's often
-  # effective to have high learning rates at the start of training, followed by
-  # lower levels towards the end, the number of steps and learning rates can be
-  # specified as comma-separated lists to define the rate at each stage. For
-  # example --how_many_training_steps=10000,3000 --learning_rate=0.001,0.0001
-  # will run 13,000 training loops in total, with a rate of 0.001 for the first
-  # 10,000, and 0.0001 for the final 3,000.
-  training_steps_list = list(map(int, FLAGS.how_many_training_steps.split(',')))
-  learning_rates_list = list(map(float, FLAGS.learning_rate.split(',')))
-  if len(training_steps_list) != len(learning_rates_list):
-    raise Exception(
-        '--how_many_training_steps and --learning_rate must be equal length '
-        'lists, but are %d and %d long instead' % (len(training_steps_list),
-                                                   len(learning_rates_list)))
 
   actual_batch_size = tf.placeholder(tf.int32, [1])
 
@@ -268,7 +254,7 @@ def main(_):
       model_settings)
 
   # exit if how_many_training_steps==0
-  if FLAGS.how_many_training_steps=='0':
+  if FLAGS.how_many_training_steps==0:
       # pre-process a batch of data to make sure settings are valid
       train_fingerprints, train_ground_truth, _ = audio_processor.get_data(
           FLAGS.batch_size, 0, model_settings, FLAGS.time_shift_ms, FLAGS.time_shift_random,
@@ -277,7 +263,7 @@ def main(_):
           feed_dict={
               fingerprint_input: train_fingerprints,
               ground_truth_input: train_ground_truth,
-              learning_rate_input: learning_rates_list[0],
+              learning_rate_input: FLAGS.learning_rate,
               actual_batch_size: [FLAGS.batch_size],
           })
       return
@@ -287,16 +273,8 @@ def main(_):
   validation_set_size = audio_processor.set_size('validation')
 
   # Training loop.
-  training_steps_max = np.sum(training_steps_list)
-  for training_step in xrange(start_step, training_steps_max + 1):
+  for training_step in xrange(start_step, FLAGS.how_many_training_steps + 1):
     if training_set_size>0 and FLAGS.save_step_interval>0:
-      # Figure out what the current learning rate is.
-      training_steps_sum = 0
-      for i in range(len(training_steps_list)):
-        training_steps_sum += training_steps_list[i]
-        if training_step <= training_steps_sum:
-          learning_rate_value = learning_rates_list[i]
-          break
       # Pull the audio samples we'll use for training.
       train_fingerprints, train_ground_truth, _ = audio_processor.get_data(
           FLAGS.batch_size, 0, model_settings, FLAGS.time_shift_ms, FLAGS.time_shift_random,
@@ -310,22 +288,22 @@ def main(_):
           feed_dict={
               fingerprint_input: train_fingerprints,
               ground_truth_input: train_ground_truth,
-              learning_rate_input: learning_rate_value,
+              learning_rate_input: FLAGS.learning_rate,
               actual_batch_size: [FLAGS.batch_size],
           })
       train_writer.add_summary(train_summary, training_step)
       t1=dt.datetime.now()-t0
-      tf.logging.info('Elapsed %f, Step #%d: rate %f, accuracy %.1f%%, cross entropy %f' %
-                      (t1.total_seconds(), training_step, learning_rate_value, train_accuracy * 100,
+      tf.logging.info('Elapsed %f, Step #%d: accuracy %.1f%%, cross entropy %f' %
+                      (t1.total_seconds(), training_step, train_accuracy * 100,
                        cross_entropy_value))
 
       # Save the model checkpoint periodically.
       if (training_step % FLAGS.save_step_interval == 0 or
-          training_step == training_steps_max):
+          training_step == FLAGS.how_many_training_steps):
         tf.logging.info('Saving to "%s-%d"', checkpoint_path, training_step)
         saver.save(sess, checkpoint_path, global_step=training_step)
 
-    if validation_set_size>0 and training_step != training_steps_max and \
+    if validation_set_size>0 and training_step != FLAGS.how_many_training_steps and \
                                  (training_step % FLAGS.eval_step_interval) == 0:
       validate_and_test('validation', validation_set_size, model_settings, \
                         sess, merged_summaries, evaluation_step, \
@@ -339,13 +317,13 @@ def main(_):
                         confusion_matrix, logits, hidden, validation_writer, \
                         audio_processor, True, fingerprint_input, \
                         ground_truth_input, actual_batch_size,  \
-                        training_steps_max, t0)
+                        FLAGS.how_many_training_steps, t0)
   if testing_set_size>0:
     validate_and_test('testing', testing_set_size, model_settings, \
                       sess, merged_summaries, evaluation_step, confusion_matrix, \
                       logits, hidden, validation_writer, audio_processor, \
                       True, fingerprint_input, ground_truth_input, \
-                      actual_batch_size,  training_steps_max, t0)
+                      actual_batch_size,  FLAGS.how_many_training_steps, t0)
 
 def validate_and_test(set_kind, set_size, model_settings, sess, \
                       merged_summaries, evaluation_step, confusion_matrix, logits, \
@@ -561,8 +539,8 @@ if __name__ == '__main__':
       help='How many output bins to use for the MFCC fingerprint',)
   parser.add_argument(
       '--learning_rate',
-      type=str,
-      default='0.001,0.0001',
+      type=float,
+      default=0.001,
       help='How large a learning rate to use when training.')
   parser.add_argument(
       '--representation',
@@ -576,8 +554,8 @@ if __name__ == '__main__':
       help='What optimizer to use.  One of sgd, adam, adagrad, or rmsprop.')
   parser.add_argument(
       '--how_many_training_steps',
-      type=str,
-      default='15000,3000',
+      type=int,
+      default=15000,
       help='How many training loops to run',)
   parser.add_argument(
       '--eval_step_interval',
