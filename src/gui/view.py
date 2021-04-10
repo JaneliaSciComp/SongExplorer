@@ -1156,7 +1156,6 @@ def buttons_update():
     else:
         doit.disabled=True
         doit.button_type="default"
-    cluster_these_layers.disabled = False  # https://github.com/bokeh/bokeh/issues/10507
 
 def file_dialog_update():
     thispath = os.path.join(M.file_dialog_root,M.file_dialog_filter)
