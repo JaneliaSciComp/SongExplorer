@@ -27,43 +27,43 @@ FLAGS = None
 
 
 def main():
-  #Load a wav file and return sample_rate and numpy data of float64 type.
-  data, sample_rate = tf.audio.decode_wav(tf.io.read_file(FLAGS.wav))
-  sample_rate = sample_rate.numpy()
-  print('sample_rate = '+str(sample_rate))
+  #Load a wav file and return audio_tic_rate and numpy data of float64 type.
+  data, audio_tic_rate = tf.audio.decode_wav(tf.io.read_file(FLAGS.wav))
+  audio_tic_rate = audio_tic_rate.numpy()
+  print('audio_tic_rate = '+str(audio_tic_rate))
 
   # Load model and create a tf session to process audio pieces
   thismodel = tf.saved_model.load(FLAGS.model)
   recognize_graph = thismodel.inference_step
 
-  clip_duration_ms = FLAGS.context_ms + FLAGS.stride_ms * (FLAGS.nwindows - 1)
-  clip_duration_samples = np.round(clip_duration_ms * sample_rate / 1000).astype(np.int)
+  context_ms = FLAGS.context_ms + FLAGS.stride_ms * (FLAGS.nwindows - 1)
+  context_tics = np.round(context_ms * audio_tic_rate / 1000).astype(np.int)
 
   clip_stride_ms = FLAGS.stride_ms * (FLAGS.nwindows - 1)
 
-  data_slice = tf.transpose(data[:clip_duration_samples,:])
+  data_slice = tf.transpose(data[:context_tics,:])
   _,outputs = recognize_graph(tf.expand_dims(data_slice, 0))
   downsample_by = int((FLAGS.nwindows-1) / (outputs.shape[1]-1))
   print('downsample_by = '+str(downsample_by))
 
-  window_stride_ms_adjusted = FLAGS.stride_ms * downsample_by
-  clip_stride_ms_adjusted = clip_stride_ms + window_stride_ms_adjusted 
-  window_stride_samples = np.round(window_stride_ms_adjusted * sample_rate / 1000).astype(np.int)
-  clip_stride_samples = np.round(clip_stride_ms_adjusted * sample_rate / 1000).astype(np.int)
+  stride_ms_adjusted = FLAGS.stride_ms * downsample_by
+  clip_stride_ms_adjusted = clip_stride_ms + stride_ms_adjusted 
+  stride_tics = np.round(stride_ms_adjusted * audio_tic_rate / 1000).astype(np.int)
+  clip_stride_tics = np.round(clip_stride_ms_adjusted * audio_tic_rate / 1000).astype(np.int)
 
   # Inference along audio stream.
-  for audio_data_offset in range(0, 1+data.shape[0], clip_stride_samples):
+  for audio_data_offset in range(0, 1+data.shape[0], clip_stride_tics):
     input_start = audio_data_offset
-    input_end = audio_data_offset + clip_duration_samples
+    input_end = audio_data_offset + context_tics
     pad_len = input_end - data.shape[0]
     
     data_slice = tf.transpose(data[input_start:input_end,:] if pad_len<=0 else \
                               np.pad(data[input_start:input_end,:],
                                      ((0,pad_len),(0,0)), mode='median'))
     _,outputs = recognize_graph(tf.expand_dims(data_slice, 0))
-    current_time_ms = np.round(audio_data_offset * 1000 / sample_rate).astype(np.int)
+    current_time_ms = np.round(audio_data_offset * 1000 / audio_tic_rate).astype(np.int)
     if pad_len>0:
-      discard_len = np.ceil(pad_len/window_stride_samples).astype(np.int)
+      discard_len = np.ceil(pad_len/stride_tics).astype(np.int)
       print(str(current_time_ms)+'ms '+
             np.array2string(outputs.numpy()[0,:-discard_len,:],
                             separator=',',

@@ -43,7 +43,7 @@ def combine_events(events1, events2, logic):
   ifeature = 0
   ichange = 1
   while ichange<len(changes):
-    if not bool12[changes[ichange]]:  # starts with word
+    if not bool12[changes[ichange]]:  # starts with label
        ichange += 1;
        continue
     start_times[ifeature] = changes[ichange-1]+1
@@ -59,47 +59,47 @@ def confusion_string2matrix(arg):
   arg = re.sub("(?P<P>[0-9]) ","\g<P>,", arg)
   return ast.literal_eval(arg)
 
-def parse_confusion_matrix(logfile, nwanted_words, which_one=0, test=False):
+def parse_confusion_matrix(logfile, nlabels_touse, which_one=0, test=False):
   max_count = '-m'+str(which_one) if which_one>0 else ''
   kind = "Testing" if test else "Validation"
-  cmd = "grep -B"+str(nwanted_words+1)+" '"+kind+" accuracy' "+logfile+" "+max_count+ \
-        " | tail -"+str(nwanted_words+2)+" | head -1"
-  words_string = check_output(cmd, shell=True)
-  words_string = words_string.decode("ascii")
-  words_string = words_string[1:-1]
-  cmd = "grep -B"+str(nwanted_words+0)+" '"+kind+" accuracy' "+logfile+" "+max_count+ \
-        " | tail -"+str(nwanted_words+1)+" | head -"+str(nwanted_words+0)
+  cmd = "grep -B"+str(nlabels_touse+1)+" '"+kind+" accuracy' "+logfile+" "+max_count+ \
+        " | tail -"+str(nlabels_touse+2)+" | head -1"
+  labels_string = check_output(cmd, shell=True)
+  labels_string = labels_string.decode("ascii")
+  labels_string = labels_string[1:-1]
+  cmd = "grep -B"+str(nlabels_touse+0)+" '"+kind+" accuracy' "+logfile+" "+max_count+ \
+        " | tail -"+str(nlabels_touse+1)+" | head -"+str(nlabels_touse+0)
   confusion_string = check_output(cmd, shell=True)
   confusion_string = confusion_string.decode("ascii")
   confusion_matrix = confusion_string2matrix(confusion_string)
   nannotations = [sum(x) for x in confusion_matrix]
-  return confusion_matrix, ast.literal_eval(words_string), nannotations
+  return confusion_matrix, ast.literal_eval(labels_string), nannotations
 
 
 def parse_confusion_matrices(logdir, kind, idx_time=None, test=False):
   models = list(filter(lambda x: x.startswith(kind+'_') and \
                           os.path.isdir(os.path.join(logdir,x)), os.listdir(logdir)))
   labels_path = os.path.join(logdir,list(models)[0],'labels.txt')
-  nwanted_words = sum(1 for line in open(labels_path))
+  nlabels_touse = sum(1 for line in open(labels_path))
 
   confusion_matrices={}
-  words=[]
+  labels=[]
   for model in models:
     logfile = os.path.join(logdir, model+'.log')
-    confusion_matrices[model], thiswords, _ = \
+    confusion_matrices[model], theselabels, _ = \
             parse_confusion_matrix(logfile, \
-                                   nwanted_words, \
+                                   nlabels_touse, \
                                    which_one=1+idx_time[model] if idx_time else 0, \
                                    test=test)
-    if words:
-      assert words==thiswords
+    if labels:
+      assert labels==theselabels
     else:
-      words=thiswords
+      labels=theselabels
       
   summed_confusion_matrix = np.zeros((np.shape(confusion_matrices[models[0]])))
   for model in models:
     summed_confusion_matrix += confusion_matrices[model]
-  return summed_confusion_matrix, confusion_matrices, words
+  return summed_confusion_matrix, confusion_matrices, labels
 
 
 def normalize_confusion_matrix(matrix):
@@ -161,15 +161,15 @@ def layout(nplots):
   return nrows, ncols
 
 
-def plot_confusion_matrices(abs_matrices, col_matrices, row_matrices, words, accuracies, \
+def plot_confusion_matrices(abs_matrices, col_matrices, row_matrices, labels, accuracies, \
                             models, numbers=True, scale=6.4):
   nrows, ncols = layout(len(models))
   fig = plt.figure(figsize=(scale*ncols, scale*3/4*nrows))
   for (imodel, model) in enumerate(models):
     ax = fig.add_subplot(nrows, ncols, imodel+1)
     plot_confusion_matrix(ax, abs_matrices[model], col_matrices[model], row_matrices[model], numbers)
-    ax.set_xticklabels(words, rotation=40, ha='right')
-    ax.set_yticklabels(words)
+    ax.set_xticklabels(labels, rotation=40, ha='right')
+    ax.set_yticklabels(labels)
     ax.invert_yaxis()
     if imodel//ncols==nrows-1:
       ax.set_xlabel('classification')
@@ -192,17 +192,16 @@ def read_log(frompath, logfile):
     for line in fid:
       if "num training labels" in line:
         count_train_state=True
-        word_counts = {}
+        label_counts = {}
       elif count_train_state:
         if "Model: " in line:
           count_train_state = False
         else:
           m=re.search('\s*(\d+)\s(.*)',line)
-          word_counts[m.group(2)]=int(m.group(1))
-      if "wanted_words" in line:
-        m=re.search('wanted_words = (.+)',line)
-        wanted_words = m.group(1).split(',')
-        nwords = len(wanted_words)
+          label_counts[m.group(2)]=int(m.group(1))
+      if "labels_touse" in line:
+        m=re.search('labels_touse = (.+)',line)
+        labels_touse = m.group(1).split(',')
       elif "batch_size" in line:
         m=re.search('batch_size = (\d+)',line)
         batch_size = int(m.group(1))
@@ -255,7 +254,7 @@ def read_log(frompath, logfile):
          validation_precision, validation_recall, validation_accuracy, \
          validation_time, validation_step, \
          test_precision, test_recall, test_accuracy, \
-         wanted_words, word_counts, \
+         labels_touse, label_counts, \
          nparameters_total, nparameters_finallayer, \
          batch_size, nlayers
          #test_accuracy, \
@@ -266,8 +265,8 @@ def read_logs(frompath):
   validation_precision={}; validation_recall={}; validation_accuracy={}
   validation_time={}; validation_step={}
   test_precision={}; test_recall={}; test_accuracy={}
-  wanted_words={}
-  word_counts={}
+  labels_touse={}
+  label_counts={}
   nparameters_total={}
   nparameters_finallayer={}
   batch_size={}
@@ -279,7 +278,7 @@ def read_logs(frompath):
           validation_precision[model], validation_recall[model], validation_accuracy[model], \
           validation_time[model], validation_step[model], \
           test_precision[model], test_recall[model], test_accuracy[model], \
-          wanted_words[model], word_counts[model], \
+          labels_touse[model], label_counts[model], \
           nparameters_total[model], nparameters_finallayer[model], \
           batch_size[model], nlayers[model] = \
           read_log(frompath, logfile)
@@ -289,7 +288,7 @@ def read_logs(frompath):
          validation_precision, validation_recall, validation_accuracy, \
          validation_time, validation_step, \
          test_precision, test_recall, test_accuracy, \
-         wanted_words, word_counts, \
+         labels_touse, label_counts, \
          nparameters_total, nparameters_finallayer, \
          batch_size, nlayers
          #test_accuracy, \
@@ -305,7 +304,7 @@ def read_logits(frompath, logdir, ckpt=None):
                                 x.endswith('.npz'), \
                                 os.listdir(os.path.join(frompath,logdir)))))[-1]
   npzfile = np.load(os.path.join(frompath,logdir,logit_file), allow_pickle=True)
-  return npzfile['samples'], npzfile['groundtruth'], npzfile['logits']
+  return npzfile['sounds'], npzfile['groundtruth'], npzfile['logits']
  
 
 def plot_time_traces(ax, validation_time, accuracy, ylabel, ltitle, \
@@ -368,7 +367,7 @@ def choose_units(data):
   else:
     return [x/24/60/60 for x in data], 'days'
 
-def calculate_precision_recall_specificity(validation_ground_truth, test_logits, words, \
+def calculate_precision_recall_specificity(validation_ground_truth, test_logits, labels, \
                                            nprobabilities, ratios):
   probabilities = {}
   thresholds = {}
@@ -378,81 +377,81 @@ def calculate_precision_recall_specificity(validation_ground_truth, test_logits,
   specificities = {}
   pr_areas = {}
   roc_areas = {}
-  for iword in range(len(words)):
-    print(iword, end="\r", flush=True)
-    itrue = validation_ground_truth==iword
-    ifalse = validation_ground_truth!=iword
-    precisions[words[iword]] = np.full([nprobabilities],np.nan)
-    recalls[words[iword]] = np.full([nprobabilities],np.nan)
-    sensitivities[words[iword]] = np.full([nprobabilities],np.nan)
-    specificities[words[iword]] = np.full([nprobabilities],np.nan)
+  for ilabel in range(len(labels)):
+    print(ilabel, end="\r", flush=True)
+    itrue = validation_ground_truth==ilabel
+    ifalse = validation_ground_truth!=ilabel
+    precisions[labels[ilabel]] = np.full([nprobabilities],np.nan)
+    recalls[labels[ilabel]] = np.full([nprobabilities],np.nan)
+    sensitivities[labels[ilabel]] = np.full([nprobabilities],np.nan)
+    specificities[labels[ilabel]] = np.full([nprobabilities],np.nan)
     if not np.any(itrue):
-      pr_areas[words[iword]] = np.nan
-      roc_areas[words[iword]] = np.nan
-      probabilities[words[iword]] = np.full([nprobabilities],np.nan)
-      thresholds[words[iword]] = np.full(len(ratios),np.nan)
+      pr_areas[labels[ilabel]] = np.nan
+      roc_areas[labels[ilabel]] = np.nan
+      probabilities[labels[ilabel]] = np.full([nprobabilities],np.nan)
+      thresholds[labels[ilabel]] = np.full(len(ratios),np.nan)
       continue
-    pr_areas[words[iword]] = 0
-    roc_areas[words[iword]] = 0
-    max_logit = max(test_logits[itrue,iword])
-    #max_2nd_logit = max([x for x in test_logits[itrue,iword] if x!=max_logit])
+    pr_areas[labels[ilabel]] = 0
+    roc_areas[labels[ilabel]] = 0
+    max_logit = max(test_logits[itrue,ilabel])
+    #max_2nd_logit = max([x for x in test_logits[itrue,ilabel] if x!=max_logit])
     #probabilities_logit = np.linspace(
-    #        min(test_logits[itrue,iword]), max_2nd_logit, nprobabilities)
+    #        min(test_logits[itrue,ilabel]), max_2nd_logit, nprobabilities)
     probabilities_logit = np.linspace(
-            min(test_logits[itrue,iword]), max_logit, nprobabilities)
-    probabilities[words[iword]] = np.exp(probabilities_logit) / (np.exp(probabilities_logit) + 1)
+            min(test_logits[itrue,ilabel]), max_logit, nprobabilities)
+    probabilities[labels[ilabel]] = np.exp(probabilities_logit) / (np.exp(probabilities_logit) + 1)
     for (iprobability,probability_logit) in enumerate(probabilities_logit):
-      #Tp = np.sum(test_logits[itrue,iword]>probability_logit)
-      #Fp = np.sum(test_logits[ifalse,iword]>probability_logit)
-      Tp = np.sum(test_logits[itrue,iword]>=probability_logit)
-      Fp = np.sum(test_logits[ifalse,iword]>=probability_logit)
-      Fn = np.sum(itrue)-Tp  # == sum(test_logits[itrue,iword]<=probability_logit)
-      Tn = np.sum(ifalse)-Fp  # == sum(test_logits[ifalse,iword]<=probability_logit)
-      precisions[words[iword]][iprobability] = Tp/(Tp+Fp)
-      recalls[words[iword]][iprobability] = Tp/(Tp+Fn)
-      sensitivities[words[iword]][iprobability] = Tp/(Tp+Fn)
-      specificities[words[iword]][iprobability] = Tn/(Tn+Fp)
+      #Tp = np.sum(test_logits[itrue,ilabel]>probability_logit)
+      #Fp = np.sum(test_logits[ifalse,ilabel]>probability_logit)
+      Tp = np.sum(test_logits[itrue,ilabel]>=probability_logit)
+      Fp = np.sum(test_logits[ifalse,ilabel]>=probability_logit)
+      Fn = np.sum(itrue)-Tp  # == sum(test_logits[itrue,ilabel]<=probability_logit)
+      Tn = np.sum(ifalse)-Fp  # == sum(test_logits[ifalse,ilabel]<=probability_logit)
+      precisions[labels[ilabel]][iprobability] = Tp/(Tp+Fp)
+      recalls[labels[ilabel]][iprobability] = Tp/(Tp+Fn)
+      sensitivities[labels[ilabel]][iprobability] = Tp/(Tp+Fn)
+      specificities[labels[ilabel]][iprobability] = Tn/(Tn+Fp)
       if iprobability==0:
-        delta_pr = precisions[words[iword]][iprobability] * \
-                np.abs(recalls[words[iword]][iprobability] - 1)
-        delta_roc = specificities[words[iword]][iprobability] * \
-                np.abs(sensitivities[words[iword]][iprobability] - 1)
+        delta_pr = precisions[labels[ilabel]][iprobability] * \
+                np.abs(recalls[labels[ilabel]][iprobability] - 1)
+        delta_roc = specificities[labels[ilabel]][iprobability] * \
+                np.abs(sensitivities[labels[ilabel]][iprobability] - 1)
       else:
-        delta_pr = precisions[words[iword]][iprobability] * \
-                np.abs(recalls[words[iword]][iprobability] - \
-                       recalls[words[iword]][iprobability-1])
-        delta_roc = specificities[words[iword]][iprobability] * \
-                np.abs(sensitivities[words[iword]][iprobability] - \
-                       sensitivities[words[iword]][iprobability-1])
-      if not np.isnan(delta_pr):  pr_areas[words[iword]] += delta_pr
-      if not np.isnan(delta_roc): roc_areas[words[iword]] += delta_roc
+        delta_pr = precisions[labels[ilabel]][iprobability] * \
+                np.abs(recalls[labels[ilabel]][iprobability] - \
+                       recalls[labels[ilabel]][iprobability-1])
+        delta_roc = specificities[labels[ilabel]][iprobability] * \
+                np.abs(sensitivities[labels[ilabel]][iprobability] - \
+                       sensitivities[labels[ilabel]][iprobability-1])
+      if not np.isnan(delta_pr):  pr_areas[labels[ilabel]] += delta_pr
+      if not np.isnan(delta_roc): roc_areas[labels[ilabel]] += delta_roc
       if iprobability+1==len(probabilities_logit):
-        delta_pr = precisions[words[iword]][iprobability] * \
-                np.abs(recalls[words[iword]][iprobability] - 0)
-        delta_roc = specificities[words[iword]][iprobability] * \
-                np.abs(sensitivities[words[iword]][iprobability] - 0)
-        if not np.isnan(delta_pr):  pr_areas[words[iword]] += delta_pr
-        if not np.isnan(delta_roc): roc_areas[words[iword]] += delta_roc
-    f = interpolate.interp1d(precisions[words[iword]]/recalls[words[iword]],
-                             probabilities[words[iword]], fill_value="extrapolate")
-    thresholds[words[iword]] = f(ratios)
+        delta_pr = precisions[labels[ilabel]][iprobability] * \
+                np.abs(recalls[labels[ilabel]][iprobability] - 0)
+        delta_roc = specificities[labels[ilabel]][iprobability] * \
+                np.abs(sensitivities[labels[ilabel]][iprobability] - 0)
+        if not np.isnan(delta_pr):  pr_areas[labels[ilabel]] += delta_pr
+        if not np.isnan(delta_roc): roc_areas[labels[ilabel]] += delta_roc
+    f = interpolate.interp1d(precisions[labels[ilabel]]/recalls[labels[ilabel]],
+                             probabilities[labels[ilabel]], fill_value="extrapolate")
+    thresholds[labels[ilabel]] = f(ratios)
   return probabilities, thresholds, precisions, recalls, sensitivities, specificities, \
          pr_areas, roc_areas
 
 def read_probabilities(basepath, labels):
   wavpath = basepath+'-'+labels[0]+'.wav'
-  sample_rate_probabilities, probabilities = wavfile.read(wavpath)
-  half_stride_sec = 1/sample_rate_probabilities/2
+  audio_tic_rate_probabilities, probabilities = wavfile.read(wavpath)
+  half_stride_sec = 1/audio_tic_rate_probabilities/2
   probability_matrix = np.empty((len(labels), len(probabilities)))
   probability_matrix[0,:] = probabilities / np.iinfo(probabilities.dtype).max
   for ilabel in range(1,len(labels)):
     wavpath = basepath+'-'+labels[ilabel]+'.wav'
-    sample_rate_probabilities, probabilities = wavfile.read(wavpath)
+    audio_tic_rate_probabilities, probabilities = wavfile.read(wavpath)
     probability_matrix[ilabel,:] = probabilities / np.iinfo(probabilities.dtype).max
-  return sample_rate_probabilities, half_stride_sec, probability_matrix
+  return audio_tic_rate_probabilities, half_stride_sec, probability_matrix
 
 def discretize_probabilites(probability_matrix, thresholds, labels,
-                            sample_rate_probabilities, half_stride_sec, audio_tic_rate):
+                            audio_tic_rate_probabilities, half_stride_sec, audio_tic_rate):
   behavior = probability_matrix > thresholds
   diff_behavior = np.diff(behavior)
   ichanges, jchanges = np.where(diff_behavior)
@@ -462,7 +461,7 @@ def discretize_probabilites(probability_matrix, thresholds, labels,
   stop_tics = np.empty((nfeatures,), dtype=np.int32)
   ifeature = 0
   ijchange = 1
-  while ijchange<len(ichanges):                 # spans classes or starts with word
+  while ijchange<len(ichanges):                 # spans classes or starts with label
     if ichanges[ijchange-1]!=ichanges[ijchange] or \
            not behavior[ichanges[ijchange],jchanges[ijchange]]:
        ijchange += 1;
@@ -475,10 +474,10 @@ def discretize_probabilites(probability_matrix, thresholds, labels,
   ifeature -= 1
 
   features = features[:ifeature]
-  start_tics = np.round((start_tics[:ifeature] / sample_rate_probabilities \
+  start_tics = np.round((start_tics[:ifeature] / audio_tic_rate_probabilities \
                          - half_stride_sec) \
                         * audio_tic_rate).astype(np.int)
-  stop_tics = np.round((stop_tics[:ifeature] / sample_rate_probabilities \
+  stop_tics = np.round((stop_tics[:ifeature] / audio_tic_rate_probabilities \
                          + half_stride_sec) \
                        * audio_tic_rate).astype(np.int)
   return features, start_tics, stop_tics
@@ -495,13 +494,13 @@ def read_thresholds(logdir, model, thresholds_file):
         thresholds.append(row)
   return precision_recall_ratios, thresholds
 
-def save_thresholds(logdir, model, ckpt, thresholds, ratios, words, dense=False):
+def save_thresholds(logdir, model, ckpt, thresholds, ratios, labels, dense=False):
   filename = 'thresholds'+\
              ('-dense-'+datetime.strftime(datetime.now(),'%Y%m%dT%H%M%S') if dense else '')+\
              '.ckpt-'+str(ckpt)+'.csv'
   fid = open(os.path.join(logdir,model,filename),"w")
   fidcsv = csv.writer(fid)
   fidcsv.writerow(['precision/recall'] + ratios)
-  for iword in range(len(words)):
-    fidcsv.writerow([words[iword]] + thresholds[words[iword]].tolist())
+  for ilabel in range(len(labels)):
+    fidcsv.writerow([labels[ilabel]] + thresholds[labels[ilabel]].tolist())
   fid.close()

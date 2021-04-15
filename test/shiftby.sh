@@ -30,10 +30,10 @@ architecture=convolutional
 model_parameters='{"dropout": "0.5", "kernel_sizes": "3,32", "nlayers": "2", "nfeatures": "8,8", "dilate_after_layer": "65535", "stride_after_layer": "2", "connection_type": "plain"}'
 logdir=$repo_path/test/scratch/shiftby/shiftby-$shiftby_ms
 data_dir=$repo_path/test/scratch/shiftby/groundtruth-data
-wanted_words=mel-pulse,mel-sine,ambient
-labels_touse=annotated
+labels_touse=mel-pulse,mel-sine,ambient
+kinds_touse=annotated
 nsteps=10
-save_and_test_interval=5
+save_and_test_period=5
 validation_percentage=20
 restore_from=''
 mini_batch=32
@@ -47,8 +47,8 @@ train.sh \
       $context_ms $shiftby_ms $representation $window_ms $stride_ms $mel $dct \
       $optimizer $learning_rate \
       $architecture "$model_parameters" \
-      $logdir $data_dir $wanted_words $labels_touse \
-      $nsteps "$restore_from" $save_and_test_interval $validation_percentage \
+      $logdir $data_dir $labels_touse $kinds_touse \
+      $nsteps "$restore_from" $save_and_test_period $validation_percentage \
       $mini_batch "$testing_files" \
       $audio_tic_rate $audio_nchannels \
       $batch_seed $weights_seed $ireplicates \
@@ -63,8 +63,8 @@ train.sh \
       $context_ms $shiftby_ms $representation $window_ms $stride_ms $mel $dct \
       $optimizer $learning_rate \
       $architecture "$model_parameters" \
-      $logdir $data_dir $wanted_words $labels_touse \
-      $nsteps "$restore_from" $save_and_test_interval $validation_percentage \
+      $logdir $data_dir $labels_touse $kinds_touse \
+      $nsteps "$restore_from" $save_and_test_period $validation_percentage \
       $mini_batch "$testing_files" \
       $audio_tic_rate $audio_nchannels \
       $batch_seed $weights_seed $ireplicates \

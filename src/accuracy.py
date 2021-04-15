@@ -1,10 +1,10 @@
 #!/usr/bin/python3
 # generate confusion matrices, precision-recall curves, thresholds, etc.
  
-# accuracy.py <logdir> <error-ratios> <nprobabilities>
+# accuracy.py <logdir> <error-ratios> <nprobabilities> <parallelize>
 
 # e.g.
-# accuracy.py trained-classifier 2,1,0.5 50
+# accuracy.py trained-classifier 2,1,0.5 50 -1
 
 import sys
 import os
@@ -38,10 +38,10 @@ train_accuracy, train_loss, train_time, train_step, \
       validation_precision, validation_recall, validation_accuracy, \
       validation_time, validation_step, \
       _, _, _, \
-      wanted_words, word_counts, _, _, batch_size, _ = \
+      labels_touse, label_counts, _, _, batch_size, _ = \
       read_logs(logdir)
-training_set_size = {x: len(word_counts[x]) * np.max(list(word_counts[x].values())) \
-                                for x in word_counts.keys()}
+training_set_size = {x: len(label_counts[x]) * np.max(list(label_counts[x].values())) \
+                                for x in label_counts.keys()}
 
 keys_to_plot = natsorted(train_step.keys())
 
@@ -110,15 +110,15 @@ plt.savefig(os.path.join(logdir,'train-loss.pdf'))
 plt.close()
 
 nrows, ncols = layout(len(keys_to_plot))
-for (iword,word) in enumerate(wanted_words[keys_to_plot[0]]):
+for (ilabel,label) in enumerate(labels_touse[keys_to_plot[0]]):
   fig = plt.figure(figsize=(6.4*ncols, 4.8*nrows))
   ax = []
   minp=100
   minr=100
   for (imodel,model) in enumerate(keys_to_plot):
     ax.append(fig.add_subplot(nrows, ncols, imodel+1))
-    precision = [100*x[iword] for x in validation_precision[model]]
-    recall = [100*x[iword] for x in validation_recall[model]]
+    precision = [100*x[ilabel] for x in validation_precision[model]]
+    recall = [100*x[ilabel] for x in validation_recall[model]]
     minp = min(minp, min(precision))
     minr = min(minr, min(recall))
     ax[imodel].set_prop_cycle(color=[cm.viridis(1.*i/max(1,len(recall)-2)) \
@@ -143,27 +143,27 @@ for (iword,word) in enumerate(wanted_words[keys_to_plot[0]]):
     ax[imodel].set_ylim([minp,100])
     ax[imodel].set_xlim([minr,100])
   fig.tight_layout()
-  plt.savefig(os.path.join(logdir,'validation-PvR-'+word+'.pdf'))
+  plt.savefig(os.path.join(logdir,'validation-PvR-'+label+'.pdf'))
   plt.close()
 
 
-nrows, ncols = layout(len(wanted_words[keys_to_plot[0]]))
+nrows, ncols = layout(len(labels_touse[keys_to_plot[0]]))
 fig = plt.figure(figsize=(6.4*ncols, 4.8*nrows))
 lines=[]
-isort = index_natsorted(wanted_words[keys_to_plot[0]])
-for iword in range(len(isort)):
-  ax = fig.add_subplot(nrows, ncols, iword+1)
+isort = index_natsorted(labels_touse[keys_to_plot[0]])
+for ilabel in range(len(isort)):
+  ax = fig.add_subplot(nrows, ncols, ilabel+1)
   for (imodel,model) in enumerate(keys_to_plot):
-    F1 = [2*p[isort[iword]]*r[isort[iword]]/(p[isort[iword]]+r[isort[iword]]) \
-          if (p[isort[iword]]+r[isort[iword]])>0 else np.nan \
+    F1 = [2*p[isort[ilabel]]*r[isort[ilabel]]/(p[isort[ilabel]]+r[isort[ilabel]]) \
+          if (p[isort[ilabel]]+r[isort[ilabel]])>0 else np.nan \
           for (p,r) in zip(validation_precision[model], validation_recall[model])]
     line, = ax.plot(validation_step[model], F1)
-    if iword==0:
+    if ilabel==0:
       lines.append(line)
     ax.set_ylim(top=1)
     ax.set_xlabel('Step')
     ax.set_ylabel('F1 = 2PR/(P+R)')
-    ax.set_title(wanted_words[keys_to_plot[0]][isort[iword]])
+    ax.set_title(labels_touse[keys_to_plot[0]][isort[ilabel]])
   ax3 = ax.twiny()
   ax3.xaxis.set_ticks_position("bottom")
   ax3.xaxis.set_label_position("bottom")
@@ -249,7 +249,7 @@ if len(keys_to_plot)>1:
   plt.savefig(os.path.join(logdir,'train-overlay.pdf'))
   plt.close()
 
-summed_confusion_matrix, confusion_matrices, words = \
+summed_confusion_matrix, confusion_matrices, labels = \
     parse_confusion_matrices(logdir, next(iter(keys_to_plot)).split('_')[0])
 
 recall_matrices={}
@@ -269,14 +269,14 @@ fig = plt.figure(figsize=(3*6.4, 4.8))
 ax = plt.subplot(1,3,1)
 plot_confusion_matrix(ax, summed_confusion_matrix, \
                       precision_summed_matrix, recall_summed_matrix, \
-                      numbers=len(words)<10)
+                      numbers=len(labels)<10)
 divider = make_axes_locatable(ax)
 cax = divider.append_axes("right", size="5%", pad=0.1)
 fig.colorbar(cm.ScalarMappable(norm=mpl.colors.Normalize(vmin=0, vmax=100),
                                cmap=cm.viridis),
              cax=cax, ticks=[0,100], use_gridspec=True)
-ax.set_xticklabels(words, rotation=40, ha='right')
-ax.set_yticklabels(words)
+ax.set_xticklabels(labels, rotation=40, ha='right')
+ax.set_yticklabels(labels)
 ax.invert_yaxis()
 ax.set_xlabel('Classification')
 ax.set_ylabel('Annotation')
@@ -285,12 +285,12 @@ ax.set_title(str(round(accuracy_summed,1))+"%")
 ax = plt.subplot(1,3,2)
 for model in keys_to_plot:
   ax.set_prop_cycle(None)
-  for (iword,word) in enumerate(words):
-    line, = ax.plot(100*recall_matrices[model][iword][iword],
-                    100*precision_matrices[model][iword][iword],
+  for (ilabel,label) in enumerate(labels):
+    line, = ax.plot(100*recall_matrices[model][ilabel][ilabel],
+                    100*precision_matrices[model][ilabel][ilabel],
                     'o', markeredgecolor='k')
     if model==keys_to_plot[0]:
-      line.set_label(word)
+      line.set_label(label)
 
 ax.set_xlim(right=100)
 ax.set_ylim(top=100)
@@ -323,89 +323,89 @@ if len(keys_to_plot)>1:
   plot_confusion_matrices(confusion_matrices,
                           precision_matrices,
                           recall_matrices,
-                          words, accuracies, keys_to_plot,
-                          numbers=len(words)<10)
+                          labels, accuracies, keys_to_plot,
+                          numbers=len(labels)<10)
   plt.savefig(os.path.join(logdir,'confusion-matrices.pdf'))
   plt.close()
 
 def plot_metrics_parameterized_by_threshold(logdir, thresholds, \
                                             metric1_data, metric2_data, \
                                             metric1_label, metric2_label, \
-                                            areas, words, probabilities, ratios):
-  speciess = sorted(list(set([x.split('-')[0] for x in words])))
-  if len(speciess)<len(words):
+                                            areas, labels, probabilities, ratios):
+  speciess = sorted(list(set([x.split('-')[0] for x in labels])))
+  if len(speciess)<len(labels):
     ncols = len(speciess)
-    nrows = max([sum([x.split('-')[0]==s for x in words]) for s in speciess])
+    nrows = max([sum([x.split('-')[0]==s for x in labels]) for s in speciess])
     colcounts = np.zeros(ncols, dtype=np.uint8)
   else:
-    nrows, ncols = layout(len(words))
+    nrows, ncols = layout(len(labels))
   fig=plt.figure(figsize=(3.2*ncols, 2.4*nrows))
-  for iword in range(len(words)):
-    if len(speciess)<len(words):
-      icol = np.argmax([words[iword].split('-')[0]==s for s in speciess])
+  for ilabel in range(len(labels)):
+    if len(speciess)<len(labels):
+      icol = np.argmax([labels[ilabel].split('-')[0]==s for s in speciess])
       irow = colcounts[icol]
       colcounts[icol] += 1
       ax=plt.subplot(nrows,ncols,irow*ncols+icol+1)
     else:
-      ax=plt.subplot(nrows,ncols,iword+1)
-    if iword==0:
+      ax=plt.subplot(nrows,ncols,ilabel+1)
+    if ilabel==0:
       ax.set_xlabel(metric2_label)
       ax.set_ylabel(metric1_label)
-    ax.set_title(words[iword]+',  area='+str(np.round(areas[words[iword]],3)))
+    ax.set_title(labels[ilabel]+',  area='+str(np.round(areas[labels[ilabel]],3)))
     ax.set_xlim(0,1)
     ax.set_ylim(0,1)
-    line, = plt.plot(metric2_data[words[iword]], metric1_data[words[iword]])
-    for (ithreshold,threshold) in enumerate(thresholds[words[iword]]):
+    line, = plt.plot(metric2_data[labels[ilabel]], metric1_data[labels[ilabel]])
+    for (ithreshold,threshold) in enumerate(thresholds[labels[ilabel]]):
       if np.isnan(threshold):
         continue
-      iprobability = np.argmin(np.abs(probabilities[words[iword]]-threshold))
+      iprobability = np.argmin(np.abs(probabilities[labels[ilabel]]-threshold))
       if ratios[ithreshold]==1:
-        plt.plot(metric2_data[words[iword]][iprobability], \
-                 metric1_data[words[iword]][iprobability], 'ro')
+        plt.plot(metric2_data[labels[ilabel]][iprobability], \
+                 metric1_data[labels[ilabel]][iprobability], 'ro')
       else:
-        plt.plot(metric2_data[words[iword]][iprobability], \
-                 metric1_data[words[iword]][iprobability], 'rx')
-      whichside = 'right' if metric2_data[words[iword]][iprobability]>0.5 else 'left'
+        plt.plot(metric2_data[labels[ilabel]][iprobability], \
+                 metric1_data[labels[ilabel]][iprobability], 'rx')
+      whichside = 'right' if metric2_data[labels[ilabel]][iprobability]>0.5 else 'left'
       ax.annotate(str(np.round(threshold,3))+' ',
-                  xy=(metric2_data[words[iword]][iprobability], \
-                      metric1_data[words[iword]][iprobability]),
+                  xy=(metric2_data[labels[ilabel]][iprobability], \
+                      metric1_data[labels[ilabel]][iprobability]),
                   color="r", verticalalignment='top', horizontalalignment=whichside)
   fig.tight_layout()
 
-def plot_probability_density(test_ground_truth, test_logits, ratios, thresholds, words):
-  speciess = sorted(list(set([x.split('-')[0] for x in words])))
-  if len(speciess)<len(words):
+def plot_probability_density(test_ground_truth, test_logits, ratios, thresholds, labels):
+  speciess = sorted(list(set([x.split('-')[0] for x in labels])))
+  if len(speciess)<len(labels):
     ncols = len(speciess)
-    nrows = max([sum([x.split('-')[0]==s for x in words]) for s in speciess])
+    nrows = max([sum([x.split('-')[0]==s for x in labels]) for s in speciess])
     colcounts = np.zeros(ncols, dtype=np.uint8)
   else:
-    nrows, ncols = layout(len(words))
+    nrows, ncols = layout(len(labels))
   x = np.arange(0, 1.01, 0.01)
   fig=plt.figure(figsize=(3.2*ncols, 2.4*nrows))
-  for iword in range(len(words)):
-    if len(speciess)<len(words):
-      icol = np.argmax([words[iword].split('-')[0]==s for s in speciess])
+  for ilabel in range(len(labels)):
+    if len(speciess)<len(labels):
+      icol = np.argmax([labels[ilabel].split('-')[0]==s for s in speciess])
       irow = colcounts[icol]
       colcounts[icol] += 1
       ax=plt.subplot(nrows,ncols,irow*ncols+icol+1)
     else:
-      ax=plt.subplot(nrows,ncols,iword+1)
-    if iword==0:
+      ax=plt.subplot(nrows,ncols,ilabel+1)
+    if ilabel==0:
       ax.set_xlabel('Probability')
       ax.set_ylabel('Density')
-    ax.set_title(words[iword])
-    for (ithreshold,threshold) in enumerate(thresholds[words[iword]]):
+    ax.set_title(labels[ilabel])
+    for (ithreshold,threshold) in enumerate(thresholds[labels[ilabel]]):
       if np.isnan(threshold):
         continue
       if ratios[ithreshold]==1:
         plt.axvline(x=threshold, color='k', linestyle='dashed')
       else:
         plt.axvline(x=threshold, color='k', linestyle='dotted')
-    for gt in range(len(words)):
+    for gt in range(len(labels)):
       igt = test_ground_truth==gt
       if sum(igt)==0:
         continue
-      xdata = test_logits[igt,iword]
+      xdata = test_logits[igt,ilabel]
       xdata = np.minimum(np.finfo(np.float).max, np.exp(xdata))
       xdata = xdata / (xdata + 1)
       if len(xdata)<2 or any(np.isnan(xdata)):
@@ -413,33 +413,33 @@ def plot_probability_density(test_ground_truth, test_logits, ratios, thresholds,
       density = stats.kde.gaussian_kde(xdata)
       y = density(x)
       line, = plt.plot(x, y)
-      if iword==gt:
+      if ilabel==gt:
         ax.set_ylim(0,max(y))
-      if iword==0:
-        line.set_label(words[gt])
+      if ilabel==0:
+        line.set_label(labels[gt])
   fig.tight_layout()
   return fig.legend(loc='lower left')
 
 def doit(key_to_plot, ckpt):
-  validation_samples, validation_ground_truth, validation_logits = \
+  validation_sounds, validation_ground_truth, validation_logits = \
         read_logits(logdir, key_to_plot, ckpt)
 
   probabilities, thresholds, precisions, recalls, sensitivities, specificities, \
         pr_areas, roc_areas = calculate_precision_recall_specificity( \
-        validation_ground_truth, validation_logits, words, nprobabilities, \
+        validation_ground_truth, validation_logits, labels, nprobabilities, \
         error_ratios)
 
-  save_thresholds(logdir, key_to_plot, ckpt, thresholds, error_ratios, words)
+  save_thresholds(logdir, key_to_plot, ckpt, thresholds, error_ratios, labels)
 
   plot_metrics_parameterized_by_threshold(logdir, thresholds, precisions, recalls, \
         'precision = Tp/(Tp+Fp)', 'recall = Tp/(Tp+Fn)', pr_areas, \
-        words, probabilities, error_ratios)
+        labels, probabilities, error_ratios)
   plt.savefig(os.path.join(logdir,key_to_plot,'precision-recall.ckpt-'+str(ckpt)+'.pdf'))
   plt.close()
 
   plot_metrics_parameterized_by_threshold(logdir, thresholds, specificities, \
         sensitivities, 'specificity = Tn/(Tn+Fp)', 'sensitivity = Tp/(Tp+Fn)', \
-        roc_areas, words, probabilities, error_ratios)
+        roc_areas, labels, probabilities, error_ratios)
   plt.savefig(os.path.join(logdir, key_to_plot, \
                            'specificity-sensitivity.ckpt-'+str(ckpt)+'.pdf'))
   plt.close()
@@ -448,29 +448,29 @@ def doit(key_to_plot, ckpt):
   predictions_path = os.path.join(logdir,key_to_plot,'predictions.ckpt-'+str(ckpt))
   if not os.path.isdir(predictions_path):
     os.mkdir(os.path.join(logdir,key_to_plot,'predictions.ckpt-'+str(ckpt)))
-  wavfiles = set([x['file'] for x in validation_samples])
+  wavfiles = set([x['file'] for x in validation_sounds])
   for subdir in list(set([os.path.basename(os.path.split(x)[0]) for x in wavfiles])):
     with open(os.path.join(logdir, key_to_plot, 'predictions.ckpt-'+str(ckpt), \
                            subdir+'-mistakes.csv'), \
               'w', newline='') as csvfile:
       csvwriter = csv.writer(csvfile)
       for i in range(len(validation_ground_truth)):
-        if os.path.basename(os.path.split(validation_samples[i]['file'])[0]) != subdir:
+        if os.path.basename(os.path.split(validation_sounds[i]['file'])[0]) != subdir:
           continue
         classified_as = np.argmax(validation_logits[i,:])
-        id = validation_samples[i]['file'] + str(validation_samples[i]['ticks']) + \
-             validation_samples[i]['label'] + words[classified_as]
+        id = validation_sounds[i]['file'] + str(validation_sounds[i]['ticks']) + \
+             validation_sounds[i]['label'] + labels[classified_as]
         if id in already_written:
           continue
         already_written |= set([id])
-        csvwriter.writerow([os.path.basename(validation_samples[i]['file']),
-              validation_samples[i]['ticks'][0], validation_samples[i]['ticks'][1],
+        csvwriter.writerow([os.path.basename(validation_sounds[i]['file']),
+              validation_sounds[i]['ticks'][0], validation_sounds[i]['ticks'][1],
               'correct' if classified_as == validation_ground_truth[i] else 'mistaken',
-              words[classified_as],
-              validation_samples[i]['label']])
+              labels[classified_as],
+              validation_sounds[i]['label']])
 
   lgd = plot_probability_density(validation_ground_truth, validation_logits, \
-                                 error_ratios, thresholds, words)
+                                 error_ratios, thresholds, labels)
   plt.savefig(os.path.join(logdir, key_to_plot, \
                            'probability-density.ckpt-'+str(ckpt)+'.pdf'), \
               bbox_extra_artists=(lgd,), bbox_inches='tight')

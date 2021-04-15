@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# threshold an audio recording in both the time and frequency spaces
+# threshold an audio recording in both the time and frequency domains
  
 # detect.sh <full-path-to-wavfile> <time-sigma-signal> <time-sigma-noise> <time-smooth-ms> <frequency-n-ms> <frequency-nw> <frequency-p-signal> <frequency-p-noise> <frequency-smooth-ms> <audio-tic-rate> <audio-nchannels>
 

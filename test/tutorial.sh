@@ -10,7 +10,7 @@ check_file_exists() {
     return 1
   fi
   return 0; }
-count_lines_with_word() {
+count_lines_with_label() {
   check_file_exists $1 || return
   local count=$(grep $2 $1 | wc -l)
   (( "$count" == "$3" )) || echo ERROR: $1 has $count $2 when it should have $3; }
@@ -48,9 +48,9 @@ detect.sh \
 
 check_file_exists ${wavpath_noext}-detect.log
 check_file_exists ${wavpath_noext}-detected.csv
-count_lines_with_word ${wavpath_noext}-detected.csv time 543
-count_lines_with_word ${wavpath_noext}-detected.csv frequency 45
-count_lines_with_word ${wavpath_noext}-detected.csv neither 1138
+count_lines_with_label ${wavpath_noext}-detected.csv time 543
+count_lines_with_label ${wavpath_noext}-detected.csv frequency 45
+count_lines_with_label ${wavpath_noext}-detected.csv neither 1138
 
 context_ms=204.8
 shiftby_ms=0.0
@@ -65,11 +65,11 @@ architecture=convolutional
 model_parameters='{"dropout": "0.5", "kernel_sizes": "5,3,3", "nlayers": "2", "nfeatures": "64,64,64", "dilate_after_layer": "65535", "stride_after_layer": "65535", "connection_type": "plain"}'
 logdir=$repo_path/test/scratch/tutorial-sh/untrained-classifier
 data_dir=$repo_path/test/scratch/tutorial-sh/groundtruth-data
-wanted_words=time,frequency
-labels_touse=detected
+labels_touse=time,frequency
+kinds_touse=detected
 nsteps=0
 restore_from=''
-save_and_test_interval=0
+save_and_test_period=0
 validation_percentage=0
 mini_batch=32
 testing_files=''
@@ -81,8 +81,8 @@ train.sh \
       $context_ms $shiftby_ms $representation $window_ms $stride_ms $mel $dct \
       $optimizer $learning_rate \
       $architecture "$model_parameters" \
-      $logdir $data_dir $wanted_words $labels_touse \
-      $nsteps "$restore_from" $save_and_test_interval $validation_percentage \
+      $logdir $data_dir $labels_touse $kinds_touse \
+      $nsteps "$restore_from" $save_and_test_period $validation_percentage \
       $mini_batch "$testing_files" \
       $audio_tic_rate $audio_nchannels \
       $batch_seed $weights_seed $ireplicates \
@@ -94,18 +94,18 @@ check_file_exists $logdir/train_1r/ckpt-$nsteps.index
 
 check_point=$nsteps
 equalize_ratio=1000
-max_samples=10000
+max_sounds=10000
 activations.sh \
       $context_ms $shiftby_ms $representation $window_ms $stride_ms $mel $dct \
       $architecture "$model_parameters" \
       $logdir train_${ireplicates}r $check_point \
-      $data_dir $wanted_words $labels_touse \
-      $equalize_ratio $max_samples $mini_batch \
+      $data_dir $labels_touse $kinds_touse \
+      $equalize_ratio $max_sounds $mini_batch \
       $audio_tic_rate $audio_nchannels \
       &> $data_dir/activations.log
 
 check_file_exists $data_dir/activations.log
-check_file_exists $data_dir/activations-samples.log
+check_file_exists $data_dir/activations-sounds.log
 check_file_exists $data_dir/activations.npz
 
 groundtruth_directory=$data_dir
@@ -129,18 +129,18 @@ cp $repo_path/data/PS_20130625111709_ch3-annotated-person1.csv \
    $repo_path/test/scratch/tutorial-sh/groundtruth-data/round1
 
 logdir=$repo_path/test/scratch/tutorial-sh/trained-classifier1
-wanted_words=mel-pulse,mel-sine,ambient
-labels_touse=annotated
+labels_touse=mel-pulse,mel-sine,ambient
+kinds_touse=annotated
 nsteps=100
-save_and_test_interval=10
+save_and_test_period=10
 validation_percentage=40
 mkdir $logdir
 train.sh \
       $context_ms $shiftby_ms $representation $window_ms $stride_ms $mel $dct \
       $optimizer $learning_rate  \
       $architecture "$model_parameters" \
-      $logdir $data_dir $wanted_words $labels_touse \
-      $nsteps "$restore_from" $save_and_test_interval $validation_percentage \
+      $logdir $data_dir $labels_touse $kinds_touse \
+      $nsteps "$restore_from" $save_and_test_period $validation_percentage \
       $mini_batch "$testing_files" \
       $audio_tic_rate $audio_nchannels \
       $batch_seed $weights_seed $ireplicates \
@@ -163,8 +163,8 @@ check_file_exists $logdir/train_1r/probability-density.ckpt-$nsteps.pdf
 check_file_exists $logdir/train_1r/thresholds.ckpt-$nsteps.csv
 check_file_exists $logdir/train-loss.pdf
 check_file_exists $logdir/validation-F1.pdf
-for word in $(echo $wanted_words | sed "s/,/ /g") ; do
-  check_file_exists $logdir/validation-PvR-$word.pdf
+for label in $(echo $labels_touse | sed "s/,/ /g") ; do
+  check_file_exists $logdir/validation-PvR-$label.pdf
 done
 
 check_point=$nsteps
@@ -199,8 +199,8 @@ classify2.sh \
       &> ${wavpath_noext}-classify2.log
 
 check_file_exists ${wavpath_noext}-classify2.log
-for word in $(echo $wanted_words | sed "s/,/ /g") ; do
-  check_file_exists ${wavpath_noext}-${word}.wav
+for label in $(echo $labels_touse | sed "s/,/ /g") ; do
+  check_file_exists ${wavpath_noext}-${label}.wav
 done
 
 ethogram.sh \
@@ -212,9 +212,9 @@ check_file_exists ${wavpath_noext}-ethogram.log
 for pr in $(echo $precision_recall_ratios | sed "s/,/ /g") ; do
   check_file_exists ${wavpath_noext}-predicted-${pr}pr.csv
 done
-count_lines_with_word ${wavpath_noext}-predicted-1.0pr.csv mel-pulse 1010
-count_lines_with_word ${wavpath_noext}-predicted-1.0pr.csv mel-sine 958
-count_lines_with_word ${wavpath_noext}-predicted-1.0pr.csv ambient 88
+count_lines_with_label ${wavpath_noext}-predicted-1.0pr.csv mel-pulse 1010
+count_lines_with_label ${wavpath_noext}-predicted-1.0pr.csv mel-sine 958
+count_lines_with_label ${wavpath_noext}-predicted-1.0pr.csv ambient 88
 
 detect.sh \
       ${wavpath_noext}.wav \
@@ -225,34 +225,34 @@ detect.sh \
 
 check_file_exists ${wavpath_noext}-detect.log
 check_file_exists ${wavpath_noext}-detected.csv
-count_lines_with_word ${wavpath_noext}-detected.csv time 1309
-count_lines_with_word ${wavpath_noext}-detected.csv frequency 179
+count_lines_with_label ${wavpath_noext}-detected.csv time 1309
+count_lines_with_label ${wavpath_noext}-detected.csv frequency 179
 
 csvfiles=${wavpath_noext}-detected.csv,${wavpath_noext}-predicted-1.0pr.csv
 misses.sh $csvfiles &> ${wavpath_noext}-misses.log
 
 check_file_exists ${wavpath_noext}-misses.log
 check_file_exists ${wavpath_noext}-missed.csv
-count_lines_with_word ${wavpath_noext}-missed.csv other 2199
+count_lines_with_label ${wavpath_noext}-missed.csv other 2199
 
 mkdir $data_dir/round1/cluster
 mv $data_dir/{activations,cluster}* $data_dir/round1/cluster
 
 model=train_${ireplicates}r
-labels_touse=annotated,missed
+kinds_touse=annotated,missed
 equalize_ratio=1000
-max_samples=10000
+max_sounds=10000
 activations.sh \
       $context_ms $shiftby_ms $representation $window_ms $stride_ms $mel $dct \
       $architecture "$model_parameters" \
       $logdir $model $check_point \
-      $data_dir $wanted_words $labels_touse \
-      $equalize_ratio $max_samples $mini_batch \
+      $data_dir $labels_touse $kinds_touse \
+      $equalize_ratio $max_sounds $mini_batch \
       $audio_tic_rate $audio_nchannels \
       &> $data_dir/activations.log
 
 check_file_exists $data_dir/activations.log
-check_file_exists $data_dir/activations-samples.log
+check_file_exists $data_dir/activations-sounds.log
 check_file_exists $data_dir/activations.npz
 
 groundtruth_directory=$data_dir
@@ -284,8 +284,8 @@ for ioffset in $ioffsets ; do
         $context_ms $shiftby_ms $representation $window_ms $stride_ms $mel $dct \
         $optimizer $learning_rate \
         $architecture "$model_parameters" \
-        $logdir $data_dir $wanted_words $labels_touse \
-        $nsteps "$restore_from" $save_and_test_interval $mini_batch \
+        $logdir $data_dir $labels_touse $kinds_touse \
+        $nsteps "$restore_from" $save_and_test_period $mini_batch \
         "$testing_files" $audio_tic_rate $audio_nchannels \
         $batch_seed $weights_seed \
         $ioffset ${wavfiles[ioffset]} \
@@ -315,8 +315,8 @@ for ioffset in $ioffsets ; do
 done
 check_file_exists $logdir/train-loss.pdf
 check_file_exists $logdir/validation-F1.pdf
-for word in $(echo $wanted_words | sed "s/,/ /g") ; do
-  check_file_exists $logdir/validation-PvR-$word.pdf
+for label in $(echo $labels_touse | sed "s/,/ /g") ; do
+  check_file_exists $logdir/validation-PvR-$label.pdf
 done
 
 nfeaturess=(32,32,32 64,64,64)
@@ -330,8 +330,8 @@ for nfeatures in ${nfeaturess[@]} ; do
           $context_ms $shiftby_ms $representation $window_ms $stride_ms $mel $dct \
           $optimizer $learning_rate  \
           $architecture "$model_parameters" \
-          $logdir $data_dir $wanted_words $labels_touse \
-          $nsteps "$restore_from" $save_and_test_interval $mini_batch \
+          $logdir $data_dir $labels_touse $kinds_touse \
+          $nsteps "$restore_from" $save_and_test_period $mini_batch \
           "$testing_files" $audio_tic_rate $audio_nchannels \
           $batch_seed $weights_seed \
           $kfold $ifold \
@@ -359,8 +359,8 @@ for nfeatures in ${nfeaturess[@]} ; do
   done
   check_file_exists $logdir/train-loss.pdf
   check_file_exists $logdir/validation-F1.pdf
-  for word in $(echo $wanted_words | sed "s/,/ /g") ; do
-    check_file_exists $logdir/validation-PvR-$word.pdf
+  for label in $(echo $labels_touse | sed "s/,/ /g") ; do
+    check_file_exists $logdir/validation-PvR-$label.pdf
   done
 done
 
@@ -378,7 +378,7 @@ check_file_exists $data_dir/mistakes.log
 check_file_exists $data_dir/round1/PS_20130625111709_ch3-mistakes.csv
 
 logdir=$repo_path/test/scratch/tutorial-sh/trained-classifier2
-labels_touse=annotated
+kinds_touse=annotated
 nsteps=100
 validation_percentage=20
 mkdir $logdir
@@ -386,8 +386,8 @@ train.sh \
       $context_ms $shiftby_ms $representation $window_ms $stride_ms $mel $dct \
       $optimizer $learning_rate  \
       $architecture "$model_parameters" \
-      $logdir $data_dir $wanted_words $labels_touse \
-      $nsteps "$restore_from" $save_and_test_interval $validation_percentage \
+      $logdir $data_dir $labels_touse $kinds_touse \
+      $nsteps "$restore_from" $save_and_test_period $validation_percentage \
       $mini_batch "$testing_files" \
       $audio_tic_rate $audio_nchannels \
       $batch_seed $weights_seed $ireplicates \
@@ -410,8 +410,8 @@ check_file_exists $logdir/train_1r/probability-density.ckpt-$nsteps.pdf
 check_file_exists $logdir/train_1r/thresholds.ckpt-$nsteps.csv
 check_file_exists $logdir/train-loss.pdf
 check_file_exists $logdir/validation-F1.pdf
-for word in $(echo $wanted_words | sed "s/,/ /g") ; do
-  check_file_exists $logdir/validation-PvR-$word.pdf
+for label in $(echo $labels_touse | sed "s/,/ /g") ; do
+  check_file_exists $logdir/validation-PvR-$label.pdf
 done
 
 freeze.sh \
@@ -445,8 +445,8 @@ classify2.sh \
       &> ${wavpath_noext}-classify2.log
 
 check_file_exists ${wavpath_noext}-classify2.log
-for word in $(echo $wanted_words | sed "s/,/ /g") ; do
-  check_file_exists ${wavpath_noext}-${word}.wav
+for label in $(echo $labels_touse | sed "s/,/ /g") ; do
+  check_file_exists ${wavpath_noext}-${label}.wav
 done
 
 ethogram.sh \
@@ -471,20 +471,20 @@ congruence.sh \
 
 check_file_exists $data_dir/congruence.log
 check_file_exists $data_dir/congruence/$wav_file_noext-disjoint-everyone.csv
-kinds=(tic word)
+kinds=(tic label)
 persons=(person2 person3)
 IFS=', ' read -r -a prs <<< "$precision_recall_ratios"
-IFS=', ' read -r -a words <<< "$wanted_words"
+IFS=', ' read -r -a labels <<< "$labels_touse"
 for kind in ${kinds[@]} ; do
-  for word in ${words[@]} ; do
-    check_file_exists $data_dir/congruence.${kind}.${word}.csv
-    count_lines $data_dir/congruence.${kind}.${word}.csv $(( $nprobabilities + 2 ))
-    check_file_exists $data_dir/congruence.${kind}.${word}.pdf
+  for label in ${labels[@]} ; do
+    check_file_exists $data_dir/congruence.${kind}.${label}.csv
+    count_lines $data_dir/congruence.${kind}.${label}.csv $(( $nprobabilities + 2 ))
+    check_file_exists $data_dir/congruence.${kind}.${label}.pdf
   done
   for pr in ${prs[@]} ; do
-    for word in ${words[@]} ; do
-      check_file_exists $data_dir/congruence.${kind}.${word}.${pr}pr-venn.pdf
-      check_file_exists $data_dir/congruence.${kind}.${word}.${pr}pr.pdf
+    for label in ${labels[@]} ; do
+      check_file_exists $data_dir/congruence.${kind}.${label}.${pr}pr-venn.pdf
+      check_file_exists $data_dir/congruence.${kind}.${label}.${pr}pr.pdf
     done
     check_file_exists $data_dir/congruence/$wav_file_noext-disjoint-${kind}-not${pr}pr.csv
     check_file_exists $data_dir/congruence/$wav_file_noext-disjoint-${kind}-only${pr}pr.csv

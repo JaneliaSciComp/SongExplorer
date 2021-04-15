@@ -78,13 +78,13 @@ for wavdir in wavdirs:
       precision_recalls_sparse, thresholds_sparse = read_thresholds(logdir, model,
                                                                     thresholds_file)
 
-    sample_rate_probabilities, half_stride_sec, probability_matrix = \
+    audio_tic_rate_probabilities, half_stride_sec, probability_matrix = \
           read_probabilities(os.path.join(basepath, wavdir, wavfile_noext), labels)
     for threshold in np.linspace(0, 1, num=nprobabilities+2)[1:-1]:
       features, start_tics, stop_tics = discretize_probabilites(probability_matrix,
                                                                 threshold,
                                                                 labels,
-                                                                sample_rate_probabilities,
+                                                                audio_tic_rate_probabilities,
                                                                 half_stride_sec,
                                                                 audio_tic_rate)
       filename = os.path.join(basepath, wavdir,
@@ -124,13 +124,13 @@ for wavdir in wavdirs:
       precision_recalls.add(m.groups()[1])
     df[1] -= convolve_tic
     df[2] += convolve_tic
-    for word in set(df[4]):
-      if word not in timestamps:
-        timestamps[word] = {}
-      if csvbase not in timestamps[word]:
-        timestamps[word][csvbase] = {}
-      timestamps[word][csvbase][annotator] = df.loc[df[4]==word, 1:2]
-      timestamps[word][csvbase][annotator].sort_values(by=[1],inplace=True)
+    for label in set(df[4]):
+      if label not in timestamps:
+        timestamps[label] = {}
+      if csvbase not in timestamps[label]:
+        timestamps[label][csvbase] = {}
+      timestamps[label][csvbase][annotator] = df.loc[df[4]==label, 1:2]
+      timestamps[label][csvbase][annotator].sort_values(by=[1],inplace=True)
       annotator_keys.add(annotator)
 
 for filename in temp_files:
@@ -138,20 +138,20 @@ for filename in temp_files:
 
 print('humans = '+str(humans))
 print('precision_recalls = '+str(precision_recalls))
-print('words = '+str(timestamps.keys()))
+print('labels = '+str(timestamps.keys()))
 
-for word in timestamps.keys():
-  for csvbase in timestamps[word].keys():
-    for annotator in annotator_keys - timestamps[word][csvbase].keys():
-      timestamps[word][csvbase][annotator] = pd.DataFrame({1:[], 2:[]})
+for label in timestamps.keys():
+  for csvbase in timestamps[label].keys():
+    for annotator in annotator_keys - timestamps[label][csvbase].keys():
+      timestamps[label][csvbase][annotator] = pd.DataFrame({1:[], 2:[]})
 
-def get_csvbases(word):
+def get_csvbases(label):
   return natsorted(list(filter(lambda x: x, \
                                [f if any(['-annotated' in a \
-                                          for a in timestamps[word][f].keys()]) and \
+                                          for a in timestamps[label][f].keys()]) and \
                                      any(['-predicted-'+pr in a \
-                                          for a in timestamps[word][f].keys()]) \
-                                  else None for f in timestamps[word].keys()])))
+                                          for a in timestamps[label][f].keys()]) \
+                                  else None for f in timestamps[label].keys()])))
 
 def delete_interval(intervals, idx):
   mask = interval()
@@ -208,16 +208,16 @@ def doit(intervals):
   #to calculate the intervals which only one set contains (e.g. "only
   #songexplorer"), iteratively test if each interval therein overlaps
   #with any of the other sets.  if it does, delete the matching intervals
-  #in the other sets; otherwise add this interval to the "only word" set.
+  #in the other sets; otherwise add this interval to the "only label" set.
   #for tics, delete from the interval the points in each matching interval
   #and add what remains to the "only tic" set.
 
   onlyone_tic = {}
-  onlyone_word = {}
+  onlyone_label = {}
   for key0 in intervals.keys():
     intervals_copy = intervals.copy()
     onlyone_tic[key0] = interval()
-    onlyone_word[key0] = interval()
+    onlyone_label[key0] = interval()
     for interval0 in intervals_copy[key0].components:
       ivalues = {}
       for keyN in set(intervals_copy.keys()) - set([key0]):
@@ -226,7 +226,7 @@ def doit(intervals):
             ivalues[keyN] = i
             break
       if len(ivalues)==0:
-        onlyone_word[key0] |= interval0
+        onlyone_label[key0] |= interval0
       for keyN in ivalues.keys():
         interval0 = interval_diff(interval0, interval(intervals_copy[keyN][ivalues[keyN]]))
         intervals_copy[keyN] = delete_interval(intervals_copy[keyN], ivalues[keyN])
@@ -241,11 +241,11 @@ def doit(intervals):
   #set the intersection of all the matching intervals.
 
   notone_tic = {}
-  notone_word = {}
+  notone_label = {}
   for key0 in intervals.keys():
     intervals_copy = intervals.copy()
     notone_tic[key0] = interval()
-    notone_word[key0] = interval()
+    notone_label[key0] = interval()
     key1 = next(iter(set(intervals_copy.keys()) - set([key0])))
     for interval1 in intervals_copy[key1].components:
       ivalues = {}
@@ -255,13 +255,13 @@ def doit(intervals):
             ivalues[keyN] = i
             break
       if len(ivalues)==len(intervals_copy)-2 and key0 not in ivalues.keys():
-        notone_word[key0] |= interval1
+        notone_label[key0] |= interval1
         for keyN in ivalues.keys():
           interval1 &= interval(intervals_copy[keyN][ivalues[keyN]])
           intervals_copy[keyN] = delete_interval(intervals_copy[keyN], ivalues[keyN])
         notone_tic[key0] |= interval1
       
-  return everyone, onlyone_tic, notone_tic, onlyone_word, notone_word
+  return everyone, onlyone_tic, notone_tic, onlyone_label, notone_label
 
 if congruence_parallelize!=1:
   from multiprocessing import Pool
@@ -271,37 +271,37 @@ if congruence_parallelize!=1:
 everyone = {}
 onlyone_tic = {}
 notone_tic = {}
-onlyone_word = {}
-notone_word = {}
+onlyone_label = {}
+notone_label = {}
 
 for pr in precision_recalls:
   print('P/R = '+pr)
   everyone[pr] = {}
   onlyone_tic[pr] = {}
   notone_tic[pr] = {}
-  onlyone_word[pr] = {}
-  notone_word[pr] = {}
+  onlyone_label[pr] = {}
+  notone_label[pr] = {}
 
-  for word in timestamps.keys():
-    print('word = '+word)
-    csvbases = get_csvbases(word)
+  for label in timestamps.keys():
+    print('label = '+label)
+    csvbases = get_csvbases(label)
     if len(csvbases)==0:
       continue
-    everyone[pr][word] = {}
-    onlyone_tic[pr][word] = {}
-    notone_tic[pr][word] = {}
-    onlyone_word[pr][word] = {}
-    notone_word[pr][word] = {}
+    everyone[pr][label] = {}
+    onlyone_tic[pr][label] = {}
+    notone_tic[pr][label] = {}
+    onlyone_label[pr][label] = {}
+    notone_label[pr][label] = {}
 
     timestamps_curated = {}
     for csvbase in csvbases:
       print('csv = '+csvbase)
       predicted_key = '-predicted-'+pr+'.csv'
-      if predicted_key not in timestamps[word][csvbase]:
+      if predicted_key not in timestamps[label][csvbase]:
         continue
       intervals = {}
       intervals[pr] = interval(*[[x[1],x[2]] for _,x in \
-                                    timestamps[word][csvbase][predicted_key].iterrows()])
+                                    timestamps[label][csvbase][predicted_key].iterrows()])
       if use_longest_human_interval:
         annotated_left = np.inf
         annotated_right = 0
@@ -312,16 +312,16 @@ for pr in precision_recalls:
         annotator_key = '-annotated-'+human+'.csv'
         if use_longest_human_interval:
           annotated_left = min(annotated_left, annotated_left, \
-                               *timestamps[word][csvbase][annotator_key][1])
+                               *timestamps[label][csvbase][annotator_key][1])
           annotated_right = max(annotated_right, annotated_right, \
-                                *timestamps[word][csvbase][annotator_key][2])
+                                *timestamps[label][csvbase][annotator_key][2])
         else:
           annotated_left = max(annotated_left, \
-                               min(np.inf, np.inf, *timestamps[word][csvbase][annotator_key][1]))
+                               min(np.inf, np.inf, *timestamps[label][csvbase][annotator_key][1]))
           annotated_right = min(annotated_right, \
-                                max(0, 0, *timestamps[word][csvbase][annotator_key][2]))
+                                max(0, 0, *timestamps[label][csvbase][annotator_key][2]))
         intervals[human] = interval(*[[x[1],x[2]] for _,x in \
-                                          timestamps[word][csvbase][annotator_key].iterrows()])
+                                          timestamps[label][csvbase][annotator_key].iterrows()])
       print('left = '+str(annotated_left))
       print('right = '+str(annotated_right))
       if not use_longest_human_interval:
@@ -329,11 +329,11 @@ for pr in precision_recalls:
           intervals[human] &= interval([annotated_left, annotated_right])
       intervals[pr] &= interval([annotated_left, annotated_right])
       if congruence_parallelize!=0:
-        everyone[pr][word][csvbase] = pool.apply_async(doit, (intervals,))
+        everyone[pr][label][csvbase] = pool.apply_async(doit, (intervals,))
       else:
-        everyone[pr][word][csvbase], \
-            onlyone_tic[pr][word][csvbase], notone_tic[pr][word][csvbase], \
-            onlyone_word[pr][word][csvbase], notone_word[pr][word][csvbase] = \
+        everyone[pr][label][csvbase], \
+            onlyone_tic[pr][label][csvbase], notone_tic[pr][label][csvbase], \
+            onlyone_label[pr][label][csvbase], notone_label[pr][label][csvbase] = \
             doit(intervals)
 
 def plot_file(fig, fig_venn, only_data, not_data):
@@ -386,9 +386,9 @@ def plot_sumfiles(fig, fig_venn, only_data, not_data):
 
 for pr in precision_recalls:
   print('P/R = '+pr)
-  for word in timestamps.keys():
-    print('word = '+word)
-    csvbases = get_csvbases(word)
+  for label in timestamps.keys():
+    print('label = '+label)
+    csvbases = get_csvbases(label)
     if len(csvbases)==0:
       continue
 
@@ -397,41 +397,41 @@ for pr in precision_recalls:
       nrows = np.floor(np.sqrt(all_files_flag+len(csvbases))).astype(np.int)
       ncols = np.ceil((all_files_flag+len(csvbases))/nrows).astype(np.int)
       fig_tic = plt.figure(figsize=(2*ncols,2*nrows))
-      fig_word = plt.figure(figsize=(2*ncols,2*nrows))
+      fig_label = plt.figure(figsize=(2*ncols,2*nrows))
       if len(humans)<3:
         fig_tic_venn = plt.figure(figsize=(2*ncols,2*nrows))
-        fig_word_venn = plt.figure(figsize=(2*ncols,2*nrows))
+        fig_label_venn = plt.figure(figsize=(2*ncols,2*nrows))
       else:
         fig_tic_venn = None
-        fig_word_venn = None
+        fig_label_venn = None
       iplot=nrows*ncols
 
     for csvbase in reversed(csvbases):
       print('csv = '+csvbase)
       predicted_key = '-predicted-'+pr+'.csv'
-      if predicted_key not in timestamps[word][csvbase]:
+      if predicted_key not in timestamps[label][csvbase]:
         continue
       if congruence_parallelize!=0:
-        everyone[pr][word][csvbase], \
-            onlyone_tic[pr][word][csvbase], notone_tic[pr][word][csvbase], \
-            onlyone_word[pr][word][csvbase], notone_word[pr][word][csvbase] = \
-            everyone[pr][word][csvbase].get()
+        everyone[pr][label][csvbase], \
+            onlyone_tic[pr][label][csvbase], notone_tic[pr][label][csvbase], \
+            onlyone_label[pr][label][csvbase], notone_label[pr][label][csvbase] = \
+            everyone[pr][label][csvbase].get()
 
       if not pr.endswith('pr'):
         continue
 
-      sorted_hm = natsorted(onlyone_tic[pr][word][csvbase].keys())
+      sorted_hm = natsorted(onlyone_tic[pr][label][csvbase].keys())
 
       plot_file(fig_tic, fig_tic_venn,
-                [sum([x[1]-x[0]+1 for x in everyone[pr][word][csvbase]]), \
-                 *[sum([y[1]-y[0]+1 for y in onlyone_tic[pr][word][csvbase][x]]) \
+                [sum([x[1]-x[0]+1 for x in everyone[pr][label][csvbase]]), \
+                 *[sum([y[1]-y[0]+1 for y in onlyone_tic[pr][label][csvbase][x]]) \
                    for x in sorted_hm]],
-                [sum([y[1]-y[0]+1 for y in notone_tic[pr][word][csvbase][x]]) \
+                [sum([y[1]-y[0]+1 for y in notone_tic[pr][label][csvbase][x]]) \
                  for x in sorted_hm] if len(sorted_hm)>2 else None)
-      plot_file(fig_word, fig_word_venn,
-                [len(everyone[pr][word][csvbase]), \
-                 *[len(onlyone_word[pr][word][csvbase][x]) for x in sorted_hm]],
-                [len(notone_word[pr][word][csvbase][x]) for x in sorted_hm]
+      plot_file(fig_label, fig_label_venn,
+                [len(everyone[pr][label][csvbase]), \
+                 *[len(onlyone_label[pr][label][csvbase][x]) for x in sorted_hm]],
+                [len(notone_label[pr][label][csvbase][x]) for x in sorted_hm]
                     if len(sorted_hm)>2 else None)
       iplot-=1
 
@@ -439,40 +439,40 @@ for pr in precision_recalls:
       continue
 
     if all_files_flag:
-      csvbase0 = list(onlyone_tic[pr][word].keys())[0]
+      csvbase0 = list(onlyone_tic[pr][label].keys())[0]
       plot_sumfiles(fig_tic, fig_tic_venn,
-                    [sum([x[1]-x[0]+1 for f in everyone[pr][word].values() for x in f]),
+                    [sum([x[1]-x[0]+1 for f in everyone[pr][label].values() for x in f]),
                      *[sum([sum([y[1]-y[0]+1 for y in f[hm]])
-                            for f in onlyone_tic[pr][word].values()])
+                            for f in onlyone_tic[pr][label].values()])
                        for hm in sorted_hm]],
                     [sum([sum([y[1]-y[0]+1 for y in f[hm]]) \
-                           for f in notone_tic[pr][word].values()])
-                     for hm in onlyone_tic[pr][word][csvbase0].keys()]
+                           for f in notone_tic[pr][label].values()])
+                     for hm in onlyone_tic[pr][label][csvbase0].keys()]
                         if len(sorted_hm)>2 else None)
-      plot_sumfiles(fig_word, fig_word_venn,
-                    [sum([len(f) for f in everyone[pr][word].values()]),
-                     *[sum([len(f[hm]) for f in onlyone_word[pr][word].values()])
+      plot_sumfiles(fig_label, fig_label_venn,
+                    [sum([len(f) for f in everyone[pr][label].values()]),
+                     *[sum([len(f[hm]) for f in onlyone_label[pr][label].values()])
                        for hm in sorted_hm]],
-                    [sum([len(f[hm]) for f in notone_word[pr][word].values()])
+                    [sum([len(f[hm]) for f in notone_label[pr][label].values()])
                      for hm in sorted_hm]
                         if len(sorted_hm)>2 else None)
 
     fig_tic.tight_layout()
     plt.figure(fig_tic.number)
-    plt.savefig(os.path.join(basepath, 'congruence.tic.'+word+'.'+pr+'.pdf'))
+    plt.savefig(os.path.join(basepath, 'congruence.tic.'+label+'.'+pr+'.pdf'))
     plt.close()
-    fig_word.tight_layout()
-    plt.figure(fig_word.number)
-    plt.savefig(os.path.join(basepath, 'congruence.word.'+word+'.'+pr+'.pdf'))
+    fig_label.tight_layout()
+    plt.figure(fig_label.number)
+    plt.savefig(os.path.join(basepath, 'congruence.label.'+label+'.'+pr+'.pdf'))
     plt.close()
     if len(sorted_hm)<4:
       fig_tic_venn.tight_layout()
       plt.figure(fig_tic_venn.number)
-      plt.savefig(os.path.join(basepath, 'congruence.tic.'+word+'.'+pr+'-venn.pdf'))
+      plt.savefig(os.path.join(basepath, 'congruence.tic.'+label+'.'+pr+'-venn.pdf'))
       plt.close()
-      fig_word_venn.tight_layout()
-      plt.figure(fig_word_venn.number)
-      plt.savefig(os.path.join(basepath, 'congruence.word.'+word+'.'+pr+'-venn.pdf'))
+      fig_label_venn.tight_layout()
+      plt.figure(fig_label_venn.number)
+      plt.savefig(os.path.join(basepath, 'congruence.label.'+label+'.'+pr+'-venn.pdf'))
       plt.close()
 
 if congruence_parallelize!=0:
@@ -481,71 +481,71 @@ if congruence_parallelize!=0:
 def to_csv(intervals, csvbase, whichset):
   with open(os.path.join(basepath,csvbase+'-disjoint-'+whichset+'.csv'), 'w') as fid:
     csvwriter = csv.writer(fid)
-    for iword,word in enumerate(timestamps.keys()):
-      for i in intervals[iword]:
+    for ilabel,label in enumerate(timestamps.keys()):
+      for i in intervals[ilabel]:
         csvwriter.writerow([os.path.basename(csvbase)+'.wav',
-                            int(i[0]), int(i[1]), whichset, word])
+                            int(i[0]), int(i[1]), whichset, label])
 
 for pr in filter(lambda x: x.endswith("pr"), precision_recalls):
   for csvbase in csvbases:
-    to_csv([everyone[pr][word][csvbase] for word in timestamps.keys()],
+    to_csv([everyone[pr][label][csvbase] for label in timestamps.keys()],
             csvbase, 'everyone')
-    word0 = next(iter(natsorted(onlyone_tic[pr].keys())))
-    sorted_hm = natsorted(onlyone_tic[pr][word][csvbase].keys())
+    label0 = next(iter(natsorted(onlyone_tic[pr].keys())))
+    sorted_hm = natsorted(onlyone_tic[pr][label][csvbase].keys())
     for hm in sorted_hm:
-      to_csv([onlyone_tic[pr][word][csvbase][hm] for word in timestamps.keys()],
+      to_csv([onlyone_tic[pr][label][csvbase][hm] for label in timestamps.keys()],
               csvbase, 'tic-only'+hm)
       if len(sorted_hm)>2:
-        to_csv([notone_tic[pr][word][csvbase][hm] for word in timestamps.keys()],
+        to_csv([notone_tic[pr][label][csvbase][hm] for label in timestamps.keys()],
                csvbase, 'tic-not'+hm)
     for hm in sorted_hm:
-      to_csv([onlyone_word[pr][word][csvbase][hm] for word in timestamps.keys()],
-             csvbase, 'word-only'+hm)
+      to_csv([onlyone_label[pr][label][csvbase][hm] for label in timestamps.keys()],
+             csvbase, 'label-only'+hm)
       if len(sorted_hm)>2:
-        to_csv([notone_word[pr][word][csvbase][hm] for word in timestamps.keys()],
-               csvbase, 'word-not'+hm)
+        to_csv([notone_label[pr][label][csvbase][hm] for label in timestamps.keys()],
+               csvbase, 'label-not'+hm)
 
 roc_table_tic = {}
-roc_table_word = {}
+roc_table_label = {}
 for pr in precision_recalls:
-  for word in sorted(onlyone_tic[pr].keys()):
-    if word not in roc_table_tic:
-      roc_table_tic[word] = {}
-      roc_table_word[word] = {}
-    if pr not in roc_table_tic[word]:
-      roc_table_tic[word][pr] = {}
-      roc_table_word[word][pr] = {}
-    csvbase0 = next(iter(onlyone_tic[pr][word].keys()))
-    sorted_hm = natsorted(onlyone_tic[pr][word][csvbase0].keys())
+  for label in sorted(onlyone_tic[pr].keys()):
+    if label not in roc_table_tic:
+      roc_table_tic[label] = {}
+      roc_table_label[label] = {}
+    if pr not in roc_table_tic[label]:
+      roc_table_tic[label][pr] = {}
+      roc_table_label[label][pr] = {}
+    csvbase0 = next(iter(onlyone_tic[pr][label].keys()))
+    sorted_hm = natsorted(onlyone_tic[pr][label][csvbase0].keys())
     for hm in sorted_hm:
       key = 'only '+hm if hm!=pr else 'only SongExplorer'
-      roc_table_tic[word][pr][key] = int(sum([sum([y[1]-y[0]+1 for y in f[hm]]) \
-                                              for f in onlyone_tic[pr][word].values()]))
-      roc_table_word[word][pr][key] = sum([len(f[hm]) for f in onlyone_word[pr][word].values()])
+      roc_table_tic[label][pr][key] = int(sum([sum([y[1]-y[0]+1 for y in f[hm]]) \
+                                              for f in onlyone_tic[pr][label].values()]))
+      roc_table_label[label][pr][key] = sum([len(f[hm]) for f in onlyone_label[pr][label].values()])
       if len(sorted_hm)>2:
         key = 'not '+hm if hm!=pr else 'not SongExplorer'
-        roc_table_tic[word][pr][key] = int(sum([sum([y[1]-y[0]+1 for y in f[hm]]) \
-                                                for f in notone_tic[pr][word].values()]))
-        roc_table_word[word][pr][key] = sum([len(f[hm])
-                                             for f in notone_word[pr][word].values()])
-    roc_table_tic[word][pr]['Everyone'] = int(sum([x[1]-x[0]+1
-                                                   for f in everyone[pr][word].values()
+        roc_table_tic[label][pr][key] = int(sum([sum([y[1]-y[0]+1 for y in f[hm]]) \
+                                                for f in notone_tic[pr][label].values()]))
+        roc_table_label[label][pr][key] = sum([len(f[hm])
+                                             for f in notone_label[pr][label].values()])
+    roc_table_tic[label][pr]['Everyone'] = int(sum([x[1]-x[0]+1
+                                                   for f in everyone[pr][label].values()
                                                    for x in f]))
-    roc_table_word[word][pr]['Everyone'] = sum([len(f) for f in everyone[pr][word].values()])
+    roc_table_label[label][pr]['Everyone'] = sum([len(f) for f in everyone[pr][label].values()])
 
 def plot_versus_thresholds(roc_table, kind):
   thresholds_touse = {}
   desired_prs = None
-  for word in roc_table:
-    thresholds = realsorted([x for x in roc_table[word].keys() if x.endswith('th')])
+  for label in roc_table:
+    thresholds = realsorted([x for x in roc_table[label].keys() if x.endswith('th')])
     if len(thresholds)>0:
       xdata = [float(x[:-2]) for x in thresholds]
-      desired_prs = natsorted([float(x[:-2]) for x in roc_table[word].keys()
+      desired_prs = natsorted([float(x[:-2]) for x in roc_table[label].keys()
                                if x.endswith('pr')])
       fig = plt.figure(figsize=(2*6.4, 4.8))
       ax1 = fig.add_subplot(1,2,1)
-      for not_only_every in sorted(roc_table[word][thresholds[0]].keys()):
-        ydata = [roc_table[word][x][not_only_every] for x in thresholds]
+      for not_only_every in sorted(roc_table[label][thresholds[0]].keys()):
+        ydata = [roc_table[label][x][not_only_every] for x in thresholds]
         ax1.plot(xdata, ydata, '.-' if len(xdata)<10 else '-', label=not_only_every)
         if not_only_every=='Everyone':
           TP = ydata
@@ -557,7 +557,7 @@ def plot_versus_thresholds(roc_table, kind):
           elif not_only_every=='not SongExplorer':
             FN = ydata
       for (ipr,pr) in enumerate(precision_recalls_sparse):
-        th = float([x[1:] for x in thresholds_sparse if x[0]==word][0][ipr])
+        th = float([x[1:] for x in thresholds_sparse if x[0]==label][0][ipr])
         if 0<=th<=1 and not np.isnan(th):
           ax1.axvline(x=th, label='sparse P/R = '+pr,
                      color=next(ax1._get_lines.prop_cycler)['color'])
@@ -575,14 +575,14 @@ def plot_versus_thresholds(roc_table, kind):
       ax3.legend(loc=(1.15, 0.0))
       f = interpolate.interp1d([p/r if r!=0 else np.nan for (p,r) in zip(P,R)],
                                xdata, fill_value="extrapolate")
-      thresholds_touse[word] = f(desired_prs)
+      thresholds_touse[label] = f(desired_prs)
       fP = interpolate.interp1d(xdata, P, fill_value="extrapolate")
       fR = interpolate.interp1d(xdata, R, fill_value="extrapolate")
       for (ipr,pr) in enumerate(precision_recalls_sparse):
-        th = float([x[1:] for x in thresholds_sparse if x[0]==word][0][ipr])
+        th = float([x[1:] for x in thresholds_sparse if x[0]==label][0][ipr])
         if 0<=th<=1 and not np.isnan(th):
           ax2.plot(fR(th), fP(th), '.', label='sparse P/R = '+pr)
-      for (ith,th) in enumerate(thresholds_touse[word]):
+      for (ith,th) in enumerate(thresholds_touse[label]):
         if 0<=th<=1 and not np.isnan(th):
           ax2.plot(fR(th), fP(th), '.', label='dense P/R = '+str(desired_prs[ith]))
           ax1.axvline(x=th, label='dense P/R = '+str(desired_prs[ith]),
@@ -594,31 +594,31 @@ def plot_versus_thresholds(roc_table, kind):
       ax2.legend(loc=(1.05, 0.0))
       ax1.legend(loc=(1.2, 0.1))
       fig.tight_layout()
-      plt.savefig(os.path.join(basepath,'congruence.'+kind+'.'+word+'.pdf'))
+      plt.savefig(os.path.join(basepath,'congruence.'+kind+'.'+label+'.pdf'))
       plt.close()
 
       inotnan = (~np.isnan(P) & ~np.isnan(R)).nonzero()[0]
       r,p = [R[i] for i in inotnan], [P[i] for i in inotnan]
       if len(np.unique(np.sign(np.diff(r))))==1:
-        print(kind+' '+word+' area = '+str(metrics.auc(r,p)))
+        print(kind+' '+label+' area = '+str(metrics.auc(r,p)))
       else:
-        print(kind+' '+word+' area cannot be computed because recall is not monotonic')
+        print(kind+' '+label+' area cannot be computed because recall is not monotonic')
 
-    with open(os.path.join(basepath,'congruence.'+kind+'.'+word+'.csv'), 'w') as fid:
+    with open(os.path.join(basepath,'congruence.'+kind+'.'+label+'.csv'), 'w') as fid:
       csvwriter = csv.writer(fid)
-      rows = roc_table[word].keys()
-      cols = roc_table[word][next(iter(rows))].keys()
+      rows = roc_table[label].keys()
+      cols = roc_table[label][next(iter(rows))].keys()
       csvwriter.writerow([''] + list(cols) + ['Precision','Recall'] if len(thresholds)>0 else [])
       for row in realsorted(rows):
         pr = []
         if row.endswith('th'):
           pr = [P[thresholds.index(row)], R[thresholds.index(row)]]
-        csvwriter.writerow([row]+[roc_table[word][row][x] for x in cols]+pr)
+        csvwriter.writerow([row]+[roc_table[label][row][x] for x in cols]+pr)
 
   return thresholds_touse, desired_prs
 
 plot_versus_thresholds(roc_table_tic, kind='tic')
-thresholds_touse, desired_prs = plot_versus_thresholds(roc_table_word, kind='word')
+thresholds_touse, desired_prs = plot_versus_thresholds(roc_table_label, kind='label')
  
 if len(thresholds_touse)>0:
   save_thresholds(logdir, model, ckpt, thresholds_touse, desired_prs,

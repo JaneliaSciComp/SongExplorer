@@ -53,12 +53,12 @@ if fs!=audio_tic_rate:
   exit()
 
 if not (frequency_n & (frequency_n-1) == 0) or frequency_n == 0:
-  print("ERROR: 'freq N (msec)' should be a power of two when converted to sample ticks")
+  print("ERROR: 'freq N (msec)' should be a power of two when converted to tics")
   exit()
 
 if np.ndim(song)==1:
   song = np.expand_dims(song, axis=1)
-nsamples = np.shape(song)[0]
+nsounds = np.shape(song)[0]
 nchannels = np.shape(song)[1]
 if nchannels != audio_nchannels:
   print("ERROR: number of channels in WAV file (="+str(nchannels)+
@@ -103,14 +103,14 @@ p_noise = 1/NFFT*frequency_p_noise
 
 selem = np.ones((frequency_smooth), dtype=np.uint8)
 
-chunk_size_samples = 1024*1024
+chunk_size_tics = 1024*1024
 
 intervals_freq_signal = []
 intervals_freq_noise = []
 for ichannel in range(nchannels):
   ioffset=0
-  while ioffset < nsamples:
-    ilast = min(nsamples, ioffset+chunk_size_samples)//N*N
+  while ioffset < nsounds:
+    ilast = min(nsounds, ioffset+chunk_size_tics)//N*N
     song_reshaped1 = np.reshape(song[ioffset : ilast, ichannel], (-1,N))
     f = utils.detect_lines(song_reshaped1, (NW, 2*NW), low_bias=True, NFFT=NFFT, p=p_signal)
     intervals_f1 = [2*i+0 for (i,ii) in enumerate(f) if ii!=()]
@@ -126,7 +126,7 @@ for ichannel in range(nchannels):
     intervals_freq_signal += bool2stamp(song_morphed,
                                          lambda x,y: (ioffset+x*N//2-N//4, ioffset+y*N//2+N//4))
 
-    ilast = min(nsamples, ioffset+chunk_size_samples)//N*N
+    ilast = min(nsounds, ioffset+chunk_size_tics)//N*N
     song_reshaped1 = np.reshape(song[ioffset : ilast, ichannel], (-1,N))
     f = utils.detect_lines(song_reshaped1, (NW, 2*NW), low_bias=True, NFFT=NFFT, p=p_noise)
     intervals_f1 = [2*i+0 for (i,ii) in enumerate(f) if ii!=()]
@@ -142,7 +142,7 @@ for ichannel in range(nchannels):
     intervals_freq_noise += bool2stamp(song_morphed,
                                         lambda x,y: (ioffset+x*N//2-N//4, ioffset+y*N//2+N//4))
 
-    ioffset += chunk_size_samples
+    ioffset += chunk_size_tics
 
 
 start_times_neither, stop_times_neither, ifeature = combine_events(

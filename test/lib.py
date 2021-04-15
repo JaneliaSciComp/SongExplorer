@@ -18,15 +18,15 @@ def check_file_exists(filename):
     return False
   return True
 
-def count_lines_with_word(filename, word, rightanswer):
+def count_lines_with_label(filename, label, rightanswer):
   if not check_file_exists(filename): return
   count = 0
   with open(filename,'r') as fid:
     for line in fid:
-      if word in line:
+      if label in line:
         count += 1
   if count != rightanswer:
-    print("ERROR: "+filename+" has "+str(count)+" "+word+" when it should have "+str(rightanswer))
+    print("ERROR: "+filename+" has "+str(count)+" "+label+" when it should have "+str(rightanswer))
 
 def count_lines(filename, rightanswer):
   if not check_file_exists(filename): return

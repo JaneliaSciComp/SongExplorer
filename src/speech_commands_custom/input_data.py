@@ -42,7 +42,7 @@ def which_set(filename, validation_percentage, validation_offset_percentage, tes
 
   We want to keep files in the same training, validation, or testing sets even
   if new ones are added over time. This makes it less likely that testing
-  samples will accidentally be reused in training when long runs are restarted
+  sounds will accidentally be reused in training when long runs are restarted
   for example. To keep this stability, a hash of the filename is taken and used
   to determine which set it should belong to. This determination only depends on
   the name and the set proportions, so it won't change as other files are added.
@@ -53,7 +53,7 @@ def which_set(filename, validation_percentage, validation_offset_percentage, tes
   'bobby_nohash_1.wav' are always in the same set, for example.
 
   Args:
-    filename: File path of the data sample.
+    filename: File path of the sound.
     validation_percentage: How much of the data set to use for validation.
     validation_offset_percentage: Which part of the data set to use for validation.
     testing_percentage: How much of the data set to use for testing.
@@ -92,33 +92,36 @@ class AudioProcessor(object):
 
   def __init__(self, data_dir,
                time_shift_ms, time_shift_random,
-               wanted_words, labels_touse,
+               labels_touse, kinds_touse,
                validation_percentage, validation_offset_percentage, validation_files,
-               testing_percentage, testing_files, subsample_skip, subsample_word,
-               partition_word, partition_n, partition_training_files, partition_validation_files,
+               testing_percentage, testing_files, subsample_skip, subsample_label,
+               partition_label, partition_n, partition_training_files, partition_validation_files,
                random_seed_batch,
-               testing_equalize_ratio, testing_max_samples, model_settings):
+               testing_equalize_ratio, testing_max_sounds, model_settings):
     self.data_dir = data_dir
     random.seed(None if random_seed_batch==-1 else random_seed_batch)
     np.random.seed(None if random_seed_batch==-1 else random_seed_batch)
     self.prepare_data_index(time_shift_ms, time_shift_random,
-                            wanted_words, labels_touse,
+                            labels_touse, kinds_touse,
                             validation_percentage, validation_offset_percentage, validation_files,
-                            testing_percentage, testing_files, subsample_skip, subsample_word,
-                            partition_word, partition_n, partition_training_files, partition_validation_files,
-                            testing_equalize_ratio, testing_max_samples,
+                            testing_percentage, testing_files, subsample_skip, subsample_label,
+                            partition_label, partition_n, partition_training_files, partition_validation_files,
+                            testing_equalize_ratio, testing_max_sounds,
                             model_settings)
-    self.prepare_processing_graph(model_settings)
+    self.waveform_ = scale_foreground
+    self.spectrogram_ = compute_spectrograms
+    self.mfcc_ = compute_mfccs
+
 
   def prepare_data_index(self,
                          time_shift_ms, time_shift_random,
-                         wanted_words, labels_touse,
+                         labels_touse, kinds_touse,
                          validation_percentage, validation_offset_percentage, validation_files,
-                         testing_percentage, testing_files, subsample_skip, subsample_word,
-                         partition_word, partition_n, partition_training_files, partition_validation_files,
-                         testing_equalize_ratio, testing_max_samples,
+                         testing_percentage, testing_files, subsample_skip, subsample_label,
+                         partition_label, partition_n, partition_training_files, partition_validation_files,
+                         testing_equalize_ratio, testing_max_sounds,
                          model_settings):
-    """Prepares a list of the samples organized by set and label.
+    """Prepares a list of the sounds organized by set and label.
 
     The training loop needs a list of all the available data, organized by
     which partition it should belong to, and with ground truth labels attached.
@@ -128,7 +131,7 @@ class AudioProcessor(object):
     and uses a stable hash to assign it to a data set partition.
 
     Args:
-      wanted_words: Labels of the classes we want to be able to recognize.
+      labels_touse: Labels of the classes we want to be able to recognize.
       validation_percentage: How much of the data set to use for validation.
       validation_offset_percentage: Which part of the data set to use for validation.
       testing_percentage: How much of the data set to use for testing.
@@ -140,63 +143,63 @@ class AudioProcessor(object):
     Raises:
       Exception: If expected files are not found.
     """
-    time_shift_samples = int((time_shift_ms * model_settings["sample_rate"]) / 1000)
+    time_shift_tics = int((time_shift_ms * model_settings["audio_tic_rate"]) / 1000)
     # Make sure the shuffling is deterministic.
-    wanted_words_index = {}
-    for index, wanted_word in enumerate(wanted_words):
-      wanted_words_index[wanted_word] = index
+    labels_touse_index = {}
+    for index, label_touse in enumerate(labels_touse):
+      labels_touse_index[label_touse] = index
     self.data_index = {'validation': [], 'testing': [], 'training': []}
-    all_words = {}
-    # Look through all the subfolders to find audio samples
-    desired_samples = model_settings['desired_samples']
+    all_labels = {}
+    # Look through all the subfolders to find sounds
+    context_tics = model_settings['context_tics']
     search_path = os.path.join(self.data_dir, '*', '*.csv')
-    wav_nsamples = {}
-    subsample = {x:int(y) for x,y in zip(subsample_word.split(','),subsample_skip.split(','))
+    wav_ntics = {}
+    subsample = {x:int(y) for x,y in zip(subsample_label.split(','),subsample_skip.split(','))
                           if x != ''}
-    partition_words = partition_word.split(',')
-    if '' in partition_words:
-      partition_words.remove('')
+    partition_labels = partition_label.split(',')
+    if '' in partition_labels:
+      partition_labels.remove('')
     for csv_path in tf.io.gfile.glob(search_path):
       annotation_reader = csv.reader(open(csv_path))
       annotation_list = list(annotation_reader)
-      if len(partition_words)>0:
+      if len(partition_labels)>0:
         random.shuffle(annotation_list)
       for (iannotation, annotation) in enumerate(annotation_list):
         wavfile=annotation[0]
         ticks=[int(annotation[1]),int(annotation[2])]
         kind=annotation[3]
-        word=annotation[4]
-        if kind not in labels_touse:
+        label=annotation[4]
+        if kind not in kinds_touse:
           continue
         wav_path=os.path.join(os.path.dirname(csv_path),wavfile)
-        if word in subsample and iannotation % subsample[word] != 0:
+        if label in subsample and iannotation % subsample[label] != 0:
           continue
-        if word in partition_words:
+        if label in partition_labels:
           if wavfile not in partition_training_files and \
              wavfile not in partition_validation_files:
             continue
           if wavfile in partition_training_files and \
-             sum([x['label']==word and x['file']==wav_path \
+             sum([x['label']==label and x['file']==wav_path \
                   for x in self.data_index['training']]) >= partition_n:
             continue
-        if wav_path not in wav_nsamples:
+        if wav_path not in wav_ntics:
           _, data = spiowav.read(wav_path, mmap=True)
-          wav_nsamples[wav_path] = len(data)
-        nsamples = wav_nsamples[wav_path]
+          wav_ntics[wav_path] = len(data)
+        ntics = wav_ntics[wav_path]
         if time_shift_random:
-          if ticks[0]<desired_samples+time_shift_samples or \
-             ticks[1]>(nsamples-desired_samples-time_shift_samples):
+          if ticks[0] < context_tics + time_shift_tics or \
+             ticks[1] > (ntics - context_tics - time_shift_tics):
             continue
         else:
-          if ticks[0]<desired_samples+time_shift_samples or \
-             ticks[1]>(nsamples-desired_samples+time_shift_samples):
+          if ticks[0] < context_tics + time_shift_tics or \
+             ticks[1] > (ntics - context_tics + time_shift_tics):
             continue
-        all_words[word] = True
+        all_labels[label] = True
         if wavfile in validation_files:
           set_index = 'validation'
         elif wavfile in testing_files:
           set_index = 'testing'
-        elif word in partition_words:
+        elif label in partition_labels:
           if wavfile in partition_validation_files:
             set_index = 'validation'
           elif wavfile in partition_training_files:
@@ -208,111 +211,89 @@ class AudioProcessor(object):
                                 validation_percentage, validation_offset_percentage, \
                                 testing_percentage)
         # If it's a known class, store its detail
-        if word in wanted_words_index:
-          self.data_index[set_index].append({'label': word, 'file': wav_path, \
+        if label in labels_touse_index:
+          self.data_index[set_index].append({'label': label, 'file': wav_path, \
                                              'ticks': ticks, 'kind': kind})
-    if not all_words:
-      print('WARNING: No wanted words found in labels')
+    if not all_labels:
+      print('WARNING: No labels to use found in labels')
     if validation_percentage+testing_percentage<100:
-      for index, wanted_word in enumerate(wanted_words):
-        if wanted_word not in all_words:
-          print('WARNING: '+wanted_word+' not in labels')
+      for index, label_touse in enumerate(labels_touse):
+        if label_touse not in all_labels:
+          print('WARNING: '+label_touse+' not in labels')
     # equalize
     for set_index in ['validation', 'testing', 'training']:
       print('num %s labels' % set_index)
-      words = [sample['label'] for sample in self.data_index[set_index]]
+      labels = [sound['label'] for sound in self.data_index[set_index]]
       if set_index != 'testing':
-        for uniqword in sorted(set(words)):
-          print('%8d %s' % (sum([word==uniqword for word in words]), uniqword))
+        for uniqlabel in sorted(set(labels)):
+          print('%8d %s' % (sum([label==uniqlabel for label in labels]), uniqlabel))
       if set_index == 'validation' or len(self.data_index[set_index])==0:
         continue
-      word_indices = {}
-      for isample in range(len(self.data_index[set_index])):
-        sample = self.data_index[set_index][isample]
-        if sample['label'] in word_indices:
-          word_indices[sample['label']].append(isample)
+      label_indices = {}
+      for isound in range(len(self.data_index[set_index])):
+        sound = self.data_index[set_index][isound]
+        if sound['label'] in label_indices:
+          label_indices[sound['label']].append(isound)
         else:
-          word_indices[sample['label']]=[isample]
+          label_indices[sound['label']]=[isound]
       if set_index == 'training':
-        samples_largest = max([len(word_indices[x]) for x in word_indices.keys()])
-        for word in sorted(list(word_indices.keys())):
-          samples_have = len(word_indices[word])
-          samples_needed = samples_largest - samples_have
-          for _ in range(samples_needed):
-            add_this = word_indices[word][random.randrange(samples_have)]
+        sounds_largest = max([len(label_indices[x]) for x in label_indices.keys()])
+        for label in sorted(list(label_indices.keys())):
+          sounds_have = len(label_indices[label])
+          sounds_needed = sounds_largest - sounds_have
+          for _ in range(sounds_needed):
+            add_this = label_indices[label][random.randrange(sounds_have)]
             self.data_index[set_index].append(self.data_index[set_index][add_this])
       elif set_index == 'testing':
         if testing_equalize_ratio>0:
-          samples_smallest = min([len(word_indices[x]) for x in word_indices.keys()])
+          sounds_smallest = min([len(label_indices[x]) for x in label_indices.keys()])
           del_these = []
-          for word in sorted(list(word_indices.keys())):
-            samples_have = len(word_indices[word])
-            samples_needed = min(samples_have, testing_equalize_ratio * samples_smallest)
-            if samples_needed<samples_have:
-              del_these.extend(random.sample(word_indices[word], \
-                               samples_have-samples_needed))
+          for label in sorted(list(label_indices.keys())):
+            sounds_have = len(label_indices[label])
+            sounds_needed = min(sounds_have, testing_equalize_ratio * sounds_smallest)
+            if sounds_needed<sounds_have:
+              del_these.extend(random.sample(label_indices[label], \
+                               sounds_have-sounds_needed))
           for i in sorted(del_these, reverse=True):
             del self.data_index[set_index][i]
-        if testing_max_samples>0 and testing_max_samples<len(self.data_index[set_index]):
+        if testing_max_sounds>0 and testing_max_sounds<len(self.data_index[set_index]):
           self.data_index[set_index] = random.sample(self.data_index[set_index], \
-                                                     testing_max_samples)
+                                                     testing_max_sounds)
       if set_index == 'testing':
-        words = [sample['label'] for sample in self.data_index[set_index]]
-        for uniqword in sorted(set(words)):
-          print('%7d %s' % (sum([word==uniqword for word in words]), uniqword))
+        labels = [sound['label'] for sound in self.data_index[set_index]]
+        for uniqlabel in sorted(set(labels)):
+          print('%7d %s' % (sum([label==uniqlabel for label in labels]), uniqlabel))
     # Make sure the ordering is random.
     for set_index in ['validation', 'testing', 'training']:
       random.shuffle(self.data_index[set_index])
     # Prepare the rest of the result data structure.
-    self.words_list = wanted_words
-    self.word_to_index = {}
-    for word in all_words:
-      if word in wanted_words_index:
-        self.word_to_index[word] = wanted_words_index[word]
-
-  def prepare_processing_graph(self, model_settings):
-    """Builds a TensorFlow graph to apply the input distortions.
-
-    Creates a graph that loads a WAVE file, decodes it, scales the volume,
-    shifts it in time, calculates a spectrogram, and
-    then builds an MFCC fingerprint from that.
-
-    This must be called with an active TensorFlow session running, and it
-    creates multiple placeholder inputs, and one output:
-
-      - wav_filename_placeholder_: Filename of the WAV to load.
-      - foreground_volume_placeholder_: How loud the main clip should be.
-      - time_shift_offset_placeholder_: How much to move the clip in time.
-      - mfcc_: Output 2D fingerprint of processed audio.
-
-    Args:
-      model_settings: Information about the current model being trained.
-    """
-    self.waveform_ = scale_foreground
-    self.spectrogram_ = compute_spectrograms
-    self.mfcc_ = compute_mfccs
+    self.labels_list = labels_touse
+    self.label_to_index = {}
+    for label in all_labels:
+      if label in labels_touse_index:
+        self.label_to_index[label] = labels_touse_index[label]
 
   def set_size(self, mode):
-    """Calculates the number of samples in the dataset partition.
+    """Calculates the number of sounds in the dataset partition.
 
     Args:
       mode: Which partition, must be 'training', 'validation', or 'testing'.
 
     Returns:
-      Number of samples in the partition.
+      Number of sounds in the partition.
     """
     return len(self.data_index[mode])
 
   def get_data(self, how_many, offset, model_settings, 
                time_shift_ms, time_shift_random, mode):
-    """Gather samples from the data set, applying transformations as needed.
+    """Gather sounds from the data set, applying transformations as needed.
 
-    When the mode is 'training', a random selection of samples will be returned,
+    When the mode is 'training', a random selection of sounds will be returned,
     otherwise the first N clips in the partition will be used. This ensures that
-    validation always uses the same samples, reducing noise in the metrics.
+    validation always uses the same sounds, reducing noise in the metrics.
 
     Args:
-      how_many: Desired number of samples to return. -1 means the entire
+      how_many: Desired number of sounds to return. -1 means the entire
         contents of this partition.
       offset: Where to start when fetching deterministically.
       model_settings: Information about the current model being trained.
@@ -323,19 +304,19 @@ class AudioProcessor(object):
       sess: TensorFlow session that was active when processor was created.
 
     Returns:
-      List of sample data for the transformed samples, and list of label indexes
+      List of sound data for the transformed sounds, and list of label indexes
     """
-    time_shift_samples = int((time_shift_ms * model_settings["sample_rate"]) / 1000)
-    # Pick one of the partitions to choose samples from.
+    time_shift_tics = int((time_shift_ms * model_settings["audio_tic_rate"]) / 1000)
+    # Pick one of the partitions to choose sounds from.
     candidates = self.data_index[mode]
     ncandidates = len(self.data_index[mode])
     if how_many == -1:
-      sample_count = ncandidates
+      nsounds = ncandidates
     else:
-      sample_count = max(0, min(how_many, ncandidates - offset))
-    samples = []
-    desired_samples = model_settings['desired_samples']
-    channel_count = model_settings['channel_count']
+      nsounds = max(0, min(how_many, ncandidates - offset))
+    sounds = []
+    context_tics = model_settings['context_tics']
+    nchannels = model_settings['nchannels']
     pick_deterministically = (mode != 'training')
     if model_settings['representation']=='waveform':
       input_to_use = self.waveform_
@@ -343,44 +324,42 @@ class AudioProcessor(object):
       input_to_use = self.spectrogram_
     elif model_settings['representation']=='mel-cepstrum':
       input_to_use = self.mfcc_
-    foreground_indexed = np.zeros((sample_count, channel_count, desired_samples),
+    foreground_indexed = np.zeros((nsounds, nchannels, context_tics),
                                   dtype=np.float32)
-    labels = np.zeros(sample_count, dtype=np.int)
-    # repeatedly to generate the final output sample data we'll use in training.
-    for i in range(offset, offset + sample_count):
-      # Pick which audio sample to use.
+    labels = np.zeros(nsounds, dtype=np.int)
+    # repeatedly to generate the final output sound data we'll use in training.
+    for i in range(offset, offset + nsounds):
+      # Pick which sound to use.
       if how_many == -1 or pick_deterministically:
-        sample_index = i
-        sample = candidates[sample_index]
+        isound = i
       else:
-        sample_index = np.random.randint(len(candidates))
-        sample = candidates[sample_index]
+        isound = np.random.randint(len(candidates))
+      sound = candidates[isound]
 
-      foreground_offset = (np.random.randint(sample['ticks'][0], 1+sample['ticks'][1]) if
-            sample['ticks'][0] < sample['ticks'][1] else sample['ticks'][0])
-      sample_rate, song = spiowav.read(sample['file'], mmap=True)
+      foreground_offset = (np.random.randint(sound['ticks'][0], 1+sound['ticks'][1]) if
+            sound['ticks'][0] < sound['ticks'][1] else sound['ticks'][0])
+      audio_tic_rate, song = spiowav.read(sound['file'], mmap=True)
       if np.ndim(song)==1:
         song = np.expand_dims(song, axis=1)
-      nchannels = np.shape(song)[1]
-      assert sample_rate == model_settings['sample_rate']
-      assert nchannels == channel_count
-      if time_shift_samples > 0:
+      assert audio_tic_rate == model_settings['audio_tic_rate']
+      assert np.shape(song)[1] == nchannels
+      if time_shift_tics > 0:
         if time_shift_random:
-          time_shift_amount = np.random.randint(-time_shift_samples, time_shift_samples)
+          time_shift_amount = np.random.randint(-time_shift_tics, time_shift_tics)
         else:
-          time_shift_amount = time_shift_samples
+          time_shift_amount = time_shift_tics
       else:
         time_shift_amount = 0
-      foreground_clipped = song[foreground_offset-desired_samples//2 - time_shift_amount :
-                                foreground_offset+desired_samples//2 - time_shift_amount,
+      foreground_clipped = song[foreground_offset-context_tics//2 - time_shift_amount :
+                                foreground_offset+context_tics//2 - time_shift_amount,
                                 :]
       foreground_float32 = foreground_clipped.astype(np.float32)
       foreground_scaled = foreground_float32 / abs(np.iinfo(np.int16).min) #extreme
       foreground_indexed[i - offset,:,:] = foreground_scaled.transpose()
-      label_index = self.word_to_index[sample['label']]
+      label_index = self.label_to_index[sound['label']]
       labels[i - offset] = label_index
-      samples.append(sample)
+      sounds.append(sound)
     # Run the graph to produce the output audio.
     data = tf.reshape(input_to_use(foreground_indexed, 1.0, model_settings),
-                      [sample_count, -1])
-    return data, labels, samples
+                      [nsounds, -1])
+    return data, labels, sounds

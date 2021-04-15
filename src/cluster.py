@@ -54,19 +54,19 @@ print("loading data...")
 activations=[]
 npzfile = np.load(os.path.join(groundtruth_directory, 'activations.npz'),
                   allow_pickle=True)
-samples = npzfile['samples']
+sounds = npzfile['sounds']
 for arr_ in natsorted(filter(lambda x: x.startswith('arr_'), npzfile.files)):
   activations.append(npzfile[arr_])
 
 nlayers = len(activations)
 
-kinds = set([x['kind'] for x in samples])
-labels = set([x['label'] for x in samples])
-print('word counts')
+kinds = set([x['kind'] for x in sounds])
+labels = set([x['label'] for x in sounds])
+print('label counts')
 for kind in kinds:
   print(kind)
   for label in labels:
-    count = sum([label==x['label'] and kind==x['kind'] for x in samples])
+    count = sum([label==x['label'] and kind==x['kind'] for x in sounds])
     print(count,label)
 
 
@@ -74,8 +74,8 @@ activations_flattened = [None]*nlayers
 for ilayer in range(nlayers):
   if ilayer not in these_layers:
     continue
-  nsamples = np.shape(activations[ilayer])[0]
-  activations_flattened[ilayer] = np.reshape(activations[ilayer],(nsamples,-1))
+  nsounds = np.shape(activations[ilayer])[0]
+  activations_flattened[ilayer] = np.reshape(activations[ilayer],(nsounds,-1))
   print(np.shape(activations_flattened[ilayer]))
 
 
@@ -175,6 +175,6 @@ else:
     activations_clustered[ilayer] = do_cluster(ilayer)
 
 np.savez(os.path.join(groundtruth_directory, 'cluster'), \
-         samples=samples,
+         sounds=sounds,
          activations_clustered=activations_clustered,
          fits_pca=fits_pca)

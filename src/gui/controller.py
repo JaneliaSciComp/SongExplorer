@@ -214,46 +214,46 @@ def snippets_tap_callback(event):
         return
     M.xsnippet = int(np.rint(event.x/(M.snippets_gap_pix+M.snippets_pix)-0.5))
     M.ysnippet = int(np.floor(-(event.y-1)/V.snippets_dy))
-    M.isnippet = M.nearest_samples[M.ysnippet*M.snippets_nx + M.xsnippet]
+    M.isnippet = M.nearest_sounds[M.ysnippet*M.snippets_nx + M.xsnippet]
     V.snippets_update(False)
     V.context_update()
 
 def context_doubletap_callback(event, midpoint):
     x_tic = int(np.rint(event.x*M.audio_tic_rate))
-    currfile = M.clustered_samples[M.isnippet]['file']
+    currfile = M.clustered_sounds[M.isnippet]['file']
     if event.y<midpoint:
-        idouble_tapped_sample=-1
+        idouble_tapped_sound=-1
         if len(M.annotated_starts_sorted)>0:
-            idouble_tapped_sample = np.searchsorted(M.annotated_starts_sorted, x_tic,
+            idouble_tapped_sound = np.searchsorted(M.annotated_starts_sorted, x_tic,
                                                       side='right') - 1
-            while (idouble_tapped_sample > 0) and \
-                  (M.annotated_samples[idouble_tapped_sample]['file'] != currfile):
-                idouble_tapped_sample -= 1
-            if (M.annotated_samples[idouble_tapped_sample]['file'] != currfile) or \
-               (x_tic > M.annotated_samples[idouble_tapped_sample]['ticks'][1]):
-                idouble_tapped_sample = -1
-        if idouble_tapped_sample >= 0:
-            M.delete_annotation(idouble_tapped_sample)
+            while (idouble_tapped_sound > 0) and \
+                  (M.annotated_sounds[idouble_tapped_sound]['file'] != currfile):
+                idouble_tapped_sound -= 1
+            if (M.annotated_sounds[idouble_tapped_sound]['file'] != currfile) or \
+               (x_tic > M.annotated_sounds[idouble_tapped_sound]['ticks'][1]):
+                idouble_tapped_sound = -1
+        if idouble_tapped_sound >= 0:
+            M.delete_annotation(idouble_tapped_sound)
         elif M.state['labels'][M.ilabel] != '':
-            thissample = {'file':currfile,
+            thissound = {'file':currfile,
                           'ticks':[x_tic,x_tic],
                           'label':M.state['labels'][M.ilabel]}
-            M.add_annotation(thissample)
+            M.add_annotation(thissound)
     else:
         if M.state['labels'][M.ilabel]=='':
             return
         ileft = np.searchsorted(M.clustered_starts_sorted, x_tic)
-        samples_righthere = set(range(0,ileft))
+        sounds_righthere = set(range(0,ileft))
         iright = np.searchsorted(M.clustered_stops, x_tic,
                                  sorter=M.iclustered_stops_sorted)
-        samples_righthere &= set([M.iclustered_stops_sorted[i] for i in \
+        sounds_righthere &= set([M.iclustered_stops_sorted[i] for i in \
                 range(iright, len(M.iclustered_stops_sorted))])
-        samples_inthisfile = filter(lambda x: M.clustered_samples[x]['file'] == currfile,
-                                    samples_righthere)
-        samples_shortest = sorted(samples_inthisfile, key=lambda x: \
-                M.clustered_samples[x]['ticks'][1]-M.clustered_samples[x]['ticks'][0])
-        if len(samples_shortest)>0:
-            toggle_annotation(samples_shortest[0])
+        sounds_inthisfile = filter(lambda x: M.clustered_sounds[x]['file'] == currfile,
+                                    sounds_righthere)
+        sounds_shortest = sorted(sounds_inthisfile, key=lambda x: \
+                M.clustered_sounds[x]['ticks'][1]-M.clustered_sounds[x]['ticks'][0])
+        if len(sounds_shortest)>0:
+            toggle_annotation(sounds_shortest[0])
 
 pan_start_x = pan_start_y = pan_start_sx = pan_start_sy = None
 
@@ -305,7 +305,7 @@ def waveform_pan_end_callback(event):
     elif pan_start_y<0 and M.state['labels'][M.ilabel]!='':
         x_tic0 = int(np.rint(event.x*M.audio_tic_rate))
         x_tic1 = int(np.rint(pan_start_x*M.audio_tic_rate))
-        M.add_annotation({'file':M.clustered_samples[M.isnippet]['file'],
+        M.add_annotation({'file':M.clustered_sounds[M.isnippet]['file'],
                           'ticks':sorted([x_tic0,x_tic1]),
                           'label':M.state['labels'][M.ilabel]})
     V.waveform_quad_grey_pan.data.update(left=[], right=[], top=[], bottom=[])
@@ -451,7 +451,7 @@ def spectrogram_pan_end_callback(event):
     elif M.state['labels'][M.ilabel]!='':
       x_tic0 = int(np.rint(event.x*M.audio_tic_rate))
       x_tic1 = int(np.rint(pan_start_x*M.audio_tic_rate))
-      M.add_annotation({'file':M.clustered_samples[M.isnippet]['file'],
+      M.add_annotation({'file':M.clustered_sounds[M.isnippet]['file'],
                         'ticks':sorted([x_tic0,x_tic1]),
                         'label':M.state['labels'][M.ilabel]})
     V.spectrogram_quad_grey_pan.data.update(left=[], right=[], top=[], bottom=[])
@@ -463,41 +463,41 @@ def spectrogram_tap_callback(event):
     M.spectrogram_high_hz[ichannel] = M.audio_tic_rate/2
     V.context_update()
     
-def toggle_annotation(idouble_tapped_sample):
-    iannotated = M.isannotated(M.clustered_samples[idouble_tapped_sample])
+def toggle_annotation(idouble_tapped_sound):
+    iannotated = M.isannotated(M.clustered_sounds[idouble_tapped_sound])
     if len(iannotated)>0:
         M.delete_annotation(iannotated[0])
     else:
-        thissample = M.clustered_samples[idouble_tapped_sample].copy()
-        thissample['label'] = M.state['labels'][M.ilabel]
-        thissample.pop('kind', None)
-        M.add_annotation(thissample)
+        thissound = M.clustered_sounds[idouble_tapped_sound].copy()
+        thissound['label'] = M.state['labels'][M.ilabel]
+        thissound.pop('kind', None)
+        M.add_annotation(thissound)
 
 def snippets_doubletap_callback(event):
     x_tic = int(np.rint(event.x/(M.snippets_gap_pix+M.snippets_pix)-0.5))
     y_tic = int(np.floor(-(event.y-1)/V.snippets_dy))
-    idouble_tapped_sample = M.nearest_samples[y_tic*M.snippets_nx + x_tic]
-    toggle_annotation(idouble_tapped_sample)
+    idouble_tapped_sound = M.nearest_sounds[y_tic*M.snippets_nx + x_tic]
+    toggle_annotation(idouble_tapped_sound)
 
-def _find_nearest_clustered_sample(history_idx):
+def _find_nearest_clustered_sound(history_idx):
     M.isnippet = np.searchsorted(M.clustered_starts_sorted, \
                                  M.history_stack[history_idx][1]['ticks'][0])
     delta=0
     while True:
-        if M.isnippet+delta < len(M.clustered_samples) and \
-                  M.clustered_samples[M.isnippet+delta]['file'] == \
+        if M.isnippet+delta < len(M.clustered_sounds) and \
+                  M.clustered_sounds[M.isnippet+delta]['file'] == \
                   M.history_stack[history_idx][1]['file']:
             M.isnippet += delta
             break
         elif M.isnippet-delta >= 0 and \
-                  M.clustered_samples[M.isnippet-delta]['file'] == \
+                  M.clustered_sounds[M.isnippet-delta]['file'] == \
                   M.history_stack[history_idx][1]['file']:
             M.isnippet -= delta
             break
-        if M.isnippet+delta >= len(M.clustered_samples) and M.isnippet-delta < 0:
+        if M.isnippet+delta >= len(M.clustered_sounds) and M.isnippet-delta < 0:
             break
         delta += 1
-    if M.clustered_samples[M.isnippet]['file'] != \
+    if M.clustered_sounds[M.isnippet]['file'] != \
             M.history_stack[history_idx][1]['file']:
         bokehlog.info("WARNING: can't jump to undone annotation")
 
@@ -506,7 +506,7 @@ def _undo_callback():
     if M.history_stack[M.history_idx][0]=='add':
         iannotated = np.searchsorted(M.annotated_starts_sorted, \
                                      M.history_stack[M.history_idx][1]['ticks'][0])
-        while M.annotated_samples[iannotated]!=M.history_stack[M.history_idx][1]:
+        while M.annotated_sounds[iannotated]!=M.history_stack[M.history_idx][1]:
             iannotated += 1
         M.delete_annotation(iannotated, addto_history=False)
     elif M.history_stack[M.history_idx][0]=='delete':
@@ -519,7 +519,7 @@ def undo_callback():
         M.xcluster = M.ycluster = M.zcluster = np.nan
         M.isnippet = -1
         V.snippets_update(True)
-        _find_nearest_clustered_sample(M.history_idx)
+        _find_nearest_clustered_sound(M.history_idx)
         M.context_offset_tic = M.history_stack[M.history_idx][1]['ticks'][0] - \
                                M.clustered_starts_sorted[M.isnippet]
         M.context_offset_ms = M.context_offset_tic/M.audio_tic_rate*1000
@@ -537,7 +537,7 @@ def _redo_callback():
     elif M.history_stack[M.history_idx-1][0]=='delete':
         iannotated = np.searchsorted(M.annotated_starts_sorted, \
                                      M.history_stack[M.history_idx-1][1]['ticks'][0])
-        while M.annotated_samples[iannotated]!=M.history_stack[M.history_idx-1][1]:
+        while M.annotated_sounds[iannotated]!=M.history_stack[M.history_idx-1][1]:
             iannotated += 1
         M.delete_annotation(iannotated, addto_history=False)
 
@@ -548,7 +548,7 @@ def redo_callback():
         M.xcluster = M.ycluster = M.zcluster = np.nan
         M.isnippet = -1
         V.snippets_update(True)
-        _find_nearest_clustered_sample(M.history_idx-1)
+        _find_nearest_clustered_sound(M.history_idx-1)
         M.context_offset_tic = M.history_stack[M.history_idx-1][1]['ticks'][0] - \
                              M.clustered_starts_sorted[M.isnippet]
         M.context_offset_ms = M.context_offset_tic/M.audio_tic_rate*1000
@@ -566,7 +566,7 @@ def action_callback(thisaction, thisactuate):
 
 def classify_callback():
     labels_file = os.path.dirname(V.model_file.value)
-    wantedwords_update(os.path.join(labels_file, "labels.txt"))
+    labels_touse_update(os.path.join(labels_file, "labels.txt"))
     action_callback(V.classify, classify_actuate)
 
 async def actuate_monitor(displaystring, results, idx, isrunningfun, isdonefun, succeededfun):
@@ -660,7 +660,7 @@ def detect_succeeded(wavfile, reftime):
 
 async def detect_actuate():
     M.waitfor_job = []
-    wavfiles = V.wavtfcsvfiles_string.value.split(',')
+    wavfiles = V.wavtfcsv_files.value.split(',')
     threads = [None] * len(wavfiles)
     results = [None] * len(wavfiles)
     await _detect_actuate(0, wavfiles, threads, results)
@@ -677,12 +677,12 @@ async def _detect_actuate(i, wavfiles, threads, results):
                             "",
                             M.detect_cluster_flags,
                             wavfile, \
-                            *V.time_sigma_string.value.split(','), \
-                            V.time_smooth_ms_string.value, \
-                            V.frequency_n_ms_string.value, \
-                            V.frequency_nw_string.value, \
-                            *V.frequency_p_string.value.split(','), \
-                            V.frequency_smooth_ms_string.value,
+                            *V.time_sigma.value.split(','), \
+                            V.time_smooth_ms.value, \
+                            V.frequency_n_ms.value, \
+                            V.frequency_nw.value, \
+                            *V.frequency_p.value.split(','), \
+                            V.frequency_smooth_ms.value,
                             str(M.audio_tic_rate), str(M.audio_nchannels))
     M.waitfor_job.append(jobid)
     displaystring = "DETECT "+os.path.basename(wavfile)+" ("+jobid+")"
@@ -713,7 +713,7 @@ def misses_succeeded(wavfile, reftime):
 
 async def misses_actuate():
     currtime = time.time()
-    csvfile1 = V.wavtfcsvfiles_string.value.split(',')[0]
+    csvfile1 = V.wavtfcsv_files.value.split(',')[0]
     basepath = os.path.dirname(csvfile1)
     with open(csvfile1) as fid:
         csvreader = csv.reader(fid)
@@ -728,7 +728,7 @@ async def misses_actuate():
                             M.misses_ngigabytes_memory,
                             "",
                             M.misses_cluster_flags, \
-                            V.wavtfcsvfiles_string.value)
+                            V.wavtfcsv_files.value)
     displaystring = "MISSES "+wavfile+" ("+jobid+")"
     M.waitfor_job = [jobid]
     V.waitfor_update()
@@ -801,30 +801,30 @@ def _train_succeeded(logdir, kind, model, reftime):
     if "labels.txt" not in train_files:
         bokehlog.info("ERROR: "+train_dir+"/labels.txt does not exist.")
         return False
-    eval_step_interval = save_step_interval = how_many_training_steps = None
+    validate_step_period = save_step_period = how_many_training_steps = None
     with open(train_dir+".log") as fid:
         for line in fid:
-            if "eval_step_interval" in line:
-                m=re.search('eval_step_interval = (\d+)',line)
-                eval_step_interval = int(m.group(1))
-            if "save_step_interval" in line:
-                m=re.search('save_step_interval = (\d+)',line)
-                save_step_interval = int(m.group(1))
+            if "validate_step_period" in line:
+                m=re.search('validate_step_period = (\d+)',line)
+                validate_step_period = int(m.group(1))
+            if "save_step_period" in line:
+                m=re.search('save_step_period = (\d+)',line)
+                save_step_period = int(m.group(1))
             if "how_many_training_steps" in line:
                 m=re.search('how_many_training_steps = (\d+)',line)
                 how_many_training_steps = int(m.group(1))
-    if eval_step_interval is None or save_step_interval is None or how_many_training_steps is None:
-        bokehlog.info("ERROR: "+train_dir+".log should contain `eval_step_interval`, `save_step_interval`, and `how_many_training_steps`")
+    if validate_step_period is None or save_step_period is None or how_many_training_steps is None:
+        bokehlog.info("ERROR: "+train_dir+".log should contain `validate_step_period`, `save_step_period`, and `how_many_training_steps`")
         return False
-    if save_step_interval>0:
-        nckpts = how_many_training_steps // save_step_interval + 1
+    if save_step_period>0:
+        nckpts = how_many_training_steps // save_step_period + 1
         if len(list(filter(lambda x: x.startswith("ckpt-"), \
                            train_files))) != 2*nckpts:
             bokehlog.info("ERROR: "+train_dir+"/ should contain "+ \
                           str(2*nckpts)+" ckpt-* files.")
             return False
-    if eval_step_interval>0:
-        nevals = how_many_training_steps // eval_step_interval 
+    if validate_step_period>0:
+        nevals = how_many_training_steps // validate_step_period 
         if len(list(filter(lambda x: x.startswith("logits.validation.ckpt-"), \
                            train_files))) != nevals:
             bokehlog.info("ERROR: "+train_dir+"/ should contain "+str(nevals)+\
@@ -845,13 +845,13 @@ def train_generalize_xvalidate_finished(lastlogfile, reftime):
 
 def sequester_stalefiles():
     M.songexplorer_starttime = datetime.strftime(datetime.now(),'%Y%m%dT%H%M%S')
-    M.annotated_samples=[]
+    M.annotated_sounds=[]
     M.annotated_starts_sorted=[]
     M.annotated_stops=[]
     M.iannotated_stops_sorted=[]
     M.annotated_csvfiles_all=set([])
-    for label_count_widget in V.label_count_widgets:
-        label_count_widget.label = str(0)
+    for button in V.nsounds_per_label_buttons:
+        button.label = str(0)
     for subdir in filter(lambda x: os.path.isdir(os.path.join(V.groundtruth_folder.value,x)), \
                          os.listdir(V.groundtruth_folder.value)):
         dfs = []
@@ -881,27 +881,27 @@ def sequester_stalefiles():
 
 async def train_actuate():
     M.save_annotations()
-    test_files = _validation_test_files(V.testfiles_string.value)[0]
+    test_files = _validation_test_files(V.test_files.value)[0]
     currtime = time.time()
     jobids = []
     os.makedirs(V.logs_folder.value, exist_ok=True)
-    nreplicates = int(V.replicates_string.value)
+    nreplicates = int(V.nreplicates.value)
     for ireplicate in range(1, 1+nreplicates, M.models_per_job):
         logfile = os.path.join(V.logs_folder.value, "train"+str(ireplicate)+".log")
-        args = [V.context_ms_string.value, V.shiftby_ms_string.value, \
-                V.representation.value, V.window_ms_string.value, \
-                V.stride_ms_string.value, \
-                *V.mel_dct_string.value.split(','),
-                V.optimizer.value, V.learning_rate_string.value, \
+        args = [V.context_ms.value, V.shiftby_ms.value, \
+                V.representation.value, V.window_ms.value, \
+                V.stride_ms.value, \
+                *V.mel_dct.value.split(','),
+                V.optimizer.value, V.learning_rate.value, \
                 M.architecture, \
                 "'"+json.dumps({k:v.value for k,v in V.model_parameters.items()})+"'", \
                 V.logs_folder.value, \
-                V.groundtruth_folder.value, V.wantedwords_string.value, \
-                V.labeltypes_string.value, V.nsteps_string.value, V.restore_from_string.value, \
-                V.save_and_validate_period_string.value, \
-                V.validate_percentage_string.value, V.mini_batch_string.value, test_files, \
+                V.groundtruth_folder.value, V.labels_touse.value, \
+                V.kinds_touse.value, V.nsteps.value, V.restore_from.value, \
+                V.save_and_validate_period.value, \
+                V.validate_percentage.value, V.mini_batch.value, test_files, \
                 str(M.audio_tic_rate), str(M.audio_nchannels), \
-                V.batch_seed_string.value, V.weights_seed_string.value, \
+                V.batch_seed.value, V.weights_seed.value, \
                 ','.join([str(x) for x in range(ireplicate, min(1+nreplicates, \
                                                                 ireplicate+M.models_per_job))])]
         if M.train_gpu == 1:
@@ -952,30 +952,30 @@ def generalize_xvalidate_succeeded(kind, logdir, currtime):
     return True
 
 async def leaveout_actuate(comma):
-    test_files = _validation_test_files(V.testfiles_string.value)[0]
+    test_files = _validation_test_files(V.test_files.value)[0]
     validation_files = list(filter(
             lambda x: not any([y!='' and y in x for y in test_files.split(',')]),
-            _validation_test_files(V.validationfiles_string.value, comma)))
+            _validation_test_files(V.validation_files.value, comma)))
     currtime = time.time()
     jobids = []
     os.makedirs(V.logs_folder.value, exist_ok=True)
     for ivalidation_file in range(0, len(validation_files), M.models_per_job):
         logfile = os.path.join(V.logs_folder.value, "generalize"+str(1+ivalidation_file)+".log")
-        args = [V.context_ms_string.value, \
-                V.shiftby_ms_string.value, V.representation.value, \
-                V.window_ms_string.value, V.stride_ms_string.value, \
-                *V.mel_dct_string.value.split(','), \
+        args = [V.context_ms.value, \
+                V.shiftby_ms.value, V.representation.value, \
+                V.window_ms.value, V.stride_ms.value, \
+                *V.mel_dct.value.split(','), \
                 V.optimizer.value, \
-                V.learning_rate_string.value, \
+                V.learning_rate.value, \
                 M.architecture, \
                 "'"+json.dumps({k:v.value for k,v in V.model_parameters.items()})+"'", \
                 V.logs_folder.value, V.groundtruth_folder.value, \
-                V.wantedwords_string.value, V.labeltypes_string.value, \
-                V.nsteps_string.value, V.restore_from_string.value, \
-                V.save_and_validate_period_string.value, \
-                V.mini_batch_string.value, test_files, \
+                V.labels_touse.value, V.kinds_touse.value, \
+                V.nsteps.value, V.restore_from.value, \
+                V.save_and_validate_period.value, \
+                V.mini_batch.value, test_files, \
                 str(M.audio_tic_rate), str(M.audio_nchannels), \
-                V.batch_seed_string.value, V.weights_seed_string.value, \
+                V.batch_seed.value, V.weights_seed.value, \
                 str(ivalidation_file),
                 *validation_files[ivalidation_file:ivalidation_file+M.models_per_job]]
         if M.generalize_gpu == 1:
@@ -1009,29 +1009,29 @@ async def leaveout_actuate(comma):
                                generalize_xvalidate_succeeded("generalize", l, t)))
 
 async def xvalidate_actuate():
-    test_files = _validation_test_files(V.testfiles_string.value)[0]
+    test_files = _validation_test_files(V.test_files.value)[0]
     currtime = time.time()
     jobids = []
     os.makedirs(V.logs_folder.value, exist_ok=True)
-    kfolds = int(V.kfold_string.value)
+    kfolds = int(V.kfold.value)
     for ifold in range(1, 1+kfolds, M.models_per_job):
         logfile = os.path.join(V.logs_folder.value, "xvalidate"+str(ifold)+".log")
-        args = [V.context_ms_string.value, \
-                V.shiftby_ms_string.value, V.representation.value, \
-                V.window_ms_string.value, V.stride_ms_string.value, \
-                *V.mel_dct_string.value.split(','), \
+        args = [V.context_ms.value, \
+                V.shiftby_ms.value, V.representation.value, \
+                V.window_ms.value, V.stride_ms.value, \
+                *V.mel_dct.value.split(','), \
                 V.optimizer.value, \
-                V.learning_rate_string.value, \
+                V.learning_rate.value, \
                 M.architecture, \
                 "'"+json.dumps({k:v.value for k,v in V.model_parameters.items()})+"'", \
                 V.logs_folder.value, V.groundtruth_folder.value, \
-                V.wantedwords_string.value, V.labeltypes_string.value, \
-                V.nsteps_string.value, V.restore_from_string.value, \
-                V.save_and_validate_period_string.value, \
-                V.mini_batch_string.value, test_files, \
+                V.labels_touse.value, V.kinds_touse.value, \
+                V.nsteps.value, V.restore_from.value, \
+                V.save_and_validate_period.value, \
+                V.mini_batch.value, test_files, \
                 str(M.audio_tic_rate), str(M.audio_nchannels), \
-                V.batch_seed_string.value, V.weights_seed_string.value, \
-                V.kfold_string.value, \
+                V.batch_seed.value, V.weights_seed.value, \
+                V.kfold.value, \
                 ','.join([str(x) for x in range(ifold, min(1+kfolds, ifold+M.models_per_job))])]
         if M.xvalidate_gpu == 1:
             jobid = generic_actuate("xvalidate.sh", logfile, M.xvalidate_where,
@@ -1106,17 +1106,17 @@ async def activations_actuate():
     currtime = time.time()
     logdir, model, _, check_point = M.parse_model_file(V.model_file.value)
     logfile = os.path.join(V.groundtruth_folder.value, "activations.log")
-    args = [V.context_ms_string.value, \
-            V.shiftby_ms_string.value, V.representation.value, \
-            V.window_ms_string.value, V.stride_ms_string.value, \
-            *V.mel_dct_string.value.split(','), \
+    args = [V.context_ms.value, \
+            V.shiftby_ms.value, V.representation.value, \
+            V.window_ms.value, V.stride_ms.value, \
+            *V.mel_dct.value.split(','), \
             M.architecture, \
             "'"+json.dumps({k:v.value for k,v in V.model_parameters.items()})+"'", \
             logdir, model, check_point, V.groundtruth_folder.value, \
-            V.wantedwords_string.value, V.labeltypes_string.value, \
-            V.activations_equalize_ratio_string.value, \
-            V.activations_max_samples_string.value, \
-            V.mini_batch_string.value, \
+            V.labels_touse.value, V.kinds_touse.value, \
+            V.activations_equalize_ratio.value, \
+            V.activations_max_sounds.value, \
+            V.mini_batch.value, \
             str(M.audio_tic_rate), str(M.audio_nchannels)]
     if M.activations_gpu:
         jobid = generic_actuate("activations.sh", logfile, M.activations_where,
@@ -1153,13 +1153,13 @@ async def cluster_actuate():
     logfile = os.path.join(V.groundtruth_folder.value, "cluster.log")
     args = [V.groundtruth_folder.value, \
             these_layers, \
-            V.pca_fraction_variance_to_retain_string.value, \
+            V.pca_fraction_variance_to_retain.value, \
             str(M.pca_batch_size), \
             algorithm, ndims, str(M.cluster_parallelize)]
     if algorithm == "tSNE":
-        args.extend([V.tsne_perplexity_string.value, V.tsne_exaggeration_string.value])
+        args.extend([V.tsne_perplexity.value, V.tsne_exaggeration.value])
     elif algorithm == "UMAP":
-        args.extend([V.umap_neighbors_string.value, V.umap_distance_string.value])
+        args.extend([V.umap_neighbors.value, V.umap_distance.value])
     jobid = generic_actuate("cluster.sh", logfile,
                             M.cluster_where,
                             M.cluster_ncpu_cores,
@@ -1260,7 +1260,7 @@ async def accuracy_actuate():
                             "",
                             M.accuracy_cluster_flags,
                             V.logs_folder.value, \
-                            V.precision_recall_ratios_string.value, \
+                            V.precision_recall_ratios.value, \
                             str(M.nprobabilities), str(M.accuracy_parallelize))
     displaystring = "ACCURACY "+os.path.basename(V.logs_folder.value.rstrip('/'))+ \
                     " ("+jobid+")"
@@ -1296,9 +1296,9 @@ async def _freeze_actuate(ckpts):
                             M.freeze_ngigabytes_memory,
                             "",
                             M.freeze_cluster_flags,
-                            V.context_ms_string.value, \
-                            V.representation.value, V.window_ms_string.value, \
-                            V.stride_ms_string.value, *V.mel_dct_string.value.split(','), \
+                            V.context_ms.value, \
+                            V.representation.value, V.window_ms.value, \
+                            V.stride_ms.value, *V.mel_dct.value.split(','), \
                             M.architecture, \
                             "'"+json.dumps({k:v.value for k,v in V.model_parameters.items()})+"'", \
                             logdir, model, check_point, str(M.nwindows), \
@@ -1338,7 +1338,7 @@ def classify_succeeded(modeldir, wavfile, reftime):
 
 async def classify_actuate():
     M.waitfor_job = []
-    await _classify_actuate(V.wavtfcsvfiles_string.value.split(','))
+    await _classify_actuate(V.wavtfcsv_files.value.split(','))
 
 async def _classify_actuate(wavfiles):
     wavfile = wavfiles.pop(0)
@@ -1347,12 +1347,12 @@ async def _classify_actuate(wavfiles):
     logfile0 = os.path.splitext(wavfile)[0]+'-classify'
     logfile1 = logfile0+'1.log'
     logfile2 = logfile0+'2.log'
-    args = [V.context_ms_string.value, \
-            V.shiftby_ms_string.value, V.representation.value, \
-            V.stride_ms_string.value, \
+    args = [V.context_ms.value, \
+            V.shiftby_ms.value, V.representation.value, \
+            V.stride_ms.value, \
             logdir, model, check_point, wavfile, str(M.audio_tic_rate), str(M.nwindows)]
-    if V.prevalences_string.value!='':
-        args += [V.wantedwords_string.value, V.prevalences_string.value]
+    if V.prevalences.value!='':
+        args += [V.labels_touse.value, V.prevalences.value]
     p = run(["date", "+%s"], stdout=PIPE, stderr=STDOUT)
     if M.classify_gpu:
         jobid1 = generic_actuate("classify1.sh", logfile1, M.classify_where,
@@ -1406,7 +1406,7 @@ def ethogram_succeeded(modeldir, ckpt, tffile, reftime):
     return True
 
 async def ethogram_actuate():
-    tffiles = V.wavtfcsvfiles_string.value.split(',')
+    tffiles = V.wavtfcsv_files.value.split(',')
     threads = [None] * len(tffiles)
     results = [None] * len(tffiles)
     await _ethogram_actuate(0, tffiles, threads, results)
@@ -1491,11 +1491,11 @@ def congruence_succeeded(groundtruth_folder, reftime, regex_files):
         ntic = len(list(filter(lambda x: x.startswith("congruence.tic") and reftime <=
                                          os.path.getmtime(os.path.join(groundtruth_folder,x)),
                                allfiles)))
-        nword = len(list(filter(lambda x: x.startswith("congruence.word") and reftime <=
+        nlabel = len(list(filter(lambda x: x.startswith("congruence.label") and reftime <=
                                           os.path.getmtime(os.path.join(groundtruth_folder,x)),
                                 allfiles)))
-        if ntic != nword or ntic==0:
-            bokehlog.info("ERROR: missing congruence-{tic,word} "+suffix+" files.")
+        if ntic != nlabel or ntic==0:
+            bokehlog.info("ERROR: missing congruence-{tic,label} "+suffix+" files.")
             return False
     for subdir in filter(lambda x: os.path.isdir(os.path.join(groundtruth_folder,x)), \
                          os.listdir(groundtruth_folder)):
@@ -1507,7 +1507,7 @@ def congruence_succeeded(groundtruth_folder, reftime, regex_files):
           continue
         ndisjoint_everyone = len(list(filter(lambda x: "disjoint-everyone" in x, csvfiles)))
         for disjointstr in ["disjoint-tic-only", "disjoint-tic-not", \
-                            "disjoint-word-only", "disjoint-word-not"]:
+                            "disjoint-label-only", "disjoint-label-not"]:
             n = len(list(filter(lambda x: disjointstr in x, csvfiles)))
             if n % ndisjoint_everyone != 0:
                 bokehlog.info("ERROR: # of "+k+ \
@@ -1517,8 +1517,8 @@ def congruence_succeeded(groundtruth_folder, reftime, regex_files):
 
 async def congruence_actuate():
     currtime = time.time()
-    validation_files = _validation_test_files(V.validationfiles_string.value, False)
-    test_files = _validation_test_files(V.testfiles_string.value, False)
+    validation_files = _validation_test_files(V.validation_files.value, False)
+    test_files = _validation_test_files(V.test_files.value, False)
     all_files = validation_files + test_files
     if '' in all_files:
         all_files.remove('')
@@ -1579,7 +1579,7 @@ def wavtfcsv_files_callback():
     for i in range(1, len(V.file_dialog_source.selected.indices)):
         filename = V.file_dialog_source.data['names'][V.file_dialog_source.selected.indices[i]]
         files += ','+os.path.join(M.file_dialog_root, filename)
-    V.wavtfcsvfiles.value = files
+    V.wavtfcsv_files.value = files
 
 def groundtruth_callback():
     if len(V.file_dialog_source.selected.indices)>=2:
@@ -1610,24 +1610,24 @@ def _validation_test_files_callback():
         return files
 
 def validationfiles_callback():
-  V.validationfiles_string.value = _validation_test_files_callback()
+  V.validation_files.value = _validation_test_files_callback()
 
-def testfiles_callback():
-  V.testfiles_string.value = _validation_test_files_callback()
+def test_files_callback():
+  V.test_files.value = _validation_test_files_callback()
 
-def wantedwords_update(labels_file):
+def labels_touse_update(labels_file):
     if os.path.isfile(labels_file):
         with open(labels_file, "r") as fid:
             labels = fid.readlines()
-        V.wantedwords_string.value = str.join(',',[x.strip() for x in labels])
+        V.labels_touse.value = str.join(',',[x.strip() for x in labels])
 
-def wantedwords_callback():
+def labels_touse_callback():
     if len(V.file_dialog_source.selected.indices)!=1:
         bokehlog.info('ERROR: a file must be selected in the file browser')
         return
     idx = V.file_dialog_source.selected.indices[0]
     labels_file = os.path.join(M.file_dialog_root, V.file_dialog_source.data['names'][idx])
-    wantedwords_update(labels_file)
+    labels_touse_update(labels_file)
 
 def prevalences_callback():
     if len(V.file_dialog_source.selected.indices)!=1:
@@ -1641,7 +1641,7 @@ def prevalences_callback():
                 m=re.search('prevalences: \[(.*)\]', line)
                 prevalences = m.group(1)
                 break
-    V.prevalences_string.value = prevalences.replace(' ',',')
+    V.prevalences.value = prevalences.replace(' ',',')
 
 def _copy_callback_finalize():
     V.copy.button_type="default"
@@ -1662,42 +1662,42 @@ def _copy_callback():
         for line in fid:
             if "batch_size" in line:
                 m=re.search('batch_size = (\d+)', line)
-                V.mini_batch_string.value = m.group(1)
-            elif "clip_duration_ms" in line:
-                m=re.search('clip_duration_ms = (.*)', line)
-                V.context_ms_string.value = m.group(1)
+                V.mini_batch.value = m.group(1)
+            elif "context_ms" in line:
+                m=re.search('context_ms = (.*)', line)
+                V.context_ms.value = m.group(1)
             elif "time_shift_ms" in line:
                 m=re.search('time_shift_ms = (.*)', line)
-                V.shiftby_ms_string.value = m.group(1)
+                V.shiftby_ms.value = m.group(1)
             elif "data_dir" in line:
                 m=re.search('data_dir = (.*)', line)
                 V.groundtruth_folder.value = m.group(1)
-            elif "dct_coefficient_count" in line:
-                m=re.search('dct_coefficient_count = (\d+)', line)
-                currmel, currdct = V.mel_dct_string.value.split(',')
-                V.mel_dct_string.value = ','.join([currmel, m.group(1)])
+            elif "dct_ncoefficients" in line:
+                m=re.search('dct_ncoefficients = (\d+)', line)
+                currmel, currdct = V.mel_dct.value.split(',')
+                V.mel_dct.value = ','.join([currmel, m.group(1)])
             elif "random_seed_batch" in line:
                 m=re.search('random_seed_batch = (.*)', line)
-                V.batch_seed_string.value = m.group(1)
+                V.batch_seed.value = m.group(1)
             elif "random_seed_weights" in line:
                 m=re.search('random_seed_weights = (.*)', line)
-                V.weights_seed_string.value = m.group(1)
-            elif "eval_step_interval" in line:
-                m=re.search('eval_step_interval = (\d+)', line)
-                V.save_and_validate_period_string.value = m.group(1)
-            elif "filterbank_channel_count" in line:
-                m=re.search('filterbank_channel_count = (\d+)', line)
-                currmel, currdct = V.mel_dct_string.value.split(',')
-                V.mel_dct_string.value = ','.join([m.group(1), currdct])
+                V.weights_seed.value = m.group(1)
+            elif "validate_step_period" in line:
+                m=re.search('validate_step_period = (\d+)', line)
+                V.save_and_validate_period.value = m.group(1)
+            elif "filterbank_nchannels" in line:
+                m=re.search('filterbank_nchannels = (\d+)', line)
+                currmel, currdct = V.mel_dct.value.split(',')
+                V.mel_dct.value = ','.join([m.group(1), currdct])
             elif "how_many_training_steps" in line:
                 m=re.search('how_many_training_steps = (\d+)', line)
-                V.nsteps_string.value = m.group(1)
-            elif "labels_touse" in line:
-                m=re.search('labels_touse = (.*)', line)
-                V.labeltypes_string.value = m.group(1)
+                V.nsteps.value = m.group(1)
+            elif "kinds_touse" in line:
+                m=re.search('kinds_touse = (.*)', line)
+                V.kinds_touse.value = m.group(1)
             elif "learning_rate" in line:
                 m=re.search('learning_rate = (.*)', line)
-                V.learning_rate_string.value = m.group(1)
+                V.learning_rate.value = m.group(1)
             elif "optimizer" in line:
                 m=re.search('optimizer = (.*)', line)
                 V.optimizer.value = m.group(1)
@@ -1707,32 +1707,32 @@ def _copy_callback():
             elif "start_checkpoint = " in line:
                 m=re.search('start_checkpoint = .*ckpt-([0-9]+)', line)
                 if m:
-                    V.restore_from_string.value = m.group(1)
+                    V.restore_from.value = m.group(1)
                 else:
-                    V.restore_from_string.value = ''
+                    V.restore_from.value = ''
             elif "testing_files" in line:
                 m=re.search('testing_files = (.*)', line)
-                V.testfiles_string.value = m.group(1)
+                V.test_files.value = m.group(1)
             elif "validation_files" in line:
                 m=re.search('validation_files = (.*)', line)
-                V.validationfiles_string.value = m.group(1)
+                V.validation_files.value = m.group(1)
             elif "validation_percentage" in line:
                 m=re.search('validation_percentage = (.*)', line)
-                V.validate_percentage_string.value = m.group(1)
-                validate_perentage_float = float(V.validate_percentage_string.value)
+                V.validate_percentage.value = m.group(1)
+                validate_perentage_float = float(V.validate_percentage.value)
                 if validate_perentage_float!=0:
-                    V.kfold_string.value = str(int(round(100/validate_perentage_float)))
+                    V.kfold.value = str(int(round(100/validate_perentage_float)))
                 else:
-                    V.kfold_string.value = "0"
-            elif "wanted_words" in line:
-                m=re.search('wanted_words = (.*)', line)
-                V.wantedwords_string.value = m.group(1)
-            elif "window_size_ms" in line:
-                m=re.search('window_size_ms = (.*)', line)
-                V.window_ms_string.value = m.group(1)
-            elif "window_stride_ms" in line:
-                m=re.search('window_stride_ms = (.*)', line)
-                V.stride_ms_string.value = m.group(1)
+                    V.kfold.value = "0"
+            elif "labels_touse" in line:
+                m=re.search('labels_touse = (.*)', line)
+                V.labels_touse.value = m.group(1)
+            elif "window_ms" in line:
+                m=re.search('window_ms = (.*)', line)
+                V.window_ms.value = m.group(1)
+            elif "stride_ms" in line:
+                m=re.search('stride_ms = (.*)', line)
+                V.stride_ms.value = m.group(1)
             elif "model_parameters" in line:
                 m=re.search('model_parameters = ({.*})', line)
                 params = json.loads(m.group(1))
@@ -1749,48 +1749,48 @@ def wizard_callback(wizard):
     M.wizard=None if M.wizard is wizard else wizard
     M.action=None
     if M.wizard==V.labelsounds:
-        wantedwords=[]
+        labels_touse=[]
         for i in range(M.audio_nchannels):
             i_str = str(i) if M.audio_nchannels>1 else ''
-            wantedwords.append("time"+i_str+",frequency"+i_str+",neither"+i_str)
-        V.wantedwords_string.value=','.join(wantedwords)
-        V.labeltypes_string.value="detected"
-        V.nsteps_string.value="0"
-        V.save_and_validate_period_string.value="0"
-        V.validate_percentage_string.value="0"
+            labels_touse.append("time"+i_str+",frequency"+i_str+",neither"+i_str)
+        V.labels_touse.value=','.join(labels_touse)
+        V.kinds_touse.value="detected"
+        V.nsteps.value="0"
+        V.save_and_validate_period.value="0"
+        V.validate_percentage.value="0"
     elif M.wizard==V.makepredictions:
-        V.wantedwords_update_other()
-        V.labeltypes_string.value="annotated"
+        V.labels_touse_update_other()
+        V.kinds_touse.value="annotated"
     elif M.wizard==V.fixfalsepositives:
-        V.wantedwords_update_other()
-        V.labeltypes_string.value="annotated,predicted"
+        V.labels_touse_update_other()
+        V.kinds_touse.value="annotated,predicted"
     elif M.wizard==V.fixfalsenegatives:
-        V.wantedwords_update_other()
-        V.labeltypes_string.value="annotated,missed"
+        V.labels_touse_update_other()
+        V.kinds_touse.value="annotated,missed"
     elif M.wizard==V.generalize:
-        V.wantedwords_update_other()
-        V.labeltypes_string.value="annotated"
+        V.labels_touse_update_other()
+        V.kinds_touse.value="annotated"
     elif M.wizard==V.tunehyperparameters:
-        V.wantedwords_update_other()
-        V.labeltypes_string.value="annotated"
+        V.labels_touse_update_other()
+        V.kinds_touse.value="annotated"
     elif M.wizard==V.examineerrors:
-        V.labeltypes_string.value="detected,mistaken"
+        V.kinds_touse.value="detected,mistaken"
     elif M.wizard==V.testdensely:
-        V.wantedwords_update_other()
-        V.labeltypes_string.value="annotated"
+        V.labels_touse_update_other()
+        V.kinds_touse.value="annotated"
     elif M.wizard==V.findnovellabels:
-        wantedwords = [x.value for x in V.label_text_widgets if x.value!='']
+        labels_touse = [x.value for x in V.label_texts if x.value!='']
         for i in range(M.audio_nchannels):
             i_str = str(i) if M.audio_nchannels>1 else ''
-            if 'time'+i_str not in wantedwords:
-                wantedwords.append('time'+i_str)
-            if 'frequency'+i_str not in wantedwords:
-                wantedwords.append('frequency'+i_str)
-        V.wantedwords_string.value=str.join(',',wantedwords)
+            if 'time'+i_str not in labels_touse:
+                labels_touse.append('time'+i_str)
+            if 'frequency'+i_str not in labels_touse:
+                labels_touse.append('frequency'+i_str)
+        V.labels_touse.value=str.join(',',labels_touse)
         if M.action==V.train:
-            V.labeltypes_string.value="annotated"
+            V.kinds_touse.value="annotated"
         elif M.action==V.activations:
-            V.labeltypes_string.value="annotated,detected"
+            V.kinds_touse.value="annotated,detected"
     V.buttons_update()
   
 async def _doit_callback():
@@ -1836,20 +1836,20 @@ def file_dialog_path_callback(attr, old, new):
     V.file_dialog_update()
     M.save_state_callback()
 
-def label_count_callback(i):
+def nsounds_per_label_callback(i):
     M.ilabel=i
-    for button in V.label_count_widgets:
+    for button in V.nsounds_per_label_buttons:
         button.button_type="default"
-    V.label_count_widgets[i].button_type="primary"
+    V.nsounds_per_label_buttons[i].button_type="primary"
 
-def label_text_callback(new, i):
+def label_callback(new, i):
     if M.state['labels'][i]!='':
-        V.label_count_widgets[i].label='0'
+        V.nsounds_per_label_buttons[i].label='0'
         M.history_stack=[]
         M.history_idx=0
         V.undo.disabled=True
         V.redo.disabled=True
-    label_count_callback(i)
+    nsounds_per_label_callback(i)
     M.state['labels'][i]=new
     M.nrecent_annotations+=1
     V.save_update(M.nrecent_annotations)

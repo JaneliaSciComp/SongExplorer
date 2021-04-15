@@ -19,27 +19,27 @@ print('groundtruth_directory: '+groundtruth_directory)
 
 npzfile = np.load(os.path.join(groundtruth_directory, 'activations.npz'),
                   allow_pickle=True)
-samples = npzfile['samples']
+sounds = npzfile['sounds']
 arr_ = natsorted(filter(lambda x: x.startswith('arr_'), npzfile.files))
 logits = npzfile[arr_[-1]]
 labels = list(npzfile['labels'])
 
-isort = [x for x,y in sorted(enumerate(samples), key = lambda x: x[1]['ticks'][0])]
+isort = [x for x,y in sorted(enumerate(sounds), key = lambda x: x[1]['ticks'][0])]
 
 fids = []
 csvwriters = {}
 for idx in isort:
-  wavbase,_ = os.path.splitext(samples[idx]['file'])
+  wavbase,_ = os.path.splitext(sounds[idx]['file'])
   if wavbase not in csvwriters:
     fids.append(open(wavbase+'-mistakes.csv', 'w', newline=''))
     csvwriters[wavbase] = csv.writer(fids[-1])
   classified_as = np.argmax(logits[idx])
-  annotated_as = labels.index(samples[idx]['label'])
-  csvwriters[wavbase].writerow([os.path.basename(samples[idx]['file']),
-        samples[idx]['ticks'][0], samples[idx]['ticks'][1],
+  annotated_as = labels.index(sounds[idx]['label'])
+  csvwriters[wavbase].writerow([os.path.basename(sounds[idx]['file']),
+        sounds[idx]['ticks'][0], sounds[idx]['ticks'][1],
         'correct' if classified_as == annotated_as else 'mistaken',
         labels[classified_as],
-        samples[idx]['label']])
+        sounds[idx]['label']])
 
 for fid in fids:
   fid.close()

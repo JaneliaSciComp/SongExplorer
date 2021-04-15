@@ -34,11 +34,11 @@ if len(argv)==9:
   labels = np.array(labels.split(','))
   prevalences = np.array([float(x) for x in prevalences.split(',')])
   if len(labels) != len(prevalences):
-    print("ERROR: length of 'wanted words' (="+str(len(labels))+
+    print("ERROR: length of 'labels to use' (="+str(len(labels))+
           ") must equal length of 'prevalences' (="+str(len(prevalences))+")")
     exit()
   if set(labels) != set(model_labels):
-    print("ERROR: 'wanted words' must be the same as "+
+    print("ERROR: 'labels to use' must be the same as "+
           os.path.join(logdir,model,'labels.txt'))
     exit()
   prevalences /= np.sum(prevalences)

@@ -1,6 +1,6 @@
 import tensorflow as tf
 
-# Allow the audio sample's volume to be adjusted.
+# Allow the sound's volume to be adjusted.
 def scale_foreground(foreground_data, foreground_volume, model_settings):
     return tf.multiply(foreground_data, foreground_volume)
 
@@ -13,20 +13,20 @@ def compute_spectrograms(foreground_data, foreground_volume, model_settings):
     # should be omitted when input to tf.signal.mfcc
     # given channel X time, returns channel X time X freq
     return tf.math.abs(tf.signal.stft(scaled_foreground,
-                                      model_settings['window_size_samples'],
-                                      model_settings['window_stride_samples']))
+                                      model_settings['window_tics'],
+                                      model_settings['stride_tics']))
 
 #  output is similar but not the same as with tf.contrib.signal
 def compute_mfccs(foreground_data, foreground_volume, model_settings):
     spectrograms = compute_spectrograms(foreground_data, foreground_volume, model_settings)
 
     # Warp the linear scale spectrograms into the mel-scale.
-    num_spectrogram_bins = model_settings['window_size_samples']//2+1
+    num_spectrogram_bins = model_settings['window_tics']//2+1
     lower_edge_hertz = 0.0
-    upper_edge_hertz = model_settings['sample_rate']//2
-    num_mel_bins = model_settings['filterbank_channel_count']
+    upper_edge_hertz = model_settings['audio_tic_rate']//2
+    num_mel_bins = model_settings['filterbank_nchannels']
     linear_to_mel_weight_matrix = tf.signal.linear_to_mel_weight_matrix(
-      num_mel_bins, num_spectrogram_bins, model_settings['sample_rate'],
+      num_mel_bins, num_spectrogram_bins, model_settings['audio_tic_rate'],
       lower_edge_hertz, upper_edge_hertz)
     mel_spectrograms = tf.tensordot(
       spectrograms, linear_to_mel_weight_matrix, 1)
@@ -38,4 +38,4 @@ def compute_mfccs(foreground_data, foreground_volume, model_settings):
 
     # Compute MFCCs from log_mel_spectrograms and take the first few
     return tf.signal.mfccs_from_log_mel_spectrograms(
-      log_mel_spectrograms)[..., :model_settings['dct_coefficient_count']]
+      log_mel_spectrograms)[..., :model_settings['dct_ncoefficients']]

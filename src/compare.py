@@ -34,8 +34,8 @@ train_time={}
 validation_accuracy={}
 validation_time={}
 validation_step={}
-wanted_words={}
-word_counts={}
+labels_touse={}
+label_counts={}
 nparameters_total={}
 nparameters_finallayer={}
 batch_size={}
@@ -51,13 +51,13 @@ for logdir in logdirs:
   _, _, train_time[logdir], _, \
           _, _, validation_accuracy[logdir], validation_time[logdir], validation_step[logdir], \
           _, _, _, \
-          wanted_words[logdir], word_counts[logdir], \
+          labels_touse[logdir], label_counts[logdir], \
           nparameters_total[logdir], nparameters_finallayer[logdir], \
           batch_size[logdir], nlayers[logdir] = \
           read_logs(os.path.join(basename,logdir))
-  if len(set([tuple(x) for x in wanted_words[logdir].values()]))>1:
-    print('WARNING: not all wanted_words are the same')
-  #assert len(set(word_counts[logdir].values()))==1
+  if len(set([tuple(x) for x in labels_touse[logdir].values()]))>1:
+    print('WARNING: not all labels_touse are the same')
+  #assert len(set(label_counts[logdir].values()))==1
   if len(set(nparameters_total[logdir].values()))>1:
     print('WARNING: not all nparameters_total are the same')
   if len(set(nparameters_finallayer[logdir].values()))>1:
@@ -67,9 +67,9 @@ for logdir in logdirs:
   if len(set(nlayers[logdir].values()))>1:
     print('WARNING: not all nlayers are the same')
   if len(validation_accuracy)>0:
-    if set([tuple(x) for x in wanted_words[logdirs[0]].values()])!=set([tuple(x) for x in wanted_words[logdir].values()]):
-      print('WARNING: not all wanted_words are the same')
-    #assert set(word_counts[logdirs[0]].values())==set(word_counts[logdir].values())
+    if set([tuple(x) for x in labels_touse[logdirs[0]].values()])!=set([tuple(x) for x in labels_touse[logdir].values()]):
+      print('WARNING: not all labels_touse are the same')
+    #assert set(label_counts[logdirs[0]].values())==set(label_counts[logdir].values())
     if set(nparameters_total[logdirs[0]].values())!=set(nparameters_total[logdir].values()):
       print('WARNING: not all nparameters_total are the same')
     if set(nparameters_finallayer[logdirs[0]].values())!=set(nparameters_finallayer[logdir].values()):
@@ -142,19 +142,19 @@ precision_confusion_matrices={}
 recall_summed_matrices={}
 precision_summed_matrices={}
 summed_accuracies={}
-words=[]
+labels=[]
 
 for logdir in logdirs:
   kind = next(iter(validation_time[logdir].keys())).split('_')[0]
-  summed_confusion_matrices[logdir], confusion_matrices[logdir], thiswords = \
+  summed_confusion_matrices[logdir], confusion_matrices[logdir], theselabels = \
           parse_confusion_matrices(os.path.join(basename,logdir), kind, \
                                    idx_time=idx_time[logdir] if same_time else None)
-  if words:
-    assert set(words)==set(thiswords)
+  if labels:
+    assert set(labels)==set(theselabels)
   else:
-    words=thiswords
-  if words!=thiswords:
-    idx = [words.index(x) for x in thiswords]
+    labels=theselabels
+  if labels!=theselabels:
+    idx = [labels.index(x) for x in theselabels]
     print(idx)
     summed_confusion_matrices[logdir] = [[summed_confusion_matrices[logdir][i][j] \
                                           for j in idx] for i in idx]
@@ -177,8 +177,8 @@ for logdir in logdirs:
 
 plot_confusion_matrices(summed_confusion_matrices,
                         precision_summed_matrices, recall_summed_matrices,
-                        words, summed_accuracies, natsorted(logdirs),
-                        numbers=len(words)<10)
+                        labels, summed_accuracies, natsorted(logdirs),
+                        numbers=len(labels)<10)
 plt.savefig(logdirs_prefix+'-compare-confusion-matrices.pdf')
 plt.close()
 
@@ -191,23 +191,23 @@ minprecision=1.0
 minrecall=1.0
 for logdir in logdirs:
   for model in recall_confusion_matrices[logdir].keys():
-    for iword in range(len(words)):
+    for ilabel in range(len(labels)):
       minprecision = min(minprecision,
-                         precision_confusion_matrices[logdir][model][iword][iword])
+                         precision_confusion_matrices[logdir][model][ilabel][ilabel])
       minrecall = min(minrecall,
-                      recall_confusion_matrices[logdir][model][iword][iword])
+                      recall_confusion_matrices[logdir][model][ilabel][ilabel])
 
 for (ilogdir,logdir) in enumerate(natsorted(logdirs)):
   ax = fig.add_subplot(nrows, ncols, ilogdir+1)
   model0=list(recall_confusion_matrices[logdir].keys())[0]
   for model in recall_confusion_matrices[logdir].keys():
     ax.set_prop_cycle(None)
-    for (iword,word) in enumerate(words):
-      line, = ax.plot(recall_confusion_matrices[logdir][model][iword][iword],
-                      precision_confusion_matrices[logdir][model][iword][iword],
+    for (ilabel,label) in enumerate(labels):
+      line, = ax.plot(recall_confusion_matrices[logdir][model][ilabel][ilabel],
+                      precision_confusion_matrices[logdir][model][ilabel][ilabel],
                       'o', markeredgecolor='k')
       if ilogdir==0 and model==model0:
-        line.set_label(word)
+        line.set_label(label)
   ax.set_xlim(left=minrecall, right=1)
   ax.set_ylim(bottom=minprecision, top=1)
   if ilogdir//ncols==nrows-1:

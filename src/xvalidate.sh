@@ -2,7 +2,7 @@
 
 # train several networks on different subsets of the annotations
 
-# xvalidate.sh <context-ms> <shiftby-ms> <representation> <window-ms> <stride_ms> <mel> <dct> <optimizer> <learning-rate> <model-architecture> <model-parameters-json> <logdir> <path-to-groundtruth> <word1>,<word2>,...,<wordN> <label-types> <nsteps> <restore-from> <save-and-test-interval> <mini-batch> <testing-files> <audio-tic-rate> <audio-nchannels> <batch-seed> <weights-seed> <kfold> <ifolds>
+# xvalidate.sh <context-ms> <shiftby-ms> <representation> <window-ms> <stride_ms> <mel> <dct> <optimizer> <learning-rate> <model-architecture> <model-parameters-json> <logdir> <path-to-groundtruth> <label1>,<label2>,...,<labelN> <kinds-to-use> <nsteps> <restore-from> <save-and-validate-period> <mini-batch> <testing-files> <audio-tic-rate> <audio-nchannels> <batch-seed> <weights-seed> <kfold> <ifolds>
 
 # e.g.
 # $SONGEXPLORER_BIN xvalidate.sh 204.8 0.0 6.4 1.6 7 7 adam 0.0002 convolutional '{"dropout":0.5, "kernel_sizes":5,3,3", last_conv_width":130, "nfeatures":"256,256,256", "dilate_after_layer":65535, "stride_after_layer":65535, "connection_type":"plain"}' `pwd`/cross-validate `pwd`/groundtruth-data mel-pulse,mel-sine,ambient,other annotated 50 '' 10 32 "" 5000 1 -1 -1 8 1,2
@@ -20,11 +20,11 @@ architecture=${10}
 model_parameters=${11}
 logdir=${12}
 data_dir=${13}
-wanted_words=${14}
-labels_touse=${15}
+labels_touse=${14}
+kinds_touse=${15}
 nsteps=${16}
 restore_from=${17}
-save_and_test_interval=${18}
+save_and_validate_period=${18}
 mini_batch=${19}
 testing_files=${20}
 audio_tic_rate=${21}
@@ -57,37 +57,36 @@ while [[ $ifolds =~ .*,.* ]] ; do
     koffset=$(dc -e "$kpercent $ifold 1 - * p")
     expr="/usr/bin/python3 $DIR/speech_commands_custom/train.py \
           --data_dir=$data_dir \
-          --wanted_words=$wanted_words \
           --labels_touse=$labels_touse \
+          --kinds_touse=$kinds_touse \
           --how_many_training_steps=$nsteps \
           --start_checkpoint=${start_checkpoint/MODEL/$model} \
-          --save_step_interval=$save_and_test_interval \
-          --eval_step_interval=$save_and_test_interval \
+          --save_step_period=$save_and_validate_period \
+          --validate_step_period=$save_and_validate_period \
           --train_dir=$logdir/xvalidate_$model \
           --summaries_dir=$logdir/summaries_$model \
-          --sample_rate=$audio_tic_rate \
+          --audio_tic_rate=$audio_tic_rate \
           --nchannels=$audio_nchannels \
-          --clip_duration_ms=$context_ms \
-          --window_size_ms=$window_ms \
-          --window_stride_ms=$stride_ms \
+          --context_ms=$context_ms \
+          --window_ms=$window_ms \
+          --stride_ms=$stride_ms \
           --learning_rate=$learning_rate \
           --random_seed_batch=$batch_seed \
           --random_seed_weights=$weights_seed \
           --validation_percentage=$kpercent \
           --validation_offset_percentage=$koffset \
-          --testing_percentage=0 \
           --testing_files=$testing_files \
           --time_shift_ms=$shiftby_ms \
           --time_shift_random False \
-          --filterbank_channel_count=$mel \
-          --dct_coefficient_count=$dct \
+          --filterbank_nchannels=$mel \
+          --dct_ncoefficients=$dct \
           --model_architecture=$architecture \
           --model_parameters='$model_parameters' \
           --representation=$representation \
           --optimizer=$optimizer \
           --batch_size=$mini_batch"
 
-          #--subsample_word='mel-pulse' \
+          #--subsample_label='mel-pulse' \
           #--subsample_skip=1 \
 
     cmd=${cmd}" $expr $redirect $logdir/xvalidate_${model}.log & "

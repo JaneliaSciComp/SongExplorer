@@ -61,13 +61,13 @@ my_wavs >
     audio_5.wav
 
 You'll also need to tell the script what labels to look for, using the
-`--wanted_words` argument. In this case, 'up,down' might be what you want, and
+`--labels_touse` argument. In this case, 'up,down' might be what you want, and
 the audio in the 'other' folder would be used to train an 'unknown' category.
 
 To pull this all together, you'd run:
 
 bazel run tensorflow/examples/speech_commands:train -- \
---data_dir=my_wavs --wanted_words=up,down
+--data_dir=my_wavs --labels_touse=up,down
 
 """
 import argparse
@@ -119,32 +119,32 @@ def main():
     tf.config.experimental.set_memory_growth(physical_device, True)
   tf.config.set_soft_device_placement(True)
 
-  label_count = len(FLAGS.wanted_words.split(','))
+  nlabels = len(FLAGS.labels_touse.split(','))
 
   model_settings = models.prepare_model_settings(
-      label_count,
-      FLAGS.sample_rate,
+      nlabels,
+      FLAGS.audio_tic_rate,
       FLAGS.nchannels,
       1,
       FLAGS.batch_size,
-      FLAGS.clip_duration_ms,
+      FLAGS.context_ms,
       FLAGS.representation,
-      FLAGS.window_size_ms, FLAGS.window_stride_ms,
-      FLAGS.dct_coefficient_count, FLAGS.filterbank_channel_count,
+      FLAGS.window_ms, FLAGS.stride_ms,
+      FLAGS.dct_ncoefficients, FLAGS.filterbank_nchannels,
       FLAGS.model_parameters)
 
   audio_processor = input_data.AudioProcessor(
       FLAGS.data_dir,
       FLAGS.time_shift_ms, FLAGS.time_shift_random,
-      FLAGS.wanted_words.split(','), FLAGS.labels_touse.split(','),
+      FLAGS.labels_touse.split(','), FLAGS.kinds_touse.split(','),
       FLAGS.validation_percentage, FLAGS.validation_offset_percentage,
       FLAGS.validation_files.split(','),
-      FLAGS.testing_percentage, FLAGS.testing_files.split(','), FLAGS.subsample_skip,
-      FLAGS.subsample_word,
-      FLAGS.partition_word, FLAGS.partition_n, FLAGS.partition_training_files.split(','),
+      0, FLAGS.testing_files.split(','), FLAGS.subsample_skip,
+      FLAGS.subsample_label,
+      FLAGS.partition_label, FLAGS.partition_n, FLAGS.partition_training_files.split(','),
       FLAGS.partition_validation_files.split(','),
       FLAGS.random_seed_batch,
-      FLAGS.testing_equalize_ratio, FLAGS.testing_max_samples,
+      FLAGS.testing_equalize_ratio, FLAGS.testing_max_sounds,
       model_settings)
 
   thismodel = model.create_model(model_settings)
@@ -174,10 +174,10 @@ def main():
   t0 = dt.datetime.now()
   print('Training from time %s, step: %d ' % (t0.isoformat(), start_step))
 
-  # Save list of words.
+  # Save list of labels.
   if FLAGS.start_checkpoint=='':
     with tf.io.gfile.GFile(os.path.join(FLAGS.train_dir, 'labels.txt'), 'w') as f:
-      f.write(FLAGS.wanted_words.replace(',','\n'))
+      f.write(FLAGS.labels_touse.replace(',','\n'))
 
   train_writer = tf.summary.create_file_writer(FLAGS.summaries_dir + '/train')
   validation_writer = tf.summary.create_file_writer(FLAGS.summaries_dir + '/validation')
@@ -197,7 +197,7 @@ def main():
 
   @tf.function
   def train_step():
-    # Pull the audio samples we'll use for training.
+    # Pull the sounds we'll use for training.
     train_fingerprints, train_ground_truth, _ = audio_processor.get_data(
         FLAGS.batch_size, 0, model_settings, FLAGS.time_shift_ms, FLAGS.time_shift_random,
         'training')
@@ -214,7 +214,7 @@ def main():
 
   # Training loop.
   for training_step in range(start_step, FLAGS.how_many_training_steps + 1):
-    if training_set_size>0 and FLAGS.save_step_interval>0:
+    if training_set_size>0 and FLAGS.save_step_period>0:
       cross_entropy_mean, train_accuracy = train_step()
       t1=dt.datetime.now()-t0
 
@@ -227,30 +227,30 @@ def main():
                        train_accuracy.numpy() * 100, cross_entropy_mean.numpy()))
 
       # Save the model checkpoint periodically.
-      if (training_step % FLAGS.save_step_interval == 0 or
+      if (training_step % FLAGS.save_step_period == 0 or
           training_step == FLAGS.how_many_training_steps):
         print('Saving to "%s-%d"' % (checkpoint_basepath, training_step))
         checkpoint.write(checkpoint_basepath+'-'+str(training_step))
 
     if validation_set_size>0 and training_step != FLAGS.how_many_training_steps and \
-                                 (training_step % FLAGS.eval_step_interval) == 0:
+                                 (training_step % FLAGS.validate_step_period) == 0:
       validate_and_test(thismodel, 'validation', validation_set_size, model_settings, \
-                        audio_processor, False, training_step, t0, label_count, \
+                        audio_processor, False, training_step, t0, nlabels, \
                         validation_writer)
 
   if validation_set_size>0:
     validate_and_test(thismodel, 'validation', validation_set_size, model_settings, \
-                      audio_processor, True, FLAGS.how_many_training_steps, t0, label_count, \
+                      audio_processor, True, FLAGS.how_many_training_steps, t0, nlabels, \
                       validation_writer)
   if testing_set_size>0:
     validate_and_test(thismodel, 'testing', testing_set_size, model_settings, \
-                      audio_processor, True, FLAGS.how_many_training_steps, t0, label_count, \
+                      audio_processor, True, FLAGS.how_many_training_steps, t0, nlabels, \
                       validation_writer)
 
 # @tf.function here produces warnings, and logits.*.npz files then have tensors inside
-def validate_test_step(model, set_kind, model_settings, audio_processor, label_count, isample):
-  fingerprints, ground_truth, samples = (
-      audio_processor.get_data(FLAGS.batch_size, isample, model_settings,
+def validate_test_step(model, set_kind, model_settings, audio_processor, nlabels, isound):
+  fingerprints, ground_truth, sounds = (
+      audio_processor.get_data(FLAGS.batch_size, isound, model_settings,
                                0.0 if FLAGS.time_shift_random else FLAGS.time_shift_ms,
                                FLAGS.time_shift_random,
                                set_kind))
@@ -261,76 +261,76 @@ def validate_test_step(model, set_kind, model_settings, audio_processor, label_c
   cross_entropy_mean = tf.math.reduce_mean(loss_value)
   confusion_matrix = tf.math.confusion_matrix(ground_truth,
                                               predicted_indices,
-                                              num_classes=label_count)
+                                              num_classes=nlabels)
 
-  return fingerprints, ground_truth, samples, needed, logits, accuracy, hidden_activations, cross_entropy_mean, confusion_matrix
+  return fingerprints, ground_truth, sounds, needed, logits, accuracy, hidden_activations, cross_entropy_mean, confusion_matrix
 
 def validate_and_test(model, set_kind, set_size, model_settings, \
-                      audio_processor, is_last_step, training_step, t0, label_count, \
+                      audio_processor, is_last_step, training_step, t0, nlabels, \
                       validation_writer):
   total_accuracy = 0
   total_conf_matrix = None
-  for isample in range(0, set_size, FLAGS.batch_size):
+  for isound in range(0, set_size, FLAGS.batch_size):
 
-    fingerprints, ground_truth, samples, needed, logits, accuracy, hidden_activations, cross_entropy_mean, confusion_matrix = \
+    fingerprints, ground_truth, sounds, needed, logits, accuracy, hidden_activations, cross_entropy_mean, confusion_matrix = \
             validate_test_step(model, set_kind, model_settings, audio_processor,
-                               label_count, isample)
+                               nlabels, isound)
 
     with validation_writer.as_default():
       tf.summary.scalar('cross_entropy', cross_entropy_mean, step=training_step)
       tf.summary.scalar('accuracy', accuracy, step=training_step)
 
-    batch_size = min(FLAGS.batch_size, set_size - isample)
+    batch_size = min(FLAGS.batch_size, set_size - isound)
     total_accuracy += (accuracy * batch_size) / set_size
     if total_conf_matrix is None:
       total_conf_matrix = confusion_matrix
     else:
       total_conf_matrix += confusion_matrix
     obtained = FLAGS.batch_size - needed
-    if isample==0:
-      samples_data = [None]*set_size
+    if isound==0:
+      sounds_data = [None]*set_size
       groundtruth_data = np.empty((set_size,))
       logit_data = np.empty((set_size,np.shape(logits)[2]))
-    samples_data[isample:isample+obtained] = samples
-    groundtruth_data[isample:isample+obtained] = ground_truth
-    logit_data[isample:isample+obtained,:] = logits[:,0,:]
+    sounds_data[isound:isound+obtained] = sounds
+    groundtruth_data[isound:isound+obtained] = ground_truth
+    logit_data[isound:isound+obtained,:] = logits[:,0,:]
     if is_last_step:
       if FLAGS.save_hidden:
-        if isample==0:
+        if isound==0:
           hidden_layers = []
           for ihidden in range(len(hidden_activations)):
             nHWC = np.shape(hidden_activations[ihidden])[1:]
             hidden_layers.append(np.empty((set_size, *nHWC)))
         for ihidden in range(len(hidden_activations)):
-          hidden_layers[ihidden][isample:isample+obtained,:,:] = \
+          hidden_layers[ihidden][isound:isound+obtained,:,:] = \
                 hidden_activations[ihidden]
       if FLAGS.save_fingerprints:
-        if isample==0:
+        if isound==0:
           if FLAGS.representation=='waveform':
-            nW = round(FLAGS.clip_duration_ms / 1000 * FLAGS.sample_rate)
+            nW = round(FLAGS.context_ms / 1000 * FLAGS.audio_tic_rate)
             nH = 1
           else:
-            nW = round((FLAGS.clip_duration_ms - FLAGS.window_size_ms) / \
-                       FLAGS.window_stride_ms + 1)
+            nW = round((FLAGS.context_ms - FLAGS.window_ms) / \
+                       FLAGS.stride_ms + 1)
             nH = round(np.shape(fingerprints)[1]/nW)
           input_layer = np.empty((set_size,nW,nH))
-        input_layer[isample:isample+obtained,:,:] = \
+        input_layer[isound:isound+obtained,:,:] = \
               np.reshape(fingerprints,(obtained,nW,nH))
   print('Confusion Matrix:\n %s\n %s' % \
-                  (audio_processor.words_list, total_conf_matrix.numpy()))
+                  (audio_processor.labels_list, total_conf_matrix.numpy()))
   t1=dt.datetime.now()-t0
   print('Elapsed %f, Step %d: %s accuracy = %.1f%% (N=%d)' %
                   (t1.total_seconds(), training_step, set_kind.capitalize(), \
                    total_accuracy * 100, set_size))
   np.savez(os.path.join(FLAGS.train_dir, 'logits.'+set_kind+'.ckpt-'+str(training_step)+'.npz'), \
-           samples=samples_data, groundtruth=groundtruth_data, logits=logit_data)
+           sounds=sounds_data, groundtruth=groundtruth_data, logits=logit_data)
   if is_last_step:
     if FLAGS.save_hidden:
       np.savez(os.path.join(FLAGS.train_dir,'hidden.'+set_kind+'.ckpt-'+str(training_step)+'.npz'), \
-               *hidden_layers, samples=samples_data)
+               *hidden_layers, sounds=sounds_data)
     if FLAGS.save_fingerprints:
       np.savez(os.path.join(FLAGS.train_dir,'fingerprints.'+set_kind+'.ckpt-'+str(training_step)+'.npz'), \
-              input_layer, samples=samples_data)
+              input_layer, sounds=sounds_data)
 
 def str2bool(v):
     if v.lower() in ('yes', 'true', 't', 'y', '1'):
@@ -364,45 +364,40 @@ if __name__ == '__main__':
       True shifts randomly within +/- time_shift_ms; False shifts by exactly time_shift_ms.
       """)
   parser.add_argument(
-      '--testing_percentage',
-      type=float,
-      default=10,
-      help='What percentage of wavs to use as a test set.')
-  parser.add_argument(
       '--testing_files',
       type=str,
       default='',
       help='Which wav files to use as a test set.')
   parser.add_argument(
-      '--subsample_word',
+      '--subsample_label',
       type=str,
       default='',
-      help='Train on only a subset of annotations for this word.')
+      help='Train on only a subset of annotations for this label.')
   parser.add_argument(
       '--subsample_skip',
       type=str,
       default='',
-      help='Take only every Nth annotation for the specified word.')
+      help='Take only every Nth annotation for the specified label.')
   parser.add_argument(
-      '--partition_word',
+      '--partition_label',
       type=str,
       default='',
-      help='Train on only a fixed number of annotations for this word.')
+      help='Train on only a fixed number of annotations for this label.')
   parser.add_argument(
       '--partition_n',
       type=int,
       default=0,
-      help='Train on only this number of annotations from each file for the specified word.')
+      help='Train on only this number of annotations from each file for the specified label.')
   parser.add_argument(
       '--partition_training_files',
       type=str,
       default='',
-      help='Train on only these files for the specified word.')
+      help='Train on only these files for the specified label.')
   parser.add_argument(
       '--partition_validation_files',
       type=str,
       default='',
-      help='Validate on only these files for the specified word.')
+      help='Validate on only these files for the specified label.')
   parser.add_argument(
       '--validation_files',
       type=str,
@@ -419,37 +414,37 @@ if __name__ == '__main__':
       default=0,
       help='Which wavs to use as a cross-validation set.')
   parser.add_argument(
-      '--sample_rate',
+      '--audio_tic_rate',
       type=int,
       default=16000,
-      help='Expected sample rate of the wavs',)
+      help='Expected tic rate of the wavs',)
   parser.add_argument(
       '--nchannels',
       type=int,
       default=1,
       help='Expected number of channels in the wavs',)
   parser.add_argument(
-      '--clip_duration_ms',
+      '--context_ms',
       type=float,
       default=1000,
       help='Expected duration in milliseconds of the wavs',)
   parser.add_argument(
-      '--window_size_ms',
+      '--window_ms',
       type=float,
       default=30.0,
       help='How long each spectrogram timeslice is.',)
   parser.add_argument(
-      '--window_stride_ms',
+      '--stride_ms',
       type=float,
       default=10.0,
       help='How far to move in time between spectogram timeslices.',)
   parser.add_argument(
-      '--filterbank_channel_count',
+      '--filterbank_nchannels',
       type=int,
       default=40,
       help='How many internal bins to use for the MFCC fingerprint',)
   parser.add_argument(
-      '--dct_coefficient_count',
+      '--dct_ncoefficients',
       type=int,
       default=40,
       help='How many output bins to use for the MFCC fingerprint',)
@@ -474,7 +469,7 @@ if __name__ == '__main__':
       default=15000,
       help='How many training loops to run',)
   parser.add_argument(
-      '--eval_step_interval',
+      '--validate_step_period',
       type=int,
       default=400,
       help='How often to evaluate the training results.')
@@ -489,12 +484,12 @@ if __name__ == '__main__':
       default='/tmp/retrain_logs',
       help='Where to save summary logs for TensorBoard.')
   parser.add_argument(
-      '--wanted_words',
+      '--labels_touse',
       type=str,
       default='yes,no,up,down,left,right,on,off,stop,go',
       help='Words to use (others will be added to an unknown label)',)
   parser.add_argument(
-      '--labels_touse',
+      '--kinds_touse',
       type=str,
       default='annotated,classified',
       help='A comma-separted list of "annotated", "detected" , or "classified"',)
@@ -504,7 +499,7 @@ if __name__ == '__main__':
       default='/tmp/speech_commands_train',
       help='Directory to write event logs and checkpoint.')
   parser.add_argument(
-      '--save_step_interval',
+      '--save_step_period',
       type=int,
       default=100,
       help='Save model checkpoint every save_steps.')
@@ -527,12 +522,12 @@ if __name__ == '__main__':
       '--testing_equalize_ratio',
       type=int,
       default=0,
-      help='Limit most common word to be no more than this times more than the least common word for testing.')
+      help='Limit most common label to be no more than this times more than the least common label for testing.')
   parser.add_argument(
-      '--testing_max_samples',
+      '--testing_max_sounds',
       type=int,
       default=0,
-      help='Limit number of test samples to this number.')
+      help='Limit number of test sounds to this number.')
   parser.add_argument(
       '--model_architecture',
       type=str,

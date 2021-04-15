@@ -23,18 +23,18 @@ to convert it into a binary GraphDef file that can be loaded into the Android,
 iOS, or Raspberry Pi example code. Here's an example of how to run it:
 
 bazel run tensorflow/examples/speech_commands/freeze -- \
---sample_rate=16000 --dct_coefficient_count=40 --window_size_ms=20 \
---window_stride_ms=10 --clip_duration_ms=1000 \
+--audio_tic_rate=16000 --dct_ncoefficients=40 --window_ms=20 \
+--stride_ms=10 --context_ms=1000 \
 --model_architecture=conv \
 --start_checkpoint=/tmp/speech_commands_train/conv.ckpt-1300 \
 --output_file=/tmp/my_frozen_graph.pb
 
 One thing to watch out for is that you need to pass in the same arguments for
-`sample_rate` and other command line variables here as you did for the training
+`audio_tic_rate` and other command line variables here as you did for the training
 script.
 
 The resulting graph has an input for WAV-encoded data named 'wav_data', one for
-raw PCM data (as floats in the range -1.0 to 1.0) called 'decoded_sample_data',
+raw PCM data (as floats in the range -1.0 to 1.0) called 'decoded_sound_data',
 and the output is called 'labels_softmax'.
 
 """
@@ -55,10 +55,10 @@ from representation import *
 
 FLAGS = None
 
-def create_inference_graph(wanted_words, sample_rate, nchannels, clip_duration_ms,
-                           representation, window_size_ms,
-                           window_stride_ms, nwindows,
-                           dct_coefficient_count, filterbank_channel_count,
+def create_inference_graph(labels_touse, audio_tic_rate, nchannels, context_ms,
+                           representation, window_ms,
+                           stride_ms, nwindows,
+                           dct_ncoefficients, filterbank_nchannels,
                            model_architecture, model_parameters,
                            batch_size):
   """Creates an audio model with the nodes needed for inference.
@@ -67,24 +67,24 @@ def create_inference_graph(wanted_words, sample_rate, nchannels, clip_duration_m
   output nodes that are needed to use the graph for inference.
 
   Args:
-    wanted_words: Comma-separated list of the words we're trying to recognize.
-    sample_rate: How many samples per second are in the input audio files.
-    clip_duration_ms: How many samples to analyze for the audio pattern.
+    labels_touse: Comma-separated list of the labels we're trying to recognize.
+    audio_tic_rate: How many tics per second are in the input audio files.
+    context_ms: How many tics to analyze for the audio pattern.
     clip_stride_ms: How often to run recognition. Useful for models with cache.
-    window_size_ms: Time slice duration to estimate frequencies from.
-    window_stride_ms: How far apart time slices should be.
-    dct_coefficient_count: Number of frequency bands to analyze.
+    window_ms: Time slice duration to estimate frequencies from.
+    stride_ms: How far apart time slices should be.
+    dct_ncoefficients: Number of frequency bands to analyze.
     model_architecture: Name of the kind of model to generate.
   """
   sys.path.append(os.path.dirname(FLAGS.model_architecture))
   model = importlib.import_module(os.path.basename(FLAGS.model_architecture))
 
-  words_list = FLAGS.wanted_words.split(',')
+  labels_list = FLAGS.labels_touse.split(',')
   model_settings = models.prepare_model_settings(
-      len(words_list), FLAGS.sample_rate, FLAGS.nchannels,
-      FLAGS.nwindows, FLAGS.batch_size, FLAGS.clip_duration_ms, FLAGS.representation,
-      FLAGS.window_size_ms, FLAGS.window_stride_ms,
-      FLAGS.dct_coefficient_count, FLAGS.filterbank_channel_count,
+      len(labels_list), FLAGS.audio_tic_rate, FLAGS.nchannels,
+      FLAGS.nwindows, FLAGS.batch_size, FLAGS.context_ms, FLAGS.representation,
+      FLAGS.window_ms, FLAGS.stride_ms,
+      FLAGS.dct_ncoefficients, FLAGS.filterbank_nchannels,
       FLAGS.model_parameters)
 
   thismodel = model.create_model(model_settings)
@@ -117,10 +117,10 @@ def main():
     print('%s = %s' % (key, flags[key]))
 
   # Create the model and load its weights.
-  thismodel = create_inference_graph(FLAGS.wanted_words, FLAGS.sample_rate, FLAGS.nchannels,
-                                     FLAGS.clip_duration_ms, FLAGS.representation,
-                                     FLAGS.window_size_ms, FLAGS.window_stride_ms, FLAGS.nwindows,
-                                     FLAGS.dct_coefficient_count, FLAGS.filterbank_channel_count,
+  thismodel = create_inference_graph(FLAGS.labels_touse, FLAGS.audio_tic_rate, FLAGS.nchannels,
+                                     FLAGS.context_ms, FLAGS.representation,
+                                     FLAGS.window_ms, FLAGS.stride_ms, FLAGS.nwindows,
+                                     FLAGS.dct_ncoefficients, FLAGS.filterbank_nchannels,
                                      FLAGS.model_architecture, FLAGS.model_parameters,
                                      FLAGS.batch_size)
 
@@ -131,17 +131,17 @@ def main():
 if __name__ == '__main__':
   parser = argparse.ArgumentParser()
   parser.add_argument(
-      '--sample_rate',
+      '--audio_tic_rate',
       type=int,
       default=16000,
-      help='Expected sample rate of the wavs',)
+      help='Expected tic rate of the wavs',)
   parser.add_argument(
       '--nchannels',
       type=int,
       default=1,
       help='Expected number of channels in the wavs',)
   parser.add_argument(
-      '--clip_duration_ms',
+      '--context_ms',
       type=float,
       default=1000,
       help='Expected duration in milliseconds of the wavs',)
@@ -151,12 +151,12 @@ if __name__ == '__main__':
       default='waveform',
       help='What input representation to use.  One of waveform, spectrogram, or mel-cepstrum.')
   parser.add_argument(
-      '--window_size_ms',
+      '--window_ms',
       type=float,
       default=30.0,
       help='How long each spectrogram timeslice is',)
   parser.add_argument(
-      '--window_stride_ms',
+      '--stride_ms',
       type=float,
       default=10.0,
       help='How long the stride is between spectrogram timeslices',)
@@ -166,12 +166,12 @@ if __name__ == '__main__':
       default=1,
       help='How many context windows to process in parallel',)
   parser.add_argument(
-      '--filterbank_channel_count',
+      '--filterbank_nchannels',
       type=int,
       default=40,
       help='How many internal bins to use for the MFCC fingerprint',)
   parser.add_argument(
-      '--dct_coefficient_count',
+      '--dct_ncoefficients',
       type=int,
       default=40,
       help='How many output bins to use for the MFCC fingerprint',)
@@ -196,7 +196,7 @@ if __name__ == '__main__':
       default='{}',
       help='What model parameters to use')
   parser.add_argument(
-      '--wanted_words',
+      '--labels_touse',
       type=str,
       default='yes,no,up,down,left,right,on,off,stop,go',
       help='Words to use (others will be added to an unknown label)',)

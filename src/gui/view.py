@@ -34,7 +34,7 @@ bokehlog = logging.getLogger("songexplorer")
 import model as M
 import controller as C
 
-bokeh_document, cluster_dot_palette, snippet_palette, p_cluster, cluster_dots, p_snippets, snippets_label_sources_clustered, snippets_label_sources_annotated, snippets_wave_sources, snippets_wave_glyphs, snippets_gram_sources, snippets_gram_glyphs, snippets_quad_grey, dot_size_cluster, dot_alpha_cluster, cluster_circle_fuchsia, p_waveform, p_spectrogram, p_probability, probability_source, probability_glyph, spectrogram_source, spectrogram_glyph, waveform_span_red, spectrogram_span_red, waveform_quad_grey_clustered, waveform_quad_grey_annotated, waveform_quad_grey_pan, waveform_quad_fuchsia, spectrogram_quad_grey_clustered, spectrogram_quad_grey_annotated, spectrogram_quad_grey_pan, spectrogram_quad_fuchsia, snippets_quad_fuchsia, waveform_source, waveform_glyph, waveform_label_source_clustered, waveform_label_source_annotated, spectrogram_label_source_clustered, spectrogram_label_source_annotated, which_layer, which_species, which_word, which_nohyphen, which_kind, color_picker, circle_radius, dot_size, dot_alpha, zoom_context, zoom_offset, zoomin, zoomout, reset, panleft, panright, allleft, allout, allright, save_indicator, label_count_widgets, label_text_widgets, play, play_callback, video_toggle, video_div, undo, redo, detect, misses, configuration_file, train, leaveoneout, leaveallout, xvalidate, mistakes, activations, cluster, visualize, accuracy, freeze, classify, ethogram, compare, congruence, status_ticker, waitfor, file_dialog_source, file_dialog_source, configuration_contents, logs, logs_folder, model, model_file, wavtfcsvfiles, wavtfcsvfiles_string, groundtruth, groundtruth_folder, validationfiles, testfiles, validationfiles_string, testfiles_string, wantedwords, wantedwords_string, labeltypes, labeltypes_string, prevalences, prevalences_string, copy, labelsounds, makepredictions, fixfalsepositives, fixfalsenegatives, generalize, tunehyperparameters, findnovellabels, examineerrors, testdensely, doit, time_sigma_string, time_smooth_ms_string, frequency_n_ms_string, frequency_nw_string, frequency_p_string, frequency_smooth_ms_string, nsteps_string, restore_from_string, save_and_validate_period_string, validate_percentage_string, mini_batch_string, kfold_string, activations_equalize_ratio_string, activations_max_samples_string, pca_fraction_variance_to_retain_string, tsne_perplexity_string, tsne_exaggeration_string, umap_neighbors_string, umap_distance_string, cluster_algorithm, cluster_these_layers, precision_recall_ratios_string, context_ms_string, shiftby_ms_string, representation, window_ms_string, stride_ms_string, mel_dct_string, optimizer, learning_rate_string, replicates_string, batch_seed_string, weights_seed_string, file_dialog_string, file_dialog_table, readme_contents, wordcounts, wizard_buttons, action_buttons, parameter_buttons, parameter_textinputs, wizard2actions, action2parameterbuttons, action2parametertextinputs, model_parameters = [None]*164
+bokeh_document, cluster_dot_palette, snippet_palette, p_cluster, cluster_dots, p_snippets, snippets_label_sources_clustered, snippets_label_sources_annotated, snippets_wave_sources, snippets_wave_glyphs, snippets_gram_sources, snippets_gram_glyphs, snippets_quad_grey, dot_size_cluster, dot_alpha_cluster, cluster_circle_fuchsia, p_waveform, p_spectrogram, p_probability, probability_source, probability_glyph, spectrogram_source, spectrogram_glyph, waveform_span_red, spectrogram_span_red, waveform_quad_grey_clustered, waveform_quad_grey_annotated, waveform_quad_grey_pan, waveform_quad_fuchsia, spectrogram_quad_grey_clustered, spectrogram_quad_grey_annotated, spectrogram_quad_grey_pan, spectrogram_quad_fuchsia, snippets_quad_fuchsia, waveform_source, waveform_glyph, waveform_label_source_clustered, waveform_label_source_annotated, spectrogram_label_source_clustered, spectrogram_label_source_annotated, which_layer, which_species, which_word, which_nohyphen, which_kind, color_picker, circle_radius, dot_size, dot_alpha, zoom_context, zoom_offset, zoomin, zoomout, reset, panleft, panright, allleft, allout, allright, save_indicator, nsounds_per_label_buttons, label_texts, play, play_callback, video_toggle, video_div, undo, redo, detect, misses, configuration_file, train, leaveoneout, leaveallout, xvalidate, mistakes, activations, cluster, visualize, accuracy, freeze, classify, ethogram, compare, congruence, status_ticker, waitfor, file_dialog_source, configuration_contents, logs_folder_button, logs_folder, model_file_button, model_file, wavtfcsv_files_button, wavtfcsv_files, groundtruth_folder_button, groundtruth_folder, validation_files_button, test_files_button, validation_files, test_files, labels_touse_button, labels_touse, kinds_touse_button, kinds_touse, prevalences_button, prevalences, copy, labelsounds, makepredictions, fixfalsepositives, fixfalsenegatives, generalize, tunehyperparameters, findnovellabels, examineerrors, testdensely, doit, time_sigma, time_smooth_ms, frequency_n_ms, frequency_nw, frequency_p, frequency_smooth_ms, nsteps, restore_from, save_and_validate_period, validate_percentage, mini_batch, kfold, activations_equalize_ratio, activations_max_sounds, pca_fraction_variance_to_retain, tsne_perplexity, tsne_exaggeration, umap_neighbors, umap_distance, cluster_algorithm, cluster_these_layers, precision_recall_ratios, context_ms, shiftby_ms, representation, window_ms, stride_ms, mel_dct, optimizer, learning_rate, nreplicates, batch_seed, weights_seed, file_dialog_string, file_dialog_table, readme_contents, labelcounts, wizard_buttons, action_buttons, parameter_buttons, parameter_textinputs, wizard2actions, action2parameterbuttons, action2parametertextinputs, model_parameters = [None]*163
 
 class ScatterNd(LayoutDOM):
 
@@ -359,19 +359,19 @@ def cluster_initialize(newcolors=True):
         bokehlog.info("ERROR: "+cluster_file+" not found")
         return False
     npzfile = np.load(cluster_file, allow_pickle=True)
-    M.clustered_samples = npzfile['samples']
+    M.clustered_sounds = npzfile['sounds']
     M.clustered_activations = npzfile['activations_clustered']
 
-    M.clustered_starts_sorted = [x['ticks'][0] for x in M.clustered_samples]
+    M.clustered_starts_sorted = [x['ticks'][0] for x in M.clustered_sounds]
     isort = np.argsort(M.clustered_starts_sorted)
     for i in range(len(M.clustered_activations)):
         if M.clustered_activations[i] is not None:
             layer0 = i
             M.clustered_activations[i] = M.clustered_activations[i][isort,:]
-    M.clustered_samples = [M.clustered_samples[x] for x in isort]
+    M.clustered_sounds = [M.clustered_sounds[x] for x in isort]
     M.clustered_starts_sorted = [M.clustered_starts_sorted[x] for x in isort]
 
-    M.clustered_stops = [x['ticks'][1] for x in M.clustered_samples]
+    M.clustered_stops = [x['ticks'][1] for x in M.clustered_sounds]
     M.iclustered_stops_sorted = np.argsort(M.clustered_stops)
 
     cluster_isnotnan = [not np.isnan(x[0]) and not np.isnan(x[1]) \
@@ -384,17 +384,17 @@ def cluster_initialize(newcolors=True):
 
     M.layers = ["input"]+["hidden #"+str(i) for i in range(1,M.nlayers-1)]+["output"]
     M.species = set([x['label'].split('-')[0]+'-' \
-                     for x in M.clustered_samples if '-' in x['label']])
+                     for x in M.clustered_sounds if '-' in x['label']])
     M.species |= set([''])
     M.species = natsorted(list(M.species))
     M.words = set(['-'+x['label'].split('-')[1] \
-                   for x in M.clustered_samples if '-' in x['label']])
+                   for x in M.clustered_sounds if '-' in x['label']])
     M.words |= set([''])
     M.words = natsorted(list(M.words))
-    M.nohyphens = set([x['label'] for x in M.clustered_samples if '-' not in x['label']])
+    M.nohyphens = set([x['label'] for x in M.clustered_sounds if '-' not in x['label']])
     M.nohyphens |= set([''])
     M.nohyphens = natsorted(list(M.nohyphens))
-    M.kinds = set([x['kind'] for x in M.clustered_samples])
+    M.kinds = set([x['kind'] for x in M.clustered_sounds])
     M.kinds |= set([''])
     M.kinds = natsorted(list(M.kinds))
 
@@ -402,7 +402,7 @@ def cluster_initialize(newcolors=True):
         allcombos = [x[0][:-1]+x[1] for x in product(M.species[1:], M.words[1:])]
         M.cluster_dot_colors = { l:c for l,c in zip(allcombos+ M.nohyphens[1:],
                                                     cycle(cluster_dot_palette)) }
-    M.clustered_labels = set([x['label'] for x in M.clustered_samples])
+    M.clustered_labels = set([x['label'] for x in M.clustered_sounds])
 
     p_cluster_xmin, p_cluster_xmax = [0]*M.nlayers, [0]*M.nlayers
     p_cluster_ymin, p_cluster_ymax = [0]*M.nlayers, [0]*M.nlayers
@@ -435,7 +435,7 @@ def cluster_initialize(newcolors=True):
                                                word in x['label'] and \
                                                (nohyphen=="" or nohyphen==x['label']) and \
                                                (kind=="" or kind==x['kind']) \
-                                               for x in M.clustered_samples], \
+                                               for x in M.clustered_sounds], \
                                                cluster_isnotnan)
                         if not any(bidx):
                             continue
@@ -444,10 +444,10 @@ def cluster_initialize(newcolors=True):
                         else:
                             colors = [M.cluster_dot_colors[x['label']] \
                                       if x['label'] in M.cluster_dot_colors else "black" \
-                                      for x,b in zip(M.clustered_samples,bidx) if b]
+                                      for x,b in zip(M.clustered_sounds,bidx) if b]
                         data = {'x': M.clustered_activations[ilayer][bidx,0], \
                                 'y': M.clustered_activations[ilayer][bidx,1], \
-                                'l': [x['label'] for x,b in zip(M.clustered_samples,bidx) if b], \
+                                'l': [x['label'] for x,b in zip(M.clustered_sounds,bidx) if b], \
                                 'c': colors }
                         if M.ndcluster==2:
                             data['z'] = [np.nan]*len(M.clustered_activations[ilayer][bidx,1])
@@ -516,12 +516,12 @@ def cluster_update():
     #npoints = np.shape(M.clustered_activations[M.ilayer])[0]
     #dot_size.value = max(1, round(100 * extent / np.sqrt(npoints)))
 
-def within_an_annotation(sample):
+def within_an_annotation(sound):
     if len(M.annotated_starts_sorted)>0:
-        ifrom = np.searchsorted(M.annotated_starts_sorted, sample['ticks'][0],
+        ifrom = np.searchsorted(M.annotated_starts_sorted, sound['ticks'][0],
                                 side='right') - 1
         if 0 <= ifrom and ifrom < len(M.annotated_starts_sorted) and \
-                    M.annotated_samples[ifrom]['ticks'][1] >= sample['ticks'][1]:
+                    M.annotated_sounds[ifrom]['ticks'][1] >= sound['ticks'][1]:
             return ifrom
     return -1
 
@@ -545,7 +545,7 @@ def snippets_update(redraw_wavs):
                       (M.nohyphens[M.inohyphen]=="" or \
                        M.nohyphens[M.inohyphen]==x['label']) and
                       (M.kinds[M.ikind]=="" or \
-                       M.kinds[M.ikind]==x['kind']) for x in M.clustered_samples])[0]
+                       M.kinds[M.ikind]==x['kind']) for x in M.clustered_sounds])[0]
     origin = [M.xcluster,M.ycluster]
     if M.ndcluster==3:
         origin.append(M.zcluster)
@@ -559,17 +559,17 @@ def snippets_update(redraw_wavs):
     for isnippet in range(M.snippets_nx*M.snippets_ny):
         if isnippet<len(distance) and \
                     distance[isort[isnippet]] < float(M.state["circle_radius"]):
-            M.nearest_samples[isnippet] = isubset[isort[isnippet]]
-            thissample = M.clustered_samples[M.nearest_samples[isnippet]]
-            labels_clustered.append(thissample['label'])
-            iannotated = within_an_annotation(thissample)
+            M.nearest_sounds[isnippet] = isubset[isort[isnippet]]
+            thissound = M.clustered_sounds[M.nearest_sounds[isnippet]]
+            labels_clustered.append(thissound['label'])
+            iannotated = within_an_annotation(thissound)
             if iannotated == -1:
                 labels_annotated.append('')
             else:
-                labels_annotated.append(M.annotated_samples[iannotated]['label'])
-            midpoint = np.mean(thissample['ticks'], dtype=int)
+                labels_annotated.append(M.annotated_sounds[iannotated]['label'])
+            midpoint = np.mean(thissound['ticks'], dtype=int)
             if redraw_wavs:
-                _, wavs = spiowav.read(thissample['file'], mmap=True)
+                _, wavs = spiowav.read(thissound['file'], mmap=True)
                 if np.ndim(wavs)==1:
                   wavs = np.expand_dims(wavs, axis=1)
                 start_frame = max(0, midpoint-M.snippets_tic//2)
@@ -617,7 +617,7 @@ def snippets_update(redraw_wavs):
                 ilows.append(ilow)
                 ihighs.append(ihigh)
         else:
-            M.nearest_samples[isnippet] = -1
+            M.nearest_sounds[isnippet] = -1
             labels_clustered.append('')
             labels_annotated.append('')
             scales.append([0]*M.audio_nchannels)
@@ -663,10 +663,10 @@ def snippets_update(redraw_wavs):
     snippets_quad_grey.data.update(left=left_clustered, right=right_clustered,
                                    top=top_clustered, bottom=bottom_clustered)
 
-def nparray2base64wav(data, samplerate):
+def nparray2base64wav(data, tic_rate):
     fid=io.BytesIO()
     wav=wave.open(fid, "w")
-    wav.setframerate(samplerate)
+    wav.setframerate(tic_rate)
     wav.setnchannels(1)
     wav.setsampwidth(2)
     wav.writeframes(data.tobytes())
@@ -711,17 +711,17 @@ def nparray2base64mp4(filename, start_sec, stop_sec):
 def reset_video():
     play_callback.code = C.play_callback_code % ("", "")
 
-def __context_update(wavi, tapped_sample, istart_bounded, ilength):
+def __context_update(wavi, tapped_sound, istart_bounded, ilength):
     if video_toggle.active:
-        sample_basename=os.path.basename(tapped_sample)
-        sample_dirname=os.path.dirname(tapped_sample)
-        vids = list(filter(lambda x: x!=sample_basename and
+        sound_basename=os.path.basename(tapped_sound)
+        sound_dirname=os.path.dirname(tapped_sound)
+        vids = list(filter(lambda x: x!=sound_basename and
                                      os.path.splitext(x)[0] == \
-                                         os.path.splitext(sample_basename)[0] and
+                                         os.path.splitext(sound_basename)[0] and
                                      os.path.splitext(x)[1].lower() in \
                                          ['.avi','.mp4','.mov'],
-                           os.listdir(sample_dirname)))
-        base64vid = nparray2base64mp4(os.path.join(sample_dirname,vids[0]),
+                           os.listdir(sound_dirname)))
+        base64vid = nparray2base64mp4(os.path.join(sound_dirname,vids[0]),
                                       istart_bounded / M.audio_tic_rate,
                                       (istart_bounded+ilength) / M.audio_tic_rate) \
                     if len(vids)==1 else ""
@@ -733,11 +733,11 @@ def __context_update(wavi, tapped_sample, istart_bounded, ilength):
                          (nparray2base64wav(wavi, M.audio_tic_rate), \
                           base64vid)
 
-def _context_update(wavi, tapped_sample, istart_bounded, ilength):
+def _context_update(wavi, tapped_sound, istart_bounded, ilength):
     if video_toggle.active:
         video_toggle.button_type="warning"
     bokeh_document.add_next_tick_callback(lambda: \
-            __context_update(wavi, tapped_sample, istart_bounded, ilength))
+            __context_update(wavi, tapped_sound, istart_bounded, ilength))
 
 def context_update():
     p_waveform.title.text = p_spectrogram.title.text = ''
@@ -771,21 +771,21 @@ def context_update():
         allleft.disabled=False
         allout.disabled=False
         allright.disabled=False
-        tapped_sample = M.clustered_samples[M.isnippet]
-        tapped_ticks = tapped_sample['ticks']
+        tapped_sound = M.clustered_sounds[M.isnippet]
+        tapped_ticks = tapped_sound['ticks']
         M.context_midpoint_tic = np.mean(tapped_ticks, dtype=int)
         istart = M.context_midpoint_tic-M.context_width_tic//2 + M.context_offset_tic
         if M.context_waveform:
-            p_waveform.title.text = tapped_sample['file']
+            p_waveform.title.text = tapped_sound['file']
         elif M.context_spectrogram:
-            p_spectrogram.title.text = tapped_sample['file']
-        _, wavs = spiowav.read(tapped_sample['file'], mmap=True)
+            p_spectrogram.title.text = tapped_sound['file']
+        _, wavs = spiowav.read(tapped_sound['file'], mmap=True)
         if np.ndim(wavs)==1:
             wavs = np.expand_dims(wavs, axis=1)
         M.file_nframes = np.shape(wavs)[0]
         probs = [None]*len(M.clustered_labels)
         for ilabel,label in enumerate(M.clustered_labels):
-            prob_wavfile = tapped_sample['file'][:-4]+'-'+label+'.wav'
+            prob_wavfile = tapped_sound['file'][:-4]+'-'+label+'.wav'
             if os.path.isfile(prob_wavfile):
                 prob_tic_rate, probs[ilabel] = spiowav.read(prob_wavfile, mmap=True)
         if istart+M.context_width_tic>0 and istart<M.file_nframes:
@@ -818,7 +818,7 @@ def context_update():
                     if bokeh_document: 
                         bokeh_document.add_next_tick_callback(lambda: \
                                 _context_update(wavi,
-                                                tapped_sample['file'],
+                                                tapped_sound['file'],
                                                 istart_bounded,
                                                 ilength))
 
@@ -889,25 +889,25 @@ def context_update():
                          """)
 
             ileft = np.searchsorted(M.clustered_starts_sorted, istart+M.context_width_tic)
-            samples_to_plot = set(range(0,ileft))
+            sounds_to_plot = set(range(0,ileft))
             iright = np.searchsorted(M.clustered_stops, istart,
                                     sorter=M.iclustered_stops_sorted)
-            samples_to_plot &= set([M.iclustered_stops_sorted[i] for i in \
+            sounds_to_plot &= set([M.iclustered_stops_sorted[i] for i in \
                     range(iright, len(M.iclustered_stops_sorted))])
 
             tapped_wav_in_view = False
-            for isample in samples_to_plot:
-                if tapped_sample['file']!=M.clustered_samples[isample]['file']:
+            for isound in sounds_to_plot:
+                if tapped_sound['file']!=M.clustered_sounds[isound]['file']:
                     continue
-                L = np.max([istart, M.clustered_samples[isample]['ticks'][0]])
+                L = np.max([istart, M.clustered_sounds[isound]['ticks'][0]])
                 R = np.min([istart+M.context_width_tic,
-                            M.clustered_samples[isample]['ticks'][1]])
+                            M.clustered_sounds[isound]['ticks'][1]])
                 xlabel_clustered.append((L+R)/2/M.audio_tic_rate)
-                tlabel_clustered.append(M.clustered_samples[isample]['kind']+'\n'+\
-                              M.clustered_samples[isample]['label'])
+                tlabel_clustered.append(M.clustered_sounds[isound]['kind']+'\n'+\
+                              M.clustered_sounds[isound]['label'])
                 left_clustered.append(L/M.audio_tic_rate)
                 right_clustered.append(R/M.audio_tic_rate)
-                if tapped_sample==M.clustered_samples[isample] and not np.isnan(M.xcluster):
+                if tapped_sound==M.clustered_sounds[isound] and not np.isnan(M.xcluster):
                     if M.context_waveform:
                         waveform_quad_fuchsia.data.update(left=[L/M.audio_tic_rate],
                                                           right=[R/M.audio_tic_rate],
@@ -936,20 +936,20 @@ def context_update():
             if len(M.annotated_starts_sorted)>0:
                 ileft = np.searchsorted(M.annotated_starts_sorted,
                                         istart+M.context_width_tic)
-                samples_to_plot = set(range(0,ileft))
+                sounds_to_plot = set(range(0,ileft))
                 iright = np.searchsorted(M.annotated_stops, istart,
                                          sorter=M.iannotated_stops_sorted)
-                samples_to_plot &= set([M.iannotated_stops_sorted[i] for i in \
+                sounds_to_plot &= set([M.iannotated_stops_sorted[i] for i in \
                         range(iright, len(M.iannotated_stops_sorted))])
 
-                for isample in samples_to_plot:
-                    if tapped_sample['file']!=M.annotated_samples[isample]['file']:
+                for isound in sounds_to_plot:
+                    if tapped_sound['file']!=M.annotated_sounds[isound]['file']:
                         continue
-                    L = np.max([istart, M.annotated_samples[isample]['ticks'][0]])
+                    L = np.max([istart, M.annotated_sounds[isound]['ticks'][0]])
                     R = np.min([istart+M.context_width_tic,
-                                M.annotated_samples[isample]['ticks'][1]])
+                                M.annotated_sounds[isound]['ticks'][1]])
                     xlabel_annotated.append((L+R)/2/M.audio_tic_rate)
-                    tlabel_annotated.append(M.annotated_samples[isample]['label'])
+                    tlabel_annotated.append(M.annotated_sounds[isound]['label'])
                     left_annotated.append(L/M.audio_tic_rate)
                     right_annotated.append(R/M.audio_tic_rate)
     else:
@@ -1059,24 +1059,24 @@ def cluster_these_layers_update():
         cluster_these_layers.options = []
 
 def _groundtruth_update():
-    wordcounts_update()
+    labelcounts_update()
     cluster_these_layers_update()
     M.save_state_callback()
-    groundtruth.button_type="default"
-    groundtruth.disabled=True
+    groundtruth_folder_button.button_type="default"
+    groundtruth_folder_button.disabled=True
     buttons_update()
 
 def groundtruth_update():
-    groundtruth.button_type="warning"
-    groundtruth.disabled=True
+    groundtruth_folder_button.button_type="warning"
+    groundtruth_folder_button.disabled=True
     if bokeh_document: 
         bokeh_document.add_next_tick_callback(_groundtruth_update)
 
-def wantedwords_update_other():
-    wantedwords = [x.value for x in label_text_widgets if x.value!='']
-    if 'other' not in wantedwords:
-        wantedwords.append('other')
-    wantedwords_string.value=str.join(',',wantedwords)
+def labels_touse_update_other():
+    theselabels_touse = [x.value for x in label_texts if x.value!='']
+    if 'other' not in theselabels_touse:
+        theselabels_touse.append('other')
+    labels_touse.value=str.join(',',theselabels_touse)
 
 def buttons_update():
     for button in wizard_buttons:
@@ -1085,67 +1085,67 @@ def buttons_update():
         button.button_type="primary" if button==M.action else "default"
         button.disabled=False if button in wizard2actions[M.wizard] else True
     if M.action in [detect,classify]:
-        wavtfcsvfiles.label='wav files:'
+        wavtfcsv_files_button.label='wav files:'
     elif M.action==ethogram:
-        wavtfcsvfiles.label='tf files:'
+        wavtfcsv_files_button.label='tf files:'
     elif M.action==misses:
-        wavtfcsvfiles.label='csv files:'
+        wavtfcsv_files_button.label='csv files:'
     else:
-        wavtfcsvfiles.label='wav,tf,csv files:'
+        wavtfcsv_files_button.label='wav,tf,csv files:'
     if M.action == classify:
-        model.label='pb folder:'
+        model_file_button.label='pb folder:'
     elif M.action == ethogram:
-        model.label='threshold file:'
+        model_file_button.label='threshold file:'
     else:
-        model.label='checkpoint file:'
+        model_file_button.label='checkpoint file:'
     for button in parameter_buttons:
         button.disabled=False if button in action2parameterbuttons[M.action] else True
     okay=True if M.action else False
     for textinput in parameter_textinputs:
         if textinput in action2parametertextinputs[M.action]:
-            if textinput==window_ms_string:
-                window_ms_string.disabled=True \
+            if textinput==window_ms:
+                window_ms.disabled=True \
                         if representation.value=='waveform' else False
-            elif textinput==stride_ms_string:
-                stride_ms_string.disabled=True \
+            elif textinput==stride_ms:
+                stride_ms.disabled=True \
                         if representation.value=='waveform' else False
-            elif textinput==mel_dct_string:
-                mel_dct_string.disabled=False \
+            elif textinput==mel_dct:
+                mel_dct.disabled=False \
                         if representation.value=='mel-cepstrum' else True
-            elif textinput==pca_fraction_variance_to_retain_string:
-                pca_fraction_variance_to_retain_string.disabled=False \
+            elif textinput==pca_fraction_variance_to_retain:
+                pca_fraction_variance_to_retain.disabled=False \
                         if cluster_algorithm.value[:4] in ['tSNE','UMAP'] else True
-            elif textinput==tsne_perplexity_string:
-                tsne_perplexity_string.disabled=False \
+            elif textinput==tsne_perplexity:
+                tsne_perplexity.disabled=False \
                         if cluster_algorithm.value.startswith('tSNE') else True
-            elif textinput==tsne_exaggeration_string:
-                tsne_exaggeration_string.disabled=False \
+            elif textinput==tsne_exaggeration:
+                tsne_exaggeration.disabled=False \
                         if cluster_algorithm.value.startswith('tSNE') else True
-            elif textinput==umap_neighbors_string:
-                umap_neighbors_string.disabled=False \
+            elif textinput==umap_neighbors:
+                umap_neighbors.disabled=False \
                         if cluster_algorithm.value.startswith('UMAP') else True
-            elif textinput==umap_distance_string:
-                umap_distance_string.disabled=False \
+            elif textinput==umap_distance:
+                umap_distance.disabled=False \
                         if cluster_algorithm.value.startswith('UMAP') else True
             else:
                 textinput.disabled=False
             if textinput.disabled==False and textinput.value=='':
                 if M.action==classify:
-                    if textinput not in [wantedwords_string, prevalences_string]:
+                    if textinput not in [labels_touse, prevalences]:
                         okay=False
                 elif M.action==congruence:
-                    if textinput not in [validationfiles_string, testfiles_string]:
+                    if textinput not in [validation_files, test_files]:
                         okay=False
                 else:
-                    if textinput not in [testfiles_string, restore_from_string]:
+                    if textinput not in [test_files, restore_from]:
                         okay=False
         else:
             textinput.disabled=True
     if M.action==classify and \
-            prevalences_string.value!='' and wantedwords_string.value=='':
+            prevalences.value!='' and labels_touse.value=='':
         okay=False
     if M.action==congruence and \
-            validationfiles_string.value=='' and testfiles_string.value=='':
+            validation_files.value=='' and test_files.value=='':
         okay=False
     if M.action==cluster and len(cluster_these_layers.value)==0:
         okay=False
@@ -1173,7 +1173,7 @@ def file_dialog_update():
     )
     file_dialog_source.data = file_dialog
 
-def wordcounts_update():
+def labelcounts_update():
     if not os.path.isdir(groundtruth_folder.value):
         return
     dfs = []
@@ -1218,9 +1218,9 @@ def wordcounts_update():
                 table_str += '<td align="center">'+str(table[irow,icol])+'</td>'
             table_str += '</tr>'
         table_str += '</table>'
-        wordcounts.text = table_str
+        labelcounts.text = table_str
     else:
-        wordcounts.text = ""
+        labelcounts.text = ""
 
 async def status_ticker_update():
     if len(M.status_ticker_queue)>0:
@@ -1241,7 +1241,7 @@ async def status_ticker_update():
     status_ticker.text = status_ticker_pre+newtext+status_ticker_post
 
 def init(_bokeh_document):
-    global bokeh_document, cluster_dot_palette, snippet_palette, p_cluster, cluster_dots, p_cluster_dots, precomputed_dots, snippets_dy, p_snippets, snippets_label_sources_clustered, snippets_label_sources_annotated, snippets_wave_sources, snippets_wave_glyphs, snippets_gram_sources, snippets_gram_glyphs, snippets_quad_grey, dot_size_cluster, dot_alpha_cluster, cluster_circle_fuchsia, p_waveform, p_spectrogram, p_probability, probability_source, probability_glyph, spectrogram_source, spectrogram_glyph, waveform_span_red, spectrogram_span_red, waveform_quad_grey_clustered, waveform_quad_grey_annotated, waveform_quad_grey_pan, waveform_quad_fuchsia, spectrogram_quad_grey_clustered, spectrogram_quad_grey_annotated, spectrogram_quad_grey_pan, spectrogram_quad_fuchsia, snippets_quad_fuchsia, waveform_source, waveform_glyph, waveform_label_source_clustered, waveform_label_source_annotated, spectrogram_label_source_clustered, spectrogram_label_source_annotated, which_layer, which_species, which_word, which_nohyphen, which_kind, color_picker, circle_radius, dot_size, dot_alpha, zoom_context, zoom_offset, zoomin, zoomout, reset, panleft, panright, allleft, allout, allright, save_indicator, label_count_widgets, label_text_widgets, play, play_callback, video_toggle, video_div, undo, redo, detect, misses, configuration_file, train, leaveoneout, leaveallout, xvalidate, mistakes, activations, cluster, visualize, accuracy, freeze, classify, ethogram, compare, congruence, status_ticker, waitfor, file_dialog_source, file_dialog_source, configuration_contents, logs, logs_folder, model, model_file, wavtfcsvfiles, wavtfcsvfiles_string, groundtruth, groundtruth_folder, validationfiles, testfiles, validationfiles_string, testfiles_string, wantedwords, wantedwords_string, labeltypes, labeltypes_string, prevalences, prevalences_string, copy, labelsounds, makepredictions, fixfalsepositives, fixfalsenegatives, generalize, tunehyperparameters, findnovellabels, examineerrors, testdensely, doit, time_sigma_string, time_smooth_ms_string, frequency_n_ms_string, frequency_nw_string, frequency_p_string, frequency_smooth_ms_string, nsteps_string, restore_from_string, save_and_validate_period_string, validate_percentage_string, mini_batch_string, kfold_string, activations_equalize_ratio_string, activations_max_samples_string, pca_fraction_variance_to_retain_string, tsne_perplexity_string, tsne_exaggeration_string, umap_neighbors_string, umap_distance_string, cluster_algorithm, cluster_these_layers, precision_recall_ratios_string, context_ms_string, shiftby_ms_string, representation, window_ms_string, stride_ms_string, mel_dct_string, optimizer, learning_rate_string, replicates_string, batch_seed_string, weights_seed_string, file_dialog_string, file_dialog_table, readme_contents, wordcounts, wizard_buttons, action_buttons, parameter_buttons, parameter_textinputs, wizard2actions, action2parameterbuttons, action2parametertextinputs, status_ticker_update, status_ticker_pre, status_ticker_post, model_parameters
+    global bokeh_document, cluster_dot_palette, snippet_palette, p_cluster, cluster_dots, p_cluster_dots, precomputed_dots, snippets_dy, p_snippets, snippets_label_sources_clustered, snippets_label_sources_annotated, snippets_wave_sources, snippets_wave_glyphs, snippets_gram_sources, snippets_gram_glyphs, snippets_quad_grey, dot_size_cluster, dot_alpha_cluster, cluster_circle_fuchsia, p_waveform, p_spectrogram, p_probability, probability_source, probability_glyph, spectrogram_source, spectrogram_glyph, waveform_span_red, spectrogram_span_red, waveform_quad_grey_clustered, waveform_quad_grey_annotated, waveform_quad_grey_pan, waveform_quad_fuchsia, spectrogram_quad_grey_clustered, spectrogram_quad_grey_annotated, spectrogram_quad_grey_pan, spectrogram_quad_fuchsia, snippets_quad_fuchsia, waveform_source, waveform_glyph, waveform_label_source_clustered, waveform_label_source_annotated, spectrogram_label_source_clustered, spectrogram_label_source_annotated, which_layer, which_species, which_word, which_nohyphen, which_kind, color_picker, circle_radius, dot_size, dot_alpha, zoom_context, zoom_offset, zoomin, zoomout, reset, panleft, panright, allleft, allout, allright, save_indicator, nsounds_per_label_buttons, label_texts, play, play_callback, video_toggle, video_div, undo, redo, detect, misses, configuration_file, train, leaveoneout, leaveallout, xvalidate, mistakes, activations, cluster, visualize, accuracy, freeze, classify, ethogram, compare, congruence, status_ticker, waitfor, file_dialog_source, configuration_contents, logs_folder_button, logs_folder, model_file_button, model_file, wavtfcsv_files_button, wavtfcsv_files, groundtruth_folder_button, groundtruth_folder, validation_files_button, test_files_button, validation_files, test_files, labels_touse_button, labels_touse, kinds_touse_button, kinds_touse, prevalences_button, prevalences, copy, labelsounds, makepredictions, fixfalsepositives, fixfalsenegatives, generalize, tunehyperparameters, findnovellabels, examineerrors, testdensely, doit, time_sigma, time_smooth_ms, frequency_n_ms, frequency_nw, frequency_p, frequency_smooth_ms, nsteps, restore_from, save_and_validate_period, validate_percentage, mini_batch, kfold, activations_equalize_ratio, activations_max_sounds, pca_fraction_variance_to_retain, tsne_perplexity, tsne_exaggeration, umap_neighbors, umap_distance, cluster_algorithm, cluster_these_layers, precision_recall_ratios, context_ms, shiftby_ms, representation, window_ms, stride_ms, mel_dct, optimizer, learning_rate, nreplicates, batch_seed, weights_seed, file_dialog_string, file_dialog_table, readme_contents, labelcounts, wizard_buttons, action_buttons, parameter_buttons, parameter_textinputs, wizard2actions, action2parameterbuttons, action2parametertextinputs, status_ticker_update, status_ticker_pre, status_ticker_post, model_parameters
 
     bokeh_document = _bokeh_document
 
@@ -1548,22 +1548,22 @@ def init(_bokeh_document):
 
     save_indicator = Button(label='0')
 
-    label_count_callbacks=[]
-    label_count_widgets=[]
-    label_text_callbacks=[]
-    label_text_widgets=[]
+    nsounds_per_label_callbacks=[]
+    nsounds_per_label_buttons=[]
+    label_callbacks=[]
+    label_texts=[]
 
     for i in range(M.nlabels):
-        label_count_callbacks.append(lambda i=i: C.label_count_callback(i))
-        label_count_widgets.append(Button(label='0', css_classes=['hide-label'], width=40))
-        label_count_widgets[-1].on_click(label_count_callbacks[-1])
+        nsounds_per_label_callbacks.append(lambda i=i: C.nsounds_per_label_callback(i))
+        nsounds_per_label_buttons.append(Button(label='0', css_classes=['hide-label'], width=40))
+        nsounds_per_label_buttons[-1].on_click(nsounds_per_label_callbacks[-1])
 
-        label_text_callbacks.append(lambda a,o,n,i=i: C.label_text_callback(n,i))
-        label_text_widgets.append(TextInput(value=M.state['labels'][i],
+        label_callbacks.append(lambda a,o,n,i=i: C.label_callback(n,i))
+        label_texts.append(TextInput(value=M.state['labels'][i],
                                             css_classes=['hide-label']))
-        label_text_widgets[-1].on_change("value", label_text_callbacks[-1])
+        label_texts[-1].on_change("value", label_callbacks[-1])
 
-    C.label_count_callback(M.ilabel)
+    C.nsounds_per_label_callback(M.ilabel)
 
     play = Button(label='play', disabled=True)
     play_callback = CustomJS(args=dict(waveform_span_red=waveform_span_red,
@@ -1658,49 +1658,49 @@ def init(_bokeh_document):
     waitfor = Toggle(label='wait for last job', active=False, disabled=True, width=100)
     waitfor.on_click(C.waitfor_callback)
 
-    logs = Button(label='logs folder:', width=110)
-    logs.on_click(C.logs_callback)
-    logs_folder = TextInput(value=M.state['logs'], title="", disabled=False)
+    logs_folder_button = Button(label='logs folder:', width=110)
+    logs_folder_button.on_click(C.logs_callback)
+    logs_folder = TextInput(value=M.state['logs_folder'], title="", disabled=False)
     logs_folder.on_change('value', lambda a,o,n: C.generic_parameters_callback(n))
 
-    model = Button(label='checkpoint file:', width=110)
-    model.on_click(C.model_callback)
-    model_file = TextInput(value=M.state['model'], title="", disabled=False)
+    model_file_button = Button(label='checkpoint file:', width=110)
+    model_file_button.on_click(C.model_callback)
+    model_file = TextInput(value=M.state['model_file'], title="", disabled=False)
     model_file.on_change('value', model_file_update)
 
-    wavtfcsvfiles = Button(label='wav,tf,csv files:', width=110)
-    wavtfcsvfiles.on_click(C.wavtfcsvfiles_callback)
-    wavtfcsvfiles_string = TextInput(value=M.state['wavtfcsvfiles'], title="", disabled=False)
-    wavtfcsvfiles_string.on_change('value', lambda a,o,n: C.generic_parameters_callback(n))
+    wavtfcsv_files_button = Button(label='wav,tf,csv files:', width=110)
+    wavtfcsv_files_button.on_click(C.wavtfcsv_files_callback)
+    wavtfcsv_files = TextInput(value=M.state['wavtfcsv_files'], title="", disabled=False)
+    wavtfcsv_files.on_change('value', lambda a,o,n: C.generic_parameters_callback(n))
 
-    groundtruth = Button(label='ground truth:', width=110)
-    groundtruth.on_click(C.groundtruth_callback)
-    groundtruth_folder = TextInput(value=M.state['groundtruth'], title="", disabled=False)
+    groundtruth_folder_button = Button(label='ground truth:', width=110)
+    groundtruth_folder_button.on_click(C.groundtruth_callback)
+    groundtruth_folder = TextInput(value=M.state['groundtruth_folder'], title="", disabled=False)
     groundtruth_folder.on_change('value', lambda a,o,n: groundtruth_update())
 
-    validationfiles = Button(label='validation files:', width=110)
-    validationfiles.on_click(C.validationfiles_callback)
-    validationfiles_string = TextInput(value=M.state['validationfiles'], title="", disabled=False)
-    validationfiles_string.on_change('value', lambda a,o,n: C.generic_parameters_callback(n))
+    validation_files_button = Button(label='validation files:', width=110)
+    validation_files_button.on_click(C.validationfiles_callback)
+    validation_files = TextInput(value=M.state['validation_files'], title="", disabled=False)
+    validation_files.on_change('value', lambda a,o,n: C.generic_parameters_callback(n))
 
-    testfiles = Button(label='test files:', width=110)
-    testfiles.on_click(C.testfiles_callback)
-    testfiles_string = TextInput(value=M.state['testfiles'], title="", disabled=False)
-    testfiles_string.on_change('value', lambda a,o,n: C.generic_parameters_callback(n))
+    test_files_button = Button(label='test files:', width=110)
+    test_files_button.on_click(C.test_files_callback)
+    test_files = TextInput(value=M.state['test_files'], title="", disabled=False)
+    test_files.on_change('value', lambda a,o,n: C.generic_parameters_callback(n))
 
-    wantedwords = Button(label='wanted words:', width=110)
-    wantedwords.on_click(C.wantedwords_callback)
-    wantedwords_string = TextInput(value=M.state['wantedwords'], title="", disabled=False)
-    wantedwords_string.on_change('value', lambda a,o,n: C.generic_parameters_callback(n))
+    labels_touse_button = Button(label='labels to use:', width=110)
+    labels_touse_button.on_click(C.labels_touse_callback)
+    labels_touse = TextInput(value=M.state['labels_touse'], title="", disabled=False)
+    labels_touse.on_change('value', lambda a,o,n: C.generic_parameters_callback(n))
 
-    labeltypes = Button(label='label types:', width=110)
-    labeltypes_string = TextInput(value=M.state['labeltypes'], title="", disabled=False)
-    labeltypes_string.on_change('value', lambda a,o,n: C.generic_parameters_callback(n))
+    kinds_touse_button = Button(label='kinds to use:', width=110)
+    kinds_touse = TextInput(value=M.state['kinds_touse'], title="", disabled=False)
+    kinds_touse.on_change('value', lambda a,o,n: C.generic_parameters_callback(n))
 
-    prevalences = Button(label='prevalences:', width=110)
-    prevalences.on_click(C.prevalences_callback)
-    prevalences_string = TextInput(value=M.state['prevalences'], title="", disabled=False)
-    prevalences_string.on_change('value', lambda a,o,n: C.generic_parameters_callback(n))
+    prevalences_button = Button(label='prevalences:', width=110)
+    prevalences_button.on_click(C.prevalences_callback)
+    prevalences = TextInput(value=M.state['prevalences'], title="", disabled=False)
+    prevalences.on_change('value', lambda a,o,n: C.generic_parameters_callback(n))
 
     copy = Button(label='copy')
     copy.on_click(C.copy_callback)
@@ -1735,129 +1735,129 @@ def init(_bokeh_document):
     doit = Button(label='do it!', disabled=True)
     doit.on_click(C.doit_callback)
 
-    time_sigma_string = TextInput(value=M.state['time_sigma'], \
+    time_sigma = TextInput(value=M.state['time_sigma'], \
                                   title="time σ", \
                                   disabled=False)
-    time_sigma_string.on_change('value', lambda a,o,n: C.generic_parameters_callback(n))
+    time_sigma.on_change('value', lambda a,o,n: C.generic_parameters_callback(n))
 
-    time_smooth_ms_string = TextInput(value=M.state['time_smooth_ms'], \
+    time_smooth_ms = TextInput(value=M.state['time_smooth_ms'], \
                                       title="time smooth", \
                                       disabled=False)
-    time_smooth_ms_string.on_change('value', lambda a,o,n: C.generic_parameters_callback(n))
+    time_smooth_ms.on_change('value', lambda a,o,n: C.generic_parameters_callback(n))
 
-    frequency_n_ms_string = TextInput(value=M.state['frequency_n_ms'], \
+    frequency_n_ms = TextInput(value=M.state['frequency_n_ms'], \
                                       title="freq N (msec)", \
                                       disabled=False)
-    frequency_n_ms_string.on_change('value', lambda a,o,n: C.generic_parameters_callback(n))
+    frequency_n_ms.on_change('value', lambda a,o,n: C.generic_parameters_callback(n))
 
-    frequency_nw_string = TextInput(value=M.state['frequency_nw'], \
+    frequency_nw = TextInput(value=M.state['frequency_nw'], \
                                     title="freq NW", \
                                     disabled=False)
-    frequency_nw_string.on_change('value', lambda a,o,n: C.generic_parameters_callback(n))
+    frequency_nw.on_change('value', lambda a,o,n: C.generic_parameters_callback(n))
 
-    frequency_p_string = TextInput(value=M.state['frequency_p'], \
+    frequency_p = TextInput(value=M.state['frequency_p'], \
                                    title="freq ρ", \
                                    disabled=False)
-    frequency_p_string.on_change('value', lambda a,o,n: C.generic_parameters_callback(n))
+    frequency_p.on_change('value', lambda a,o,n: C.generic_parameters_callback(n))
 
-    frequency_smooth_ms_string = TextInput(value=M.state['frequency_smooth_ms'], \
+    frequency_smooth_ms = TextInput(value=M.state['frequency_smooth_ms'], \
                                            title="freq smooth", \
                                            disabled=False)
-    frequency_smooth_ms_string.on_change('value', lambda a,o,n: C.generic_parameters_callback(n))
+    frequency_smooth_ms.on_change('value', lambda a,o,n: C.generic_parameters_callback(n))
 
-    nsteps_string = TextInput(value=M.state['nsteps'], title="# steps", disabled=False)
-    nsteps_string.on_change('value', lambda a,o,n: C.generic_parameters_callback(n))
+    nsteps = TextInput(value=M.state['nsteps'], title="# steps", disabled=False)
+    nsteps.on_change('value', lambda a,o,n: C.generic_parameters_callback(n))
 
-    restore_from_string = TextInput(value=M.state['restore_from'], title="restore from", disabled=False)
-    restore_from_string.on_change('value', lambda a,o,n: C.generic_parameters_callback(n))
+    restore_from = TextInput(value=M.state['restore_from'], title="restore from", disabled=False)
+    restore_from.on_change('value', lambda a,o,n: C.generic_parameters_callback(n))
 
-    save_and_validate_period_string = TextInput(value=M.state['save_and_validate_interval'], \
+    save_and_validate_period = TextInput(value=M.state['save_and_validate_period'], \
                                                 title="validate period", \
                                                 disabled=False)
-    save_and_validate_period_string.on_change('value', lambda a,o,n: C.generic_parameters_callback(n))
+    save_and_validate_period.on_change('value', lambda a,o,n: C.generic_parameters_callback(n))
 
-    validate_percentage_string = TextInput(value=M.state['validate_percentage'], \
+    validate_percentage = TextInput(value=M.state['validate_percentage'], \
                                            title="validate %", \
                                            disabled=False)
-    validate_percentage_string.on_change('value', lambda a,o,n: C.generic_parameters_callback(n))
+    validate_percentage.on_change('value', lambda a,o,n: C.generic_parameters_callback(n))
 
-    mini_batch_string = TextInput(value=M.state['mini_batch'], \
+    mini_batch = TextInput(value=M.state['mini_batch'], \
                                   title="mini-batch", \
                                   disabled=False)
-    mini_batch_string.on_change('value', lambda a,o,n: C.generic_parameters_callback(n))
+    mini_batch.on_change('value', lambda a,o,n: C.generic_parameters_callback(n))
 
-    kfold_string = TextInput(value=M.state['kfold'], title="k-fold",  disabled=False)
-    kfold_string.on_change('value', lambda a,o,n: C.generic_parameters_callback(n))
+    kfold = TextInput(value=M.state['kfold'], title="k-fold",  disabled=False)
+    kfold.on_change('value', lambda a,o,n: C.generic_parameters_callback(n))
 
-    activations_equalize_ratio_string = TextInput(value=M.state['activations_equalize_ratio'], \
+    activations_equalize_ratio = TextInput(value=M.state['activations_equalize_ratio'], \
                                              title="equalize ratio", \
                                              disabled=False)
-    activations_equalize_ratio_string.on_change('value', lambda a,o,n: C.generic_parameters_callback(n))
+    activations_equalize_ratio.on_change('value', lambda a,o,n: C.generic_parameters_callback(n))
 
-    activations_max_samples_string = TextInput(value=M.state['activations_max_samples'], \
-                                          title="max samples", \
+    activations_max_sounds = TextInput(value=M.state['activations_max_sounds'], \
+                                          title="max sounds", \
                                           disabled=False)
-    activations_max_samples_string.on_change('value', lambda a,o,n: C.generic_parameters_callback(n))
+    activations_max_sounds.on_change('value', lambda a,o,n: C.generic_parameters_callback(n))
 
-    pca_fraction_variance_to_retain_string = TextInput(value=M.state['pca_fraction_variance_to_retain'], \
+    pca_fraction_variance_to_retain = TextInput(value=M.state['pca_fraction_variance_to_retain'], \
                                                        title="PCA fraction", \
                                                        disabled=False)
-    pca_fraction_variance_to_retain_string.on_change('value', lambda a,o,n: C.generic_parameters_callback(n))
+    pca_fraction_variance_to_retain.on_change('value', lambda a,o,n: C.generic_parameters_callback(n))
 
-    tsne_perplexity_string = TextInput(value=M.state['tsne_perplexity'], \
+    tsne_perplexity = TextInput(value=M.state['tsne_perplexity'], \
                                        title="perplexity", \
                                        disabled=False)
-    tsne_perplexity_string.on_change('value', lambda a,o,n: C.generic_parameters_callback(n))
+    tsne_perplexity.on_change('value', lambda a,o,n: C.generic_parameters_callback(n))
 
-    tsne_exaggeration_string = TextInput(value=M.state['tsne_exaggeration'], \
+    tsne_exaggeration = TextInput(value=M.state['tsne_exaggeration'], \
                                         title="exaggeration", \
                                         disabled=False)
-    tsne_exaggeration_string.on_change('value', lambda a,o,n: C.generic_parameters_callback(n))
+    tsne_exaggeration.on_change('value', lambda a,o,n: C.generic_parameters_callback(n))
 
-    umap_neighbors_string = TextInput(value=M.state['umap_neighbors'], \
+    umap_neighbors = TextInput(value=M.state['umap_neighbors'], \
                                       title="neighbors", \
                                       disabled=False)
-    umap_neighbors_string.on_change('value', lambda a,o,n: C.generic_parameters_callback(n))
+    umap_neighbors.on_change('value', lambda a,o,n: C.generic_parameters_callback(n))
 
-    umap_distance_string = TextInput(value=M.state['umap_distance'], \
+    umap_distance = TextInput(value=M.state['umap_distance'], \
                                      title="distance", \
                                      disabled=False)
-    umap_distance_string.on_change('value', lambda a,o,n: C.generic_parameters_callback(n))
+    umap_distance.on_change('value', lambda a,o,n: C.generic_parameters_callback(n))
 
-    precision_recall_ratios_string = TextInput(value=M.state['precision_recall_ratios'], \
+    precision_recall_ratios = TextInput(value=M.state['precision_recall_ratios'], \
                                                title="P/Rs", \
                                                disabled=False)
-    precision_recall_ratios_string.on_change('value', lambda a,o,n: C.generic_parameters_callback(n))
+    precision_recall_ratios.on_change('value', lambda a,o,n: C.generic_parameters_callback(n))
     
-    context_ms_string = TextInput(value=M.state['context_ms'], \
+    context_ms = TextInput(value=M.state['context_ms'], \
                                   title="context (msec)", \
                                   disabled=False)
-    context_ms_string.on_change('value', lambda a,o,n: C.generic_parameters_callback(n))
+    context_ms.on_change('value', lambda a,o,n: C.generic_parameters_callback(n))
 
-    shiftby_ms_string = TextInput(value=M.state['shiftby_ms'], \
+    shiftby_ms = TextInput(value=M.state['shiftby_ms'], \
                                   title="shift by (msec)", \
                                   disabled=False)
-    shiftby_ms_string.on_change('value', lambda a,o,n: C.generic_parameters_callback(n))
+    shiftby_ms.on_change('value', lambda a,o,n: C.generic_parameters_callback(n))
 
     representation = Select(title="representation", height=50, \
                             value=M.state['representation'], \
                             options=["waveform", "spectrogram", "mel-cepstrum"])
     representation.on_change('value', lambda a,o,n: C.generic_parameters_callback(''))
 
-    window_ms_string = TextInput(value=M.state['window_ms'], \
+    window_ms = TextInput(value=M.state['window_ms'], \
                                  title="window (msec)", \
                                  disabled=False)
-    window_ms_string.on_change('value', lambda a,o,n: C.generic_parameters_callback(n))
+    window_ms.on_change('value', lambda a,o,n: C.generic_parameters_callback(n))
 
-    stride_ms_string = TextInput(value=M.state['stride_ms'], \
+    stride_ms = TextInput(value=M.state['stride_ms'], \
                                  title="stride (msec)", \
                                  disabled=False)
-    stride_ms_string.on_change('value', lambda a,o,n: C.generic_parameters_callback(n))
+    stride_ms.on_change('value', lambda a,o,n: C.generic_parameters_callback(n))
 
-    mel_dct_string = TextInput(value=M.state['mel&dct'], \
+    mel_dct = TextInput(value=M.state['mel&dct'], \
                                title="Mel & DCT", \
                                disabled=False)
-    mel_dct_string.on_change('value', lambda a,o,n: C.generic_parameters_callback(n))
+    mel_dct.on_change('value', lambda a,o,n: C.generic_parameters_callback(n))
 
     optimizer = Select(title="optimizer", height=50, \
                        value=M.state['optimizer'], \
@@ -1865,10 +1865,10 @@ def init(_bokeh_document):
                                 ("rmsprop","RMSProp")])
     optimizer.on_change('value', lambda a,o,n: C.generic_parameters_callback(''))
 
-    learning_rate_string = TextInput(value=M.state['learning_rate'], \
+    learning_rate = TextInput(value=M.state['learning_rate'], \
                                      title="learning rate", \
                                      disabled=False)
-    learning_rate_string.on_change('value', lambda a,o,n: C.generic_parameters_callback(n))
+    learning_rate.on_change('value', lambda a,o,n: C.generic_parameters_callback(n))
 
     model_parameters = OrderedDict()
     for parameter in M.model_parameters:
@@ -1906,20 +1906,20 @@ def init(_bokeh_document):
     cluster_these_layers.on_change('value', lambda a,o,n: C.generic_parameters_callback(''))
     cluster_these_layers_update()
 
-    replicates_string = TextInput(value=M.state['replicates'], \
-                                  title="replicates", \
+    nreplicates = TextInput(value=M.state['nreplicates'], \
+                                  title="# replicates", \
                                   disabled=False)
-    replicates_string.on_change('value', lambda a,o,n: C.generic_parameters_callback(n))
+    nreplicates.on_change('value', lambda a,o,n: C.generic_parameters_callback(n))
 
-    batch_seed_string = TextInput(value=M.state['batch_seed'], \
+    batch_seed = TextInput(value=M.state['batch_seed'], \
                                   title="batch seed", \
                                   disabled=False)
-    batch_seed_string.on_change('value', lambda a,o,n: C.generic_parameters_callback(n))
+    batch_seed.on_change('value', lambda a,o,n: C.generic_parameters_callback(n))
 
-    weights_seed_string = TextInput(value=M.state['weights_seed'], \
+    weights_seed = TextInput(value=M.state['weights_seed'], \
                                     title="weights seed", \
                                     disabled=False)
-    weights_seed_string.on_change('value', lambda a,o,n: C.generic_parameters_callback(n))
+    weights_seed.on_change('value', lambda a,o,n: C.generic_parameters_callback(n))
 
     file_dialog_string = TextInput(disabled=False)
     file_dialog_string.on_change("value", C.file_dialog_path_callback)
@@ -1930,8 +1930,8 @@ def init(_bokeh_document):
     html = markdown.markdown(contents, extensions=['tables','toc'])
     readme_contents = Div(text=html, style={'overflow':'scroll','width':'600px','height':'1397px'})
 
-    wordcounts = Div(text="")
-    wordcounts_update()
+    labelcounts = Div(text="")
+    labelcounts_update()
 
     wizard_buttons = set([
         labelsounds,
@@ -1963,61 +1963,61 @@ def init(_bokeh_document):
         congruence])
 
     parameter_buttons = set([
-        logs,
-        model,
-        wavtfcsvfiles,
-        groundtruth,
-        validationfiles,
-        testfiles,
-        wantedwords,
-        labeltypes,
-        prevalences])
+        logs_folder_button,
+        model_file_button,
+        wavtfcsv_files_button,
+        groundtruth_folder_button,
+        validation_files_button,
+        test_files_button,
+        labels_touse_button,
+        kinds_touse_button,
+        prevalences_button])
 
     parameter_textinputs = set([
         logs_folder,
         model_file,
-        wavtfcsvfiles_string,
+        wavtfcsv_files,
         groundtruth_folder,
-        validationfiles_string,
-        testfiles_string,
-        wantedwords_string,
-        labeltypes_string,
-        prevalences_string,
+        validation_files,
+        test_files,
+        labels_touse,
+        kinds_touse,
+        prevalences,
 
-        time_sigma_string,
-        time_smooth_ms_string,
-        frequency_n_ms_string,
-        frequency_nw_string,
-        frequency_p_string,
-        frequency_smooth_ms_string,
-        nsteps_string,
-        restore_from_string,
-        save_and_validate_period_string,
-        validate_percentage_string,
-        mini_batch_string,
-        kfold_string,
-        activations_equalize_ratio_string,
-        activations_max_samples_string,
-        pca_fraction_variance_to_retain_string,
-        tsne_perplexity_string,
-        tsne_exaggeration_string,
-        umap_neighbors_string,
-        umap_distance_string,
+        time_sigma,
+        time_smooth_ms,
+        frequency_n_ms,
+        frequency_nw,
+        frequency_p,
+        frequency_smooth_ms,
+        nsteps,
+        restore_from,
+        save_and_validate_period,
+        validate_percentage,
+        mini_batch,
+        kfold,
+        activations_equalize_ratio,
+        activations_max_sounds,
+        pca_fraction_variance_to_retain,
+        tsne_perplexity,
+        tsne_exaggeration,
+        umap_neighbors,
+        umap_distance,
         cluster_algorithm,
         cluster_these_layers,
-        precision_recall_ratios_string,
-        replicates_string,
-        batch_seed_string,
-        weights_seed_string,
+        precision_recall_ratios,
+        nreplicates,
+        batch_seed,
+        weights_seed,
 
-        context_ms_string,
-        shiftby_ms_string,
+        context_ms,
+        shiftby_ms,
         representation,
-        window_ms_string,
-        stride_ms_string,
-        mel_dct_string,
+        window_ms,
+        stride_ms,
+        mel_dct,
         optimizer,
-        learning_rate_string] +
+        learning_rate] +
 
         list(model_parameters.values()))
 
@@ -2034,39 +2034,39 @@ def init(_bokeh_document):
             None: action_buttons }
 
     action2parameterbuttons = {
-            detect: [wavtfcsvfiles],
-            train: [logs, groundtruth, wantedwords, testfiles, labeltypes],
-            leaveoneout: [logs, groundtruth, validationfiles, testfiles, wantedwords, labeltypes],
-            leaveallout: [logs, groundtruth, validationfiles, testfiles, wantedwords, labeltypes],
-            xvalidate: [logs, groundtruth, testfiles, wantedwords, labeltypes],
-            mistakes: [groundtruth],
-            activations: [logs, model, groundtruth, wantedwords, labeltypes],
-            cluster: [groundtruth],
-            visualize: [groundtruth],
-            accuracy: [logs],
-            freeze: [logs, model],
-            classify: [logs, model, wavtfcsvfiles, wantedwords, prevalences],
-            ethogram: [model, wavtfcsvfiles],
-            misses: [wavtfcsvfiles],
-            compare: [logs],
-            congruence: [groundtruth, validationfiles, testfiles],
+            detect: [wavtfcsv_files_button],
+            train: [logs_folder_button, groundtruth_folder_button, labels_touse_button, test_files_button, kinds_touse_button],
+            leaveoneout: [logs_folder_button, groundtruth_folder_button, validation_files_button, test_files_button, labels_touse_button, kinds_touse_button],
+            leaveallout: [logs_folder_button, groundtruth_folder_button, validation_files_button, test_files_button, labels_touse_button, kinds_touse_button],
+            xvalidate: [logs_folder_button, groundtruth_folder_button, test_files_button, labels_touse_button, kinds_touse_button],
+            mistakes: [groundtruth_folder_button],
+            activations: [logs_folder_button, model_file_button, groundtruth_folder_button, labels_touse_button, kinds_touse_button],
+            cluster: [groundtruth_folder_button],
+            visualize: [groundtruth_folder_button],
+            accuracy: [logs_folder_button],
+            freeze: [logs_folder_button, model_file_button],
+            classify: [logs_folder_button, model_file_button, wavtfcsv_files_button, labels_touse_button, prevalences_button],
+            ethogram: [model_file_button, wavtfcsv_files_button],
+            misses: [wavtfcsv_files_button],
+            compare: [logs_folder_button],
+            congruence: [groundtruth_folder_button, validation_files_button, test_files_button],
             None: parameter_buttons }
 
     action2parametertextinputs = {
-            detect: [wavtfcsvfiles_string, time_sigma_string, time_smooth_ms_string, frequency_n_ms_string, frequency_nw_string, frequency_p_string, frequency_smooth_ms_string],
-            train: [context_ms_string, shiftby_ms_string, representation, window_ms_string, stride_ms_string, mel_dct_string, optimizer, learning_rate_string, replicates_string, batch_seed_string, weights_seed_string, logs_folder, groundtruth_folder, testfiles_string, wantedwords_string, labeltypes_string, nsteps_string, restore_from_string, save_and_validate_period_string, validate_percentage_string, mini_batch_string] + list(model_parameters.values()),
-            leaveoneout: [context_ms_string, shiftby_ms_string, representation, window_ms_string, stride_ms_string, mel_dct_string, optimizer, learning_rate_string, batch_seed_string, weights_seed_string, logs_folder, groundtruth_folder, validationfiles_string, testfiles_string, wantedwords_string, labeltypes_string, nsteps_string, restore_from_string, save_and_validate_period_string, mini_batch_string] + list(model_parameters.values()),
-            leaveallout: [context_ms_string, shiftby_ms_string, representation, window_ms_string, stride_ms_string, mel_dct_string, optimizer, learning_rate_string, batch_seed_string, weights_seed_string, logs_folder, groundtruth_folder, validationfiles_string, testfiles_string, wantedwords_string, labeltypes_string, nsteps_string, restore_from_string, save_and_validate_period_string, mini_batch_string] + list(model_parameters.values()),
-            xvalidate: [context_ms_string, shiftby_ms_string, representation, window_ms_string, stride_ms_string, mel_dct_string, optimizer, learning_rate_string, batch_seed_string, weights_seed_string, logs_folder, groundtruth_folder, testfiles_string, wantedwords_string, labeltypes_string, nsteps_string, restore_from_string, save_and_validate_period_string, mini_batch_string, kfold_string] + list(model_parameters.values()),
+            detect: [wavtfcsv_files, time_sigma, time_smooth_ms, frequency_n_ms, frequency_nw, frequency_p, frequency_smooth_ms],
+            train: [context_ms, shiftby_ms, representation, window_ms, stride_ms, mel_dct, optimizer, learning_rate, nreplicates, batch_seed, weights_seed, logs_folder, groundtruth_folder, test_files, labels_touse, kinds_touse, nsteps, restore_from, save_and_validate_period, validate_percentage, mini_batch] + list(model_parameters.values()),
+            leaveoneout: [context_ms, shiftby_ms, representation, window_ms, stride_ms, mel_dct, optimizer, learning_rate, batch_seed, weights_seed, logs_folder, groundtruth_folder, validation_files, test_files, labels_touse, kinds_touse, nsteps, restore_from, save_and_validate_period, mini_batch] + list(model_parameters.values()),
+            leaveallout: [context_ms, shiftby_ms, representation, window_ms, stride_ms, mel_dct, optimizer, learning_rate, batch_seed, weights_seed, logs_folder, groundtruth_folder, validation_files, test_files, labels_touse, kinds_touse, nsteps, restore_from, save_and_validate_period, mini_batch] + list(model_parameters.values()),
+            xvalidate: [context_ms, shiftby_ms, representation, window_ms, stride_ms, mel_dct, optimizer, learning_rate, batch_seed, weights_seed, logs_folder, groundtruth_folder, test_files, labels_touse, kinds_touse, nsteps, restore_from, save_and_validate_period, mini_batch, kfold] + list(model_parameters.values()),
             mistakes: [groundtruth_folder],
-            activations: [context_ms_string, shiftby_ms_string, representation, window_ms_string, stride_ms_string, mel_dct_string, logs_folder, model_file, groundtruth_folder, wantedwords_string, labeltypes_string, activations_equalize_ratio_string, activations_max_samples_string, mini_batch_string] + list(model_parameters.values()),
-            cluster: [groundtruth_folder, cluster_algorithm, cluster_these_layers, pca_fraction_variance_to_retain_string, tsne_perplexity_string, tsne_exaggeration_string, umap_neighbors_string, umap_distance_string],
+            activations: [context_ms, shiftby_ms, representation, window_ms, stride_ms, mel_dct, logs_folder, model_file, groundtruth_folder, labels_touse, kinds_touse, activations_equalize_ratio, activations_max_sounds, mini_batch] + list(model_parameters.values()),
+            cluster: [groundtruth_folder, cluster_algorithm, cluster_these_layers, pca_fraction_variance_to_retain, tsne_perplexity, tsne_exaggeration, umap_neighbors, umap_distance],
             visualize: [groundtruth_folder],
-            accuracy: [logs_folder, precision_recall_ratios_string],
-            freeze: [context_ms_string, representation, window_ms_string, stride_ms_string, mel_dct_string, logs_folder, model_file] + list(model_parameters.values()),
-            classify: [context_ms_string, shiftby_ms_string, representation, stride_ms_string, logs_folder, model_file, wavtfcsvfiles_string, wantedwords_string, prevalences_string] + list(model_parameters.values()),
-            ethogram: [model_file, wavtfcsvfiles_string],
-            misses: [wavtfcsvfiles_string],
+            accuracy: [logs_folder, precision_recall_ratios],
+            freeze: [context_ms, representation, window_ms, stride_ms, mel_dct, logs_folder, model_file] + list(model_parameters.values()),
+            classify: [context_ms, shiftby_ms, representation, stride_ms, logs_folder, model_file, wavtfcsv_files, labels_touse, prevalences] + list(model_parameters.values()),
+            ethogram: [model_file, wavtfcsv_files],
+            misses: [wavtfcsv_files],
             compare: [logs_folder],
-            congruence: [groundtruth_folder, validationfiles_string, testfiles_string],
+            congruence: [groundtruth_folder, validation_files, test_files],
             None: parameter_textinputs }

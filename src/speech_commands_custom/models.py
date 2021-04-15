@@ -21,63 +21,58 @@
 """
 import tensorflow as tf
 
-def prepare_model_settings(label_count, sample_rate, nchannels, 
+def prepare_model_settings(nlabels, audio_tic_rate, nchannels, 
                            nwindows, batch_size,
-                           clip_duration_ms, representation,
-                           window_size_ms, window_stride_ms,
-                           dct_coefficient_count, filterbank_channel_count,
+                           context_ms, representation,
+                           window_ms, stride_ms,
+                           dct_ncoefficients, filterbank_nchannels,
                            model_parameters):
   """Calculates common settings needed for all models.
 
   Args:
-    label_count: How many classes are to be recognized.
-    sample_rate: Number of audio samples per second.
-    clip_duration_ms: Length of each audio clip to be analyzed.
-    window_size_ms: Duration of frequency analysis window.
-    window_stride_ms: How far to move in time between frequency windows.
-    dct_coefficient_count: Number of frequency bins to use for analysis.
+    nlabels: How many classes are to be recognized.
+    audio_tic_rate: Number of audio tics per second.
+    context_ms: Length of each audio clip to be analyzed.
+    window_ms: Duration of frequency analysis window.
+    stride_ms: How far to move in time between frequency windows.
+    dct_ncoefficients: Number of frequency bins to use for analysis.
 
   Returns:
     Dictionary containing common settings.
   """
-  desired_samples = int(sample_rate * clip_duration_ms / 1000)
-  window_size_samples = int(sample_rate * window_size_ms / 1000)
-  window_stride_samples = int(sample_rate * window_stride_ms / 1000)
-  length_minus_window = (desired_samples - window_size_samples)
+  context_tics = int(audio_tic_rate * context_ms / 1000)
+  window_tics = int(audio_tic_rate * window_ms / 1000)
+  stride_tics = int(audio_tic_rate * stride_ms / 1000)
+  length_minus_window = (context_tics - window_tics)
   if length_minus_window < 0:
     spectrogram_length = 0
   else:
-    spectrogram_length = 1 + int(length_minus_window / window_stride_samples)
+    spectrogram_length = 1 + int(length_minus_window / stride_tics)
   if representation=='waveform':
-    fingerprint_size = desired_samples * nchannels
-    input_frequency_size = 1
-    input_time_size = desired_samples
+    input_nfreqs = 1
+    input_ntimes = context_tics
   elif representation=='spectrogram':
-    fingerprint_size = (window_size_samples//2 + 1) * spectrogram_length * nchannels
-    input_frequency_size = window_size_samples//2+1
-    input_time_size = spectrogram_length
+    input_nfreqs = window_tics//2+1
+    input_ntimes = spectrogram_length
   elif representation=='mel-cepstrum':
-    fingerprint_size = dct_coefficient_count * spectrogram_length * nchannels
-    input_frequency_size = dct_coefficient_count
-    input_time_size = spectrogram_length
-  print('desired_samples = %d' % (desired_samples))
+    input_nfreqs = dct_ncoefficients
+    input_ntimes = spectrogram_length
+  print('context_tics = %d' % (context_tics))
   print('nchannels = %d' % (nchannels))
-  print('window_size_samples = %d' % (window_size_samples))
-  print('window_stride_samples = %d' % (window_stride_samples))
-  return {**{'desired_samples': desired_samples,
-             'channel_count': nchannels,
+  print('window_tics = %d' % (window_tics))
+  print('stride_tics = %d' % (stride_tics))
+  return {**{'context_tics': context_tics,
+             'nchannels': nchannels,
              'representation': representation,
-             'window_size_samples': window_size_samples,
-             'window_stride_samples': window_stride_samples,
-             'input_frequency_size': input_frequency_size,
-             'input_time_size': input_time_size,
+             'window_tics': window_tics,
+             'stride_tics': stride_tics,
+             'input_nfreqs': input_nfreqs,  ###  and fingerprint
+             'input_ntimes': input_ntimes,
              'nwindows': nwindows,
-             'spectrogram_length': spectrogram_length,
-             'dct_coefficient_count': dct_coefficient_count,
-             'filterbank_channel_count': filterbank_channel_count,
-             'fingerprint_size': fingerprint_size,
-             'label_count': label_count,
-             'sample_rate': sample_rate,
+             'dct_ncoefficients': dct_ncoefficients,
+             'filterbank_nchannels': filterbank_nchannels,
+             'nlabels': nlabels,
+             'audio_tic_rate': audio_tic_rate,
              'batch_size': batch_size,
             },
           **model_parameters}

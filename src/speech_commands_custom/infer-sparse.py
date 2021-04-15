@@ -55,32 +55,32 @@ def main():
     labels = []
     for line in fid:
       labels.append(line.rstrip())
-    label_count = len(labels)
+    nlabels = len(labels)
 
   model_settings = models.prepare_model_settings(
-      label_count,
-      FLAGS.sample_rate,
+      nlabels,
+      FLAGS.audio_tic_rate,
       FLAGS.nchannels,
       1,
       FLAGS.batch_size,
-      FLAGS.clip_duration_ms,
+      FLAGS.context_ms,
       FLAGS.representation,
-      FLAGS.window_size_ms, FLAGS.window_stride_ms,
-      FLAGS.dct_coefficient_count, FLAGS.filterbank_channel_count,
+      FLAGS.window_ms, FLAGS.stride_ms,
+      FLAGS.dct_ncoefficients, FLAGS.filterbank_nchannels,
       FLAGS.model_parameters)
 
   audio_processor = input_data.AudioProcessor(
       FLAGS.data_dir,
       FLAGS.time_shift_ms, FLAGS.time_shift_random,
-      FLAGS.wanted_words.split(','), FLAGS.labels_touse.split(','),
+      FLAGS.labels_touse.split(','), FLAGS.kinds_touse.split(','),
       FLAGS.validation_percentage, FLAGS.validation_offset_percentage,
       FLAGS.validation_files.split(','),
-      FLAGS.testing_percentage, FLAGS.testing_files.split(','), FLAGS.subsample_skip,
-      FLAGS.subsample_word,
-      FLAGS.partition_word, FLAGS.partition_n, FLAGS.partition_training_files.split(','),
+      100, FLAGS.testing_files.split(','), FLAGS.subsample_skip,
+      FLAGS.subsample_label,
+      FLAGS.partition_label, FLAGS.partition_n, FLAGS.partition_training_files.split(','),
       FLAGS.partition_validation_files.split(','),
       -1,
-      FLAGS.testing_equalize_ratio, FLAGS.testing_max_samples,
+      FLAGS.testing_equalize_ratio, FLAGS.testing_max_sounds,
       model_settings)
 
   thismodel = model.create_model(model_settings)
@@ -89,48 +89,48 @@ def main():
   checkpoint = tf.train.Checkpoint(thismodel=thismodel)
   checkpoint.read(FLAGS.start_checkpoint)
 
-  time_shift_samples = int((FLAGS.time_shift_ms * FLAGS.sample_rate) / 1000)
+  time_shift_tics = int((FLAGS.time_shift_ms * FLAGS.audio_tic_rate) / 1000)
 
   testing_set_size = audio_processor.set_size('testing')
 
-  def infer_step(isample):
-    fingerprints, _, samples = audio_processor.get_data(
-                                 FLAGS.batch_size, isample, model_settings,
-                                 0.0 if FLAGS.time_shift_random else time_shift_samples,
+  def infer_step(isound):
+    fingerprints, _, sounds = audio_processor.get_data(
+                                 FLAGS.batch_size, isound, model_settings,
+                                 0.0 if FLAGS.time_shift_random else time_shift_tics,
                                  FLAGS.time_shift_random,
                                  'testing')
     needed = FLAGS.batch_size - fingerprints.shape[0]
     hidden_activations, logits = thismodel(fingerprints, training=False)
-    return fingerprints, samples, needed, logits, hidden_activations
+    return fingerprints, sounds, needed, logits, hidden_activations
 
-  for isample in range(0, testing_set_size, FLAGS.batch_size):
-    fingerprints, samples, needed, logits, hidden_activations = infer_step(isample)
+  for isound in range(0, testing_set_size, FLAGS.batch_size):
+    fingerprints, sounds, needed, logits, hidden_activations = infer_step(isound)
     obtained = FLAGS.batch_size - needed
-    if isample==0:
-      samples_data = [None]*testing_set_size
-    samples_data[isample:isample+obtained] = samples
+    if isound==0:
+      sounds_data = [None]*testing_set_size
+    sounds_data[isound:isound+obtained] = sounds
     if FLAGS.save_activations:
-      if isample==0:
+      if isound==0:
         activations = []
         for ihidden in range(len(hidden_activations)):
           nHWC = np.shape(hidden_activations[ihidden])[1:]
           activations.append(np.empty((testing_set_size, *nHWC)))
         activations.append(np.empty((testing_set_size, np.shape(logits)[2])))
       for ihidden in range(len(hidden_activations)):
-        activations[ihidden][isample:isample+obtained,:,:] = \
+        activations[ihidden][isound:isound+obtained,:,:] = \
               hidden_activations[ihidden]
-      activations[-1][isample:isample+obtained,:] = logits[:,0,:]
+      activations[-1][isound:isound+obtained,:] = logits[:,0,:]
     if FLAGS.save_fingerprints:
-      if isample==0:
-        nW = round((FLAGS.clip_duration_ms - FLAGS.window_size_ms) / \
-                   FLAGS.window_stride_ms + 1)
+      if isound==0:
+        nW = round((FLAGS.context_ms - FLAGS.window_ms) / \
+                   FLAGS.stride_ms + 1)
         nH = round(np.shape(fingerprints)[1]/nW)
         input_layer = np.empty((testing_set_size,nW,nH))
-      input_layer[isample:isample+obtained,:,:] = \
+      input_layer[isound:isound+obtained,:,:] = \
             np.reshape(fingerprints,(obtained,nW,nH))
   if FLAGS.save_activations:
     np.savez(os.path.join(FLAGS.data_dir,'activations.npz'), \
-             *activations, samples=samples_data, labels=labels)
+             *activations, sounds=sounds_data, labels=labels)
   if FLAGS.save_fingerprints:
     np.save(os.path.join(FLAGS.data_dir,'fingerprints.npy'), input_layer)
 
@@ -166,45 +166,40 @@ if __name__ == '__main__':
       True shifts randomly within +/- time_shift_ms; False shifts by exactly time_shift_ms.
       """)
   parser.add_argument(
-      '--testing_percentage',
-      type=float,
-      default=10,
-      help='What percentage of wavs to use as a test set.')
-  parser.add_argument(
       '--testing_files',
       type=str,
       default='',
       help='Which wav files to use as a test set.')
   parser.add_argument(
-      '--subsample_word',
+      '--subsample_label',
       type=str,
       default='',
-      help='Train on only a subset of annotations for this word.')
+      help='Train on only a subset of annotations for this label.')
   parser.add_argument(
       '--subsample_skip',
       type=str,
       default='',
-      help='Take only every Nth annotation for the specified word.')
+      help='Take only every Nth annotation for the specified label.')
   parser.add_argument(
-      '--partition_word',
+      '--partition_label',
       type=str,
       default='',
-      help='Train on only a fixed number of annotations for this word.')
+      help='Train on only a fixed number of annotations for this label.')
   parser.add_argument(
       '--partition_n',
       type=int,
       default=0,
-      help='Train on only this number of annotations from each file for the specified word.')
+      help='Train on only this number of annotations from each file for the specified label.')
   parser.add_argument(
       '--partition_training_files',
       type=str,
       default='',
-      help='Train on only these files for the specified word.')
+      help='Train on only these files for the specified label.')
   parser.add_argument(
       '--partition_validation_files',
       type=str,
       default='',
-      help='Validate on only these files for the specified word.')
+      help='Validate on only these files for the specified label.')
   parser.add_argument(
       '--validation_files',
       type=str,
@@ -221,37 +216,37 @@ if __name__ == '__main__':
       default=0,
       help='Which wavs to use as a cross-validation set.')
   parser.add_argument(
-      '--sample_rate',
+      '--audio_tic_rate',
       type=int,
       default=16000,
-      help='Expected sample rate of the wavs',)
+      help='Expected tic rate of the wavs',)
   parser.add_argument(
       '--nchannels',
       type=int,
       default=1,
       help='Expected number of channels in the wavs',)
   parser.add_argument(
-      '--clip_duration_ms',
+      '--context_ms',
       type=float,
       default=1000,
       help='Expected duration in milliseconds of the wavs',)
   parser.add_argument(
-      '--window_size_ms',
+      '--window_ms',
       type=float,
       default=30.0,
       help='How long each spectrogram timeslice is.',)
   parser.add_argument(
-      '--window_stride_ms',
+      '--stride_ms',
       type=float,
       default=10.0,
       help='How far to move in time between spectogram timeslices.',)
   parser.add_argument(
-      '--filterbank_channel_count',
+      '--filterbank_nchannels',
       type=int,
       default=40,
       help='How many internal bins to use for the MFCC fingerprint',)
   parser.add_argument(
-      '--dct_coefficient_count',
+      '--dct_ncoefficients',
       type=int,
       default=40,
       help='How many output bins to use for the MFCC fingerprint',)
@@ -261,12 +256,12 @@ if __name__ == '__main__':
       default=100,
       help='How many items to train with at once',)
   parser.add_argument(
-      '--wanted_words',
+      '--labels_touse',
       type=str,
       default='yes,no,up,down,left,right,on,off,stop,go',
       help='Words to use (others will be added to an unknown label)',)
   parser.add_argument(
-      '--labels_touse',
+      '--kinds_touse',
       type=str,
       default='annotated,classified',
       help='A comma-separted list of "annotated", "detected" , or "classified"',)
@@ -279,12 +274,12 @@ if __name__ == '__main__':
       '--testing_equalize_ratio',
       type=int,
       default=0,
-      help='Limit most common word to be no more than this times more than the least common word for testing.')
+      help='Limit most common label to be no more than this times more than the least common label for testing.')
   parser.add_argument(
-      '--testing_max_samples',
+      '--testing_max_sounds',
       type=int,
       default=0,
-      help='Limit number of test samples to this number.')
+      help='Limit number of test sounds to this number.')
   parser.add_argument(
       '--representation',
       type=str,

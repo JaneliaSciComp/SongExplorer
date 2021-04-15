@@ -13,7 +13,7 @@ import asyncio
 import tarfile
 import pandas as pd
 
-from lib import wait_for_job, check_file_exists, count_lines_with_word, count_lines
+from lib import wait_for_job, check_file_exists, count_lines_with_label, count_lines
 
 def check_value(dfrow, colname, shouldbe):
   if int(dfrow[colname]) != shouldbe:
@@ -48,21 +48,21 @@ run(["hetero", "start", "1", "1", "1"])
 
 V.groundtruth_folder.value = os.path.join(repo_path, "test/scratch/congruence/groundtruth-data")
 
-V.testfiles_string.value = ""
-V.validationfiles_string.value = "recording1.wav,recording2.wav,recording3.wav,recording4.wav"
+V.test_files.value = ""
+V.validation_files.value = "recording1.wav,recording2.wav,recording3.wav,recording4.wav"
 asyncio.run(C.congruence_actuate())
 
 wait_for_job(M.status_ticker_queue)
 
-wavpath_noext = V.validationfiles_string.value[:-4]
+wavpath_noext = V.validation_files.value[:-4]
 check_file_exists(os.path.join(V.groundtruth_folder.value, "congruence.log"))
 for i in range(1,8):
   check_file_exists(os.path.join(V.groundtruth_folder.value,
                                  "congruence.tic.label"+str(i)+".csv"))
   check_file_exists(os.path.join(V.groundtruth_folder.value,
-                                 "congruence.word.label"+str(i)+".csv"))
+                                 "congruence.label.label"+str(i)+".csv"))
 
-l1 = pd.read_csv(os.path.join(V.groundtruth_folder.value, "congruence.word.label1.csv"))
+l1 = pd.read_csv(os.path.join(V.groundtruth_folder.value, "congruence.label.label1.csv"))
 pr1 = l1.loc[l1['Unnamed: 0'] == '1.0pr']
 
 check_value(pr1, "Everyone", 1)
@@ -73,7 +73,7 @@ check_value(pr1, "not Person1", 5)
 check_value(pr1, "not Person2", 6)
 check_value(pr1, "not SongExplorer", 7)
 
-l2 = pd.read_csv(os.path.join(V.groundtruth_folder.value, "congruence.word.label2.csv"))
+l2 = pd.read_csv(os.path.join(V.groundtruth_folder.value, "congruence.label.label2.csv"))
 pr1 = l2.loc[l2['Unnamed: 0'] == '1.0pr']
 
 check_value(pr1, "Everyone", 1)
@@ -84,7 +84,7 @@ check_value(pr1, "not SongExplorer", 0)
 
 for i in range(3,8):
   li = pd.read_csv(os.path.join(V.groundtruth_folder.value,
-                                "congruence.word.label"+str(i)+".csv"))
+                                "congruence.label.label"+str(i)+".csv"))
   pr1 = li.loc[li['Unnamed: 0'] == '1.0pr']
   check_value(pr1, "only Person1", 1)
   check_value(pr1, "not Person2", 2)
@@ -172,12 +172,12 @@ correctvalues = [
   ["recording1-disjoint-tic-only1.0pr.csv", 4],
   ["recording1-disjoint-tic-onlyPerson1.csv", 2],
   ["recording1-disjoint-tic-onlyPerson2.csv", 3],
-  ["recording1-disjoint-word-not1.0pr.csv", 7],
-  ["recording1-disjoint-word-notPerson1.csv", 5],
-  ["recording1-disjoint-word-notPerson2.csv", 6],
-  ["recording1-disjoint-word-only1.0pr.csv", 4],
-  ["recording1-disjoint-word-onlyPerson1.csv", 2],
-  ["recording1-disjoint-word-onlyPerson2.csv", 3],
+  ["recording1-disjoint-label-not1.0pr.csv", 7],
+  ["recording1-disjoint-label-notPerson1.csv", 5],
+  ["recording1-disjoint-label-notPerson2.csv", 6],
+  ["recording1-disjoint-label-only1.0pr.csv", 4],
+  ["recording1-disjoint-label-onlyPerson1.csv", 2],
+  ["recording1-disjoint-label-onlyPerson2.csv", 3],
   ["recording2-disjoint-everyone.csv", 1],
   ["recording2-disjoint-tic-not1.0pr.csv", 0],
   #["recording2-disjoint-tic-notPerson1.csv", ],
@@ -185,12 +185,12 @@ correctvalues = [
   ["recording2-disjoint-tic-only1.0pr.csv", 1],
   ["recording2-disjoint-tic-onlyPerson1.csv", 2],
   ["recording2-disjoint-tic-onlyPerson2.csv", 3],
-  ["recording2-disjoint-word-not1.0pr.csv", 0],
-  #["recording2-disjoint-word-notPerson1.csv", ],
-  #["recording2-disjoint-word-notPerson2.csv", ],
-  ["recording2-disjoint-word-only1.0pr.csv", 0],
-  ["recording2-disjoint-word-onlyPerson1.csv", 2],
-  ["recording2-disjoint-word-onlyPerson2.csv", 3],
+  ["recording2-disjoint-label-not1.0pr.csv", 0],
+  #["recording2-disjoint-label-notPerson1.csv", ],
+  #["recording2-disjoint-label-notPerson2.csv", ],
+  ["recording2-disjoint-label-only1.0pr.csv", 0],
+  ["recording2-disjoint-label-onlyPerson1.csv", 2],
+  ["recording2-disjoint-label-onlyPerson2.csv", 3],
   ["recording3-disjoint-everyone.csv", 0],
   ["recording3-disjoint-tic-not1.0pr.csv", 0],
   ["recording3-disjoint-tic-notPerson1.csv", 0],
@@ -198,12 +198,12 @@ correctvalues = [
   ["recording3-disjoint-tic-only1.0pr.csv", 0],
   ["recording3-disjoint-tic-onlyPerson1.csv", 4],
   ["recording3-disjoint-tic-onlyPerson2.csv", 0],
-  ["recording3-disjoint-word-not1.0pr.csv", 0],
-  ["recording3-disjoint-word-notPerson1.csv", 0],
-  ["recording3-disjoint-word-notPerson2.csv", 5],
-  ["recording3-disjoint-word-only1.0pr.csv", 0],
-  ["recording3-disjoint-word-onlyPerson1.csv", 0],
-  ["recording3-disjoint-word-onlyPerson2.csv", 0],
+  ["recording3-disjoint-label-not1.0pr.csv", 0],
+  ["recording3-disjoint-label-notPerson1.csv", 0],
+  ["recording3-disjoint-label-notPerson2.csv", 5],
+  ["recording3-disjoint-label-only1.0pr.csv", 0],
+  ["recording3-disjoint-label-onlyPerson1.csv", 0],
+  ["recording3-disjoint-label-onlyPerson2.csv", 0],
   ["recording4-disjoint-everyone.csv", 0],
   ["recording4-disjoint-tic-not1.0pr.csv", 0],
   ["recording4-disjoint-tic-notPerson1.csv", 0],
@@ -211,12 +211,12 @@ correctvalues = [
   ["recording4-disjoint-tic-only1.0pr.csv", 5],
   ["recording4-disjoint-tic-onlyPerson1.csv", 5],
   ["recording4-disjoint-tic-onlyPerson2.csv", 0],
-  ["recording4-disjoint-word-not1.0pr.csv", 0],
-  ["recording4-disjoint-word-notPerson1.csv", 0],
-  ["recording4-disjoint-word-notPerson2.csv", 5],
-  ["recording4-disjoint-word-only1.0pr.csv", 0],
-  ["recording4-disjoint-word-onlyPerson1.csv", 5],
-  ["recording4-disjoint-word-onlyPerson2.csv", 0],
+  ["recording4-disjoint-label-not1.0pr.csv", 0],
+  ["recording4-disjoint-label-notPerson1.csv", 0],
+  ["recording4-disjoint-label-notPerson2.csv", 5],
+  ["recording4-disjoint-label-only1.0pr.csv", 0],
+  ["recording4-disjoint-label-onlyPerson1.csv", 5],
+  ["recording4-disjoint-label-onlyPerson2.csv", 0],
   ]
 
 for filename, correctvalue in correctvalues:

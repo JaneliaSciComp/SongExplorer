@@ -40,14 +40,14 @@ run(["hetero", "start", "1", "1", "1"])
 shutil.copy(os.path.join(repo_path, "data/PS_20130625111709_ch3-annotated-person1.csv"),
             os.path.join(repo_path, "test/scratch/seeds/groundtruth-data/round1"))
 
-V.context_ms_string.value = "204.8"
-V.shiftby_ms_string.value = "0.0"
+V.context_ms.value = "204.8"
+V.shiftby_ms.value = "0.0"
 V.optimizer.value = "adam"
-V.learning_rate_string.value = "0.0002"
+V.learning_rate.value = "0.0002"
 V.representation.value = "mel-cepstrum"
-V.window_ms_string.value = "6.4"
-V.stride_ms_string.value = "1.6"
-V.mel_dct_string.value = "7,7"
+V.window_ms.value = "6.4"
+V.stride_ms.value = "1.6"
+V.mel_dct.value = "7,7"
 V.model_parameters["dropout"].value = "0.5"
 V.model_parameters["kernel_sizes"].value = "5,3,3"
 V.model_parameters["nlayers"].value = "2"
@@ -56,20 +56,20 @@ V.model_parameters["dilate_after_layer"].value = "65535"
 V.model_parameters["stride_after_layer"].value = "65535"
 V.model_parameters["connection_type"].value = "plain"
 V.groundtruth_folder.value = os.path.join(repo_path, "test/scratch/seeds/groundtruth-data")
-V.wantedwords_string.value = "mel-pulse,mel-sine,ambient"
-V.labeltypes_string.value = "annotated"
-V.nsteps_string.value = "100"
-V.restore_from_string.value = ""
-V.save_and_validate_period_string.value = "10"
-V.validate_percentage_string.value = "40"
-V.mini_batch_string.value = "32"
-V.testing_files = ""
-V.replicates_string.value = "1"
+V.labels_touse.value = "mel-pulse,mel-sine,ambient"
+V.kinds_touse.value = "annotated"
+V.nsteps.value = "100"
+V.restore_from.value = ""
+V.save_and_validate_period.value = "10"
+V.validate_percentage.value = "40"
+V.mini_batch.value = "32"
+V.test_files.value = ""
+V.nreplicates.value = "1"
 
 for batch_seed in ["1", "-1"]:
-  V.batch_seed_string.value = batch_seed
+  V.batch_seed.value = batch_seed
   for weights_seed in ["1", "-1"]:
-    V.weights_seed_string.value = weights_seed
+    V.weights_seed.value = weights_seed
     V.logs_folder.value = os.path.join(repo_path,
           "test/scratch/seeds/trained-classifier-bs="+batch_seed+"-ws="+weights_seed)
     asyncio.run(C.train_actuate())
@@ -79,7 +79,7 @@ for batch_seed in ["1", "-1"]:
     check_file_exists(os.path.join(V.logs_folder.value, "train1.log"))
     check_file_exists(os.path.join(V.logs_folder.value, "train_1r.log"))
     check_file_exists(os.path.join(V.logs_folder.value,
-                                   "train_1r", "ckpt-"+V.nsteps_string.value+".index"))
+                                   "train_1r", "ckpt-"+V.nsteps.value+".index"))
 
 run(["hetero", "stop"], stdout=PIPE, stderr=STDOUT)
 

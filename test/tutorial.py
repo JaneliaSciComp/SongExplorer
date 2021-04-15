@@ -12,7 +12,7 @@ import glob
 from subprocess import run, PIPE, STDOUT
 import asyncio
 
-from lib import wait_for_job, check_file_exists, count_lines_with_word, count_lines
+from lib import wait_for_job, check_file_exists, count_lines_with_label, count_lines
 
 repo_path = os.path.dirname(sys.path[0])
   
@@ -37,31 +37,31 @@ run(["hetero", "start", "1", "1", "1"])
 
 wavpath_noext = os.path.join(repo_path,
                              "test/scratch/tutorial-py/groundtruth-data/round1/PS_20130625111709_ch3")
-V.wavtfcsvfiles_string.value = wavpath_noext+".wav"
-V.time_sigma_string.value = "6,3"
-V.time_smooth_ms_string.value = "6.4"
-V.frequency_n_ms_string.value = "25.6"
-V.frequency_nw_string.value = "4"
-V.frequency_p_string.value = "0.1,1.0"
-V.frequency_smooth_ms_string.value = "25.6"
+V.wavtfcsv_files.value = wavpath_noext+".wav"
+V.time_sigma.value = "6,3"
+V.time_smooth_ms.value = "6.4"
+V.frequency_n_ms.value = "25.6"
+V.frequency_nw.value = "4"
+V.frequency_p.value = "0.1,1.0"
+V.frequency_smooth_ms.value = "25.6"
 asyncio.run(C.detect_actuate())
 
 wait_for_job(M.status_ticker_queue)
 
 check_file_exists(wavpath_noext+"-detect.log")
 check_file_exists(wavpath_noext+"-detected.csv")
-count_lines_with_word(wavpath_noext+"-detected.csv", "time", 543)
-count_lines_with_word(wavpath_noext+"-detected.csv", "frequency", 45)
-count_lines_with_word(wavpath_noext+"-detected.csv", "neither", 1138)
+count_lines_with_label(wavpath_noext+"-detected.csv", "time", 543)
+count_lines_with_label(wavpath_noext+"-detected.csv", "frequency", 45)
+count_lines_with_label(wavpath_noext+"-detected.csv", "neither", 1138)
 
-V.context_ms_string.value = "204.8"
-V.shiftby_ms_string.value = "0.0"
+V.context_ms.value = "204.8"
+V.shiftby_ms.value = "0.0"
 V.optimizer.value = "adam"
-V.learning_rate_string.value = "0.0002"
+V.learning_rate.value = "0.0002"
 V.representation.value = "mel-cepstrum"
-V.window_ms_string.value = "6.4"
-V.stride_ms_string.value = "1.6"
-V.mel_dct_string.value = "7,7"
+V.window_ms.value = "6.4"
+V.stride_ms.value = "1.6"
+V.mel_dct.value = "7,7"
 V.model_parameters["dropout"].value = "0.5"
 V.model_parameters["kernel_sizes"].value = "5,3,3"
 V.model_parameters["nlayers"].value = "2"
@@ -71,17 +71,17 @@ V.model_parameters["stride_after_layer"].value = "65535"
 V.model_parameters["connection_type"].value = "plain"
 V.logs_folder.value = os.path.join(repo_path, "test/scratch/tutorial-py/untrained-classifier")
 V.groundtruth_folder.value = os.path.join(repo_path, "test/scratch/tutorial-py/groundtruth-data")
-V.wantedwords_string.value = "time,frequency"
-V.labeltypes_string.value = "detected"
-V.nsteps_string.value = "0"
-V.restore_from_string.value = ""
-V.save_and_validate_period_string.value = "0"
-V.validate_percentage_string.value = "0"
-V.mini_batch_string.value = "32"
-V.testing_files = ""
-V.batch_seed_string.value = "1"
-V.weights_seed_string.value = "1"
-V.replicates_string.value = "1"
+V.labels_touse.value = "time,frequency"
+V.kinds_touse.value = "detected"
+V.nsteps.value = "0"
+V.restore_from.value = ""
+V.save_and_validate_period.value = "0"
+V.validate_percentage.value = "0"
+V.mini_batch.value = "32"
+V.test_files.value = ""
+V.batch_seed.value = "1"
+V.weights_seed.value = "1"
+V.nreplicates.value = "1"
 asyncio.run(C.train_actuate())
 
 wait_for_job(M.status_ticker_queue)
@@ -89,27 +89,27 @@ wait_for_job(M.status_ticker_queue)
 check_file_exists(os.path.join(V.logs_folder.value, "train1.log"))
 check_file_exists(os.path.join(V.logs_folder.value, "train_1r.log"))
 check_file_exists(os.path.join(V.logs_folder.value,
-                               "train_1r","ckpt-"+V.nsteps_string.value+".index"))
+                               "train_1r","ckpt-"+V.nsteps.value+".index"))
 
 V.model_file.value = os.path.join(repo_path, "test/scratch/tutorial-py/untrained-classifier",
-                                  "train_"+V.replicates_string.value+"r",
-                                  "ckpt-"+V.nsteps_string.value+".meta")
-V.activations_equalize_ratio_string.value = "1000"
-V.activations_max_samples_string.value = "10000"
+                                  "train_"+V.nreplicates.value+"r",
+                                  "ckpt-"+V.nsteps.value+".meta")
+V.activations_equalize_ratio.value = "1000"
+V.activations_max_sounds.value = "10000"
 asyncio.run(C.activations_actuate())
 
 wait_for_job(M.status_ticker_queue)
 
 check_file_exists(os.path.join(V.groundtruth_folder.value, "activations.log"))
-check_file_exists(os.path.join(V.groundtruth_folder.value, "activations-samples.log"))
+check_file_exists(os.path.join(V.groundtruth_folder.value, "activations-sounds.log"))
 check_file_exists(os.path.join(V.groundtruth_folder.value, "activations.npz"))
 
 V.cluster_these_layers.value = ["0"]
-V.pca_fraction_variance_to_retain_string.value = "0.99"
+V.pca_fraction_variance_to_retain.value = "0.99"
 M.pca_batch_size = "0"
 V.cluster_algorithm.value = "tSNE 2D"
-V.tsne_perplexity_string.value = "30"
-V.tsne_exaggeration_string.value = "12"
+V.tsne_perplexity.value = "30"
+V.tsne_exaggeration.value = "12"
 asyncio.run(C.cluster_actuate())
 
 wait_for_job(M.status_ticker_queue)
@@ -122,11 +122,11 @@ shutil.copy(os.path.join(repo_path, "data/PS_20130625111709_ch3-annotated-person
             os.path.join(repo_path, "test/scratch/tutorial-py/groundtruth-data/round1"))
 
 V.logs_folder.value = os.path.join(repo_path, "test/scratch/tutorial-py/trained-classifier1")
-V.wantedwords_string.value = "mel-pulse,mel-sine,ambient"
-V.labeltypes_string.value = "annotated"
-V.nsteps_string.value = "100"
-V.save_and_validate_period_string.value = "10"
-V.validate_percentage_string.value = "40"
+V.labels_touse.value = "mel-pulse,mel-sine,ambient"
+V.kinds_touse.value = "annotated"
+V.nsteps.value = "100"
+V.save_and_validate_period.value = "10"
+V.validate_percentage.value = "40"
 asyncio.run(C.train_actuate())
 
 wait_for_job(M.status_ticker_queue)
@@ -134,11 +134,11 @@ wait_for_job(M.status_ticker_queue)
 check_file_exists(os.path.join(V.logs_folder.value, "train1.log"))
 check_file_exists(os.path.join(V.logs_folder.value, "train_1r.log"))
 check_file_exists(os.path.join(V.logs_folder.value, "train_1r",
-                               "ckpt-"+V.nsteps_string.value+".index"))
+                               "ckpt-"+V.nsteps.value+".index"))
 check_file_exists(os.path.join(V.logs_folder.value, "train_1r",
-                               "logits.validation.ckpt-"+V.nsteps_string.value+".npz"))
+                               "logits.validation.ckpt-"+V.nsteps.value+".npz"))
 
-V.precision_recall_ratios_string.value = "0.5,1.0,2.0"
+V.precision_recall_ratios.value = "0.5,1.0,2.0"
 asyncio.run(C.accuracy_actuate())
 
 wait_for_job(M.status_ticker_queue)
@@ -146,56 +146,56 @@ wait_for_job(M.status_ticker_queue)
 check_file_exists(os.path.join(V.logs_folder.value, "accuracy.log"))
 check_file_exists(os.path.join(V.logs_folder.value, "accuracy.pdf"))
 check_file_exists(os.path.join(V.logs_folder.value, "train_1r",
-                               "precision-recall.ckpt-"+V.nsteps_string.value+".pdf"))
+                               "precision-recall.ckpt-"+V.nsteps.value+".pdf"))
 check_file_exists(os.path.join(V.logs_folder.value, "train_1r",
-                               "probability-density.ckpt-"+V.nsteps_string.value+".pdf"))
+                               "probability-density.ckpt-"+V.nsteps.value+".pdf"))
 check_file_exists(os.path.join(V.logs_folder.value, "train_1r",
-                               "thresholds.ckpt-"+V.nsteps_string.value+".csv"))
+                               "thresholds.ckpt-"+V.nsteps.value+".csv"))
 check_file_exists(os.path.join(V.logs_folder.value, "train-loss.pdf"))
 check_file_exists(os.path.join(V.logs_folder.value, "validation-F1.pdf"))
-for word in V.wantedwords_string.value.split(','):
-  check_file_exists(os.path.join(V.logs_folder.value, "validation-PvR-"+word+".pdf"))
+for label in V.labels_touse.value.split(','):
+  check_file_exists(os.path.join(V.logs_folder.value, "validation-PvR-"+label+".pdf"))
 
-V.model_file.value = os.path.join(V.logs_folder.value, "train_"+V.replicates_string.value+"r",
-                                  "ckpt-"+V.nsteps_string.value+".meta")
+V.model_file.value = os.path.join(V.logs_folder.value, "train_"+V.nreplicates.value+"r",
+                                  "ckpt-"+V.nsteps.value+".meta")
 asyncio.run(C.freeze_actuate())
 
 wait_for_job(M.status_ticker_queue)
 
 check_file_exists(os.path.join(V.logs_folder.value, "train_1r",
-                               "freeze.ckpt-"+V.nsteps_string.value+".log"))
+                               "freeze.ckpt-"+V.nsteps.value+".log"))
 check_file_exists(os.path.join(V.logs_folder.value, "train_1r",
-                               "frozen-graph.ckpt-"+V.nsteps_string.value+".pb",
+                               "frozen-graph.ckpt-"+V.nsteps.value+".pb",
                                "saved_model.pb"))
 
 os.makedirs(os.path.join(repo_path, "test/scratch/tutorial-py/groundtruth-data/round2"))
 shutil.copy(os.path.join(repo_path, "data/20161207T102314_ch1.wav"),
             os.path.join(repo_path, "test/scratch/tutorial-py/groundtruth-data/round2"))
 
-V.wavtfcsvfiles_string.value = os.path.join(repo_path,
+V.wavtfcsv_files.value = os.path.join(repo_path,
       "test/scratch/tutorial-py/groundtruth-data/round2/20161207T102314_ch1.wav")
-V.prevalences_string.value = ""
+V.prevalences.value = ""
 asyncio.run(C.classify_actuate())
 
 wait_for_job(M.status_ticker_queue)
 
-wavpath_noext = V.wavtfcsvfiles_string.value[:-4]
+wavpath_noext = V.wavtfcsv_files.value[:-4]
 check_file_exists(wavpath_noext+".tf")
 check_file_exists(wavpath_noext+"-classify1.log")
 check_file_exists(wavpath_noext+"-classify2.log")
-for word in V.wantedwords_string.value.split(','):
-  check_file_exists(wavpath_noext+"-"+word+".wav")
+for label in V.labels_touse.value.split(','):
+  check_file_exists(wavpath_noext+"-"+label+".wav")
 
 asyncio.run(C.ethogram_actuate())
 
 wait_for_job(M.status_ticker_queue)
 
 check_file_exists(wavpath_noext+"-ethogram.log")
-for pr in V.precision_recall_ratios_string.value.split(','):
+for pr in V.precision_recall_ratios.value.split(','):
   check_file_exists(wavpath_noext+"-predicted-"+pr+"pr.csv")
-count_lines_with_word(wavpath_noext+"-predicted-1.0pr.csv", "mel-pulse", 1010)
-count_lines_with_word(wavpath_noext+"-predicted-1.0pr.csv", "mel-sine", 958)
-count_lines_with_word(wavpath_noext+"-predicted-1.0pr.csv", "ambient", 88)
+count_lines_with_label(wavpath_noext+"-predicted-1.0pr.csv", "mel-pulse", 1010)
+count_lines_with_label(wavpath_noext+"-predicted-1.0pr.csv", "mel-sine", 958)
+count_lines_with_label(wavpath_noext+"-predicted-1.0pr.csv", "ambient", 88)
 
 asyncio.run(C.detect_actuate())
 
@@ -203,10 +203,10 @@ wait_for_job(M.status_ticker_queue)
 
 check_file_exists(wavpath_noext+"-detect.log")
 check_file_exists(wavpath_noext+"-detected.csv")
-count_lines_with_word(wavpath_noext+"-detected.csv", "time", 1309)
-count_lines_with_word(wavpath_noext+"-detected.csv", "frequency", 179)
+count_lines_with_label(wavpath_noext+"-detected.csv", "time", 1309)
+count_lines_with_label(wavpath_noext+"-detected.csv", "frequency", 179)
 
-V.wavtfcsvfiles_string.value = wavpath_noext+"-detected.csv,"+ \
+V.wavtfcsv_files.value = wavpath_noext+"-detected.csv,"+ \
                                wavpath_noext+"-predicted-1.0pr.csv"
 asyncio.run(C.misses_actuate())
 
@@ -214,7 +214,7 @@ wait_for_job(M.status_ticker_queue)
 
 check_file_exists(wavpath_noext+"-misses.log")
 check_file_exists(wavpath_noext+"-missed.csv")
-count_lines_with_word(wavpath_noext+"-missed.csv", "other", 2199)
+count_lines_with_label(wavpath_noext+"-missed.csv", "other", 2199)
 
 os.mkdir(os.path.join(V.groundtruth_folder.value, "round1", "cluster"))
 for file in glob.glob(os.path.join(V.groundtruth_folder.value, "activations*")):
@@ -224,26 +224,26 @@ for file in glob.glob(os.path.join(V.groundtruth_folder.value, "cluster*")):
     shutil.move(file, os.path.join(V.groundtruth_folder.value, "round1", "cluster"))
 
 V.model_file.value = os.path.join(repo_path, "test/scratch/tutorial-py/trained-classifier1", \
-                                  "train_"+V.replicates_string.value+"r", \
-                                  "ckpt-"+V.nsteps_string.value+".meta")
-V.labeltypes_string.value = "annotated,missed"
-V.activations_equalize_ratio_string.value = "1000"
-V.activations_max_samples_string.value = "10000"
+                                  "train_"+V.nreplicates.value+"r", \
+                                  "ckpt-"+V.nsteps.value+".meta")
+V.kinds_touse.value = "annotated,missed"
+V.activations_equalize_ratio.value = "1000"
+V.activations_max_sounds.value = "10000"
 asyncio.run(C.activations_actuate())
 
 wait_for_job(M.status_ticker_queue)
 
 check_file_exists(os.path.join(V.groundtruth_folder.value, "activations.log"))
-check_file_exists(os.path.join(V.groundtruth_folder.value, "activations-samples.log"))
+check_file_exists(os.path.join(V.groundtruth_folder.value, "activations-sounds.log"))
 check_file_exists(os.path.join(V.groundtruth_folder.value, "activations.npz"))
 
 V.cluster_these_layers.value = ["2","3"]
-V.pca_fraction_variance_to_retain_string.value = "1.0"
+V.pca_fraction_variance_to_retain.value = "1.0"
 M.pca_batch_size = "0"
 V.cluster_algorithm.value = "UMAP 3D"
 M.cluster_parallelize=1
-V.umap_neighbors_string.value = "10"
-V.umap_distance_string.value = "0.1"
+V.umap_neighbors.value = "10"
+V.umap_distance.value = "0.1"
 asyncio.run(C.cluster_actuate())
 
 wait_for_job(M.status_ticker_queue)
@@ -255,18 +255,18 @@ shutil.copy(os.path.join(repo_path, "data/20161207T102314_ch1-annotated-person1.
             os.path.join(repo_path, "test/scratch/tutorial-py/groundtruth-data/round2"))
 
 V.logs_folder.value = os.path.join(repo_path, "test/scratch/tutorial-py/omit-one")
-V.validationfiles_string.value = "PS_20130625111709_ch3.wav,20161207T102314_ch1.wav"
+V.validation_files.value = "PS_20130625111709_ch3.wav,20161207T102314_ch1.wav"
 asyncio.run(C.leaveout_actuate(False))
 
 wait_for_job(M.status_ticker_queue)
 
-for ifile in range(1,1+len(V.validationfiles_string.value.split(','))):
+for ifile in range(1,1+len(V.validation_files.value.split(','))):
   check_file_exists(os.path.join(V.logs_folder.value, "generalize"+str(ifile)+".log"))
   check_file_exists(os.path.join(V.logs_folder.value, "generalize_"+str(ifile)+"w.log"))
   check_file_exists(os.path.join(V.logs_folder.value, "generalize_"+str(ifile)+"w",
-                                 "ckpt-"+V.nsteps_string.value+".index"))
+                                 "ckpt-"+V.nsteps.value+".index"))
   check_file_exists(os.path.join(V.logs_folder.value, "generalize_"+str(ifile)+"w",
-                                 "logits.validation.ckpt-"+V.nsteps_string.value+".npz"))
+                                 "logits.validation.ckpt-"+V.nsteps.value+".npz"))
 
 asyncio.run(C.accuracy_actuate())
 
@@ -275,17 +275,17 @@ wait_for_job(M.status_ticker_queue)
 check_file_exists(os.path.join(V.logs_folder.value, "accuracy.log"))
 check_file_exists(os.path.join(V.logs_folder.value, "accuracy.pdf"))
 check_file_exists(os.path.join(V.logs_folder.value, "confusion-matrices.pdf"))
-for ifile in range(1,1+len(V.validationfiles_string.value.split(','))):
+for ifile in range(1,1+len(V.validation_files.value.split(','))):
   check_file_exists(os.path.join(V.logs_folder.value, "generalize_"+str(ifile)+"w",
-                                 "precision-recall.ckpt-"+V.nsteps_string.value+".pdf"))
+                                 "precision-recall.ckpt-"+V.nsteps.value+".pdf"))
   check_file_exists(os.path.join(V.logs_folder.value, "generalize_"+str(ifile)+"w",
-                                 "probability-density.ckpt-"+V.nsteps_string.value+".pdf"))
+                                 "probability-density.ckpt-"+V.nsteps.value+".pdf"))
   check_file_exists(os.path.join(V.logs_folder.value, "generalize_"+str(ifile)+"w",
-                                 "thresholds.ckpt-"+V.nsteps_string.value+".csv"))
+                                 "thresholds.ckpt-"+V.nsteps.value+".csv"))
 check_file_exists(os.path.join(V.logs_folder.value, "train-loss.pdf"))
 check_file_exists(os.path.join(V.logs_folder.value, "validation-F1.pdf"))
-for word in V.wantedwords_string.value.split(','):
-  check_file_exists(os.path.join(V.logs_folder.value, "validation-PvR-"+word+".pdf"))
+for label in V.labels_touse.value.split(','):
+  check_file_exists(os.path.join(V.logs_folder.value, "validation-PvR-"+label+".pdf"))
 
 nfeaturess = ["32,32,32", "64,64,64"]
 
@@ -293,19 +293,19 @@ for nfeatures in nfeaturess:
   V.logs_folder.value = os.path.join(repo_path,
                                      "test/scratch/tutorial-py/nfeatures-"+nfeatures.split(',')[0])
   V.model_parameters["nfeatures"].value = nfeatures
-  V.kfold_string.value = "2"
+  V.kfold.value = "2"
   asyncio.run(C.xvalidate_actuate())
 
 wait_for_job(M.status_ticker_queue)
 
 for nfeatures in nfeaturess:
-  for ifold in range(1, 1+int(V.kfold_string.value)):
+  for ifold in range(1, 1+int(V.kfold.value)):
     check_file_exists(os.path.join(V.logs_folder.value, "xvalidate"+str(ifold)+".log"))
     check_file_exists(os.path.join(V.logs_folder.value, "xvalidate_"+str(ifold)+"k.log"))
     check_file_exists(os.path.join(V.logs_folder.value, "xvalidate_"+str(ifold)+"k",
-                                   "ckpt-"+V.nsteps_string.value+".index"))
+                                   "ckpt-"+V.nsteps.value+".index"))
     check_file_exists(os.path.join(V.logs_folder.value, "xvalidate_"+str(ifold)+"k",
-                                   "logits.validation.ckpt-"+V.nsteps_string.value+".npz"))
+                                   "logits.validation.ckpt-"+V.nsteps.value+".npz"))
 
 for nfeatures in nfeaturess:
   V.logs_folder.value = os.path.join(repo_path,
@@ -318,17 +318,17 @@ for nfeatures in nfeaturess:
   check_file_exists(os.path.join(V.logs_folder.value, "accuracy.log"))
   check_file_exists(os.path.join(V.logs_folder.value, "accuracy.pdf"))
   check_file_exists(os.path.join(V.logs_folder.value, "confusion-matrices.pdf"))
-  for ifold in range(1, 1+int(V.kfold_string.value)):
+  for ifold in range(1, 1+int(V.kfold.value)):
     check_file_exists(os.path.join(V.logs_folder.value, "xvalidate_"+str(ifold)+"k",
-                                   "precision-recall.ckpt-"+V.nsteps_string.value+".pdf"))
+                                   "precision-recall.ckpt-"+V.nsteps.value+".pdf"))
     check_file_exists(os.path.join(V.logs_folder.value, "xvalidate_"+str(ifold)+"k",
-                                   "probability-density.ckpt-"+V.nsteps_string.value+".pdf"))
+                                   "probability-density.ckpt-"+V.nsteps.value+".pdf"))
     check_file_exists(os.path.join(V.logs_folder.value, "xvalidate_"+str(ifold)+"k",
-                                   "thresholds.ckpt-"+V.nsteps_string.value+".csv"))
+                                   "thresholds.ckpt-"+V.nsteps.value+".csv"))
   check_file_exists(os.path.join(V.logs_folder.value, "train-loss.pdf"))
   check_file_exists(os.path.join(V.logs_folder.value, "validation-F1.pdf"))
-  for word in V.wantedwords_string.value.split(','):
-    check_file_exists(os.path.join(V.logs_folder.value, "validation-PvR-"+word+".pdf"))
+  for label in V.labels_touse.value.split(','):
+    check_file_exists(os.path.join(V.logs_folder.value, "validation-PvR-"+label+".pdf"))
 
 V.logs_folder.value = os.path.join(repo_path, "test/scratch/tutorial-py/nfeatures")
 asyncio.run(C.compare_actuate())
@@ -349,9 +349,9 @@ check_file_exists(os.path.join(V.groundtruth_folder.value, "round1",
                                "PS_20130625111709_ch3-mistakes.csv"))
 
 V.logs_folder.value = os.path.join(repo_path, "test/scratch/tutorial-py/trained-classifier2")
-V.labeltypes_string.value = "annotated"
-V.nsteps_string.value = "100"
-V.validate_percentage_string.value = "20"
+V.kinds_touse.value = "annotated"
+V.nsteps.value = "100"
+V.validate_percentage.value = "20"
 asyncio.run(C.train_actuate())
 
 wait_for_job(M.status_ticker_queue)
@@ -359,11 +359,11 @@ wait_for_job(M.status_ticker_queue)
 check_file_exists(os.path.join(V.logs_folder.value, "train1.log"))
 check_file_exists(os.path.join(V.logs_folder.value, "train_1r.log"))
 check_file_exists(os.path.join(V.logs_folder.value, "train_1r",
-                               "ckpt-"+V.nsteps_string.value+".index"))
+                               "ckpt-"+V.nsteps.value+".index"))
 check_file_exists(os.path.join(V.logs_folder.value, "train_1r",
-                               "logits.validation.ckpt-"+V.nsteps_string.value+".npz"))
+                               "logits.validation.ckpt-"+V.nsteps.value+".npz"))
 
-V.precision_recall_ratios_string.value = "1.0"
+V.precision_recall_ratios.value = "1.0"
 asyncio.run(C.accuracy_actuate())
 
 wait_for_job(M.status_ticker_queue)
@@ -371,51 +371,51 @@ wait_for_job(M.status_ticker_queue)
 check_file_exists(os.path.join(V.logs_folder.value, "accuracy.log"))
 check_file_exists(os.path.join(V.logs_folder.value, "accuracy.pdf"))
 check_file_exists(os.path.join(V.logs_folder.value, "train_1r",
-                               "precision-recall.ckpt-"+V.nsteps_string.value+".pdf"))
+                               "precision-recall.ckpt-"+V.nsteps.value+".pdf"))
 check_file_exists(os.path.join(V.logs_folder.value, "train_1r",
-                               "probability-density.ckpt-"+V.nsteps_string.value+".pdf"))
+                               "probability-density.ckpt-"+V.nsteps.value+".pdf"))
 check_file_exists(os.path.join(V.logs_folder.value, "train_1r",
-                               "thresholds.ckpt-"+V.nsteps_string.value+".csv"))
+                               "thresholds.ckpt-"+V.nsteps.value+".csv"))
 check_file_exists(os.path.join(V.logs_folder.value, "train-loss.pdf"))
 check_file_exists(os.path.join(V.logs_folder.value, "validation-F1.pdf"))
-for word in V.wantedwords_string.value.split(','):
-  check_file_exists(os.path.join(V.logs_folder.value, "validation-PvR-"+word+".pdf"))
+for label in V.labels_touse.value.split(','):
+  check_file_exists(os.path.join(V.logs_folder.value, "validation-PvR-"+label+".pdf"))
 
-V.model_file.value = os.path.join(V.logs_folder.value, "train_"+V.replicates_string.value+"r",
-                                  "ckpt-"+V.nsteps_string.value+".meta")
+V.model_file.value = os.path.join(V.logs_folder.value, "train_"+V.nreplicates.value+"r",
+                                  "ckpt-"+V.nsteps.value+".meta")
 asyncio.run(C.freeze_actuate())
 
 wait_for_job(M.status_ticker_queue)
 
 check_file_exists(os.path.join(V.logs_folder.value, "train_1r",
-                               "freeze.ckpt-"+V.nsteps_string.value+".log"))
+                               "freeze.ckpt-"+V.nsteps.value+".log"))
 check_file_exists(os.path.join(V.logs_folder.value, "train_1r",
-                               "frozen-graph.ckpt-"+V.nsteps_string.value+".pb",
+                               "frozen-graph.ckpt-"+V.nsteps.value+".pb",
                                "saved_model.pb"))
 
 os.mkdir(os.path.join(repo_path, "test/scratch/tutorial-py/groundtruth-data/congruence"))
 shutil.copy(os.path.join(repo_path, "data/20190122T093303a-7.wav"),
             os.path.join(repo_path, "test/scratch/tutorial-py/groundtruth-data/congruence"))
 
-V.wavtfcsvfiles_string.value = os.path.join(repo_path,
+V.wavtfcsv_files.value = os.path.join(repo_path,
       "test/scratch/tutorial-py/groundtruth-data/congruence/20190122T093303a-7.wav")
 asyncio.run(C.classify_actuate())
 
 wait_for_job(M.status_ticker_queue)
 
-wavpath_noext = V.wavtfcsvfiles_string.value[:-4]
+wavpath_noext = V.wavtfcsv_files.value[:-4]
 check_file_exists(wavpath_noext+"-classify1.log")
 check_file_exists(wavpath_noext+".tf")
 check_file_exists(wavpath_noext+"-classify2.log")
-for word in V.wantedwords_string.value.split(','):
-  check_file_exists(wavpath_noext+"-"+word+".wav")
+for label in V.labels_touse.value.split(','):
+  check_file_exists(wavpath_noext+"-"+label+".wav")
 
 asyncio.run(C.ethogram_actuate())
 
 wait_for_job(M.status_ticker_queue)
 
 check_file_exists(wavpath_noext+"-ethogram.log")
-for pr in V.precision_recall_ratios_string.value.split(','):
+for pr in V.precision_recall_ratios.value.split(','):
   check_file_exists(wavpath_noext+"-predicted-"+pr+"pr.csv")
 
 shutil.copy(os.path.join(repo_path, "data/20190122T093303a-7-annotated-person2.csv"),
@@ -423,32 +423,32 @@ shutil.copy(os.path.join(repo_path, "data/20190122T093303a-7-annotated-person2.c
 shutil.copy(os.path.join(repo_path, "data/20190122T093303a-7-annotated-person3.csv"),
             os.path.join(repo_path, "test/scratch/tutorial-py/groundtruth-data/congruence"))
 
-V.testfiles_string.value = ""
-V.validationfiles_string.value = "20190122T093303a-7.wav"
+V.test_files.value = ""
+V.validation_files.value = "20190122T093303a-7.wav"
 asyncio.run(C.congruence_actuate())
 
 wait_for_job(M.status_ticker_queue)
 
-wavpath_noext = V.validationfiles_string.value[:-4]
+wavpath_noext = V.validation_files.value[:-4]
 check_file_exists(os.path.join(V.groundtruth_folder.value, "congruence.log"))
 check_file_exists(os.path.join(V.groundtruth_folder.value, "congruence",
                                wavpath_noext+"-disjoint-everyone.csv"))
-kinds = ["tic", "word"]
+kinds = ["tic", "label"]
 persons = ["person2", "person3"]
 for kind in kinds:
-  for word in V.wantedwords_string.value.split(','):
+  for label in V.labels_touse.value.split(','):
     check_file_exists(os.path.join(V.groundtruth_folder.value,
-                                   "congruence."+kind+"."+word+".csv"))
+                                   "congruence."+kind+"."+label+".csv"))
     count_lines(os.path.join(V.groundtruth_folder.value,
-                                   "congruence."+kind+"."+word+".csv"), M.nprobabilities+2)
+                                   "congruence."+kind+"."+label+".csv"), M.nprobabilities+2)
     check_file_exists(os.path.join(V.groundtruth_folder.value,
-                                   "congruence."+kind+"."+word+".pdf"))
-  for pr in V.precision_recall_ratios_string.value.split(','):
-    for word in V.wantedwords_string.value.split(','):
+                                   "congruence."+kind+"."+label+".pdf"))
+  for pr in V.precision_recall_ratios.value.split(','):
+    for label in V.labels_touse.value.split(','):
       check_file_exists(os.path.join(V.groundtruth_folder.value,
-                                     "congruence."+kind+"."+word+"."+pr+"pr-venn.pdf"))
+                                     "congruence."+kind+"."+label+"."+pr+"pr-venn.pdf"))
       check_file_exists(os.path.join(V.groundtruth_folder.value,
-                                     "congruence."+kind+"."+word+"."+pr+"pr.pdf"))
+                                     "congruence."+kind+"."+label+"."+pr+"pr.pdf"))
     check_file_exists(os.path.join(V.groundtruth_folder.value, "congruence",
                                    wavpath_noext+"-disjoint-"+kind+"-not"+pr+"pr.csv"))
     check_file_exists(os.path.join(V.groundtruth_folder.value, "congruence",

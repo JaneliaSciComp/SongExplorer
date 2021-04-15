@@ -31,9 +31,9 @@ files=(groundtruth-data/round1/PS_20130625111709_ch3-detected.csv
        groundtruth-data/congruence.tic.ambient.csv
        groundtruth-data/congruence.tic.mel-pulse.csv
        groundtruth-data/congruence.tic.mel-sine.csv
-       groundtruth-data/congruence.word.ambient.csv
-       groundtruth-data/congruence.word.mel-pulse.csv
-       groundtruth-data/congruence.word.mel-sine.csv
+       groundtruth-data/congruence.label.ambient.csv
+       groundtruth-data/congruence.label.mel-pulse.csv
+       groundtruth-data/congruence.label.mel-sine.csv
       )
 for file in ${files[*]} ; do
   if [[ $(diff $repo_path/test/scratch/tutorial-sh/$file \

@@ -17,28 +17,28 @@ import numpy as np
 
 from lib import count_lines, check_file_exists
 
-def check_annotation_in_memory(thissample, shouldexist):
+def check_annotation_in_memory(thissound, shouldexist):
   if shouldexist:
-    if len(M.isannotated(thissample))==0:
+    if len(M.isannotated(thissound))==0:
       print("ERROR: annotation is not in memory")
-    if thissample not in M.annotated_samples:
+    if thissound not in M.annotated_sounds:
       print("ERROR: annotation is not in memory")
   else:
-    if len(M.isannotated(thissample))>0:
+    if len(M.isannotated(thissound))>0:
       print("ERROR: annotation is in memory")
-    if thissample in M.annotated_samples:
+    if thissound in M.annotated_sounds:
       print("ERROR: annotation is in memory")
 
-def check_annotation_on_disk(csvfile, thissample, shouldexist):
+def check_annotation_on_disk(csvfile, thissound, shouldexist):
   with open(csvfile) as fid:
     csvreader = csv.reader(fid)
     foundit=False
     for line in csvreader:
-      if line[0]==os.path.basename(thissample['file']) and \
-         line[1]==str(thissample['ticks'][0]) and \
-         line[2]==str(thissample['ticks'][1]) and \
+      if line[0]==os.path.basename(thissound['file']) and \
+         line[1]==str(thissound['ticks'][0]) and \
+         line[2]==str(thissound['ticks'][1]) and \
          line[3]=='annotated' and \
-         line[4]==thissample['label']:
+         line[4]==thissound['label']:
          foundit=True
          break
     if shouldexist and not foundit:
@@ -66,97 +66,97 @@ os.makedirs(basepath)
 shutil.copy(os.path.join(repo_path, "data/PS_20130625111709_ch3.wav"), basepath)
 
 wavfile = os.path.join(basepath, 'PS_20130625111709_ch3.wav')
-M.clustered_samples = [
+M.clustered_sounds = [
   {'label': 'time', 'file': wavfile, 'ticks': [2, 5], 'kind': 'detected'},
   {'label': 'frequency', 'file': wavfile, 'ticks': [10, 15], 'kind': 'detected'},
   {'label': 'neither', 'file': wavfile, 'ticks': [20, 30], 'kind': 'detected'},
   ]
-M.clustered_starts_sorted = [x['ticks'][0] for x in M.clustered_samples]
-M.clustered_stops = [x['ticks'][1] for x in M.clustered_samples]
+M.clustered_starts_sorted = [x['ticks'][0] for x in M.clustered_sounds]
+M.clustered_stops = [x['ticks'][1] for x in M.clustered_sounds]
 M.iclustered_stops_sorted = np.argsort(M.clustered_stops)
 M.state['labels'] = ['pulse', 'sine', 'ambient', '']
 
 # add pulse
-thissample = {'file': wavfile, 'ticks': [3, 3], 'label': 'pulse'}
-M.add_annotation(thissample)
-check_annotation_in_memory(thissample, True)
+thissound = {'file': wavfile, 'ticks': [3, 3], 'label': 'pulse'}
+M.add_annotation(thissound)
+check_annotation_in_memory(thissound, True)
 M.save_annotations()
 files = os.listdir(basepath)
 if len(files)!=2: print("ERROR: wrong number of files")
 
 csvfile = os.path.join(basepath, next(filter(lambda x: x.endswith('.csv'), files)))
 count_lines(csvfile, 1)
-check_annotation_on_disk(csvfile, thissample, True)
+check_annotation_on_disk(csvfile, thissound, True)
 
 # undo it
 C.undo_callback()
-check_annotation_in_memory(thissample, False)
+check_annotation_in_memory(thissound, False)
 M.save_annotations()
 files = os.listdir(basepath)
 if len(files)!=1: print("ERROR: wrong number of files")
 
 # redo it
 C.redo_callback()
-check_annotation_in_memory(thissample, True)
+check_annotation_in_memory(thissound, True)
 M.save_annotations()
 files = os.listdir(basepath)
 if len(files)!=2: print("ERROR: wrong number of files")
 
 csvfile = os.path.join(basepath, next(filter(lambda x: x.endswith('.csv'), files)))
 count_lines(csvfile, 1)
-check_annotation_on_disk(csvfile, thissample, True)
+check_annotation_on_disk(csvfile, thissound, True)
 
 # add sine
-thissample = {'file': wavfile, 'ticks': [12, 16], 'label': 'sine'}
-M.add_annotation(thissample)
-check_annotation_in_memory(thissample, True)
+thissound = {'file': wavfile, 'ticks': [12, 16], 'label': 'sine'}
+M.add_annotation(thissound)
+check_annotation_in_memory(thissound, True)
 M.save_annotations()
 files = os.listdir(basepath)
 if len(files)!=2: print("ERROR: wrong number of files")
 
 csvfile = os.path.join(basepath, next(filter(lambda x: x.endswith('.csv'), files)))
 count_lines(csvfile, 2)
-check_annotation_on_disk(csvfile, thissample, True)
+check_annotation_on_disk(csvfile, thissound, True)
 
 # add ambient
-thissample = {'file': wavfile, 'ticks': [19, 29], 'label': 'ambient'}
-M.add_annotation(thissample)
-check_annotation_in_memory(thissample, True)
+thissound = {'file': wavfile, 'ticks': [19, 29], 'label': 'ambient'}
+M.add_annotation(thissound)
+check_annotation_in_memory(thissound, True)
 M.save_annotations()
 files = os.listdir(basepath)
 if len(files)!=2: print("ERROR: wrong number of files")
 
 csvfile = os.path.join(basepath, next(filter(lambda x: x.endswith('.csv'), files)))
 count_lines(csvfile, 3)
-check_annotation_on_disk(csvfile, thissample, True)
+check_annotation_on_disk(csvfile, thissound, True)
 
 # undo it
 C.undo_callback()
-check_annotation_in_memory(thissample, False)
+check_annotation_in_memory(thissound, False)
 M.save_annotations()
 files = os.listdir(basepath)
 if len(files)!=2: print("ERROR: wrong number of files")
 
 csvfile = os.path.join(basepath, next(filter(lambda x: x.endswith('.csv'), files)))
 count_lines(csvfile, 2)
-check_annotation_on_disk(csvfile, thissample, False)
+check_annotation_on_disk(csvfile, thissound, False)
 
 # redo it
 C.redo_callback()
-check_annotation_in_memory(thissample, True)
+check_annotation_in_memory(thissound, True)
 M.save_annotations()
 files = os.listdir(basepath)
 if len(files)!=2: print("ERROR: wrong number of files")
 
 csvfile = os.path.join(basepath, next(filter(lambda x: x.endswith('.csv'), files)))
 count_lines(csvfile, 3)
-check_annotation_on_disk(csvfile, thissample, True)
+check_annotation_on_disk(csvfile, thissound, True)
 
 # undo all
 C.undo_callback()
 C.undo_callback()
 C.undo_callback()
-if len(M.annotated_samples)!=0: print("ERROR: wrong number of elements")
+if len(M.annotated_sounds)!=0: print("ERROR: wrong number of elements")
 
 M.save_annotations()
 files = os.listdir(basepath)
@@ -165,131 +165,131 @@ if len(files)!=1: print("ERROR: wrong number of files")
 # toggle in time
 M.ilabel=0
 C.toggle_annotation(0)
-thissample = M.clustered_samples[0].copy()
-thissample.pop('kind', None)
-thissample['label']=M.state['labels'][M.ilabel]
-check_annotation_in_memory(thissample, True)
+thissound = M.clustered_sounds[0].copy()
+thissound.pop('kind', None)
+thissound['label']=M.state['labels'][M.ilabel]
+check_annotation_in_memory(thissound, True)
 M.save_annotations()
 files = os.listdir(basepath)
 if len(files)!=2: print("ERROR: wrong number of files")
 
 csvfile = os.path.join(basepath, next(filter(lambda x: x.endswith('.csv'), files)))
 count_lines(csvfile, 1)
-check_annotation_on_disk(csvfile, thissample, True)
+check_annotation_on_disk(csvfile, thissound, True)
 
 # undo it
 C.undo_callback()
-check_annotation_in_memory(thissample, False)
+check_annotation_in_memory(thissound, False)
 M.save_annotations()
 files = os.listdir(basepath)
 if len(files)!=1: print("ERROR: wrong number of files")
 
 # redo it
 C.redo_callback()
-check_annotation_in_memory(thissample, True)
+check_annotation_in_memory(thissound, True)
 M.save_annotations()
 files = os.listdir(basepath)
 if len(files)!=2: print("ERROR: wrong number of files")
 
 csvfile = os.path.join(basepath, next(filter(lambda x: x.endswith('.csv'), files)))
 count_lines(csvfile, 1)
-check_annotation_on_disk(csvfile, thissample, True)
+check_annotation_on_disk(csvfile, thissound, True)
 
 # toggle out time
 C.toggle_annotation(0)
-check_annotation_in_memory(thissample, False)
+check_annotation_in_memory(thissound, False)
 M.save_annotations()
 files = os.listdir(basepath)
 if len(files)!=1: print("ERROR: wrong number of files")
 
 # toggle in time
 C.toggle_annotation(0)
-check_annotation_in_memory(thissample, True)
+check_annotation_in_memory(thissound, True)
 M.save_annotations()
 files = os.listdir(basepath)
 if len(files)!=2: print("ERROR: wrong number of files")
 
 csvfile = os.path.join(basepath, next(filter(lambda x: x.endswith('.csv'), files)))
 count_lines(csvfile, 1)
-check_annotation_on_disk(csvfile, thissample, True)
+check_annotation_on_disk(csvfile, thissound, True)
 
 # toggle in frequency
 M.ilabel=1
 C.toggle_annotation(1)
-thissample = M.clustered_samples[1].copy()
-thissample.pop('kind', None)
-thissample['label']=M.state['labels'][M.ilabel]
-check_annotation_in_memory(thissample, True)
+thissound = M.clustered_sounds[1].copy()
+thissound.pop('kind', None)
+thissound['label']=M.state['labels'][M.ilabel]
+check_annotation_in_memory(thissound, True)
 M.save_annotations()
 files = os.listdir(basepath)
 if len(files)!=2: print("ERROR: wrong number of files")
 
 csvfile = os.path.join(basepath, next(filter(lambda x: x.endswith('.csv'), files)))
 count_lines(csvfile, 2)
-check_annotation_on_disk(csvfile, thissample, True)
+check_annotation_on_disk(csvfile, thissound, True)
 
 # toggle in ambient
 M.ilabel=2
 C.toggle_annotation(2)
-thissample = M.clustered_samples[2].copy()
-thissample.pop('kind', None)
-thissample['label']=M.state['labels'][M.ilabel]
-check_annotation_in_memory(thissample, True)
+thissound = M.clustered_sounds[2].copy()
+thissound.pop('kind', None)
+thissound['label']=M.state['labels'][M.ilabel]
+check_annotation_in_memory(thissound, True)
 M.save_annotations()
 files = os.listdir(basepath)
 if len(files)!=2: print("ERROR: wrong number of files")
 
 csvfile = os.path.join(basepath, next(filter(lambda x: x.endswith('.csv'), files)))
 count_lines(csvfile, 3)
-check_annotation_on_disk(csvfile, thissample, True)
+check_annotation_on_disk(csvfile, thissound, True)
 
 # undo it
 C.undo_callback()
-check_annotation_in_memory(thissample, False)
+check_annotation_in_memory(thissound, False)
 M.save_annotations()
 files = os.listdir(basepath)
 if len(files)!=2: print("ERROR: wrong number of files")
 
 csvfile = os.path.join(basepath, next(filter(lambda x: x.endswith('.csv'), files)))
 count_lines(csvfile, 2)
-check_annotation_on_disk(csvfile, thissample, False)
+check_annotation_on_disk(csvfile, thissound, False)
 
 # redo it
 C.redo_callback()
-check_annotation_in_memory(thissample, True)
+check_annotation_in_memory(thissound, True)
 M.save_annotations()
 files = os.listdir(basepath)
 if len(files)!=2: print("ERROR: wrong number of files")
 
 csvfile = os.path.join(basepath, next(filter(lambda x: x.endswith('.csv'), files)))
 count_lines(csvfile, 3)
-check_annotation_on_disk(csvfile, thissample, True)
+check_annotation_on_disk(csvfile, thissound, True)
 
 # toggle out ambient
 C.toggle_annotation(2)
-check_annotation_in_memory(thissample, False)
+check_annotation_in_memory(thissound, False)
 M.save_annotations()
 files = os.listdir(basepath)
 if len(files)!=2: print("ERROR: wrong number of files")
 
 csvfile = os.path.join(basepath, next(filter(lambda x: x.endswith('.csv'), files)))
 count_lines(csvfile, 2)
-check_annotation_on_disk(csvfile, thissample, False)
+check_annotation_on_disk(csvfile, thissound, False)
 
 # toggle in ambient
 M.ilabel=2
 C.toggle_annotation(2)
-thissample = M.clustered_samples[2].copy()
-thissample.pop('kind', None)
-thissample['label']=M.state['labels'][M.ilabel]
-check_annotation_in_memory(thissample, True)
+thissound = M.clustered_sounds[2].copy()
+thissound.pop('kind', None)
+thissound['label']=M.state['labels'][M.ilabel]
+check_annotation_in_memory(thissound, True)
 M.save_annotations()
 files = os.listdir(basepath)
 if len(files)!=2: print("ERROR: wrong number of files")
 
 csvfile = os.path.join(basepath, next(filter(lambda x: x.endswith('.csv'), files)))
 count_lines(csvfile, 3)
-check_annotation_on_disk(csvfile, thissample, True)
+check_annotation_on_disk(csvfile, thissound, True)
 
 # undo all
 C.undo_callback()
@@ -297,61 +297,61 @@ C.undo_callback()
 C.undo_callback()
 C.undo_callback()
 C.undo_callback()
-if len(M.annotated_samples)!=0: print("ERROR: wrong number of elements")
+if len(M.annotated_sounds)!=0: print("ERROR: wrong number of elements")
 
 M.save_annotations()
 files = os.listdir(basepath)
 if len(files)!=1: print("ERROR: wrong number of files")
 
 ##
-M.clustered_samples = [
+M.clustered_sounds = [
   {'label': 'pulse', 'file': wavfile, 'ticks': [2, 5], 'kind': 'annotated'},
   {'label': 'sine', 'file': wavfile, 'ticks': [10, 15], 'kind': 'annotated'},
   {'label': 'ambient', 'file': wavfile, 'ticks': [20, 30], 'kind': 'annotated'},
   ]
-M.clustered_starts_sorted = [x['ticks'][0] for x in M.clustered_samples]
-M.clustered_stops = [x['ticks'][1] for x in M.clustered_samples]
+M.clustered_starts_sorted = [x['ticks'][0] for x in M.clustered_sounds]
+M.clustered_stops = [x['ticks'][1] for x in M.clustered_sounds]
 M.iclustered_stops_sorted = np.argsort(M.clustered_stops)
 csvfile = os.path.join(basepath, 'PS_20130625111709_ch3-annotated-original.csv')
 with open(csvfile, 'w') as fid:
   csvwriter = csv.writer(fid)
-  for sample in M.clustered_samples:
-    csvwriter.writerow([os.path.basename(sample['file']),
-                        sample['ticks'][0], sample['ticks'][1],
-                        sample['kind'],
-                        sample['label']])
+  for sound in M.clustered_sounds:
+    csvwriter.writerow([os.path.basename(sound['file']),
+                        sound['ticks'][0], sound['ticks'][1],
+                        sound['kind'],
+                        sound['label']])
 
 # pulse to ambient
 M.ilabel=2
 C.toggle_annotation(0)
-thissample = M.clustered_samples[0].copy()
-thissample.pop('kind', None)
-thissample['label']=M.state['labels'][M.ilabel]
-check_annotation_in_memory(thissample, True)
+thissound = M.clustered_sounds[0].copy()
+thissound.pop('kind', None)
+thissound['label']=M.state['labels'][M.ilabel]
+check_annotation_in_memory(thissound, True)
 M.save_annotations()
 files = os.listdir(basepath)
 if len(files)!=3: print("ERROR: wrong number of files")
 
-thissample = M.clustered_samples[0].copy()
-thissample.pop('kind', None)
+thissound = M.clustered_sounds[0].copy()
+thissound.pop('kind', None)
 csvfile = os.path.join(basepath,
                        next(filter(lambda x: x.endswith('.csv') and 'original' in x,
                                    files)))
 count_lines(csvfile, 2)
-check_annotation_on_disk(csvfile, thissample, False)
+check_annotation_on_disk(csvfile, thissound, False)
 
-thissample['label']=M.state['labels'][M.ilabel]
+thissound['label']=M.state['labels'][M.ilabel]
 csvfile = os.path.join(basepath,
                        next(filter(lambda x: x.endswith('.csv') and 'original' not in x,
                                    files)))
 count_lines(csvfile, 1)
-check_annotation_on_disk(csvfile, thissample, True)
+check_annotation_on_disk(csvfile, thissound, True)
 
 #undo
 C.undo_callback()
-thissample = M.clustered_samples[0].copy()
-thissample.pop('kind', None)
-check_annotation_in_memory(thissample, True)
+thissound = M.clustered_sounds[0].copy()
+thissound.pop('kind', None)
+check_annotation_in_memory(thissound, True)
 M.save_annotations()
 files = os.listdir(basepath)
 if len(files)!=3: print("ERROR: wrong number of files")
@@ -360,69 +360,69 @@ csvfile = os.path.join(basepath,
                        next(filter(lambda x: x.endswith('.csv') and 'original' in x,
                                    files)))
 count_lines(csvfile, 2)
-check_annotation_on_disk(csvfile, thissample, False)
+check_annotation_on_disk(csvfile, thissound, False)
 
 csvfile = os.path.join(basepath,
                        next(filter(lambda x: x.endswith('.csv') and 'original' not in x,
                                    files)))
 count_lines(csvfile, 1)
-check_annotation_on_disk(csvfile, thissample, True)
+check_annotation_on_disk(csvfile, thissound, True)
 
 #redo
 C.redo_callback()
-thissample = M.clustered_samples[0].copy()
-thissample.pop('kind', None)
-thissample['label']=M.state['labels'][M.ilabel]
-check_annotation_in_memory(thissample, True)
+thissound = M.clustered_sounds[0].copy()
+thissound.pop('kind', None)
+thissound['label']=M.state['labels'][M.ilabel]
+check_annotation_in_memory(thissound, True)
 M.save_annotations()
 files = os.listdir(basepath)
 if len(files)!=3: print("ERROR: wrong number of files")
 
-thissample = M.clustered_samples[0].copy()
-thissample.pop('kind', None)
+thissound = M.clustered_sounds[0].copy()
+thissound.pop('kind', None)
 csvfile = os.path.join(basepath,
                        next(filter(lambda x: x.endswith('.csv') and 'original' in x,
                                    files)))
 count_lines(csvfile, 2)
-check_annotation_on_disk(csvfile, thissample, False)
+check_annotation_on_disk(csvfile, thissound, False)
 
-thissample['label']=M.state['labels'][M.ilabel]
+thissound['label']=M.state['labels'][M.ilabel]
 csvfile = os.path.join(basepath,
                        next(filter(lambda x: x.endswith('.csv') and 'original' not in x,
                                    files)))
 count_lines(csvfile, 1)
-check_annotation_on_disk(csvfile, thissample, True)
+check_annotation_on_disk(csvfile, thissound, True)
 
 # delete sine
 M.ilabel=3
 C.toggle_annotation(1)
-thissample = M.clustered_samples[1].copy()
-thissample.pop('kind', None)
-thissample['label']=M.state['labels'][M.ilabel]
-check_annotation_in_memory(thissample, True)
+thissound = M.clustered_sounds[1].copy()
+thissound.pop('kind', None)
+thissound['label']=M.state['labels'][M.ilabel]
+check_annotation_in_memory(thissound, True)
 M.save_annotations()
 files = os.listdir(basepath)
 if len(files)!=3: print("ERROR: wrong number of files")
 
-thissample = M.clustered_samples[1].copy()
-thissample.pop('kind', None)
+thissound = M.clustered_sounds[1].copy()
+thissound.pop('kind', None)
 csvfile = os.path.join(basepath,
                        next(filter(lambda x: x.endswith('.csv') and 'original' in x,
                                    files)))
 count_lines(csvfile, 1)
-check_annotation_on_disk(csvfile, thissample, False)
+check_annotation_on_disk(csvfile, thissound, False)
 
 csvfile = os.path.join(basepath,
                        next(filter(lambda x: x.endswith('.csv') and 'original' not in x,
                                    files)))
 count_lines(csvfile, 1)
-check_annotation_on_disk(csvfile, thissample, False)
+check_annotation_on_disk(csvfile, thissound, False)
 
 #undo
 C.undo_callback()
-thissample = M.clustered_samples[1].copy()
-thissample.pop('kind', None)
-check_annotation_in_memory(thissample, True)
+thissound = M.clustered_sounds[1].copy()
+thissound.pop('kind', None)
+check_annotation_in_memory(thissound, True)
 M.save_annotations()
 files = os.listdir(basepath)
 if len(files)!=3: print("ERROR: wrong number of files")
@@ -431,61 +431,61 @@ csvfile = os.path.join(basepath,
                        next(filter(lambda x: x.endswith('.csv') and 'original' in x,
                                    files)))
 count_lines(csvfile, 1)
-check_annotation_on_disk(csvfile, thissample, False)
+check_annotation_on_disk(csvfile, thissound, False)
 
 csvfile = os.path.join(basepath,
                        next(filter(lambda x: x.endswith('.csv') and 'original' not in x,
                                    files)))
 count_lines(csvfile, 2)
-check_annotation_on_disk(csvfile, thissample, True)
+check_annotation_on_disk(csvfile, thissound, True)
 
 #redo
 C.redo_callback()
-thissample = M.clustered_samples[1].copy()
-thissample.pop('kind', None)
-thissample['label']=M.state['labels'][M.ilabel]
-check_annotation_in_memory(thissample, True)
+thissound = M.clustered_sounds[1].copy()
+thissound.pop('kind', None)
+thissound['label']=M.state['labels'][M.ilabel]
+check_annotation_in_memory(thissound, True)
 M.save_annotations()
 files = os.listdir(basepath)
 if len(files)!=3: print("ERROR: wrong number of files")
 
-thissample = M.clustered_samples[1].copy()
-thissample.pop('kind', None)
+thissound = M.clustered_sounds[1].copy()
+thissound.pop('kind', None)
 csvfile = os.path.join(basepath,
                        next(filter(lambda x: x.endswith('.csv') and 'original' in x,
                                    files)))
 count_lines(csvfile, 1)
-check_annotation_on_disk(csvfile, thissample, False)
+check_annotation_on_disk(csvfile, thissound, False)
 
 csvfile = os.path.join(basepath,
                        next(filter(lambda x: x.endswith('.csv') and 'original' not in x,
                                    files)))
 count_lines(csvfile, 1)
-check_annotation_on_disk(csvfile, thissample, False)
+check_annotation_on_disk(csvfile, thissound, False)
 
 # ambient to pulse
 M.ilabel=0
 C.toggle_annotation(2)
-thissample = M.clustered_samples[2].copy()
-thissample.pop('kind', None)
-thissample['label']=M.state['labels'][M.ilabel]
-check_annotation_in_memory(thissample, True)
+thissound = M.clustered_sounds[2].copy()
+thissound.pop('kind', None)
+thissound['label']=M.state['labels'][M.ilabel]
+check_annotation_in_memory(thissound, True)
 M.save_annotations()
 files = os.listdir(basepath)
 if len(files)!=2: print("ERROR: wrong number of files")
 
-thissample['label']=M.state['labels'][M.ilabel]
+thissound['label']=M.state['labels'][M.ilabel]
 csvfile = os.path.join(basepath,
                        next(filter(lambda x: x.endswith('.csv') and 'original' not in x,
                                    files)))
 count_lines(csvfile, 2)
-check_annotation_on_disk(csvfile, thissample, True)
+check_annotation_on_disk(csvfile, thissound, True)
 
 #undo
 C.undo_callback()
-thissample = M.clustered_samples[2].copy()
-thissample.pop('kind', None)
-check_annotation_in_memory(thissample, True)
+thissound = M.clustered_sounds[2].copy()
+thissound.pop('kind', None)
+check_annotation_in_memory(thissound, True)
 M.save_annotations()
 files = os.listdir(basepath)
 if len(files)!=2: print("ERROR: wrong number of files")
@@ -494,14 +494,14 @@ csvfile = os.path.join(basepath,
                        next(filter(lambda x: x.endswith('.csv') and 'original' not in x,
                                    files)))
 count_lines(csvfile, 2)
-check_annotation_on_disk(csvfile, thissample, True)
+check_annotation_on_disk(csvfile, thissound, True)
 
 #redo
 C.redo_callback()
-thissample = M.clustered_samples[2].copy()
-thissample.pop('kind', None)
-thissample['label']=M.state['labels'][M.ilabel]
-check_annotation_in_memory(thissample, True)
+thissound = M.clustered_sounds[2].copy()
+thissound.pop('kind', None)
+thissound['label']=M.state['labels'][M.ilabel]
+check_annotation_in_memory(thissound, True)
 M.save_annotations()
 files = os.listdir(basepath)
 if len(files)!=2: print("ERROR: wrong number of files")
@@ -510,4 +510,4 @@ csvfile = os.path.join(basepath,
                        next(filter(lambda x: x.endswith('.csv') and 'original' not in x,
                                    files)))
 count_lines(csvfile, 2)
-check_annotation_on_disk(csvfile, thissample, True)
+check_annotation_on_disk(csvfile, thissound, True)

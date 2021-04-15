@@ -42,14 +42,14 @@ precision_recall_ratios, thresholds = read_thresholds(logdir, model, thresholds_
 labels = [x[0] for x in thresholds]
 thresholds = np.array([x[1:] for x in thresholds], dtype=np.float64)
 
-sample_rate_probabilities, half_stride_sec, probability_matrix = \
+audio_tic_rate_probabilities, half_stride_sec, probability_matrix = \
       read_probabilities(os.path.join(tfpath, tfname_noext), labels)
 
 for ithreshold in range(len(precision_recall_ratios)):
   features, start_tics, stop_tics = discretize_probabilites(probability_matrix,
                                                             thresholds[:,[ithreshold]],
                                                             labels,
-                                                            sample_rate_probabilities,
+                                                            audio_tic_rate_probabilities,
                                                             half_stride_sec,
                                                             audio_tic_rate)
   filename = os.path.join(tfpath,

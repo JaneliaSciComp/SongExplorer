@@ -25,26 +25,26 @@ audio_nchannels=${14}
 if [ "$representation" == "waveform" ] ; then
   stride_ms=`dc -e "16 k 1000 $audio_tic_rate / p"`
 fi
-clip_duration=$(dc -e "3 k $context_ms $stride_ms $nwindows 1 - * + p")
+context_ms=$(dc -e "3 k $context_ms $stride_ms $nwindows 1 - * + p")
 
 DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
 
-readarray -t wanted_words < $logdir/$model/labels.txt
-wanted_words_str=$(IFS=, ; echo "${wanted_words[*]}")
+readarray -t labels_touse < $logdir/$model/labels.txt
+labels_touse_str=$(IFS=, ; echo "${labels_touse[*]}")
 
 expr="/usr/bin/python3 $DIR/speech_commands_custom/freeze.py \
       --start_checkpoint=$logdir/$model/ckpt-${check_point} \
       --output_file=$logdir/$model/frozen-graph.ckpt-${check_point}.pb \
-      --wanted_words=$wanted_words_str \
-      --clip_duration_ms=$clip_duration \
+      --labels_touse=$labels_touse_str \
+      --context_ms=$context_ms \
       --representation=$representation \
-      --window_size_ms=$window_ms \
-      --window_stride_ms=$stride_ms \
+      --window_ms=$window_ms \
+      --stride_ms=$stride_ms \
       --nwindows=$nwindows \
-      --sample_rate=$audio_tic_rate \
+      --audio_tic_rate=$audio_tic_rate \
       --nchannels=$audio_nchannels \
-      --filterbank_channel_count=$mel \
-      --dct_coefficient_count=$dct \
+      --filterbank_nchannels=$mel \
+      --dct_ncoefficients=$dct \
       --model_architecture=${architecture} \
       --model_parameters='$model_parameters' \
       --batch_size=1"

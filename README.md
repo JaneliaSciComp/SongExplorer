@@ -98,7 +98,7 @@ Museo de Ciencias Naturales de Madrid's [Fonoteca Zoológica](www.fonozoo.com).
 # Citations and Repositories
 
 BJ Arthur, Y Ding, M Sosale, F Khalif, S Turaga, DL Stern (in prep)  
-SongExplorer: A deep learning workflow for discovery and segmentation of animal acoustic communication signals 
+SongExplorer: A deep learning workflow for discovery and segmentation of animal acoustic communication signals  
 
 # Notation #
 
@@ -616,8 +616,8 @@ the `File Browser` to choose directories in which to put the log files (e.g.
 point to a folder one level up in the file hierarchy from the WAV and CSV
 files (i.e. "groundtruth-data" in this case).  Check to make sure that the
 `Label Types` button automatically sets `# steps`, `validate period`, and
-`validation %` to 0, `restore from` to blank, `wanted words` to
-"time,frequency,neither", and `label types` to "detected".  The rest of the
+`validation %` to 0, `restore from` to blank, `labels to use` to
+"time,frequency,neither", and `kinds to use` to "detected".  The rest of the
 fields, most of which specify the network architecture, are filled in with
 default values the first time you ever use SongExplorer, and any changes you make
 to them, along with all of the other text fields, are saved to a file named
@@ -640,7 +640,7 @@ one can use `max samples` to randomly choose a subset of samples to cluster.
 (The `time σ` and `freq ρ` variables can also be used limit how many sound
 events were detected in the first place.)  The `Activations` button also limits
 the relative proportion of each `wanted word` to `equalize ratio`.  In the case
-of "detected" `label types` you'll want to set this to a large number, as it
+of "detected" `kinds to use` you'll want to set this to a large number, as it
 does not matter if the number of samples which pass the "time" threshold far
 exceeds the "frequency" threshold, or vice versa.  Output are three files in
 the ground-truth directory: "activations.log", "activations-samples.log", and
@@ -739,8 +739,8 @@ Choose a `Logs Folder` as before (e.g. "trained-classifier1").  One hundred
 steps suffices for this amount of ground truth.  So we can accurately monitor
 the progress, withhold 40% of the annotations to validate on, and do so every
 10 steps.  Enter these values into the `# steps`, `validate %`, and `validate
-period` variables.  You'll also need to change the `wanted words` variable to
-"mel-pulse,mel-sine,ambient,other", and `label types` to "annotated" so that it
+period` variables.  You'll also need to change the `labels to use` variable to
+"mel-pulse,mel-sine,ambient,other", and `kinds to use` to "annotated" so that it
 will ignore the detected annotations in the ground-truth directory.  Note that
 the total number of annotations must exceed the size of the mini-batches,
 which is specified by the `mini-batch` variable.
@@ -812,7 +812,7 @@ models, and each will have it's own point here calculated from their individual
 confusion matrices.
 
 * "validation-F1.pdf" plots the F1 score (the product divided by the sum of the
-precision and recall, times two) over time for each of the `wanted words` separately.
+precision and recall, times two) over time for each of the `labels to use` separately.
 Check here to make sure that the accuracy of each word has converged.
 
 * "validation-PvR-<word>.pdf" plots, separately for each word, the trajectory
@@ -843,7 +843,7 @@ Errors](#examining-errors)).
 
 At this point in the tutorial we have just trained a single model, but SongExplorer
 does have workflows were multiple models are saved to a single `Logs Folder`
-(e.g. if `replicates` is >1, or if `Omit One` or `X-Validate` is
+(e.g. if `# replicates` is >1, or if `Omit One` or `X-Validate` is
 used).  In these cases, the left panel of "accuracy.pdf" will show the sum of
 the confusion matrix across all models, the right panel will have a gray box
 showing the mean and standard deviation of the overall accuracy across all
@@ -937,7 +937,7 @@ equal rates.  Your experimental design drives this choice.
 
 Let's manually check whether our classifier in hand accurately calls sounds
 using these thresholds.  First, click on the `Fix False Positives` button.
-Double check that the `label types` variable was auto-populated with
+Double check that the `kinds to use` variable was auto-populated with
 "annotated,predicted".  Not having "detected" in this field ensures that
 "detected.csv" files in the ground-truth folder are ignored.  Finally, cluster
 and visualize the neural network's hidden state activations as we did before
@@ -1045,7 +1045,7 @@ Generalization](#measuring-generalization)).  Use cross validation to
 maximize the accuracy by fine tuning the hyperparameters (see [Searching
 Hyperparameters](#searching-hyperparameters)).  Then train a single model
 with nearly all of your annotations for use in your experiments.  Optionally,
-use `replicates` to train multiple models with different batch orderings
+use `# replicates` to train multiple models with different batch orderings
 and initial weights to measure the variance.  These replicate models
 can also be combined into an ensemble model with even greater accuracy.
 Finally, report accuracy on an entirely separate set of densely-annotated
@@ -1061,7 +1061,7 @@ Sometimes though, mistakes might slip into the ground truth and a model is
 trained with them.  These latter mistakes can be corrected in a fashion similar
 to correcting false positives and false negatives.  Simply cluster the hidden
 state activations using the `Activations`, `Cluster`, and `Visualize` buttons
-as before making sure that "annotated" is in `label types`.  Then click on
+as before making sure that "annotated" is in `kinds to use`.  Then click on
 `annotated` in the `kind` pull-down menu and select one of your labels (e.g.
 `mel-` in `species` and `-pulse` in `word`).  Scan through the visualized
 clusters by clicking on several points and looking at the snippets therein.  If
@@ -1171,7 +1171,7 @@ width is the second value in `kernels`.  No further layers are added if
 `kernels`.  Only the second value matters when `representation` is "waveform".
 
 * `# features` is the number of feature maps to use at each of the
-corresponding stages in `kernel_sizes`.  See [LeCun *et al* (1989; Neural
+corresponding stages in `kernels`.  See [LeCun *et al* (1989; Neural
 Computation)](http://yann.lecun.com/exdb/publis/pdf/lecun-89e.pdf).
 
 * `dilate after` specifies the first layer, starting from zero, at which to
@@ -1270,7 +1270,7 @@ In the ground-truth subfolders, CSV files are created for each WAV file, with
 an extra column just like above.  No need to copy any files here.
 
 Now detect sounds in the ground-truth recordings for which you haven't done so
-already.  Press the `Examine Errors` wizard and confirm that `label types` is
+already.  Press the `Examine Errors` wizard and confirm that `kinds to use` is
 set to "detected,mistaken", and save the hidden state activations, cluster, and
 visualize as before.  Select `mistaken` in the `kind` pull-down menu to look
 for a localized density.  View the snippets in any hot spots to examine the
@@ -1330,7 +1330,7 @@ annotator.
 
 Much as one can examine the mistakes of a particular model with respect to
 sparsely annotated ground truth by clustering with "mistaken" as one of the
-`label types`, one can look closely at the errors in congruence between a model
+`kinds to use`, one can look closely at the errors in congruence between a model
 and a densely annotated test set by using
 "everyone|{tic,word}-{only,not}{1.0pr,annotator1,annotator2,...}" as the `label
 types`.  The Congruence button generates a bunch of "disjoint.csv" files:
@@ -1347,7 +1347,7 @@ there are two ways to cope.  First, the probability waveforms generated by
 `Classify` can be adjusted on a word-specific basis to account for known
 uneven distributions in the prevalence of the words.  So for a given interval
 of time, enter into `prevalences` a comma-separated list of *a priori*
-expected durations for each entry in `wanted words` (e.g. 6,12,42 seconds
+expected durations for each entry in `labels to use` (e.g. 6,12,42 seconds
 for a minute of mel-pulse,mel-sine,ambient respectively); alternatively,
 the relative probability for each word can be given (e.g. 0.1,0.2,0.7).
 The probability of relatively rare words will then be decreased in comparison
@@ -1551,7 +1551,7 @@ Next create an access token at cloud.sylabs.io and login using:
 Then push the image to the cloud:
 
     $ singularity sign songexplorer.sif
-    $ singularity push songexplorer.sif library://bjarthur/janelia/songexplorer:<version>
+    $ singularity push songexplorer.sif library://bjarthur/janelia/songexplorer[:<version>]
 
 To build an image without GPU support, comment out the section titled "install
 CUDA" in "singularity.def" and omit the `--nv` flags.
@@ -1571,10 +1571,16 @@ To start docker on Linux and set permissions:
 To build a docker image and push it to docker hub:
 
     $ cd songexplorer
-    $ docker build --file=containers/dockerfile --tag=bjarthur/songexplorer \
+    $ docker build --file=containers/dockerfile --tag=bjarthur/songexplorer[:<tag>] \
           [--no-cache=true] .
+    $ [docker tag <image-id> bjarthur/songexplorer:<tag>]  % get image-id from `docker image ls`
     $ docker login
-    $ docker {push,pull} bjarthur/songexplorer
+    $ docker {push,pull} bjarthur/songexplorer[:<tag>]
+
+To remove a tag from docker hub:
+
+    $ docker run --rm lumir/remove-dockerhub-tag --user bjarthur \
+          --password <password> bjarthur/songexplorer:<tag>
 
 To monitor resource usage:
 
@@ -1594,6 +1600,7 @@ well as the Linux Bash interfaces.  To run them, simply execute "runtests.sh":
 
 or with docker:
 
-    $ docker run -v %TMP%:/opt/songexplorer/test/scratch ^
-            [-v <other-disks>] [-u <userid>] [-w <working-directory] ^
-            -e SONGEXPLORER_BIN bjarthur/songexplorer /opt/songexplorer/test/runtests.sh
+    $ docker run -v /tmp:/opt/songexplorer/test/scratch \
+            [-v <other-disks>] [-u <userid>] [-w <working-directory] \
+            -e SONGEXPLORER_BIN bjarthur/songexplorer:<tag> \
+            /opt/songexplorer/test/runtests.sh
