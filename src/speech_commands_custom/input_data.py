@@ -319,7 +319,7 @@ class AudioProcessor(object):
     nchannels = model_settings['nchannels']
     pick_deterministically = (mode != 'training')
     if model_settings['representation']=='waveform':
-      input_to_use = self.waveform_
+      input_to_use = lambda *x: tf.expand_dims(self.waveform_(*x), 3)
     elif model_settings['representation']=='spectrogram':
       input_to_use = self.spectrogram_
     elif model_settings['representation']=='mel-cepstrum':
@@ -360,6 +360,5 @@ class AudioProcessor(object):
       labels[i - offset] = label_index
       sounds.append(sound)
     # Run the graph to produce the output audio.
-    data = tf.reshape(input_to_use(foreground_indexed, 1.0, model_settings),
-                      [nsounds, -1])
+    data = tf.transpose(input_to_use(foreground_indexed, 1.0, model_settings), [0,2,3,1])
     return data, labels, sounds

@@ -42,19 +42,15 @@ def create_model(model_settings):
   iconv=0
   hidden_layers = []
 
-  inputs0 = Input(shape=(model_settings['nchannels'] *
-                         model_settings['input_ntimes'] *
-                         model_settings['input_nfreqs']))
-  reshaped = Reshape((model_settings['nchannels'],
-                      model_settings['input_ntimes'],
-                      model_settings['input_nfreqs']))(inputs0)
-  permuted = Permute((2,3,1))(reshaped)
-  hidden_layers.append(permuted)
-  inputs_shape = permuted.get_shape().as_list()
+  inputs0 = Input(shape=(model_settings['input_ntimes'],
+                         model_settings['input_nfreqs'],
+                         model_settings['nchannels']))
+  hidden_layers.append(inputs0)
+  inputs_shape = inputs0.get_shape().as_list()
   noutputs = inputs_shape[1]-model_settings['nwindows']+1
 
   # 2D convolutions
-  inputs = permuted
+  inputs = inputs0
   while inputs_shape[2]>=kernel_sizes[0] and iconv<nlayers:
     if use_residual and iconv%2==0:
       bypass = inputs

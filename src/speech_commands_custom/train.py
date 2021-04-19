@@ -302,34 +302,29 @@ def validate_and_test(model, set_kind, set_size, model_settings, \
             nHWC = np.shape(hidden_activations[ihidden])[1:]
             hidden_layers.append(np.empty((set_size, *nHWC)))
         for ihidden in range(len(hidden_activations)):
-          hidden_layers[ihidden][isound:isound+obtained,:,:] = \
-                hidden_activations[ihidden]
+          hidden_layers[ihidden][isound:isound+obtained,...] = hidden_activations[ihidden]
       if FLAGS.save_fingerprints:
         if isound==0:
-          if FLAGS.representation=='waveform':
-            nW = round(FLAGS.context_ms / 1000 * FLAGS.audio_tic_rate)
-            nH = 1
-          else:
-            nW = round((FLAGS.context_ms - FLAGS.window_ms) / \
-                       FLAGS.stride_ms + 1)
-            nH = round(np.shape(fingerprints)[1]/nW)
-          input_layer = np.empty((set_size,nW,nH))
-        input_layer[isound:isound+obtained,:,:] = \
-              np.reshape(fingerprints,(obtained,nW,nH))
+          nHWC = np.shape(fingerprints)[1:]
+          input_layer = np.empty((set_size ,*nHWC))
+        input_layer[isound:isound+obtained,...] = fingerprints
   print('Confusion Matrix:\n %s\n %s' % \
                   (audio_processor.labels_list, total_conf_matrix.numpy()))
   t1=dt.datetime.now()-t0
   print('Elapsed %f, Step %d: %s accuracy = %.1f%% (N=%d)' %
                   (t1.total_seconds(), training_step, set_kind.capitalize(), \
                    total_accuracy * 100, set_size))
-  np.savez(os.path.join(FLAGS.train_dir, 'logits.'+set_kind+'.ckpt-'+str(training_step)+'.npz'), \
+  np.savez(os.path.join(FLAGS.train_dir,
+                        'logits.'+set_kind+'.ckpt-'+str(training_step)+'.npz'), \
            sounds=sounds_data, groundtruth=groundtruth_data, logits=logit_data)
   if is_last_step:
     if FLAGS.save_hidden:
-      np.savez(os.path.join(FLAGS.train_dir,'hidden.'+set_kind+'.ckpt-'+str(training_step)+'.npz'), \
+      np.savez(os.path.join(FLAGS.train_dir,
+                            'hidden.'+set_kind+'.ckpt-'+str(training_step)+'.npz'), \
                *hidden_layers, sounds=sounds_data)
     if FLAGS.save_fingerprints:
-      np.savez(os.path.join(FLAGS.train_dir,'fingerprints.'+set_kind+'.ckpt-'+str(training_step)+'.npz'), \
+      np.savez(os.path.join(FLAGS.train_dir,
+                            'fingerprints.'+set_kind+'.ckpt-'+str(training_step)+'.npz'), \
               input_layer, sounds=sounds_data)
 
 def str2bool(v):

@@ -44,7 +44,6 @@ import sys
 
 import tensorflow as tf
 
-import input_data
 import models
 
 import json
@@ -100,12 +99,14 @@ def create_inference_graph(labels_touse, audio_tic_rate, nchannels, context_ms,
       @tf.function(input_signature=[tf.TensorSpec(shape=None, dtype=tf.float32)])
       def inference_step(self, waveform):
           if representation=='waveform':
-              fingerprint_input = scale_foreground(waveform, 1.0, model_settings)
+              scaled_waveform = scale_foreground(waveform, 1.0, model_settings)
+              fingerprint_input = tf.expand_dims(scaled_waveform, 3)
           elif representation=='spectrogram':
               fingerprint_input = compute_spectrograms(waveform, 1.0, model_settings)
           elif representation=='mel-cepstrum':
               fingerprint_input = compute_mfccs(waveform, 1.0, model_settings)
-          hidden, output = self.thismodel(tf.reshape(fingerprint_input, [1,-1]), training=False)
+          hidden, output = self.thismodel(tf.transpose(fingerprint_input, [0,2,3,1]),
+                                          training=False)
           return hidden, tf.nn.softmax(output)
 
   return InferenceStep(thismodel)

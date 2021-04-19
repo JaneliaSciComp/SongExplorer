@@ -117,17 +117,14 @@ def main():
           activations.append(np.empty((testing_set_size, *nHWC)))
         activations.append(np.empty((testing_set_size, np.shape(logits)[2])))
       for ihidden in range(len(hidden_activations)):
-        activations[ihidden][isound:isound+obtained,:,:] = \
+        activations[ihidden][isound:isound+obtained,...] = \
               hidden_activations[ihidden]
-      activations[-1][isound:isound+obtained,:] = logits[:,0,:]
+      activations[-1][isound:isound+obtained,...] = logits[:,0,:]
     if FLAGS.save_fingerprints:
       if isound==0:
-        nW = round((FLAGS.context_ms - FLAGS.window_ms) / \
-                   FLAGS.stride_ms + 1)
-        nH = round(np.shape(fingerprints)[1]/nW)
-        input_layer = np.empty((testing_set_size,nW,nH))
-      input_layer[isound:isound+obtained,:,:] = \
-            np.reshape(fingerprints,(obtained,nW,nH))
+        nHWC = np.shape(fingerprints)[1:]
+        input_layer = np.empty((testing_set_size, *nHWC))
+      input_layer[isound:isound+obtained,...] = fingerprints
   if FLAGS.save_activations:
     np.savez(os.path.join(FLAGS.data_dir,'activations.npz'), \
              *activations, sounds=sounds_data, labels=labels)
