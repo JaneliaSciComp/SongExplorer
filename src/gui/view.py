@@ -686,8 +686,8 @@ def nparray2base64mp4(filename, start_sec, stop_sec):
     container = av.open(fid, mode='w', format='mp4')
 
     stream = container.add_stream('h264', rate=vid.frame_rate)
-    stream.width = video_div.width = vid.frame_shape[0]
-    stream.height = video_div.height = vid.frame_shape[1]
+    stream.width = vid.frame_shape[0]
+    stream.height = vid.frame_shape[1]
     stream.pix_fmt = 'yuv420p'
 
     for iframe in range(start_frame, stop_frame):
@@ -702,7 +702,7 @@ def nparray2base64mp4(filename, start_sec, stop_sec):
     fid.seek(0)
     ret_val = base64.b64encode(fid.read()).decode('utf-8')
     fid.close()
-    return ret_val
+    return ret_val, stream.height, stream.width
 
 # _context_update() might be able to be folded back in to context_update() with bokeh 2.0
 # ditto for _doit_callback() and _groundtruth_update()
@@ -721,13 +721,19 @@ def __context_update(wavi, tapped_sound, istart_bounded, ilength):
                                      os.path.splitext(x)[1].lower() in \
                                          ['.avi','.mp4','.mov'],
                            os.listdir(sound_dirname)))
-        base64vid = nparray2base64mp4(os.path.join(sound_dirname,vids[0]),
-                                      istart_bounded / M.audio_tic_rate,
-                                      (istart_bounded+ilength) / M.audio_tic_rate) \
-                    if len(vids)==1 else ""
+        base64vid, height, width = nparray2base64mp4(os.path.join(sound_dirname,vids[0]),
+                                                     istart_bounded / M.audio_tic_rate,
+                                                     (istart_bounded+ilength) / M.audio_tic_rate) \
+                                                         if len(vids)==1 else ""
+        labelcounts.style = {'overflow-y':'hidden', 'overflow-x':'scroll',
+                             'width':str(max(100,M.gui_width_pix-450-width))+'px'}
+        video_div.style = {'width':str(width)+'px', 'height':str(height)+'px'}
         video_toggle.button_type="default"
     else:
         base64vid = ""
+        labelcounts.style = {'overflow-y':'hidden', 'overflow-x':'scroll',
+                            'width':str(M.gui_width_pix-450-1)+'px'}
+        video_div.style = {'width':'1px', 'height':'1px'}
 
     play_callback.code = C.play_callback_code % \
                          (nparray2base64wav(wavi, M.audio_tic_rate), \
@@ -1577,7 +1583,8 @@ def init(_bokeh_document):
     video_toggle = Toggle(label='video', active=False, disabled=True)
     video_toggle.on_click(lambda x: context_update())
 
-    video_div = Div(text="""<video id="context_video"></video>""", width=0, height=0)
+    video_div = Div(text="""<video id="context_video"></video>""",
+                    style={'width':'1px'})
 
     undo = Button(label='undo', disabled=True)
     undo.on_click(C.undo_callback)
@@ -1930,7 +1937,9 @@ def init(_bokeh_document):
     html = markdown.markdown(contents, extensions=['tables','toc'])
     readme_contents = Div(text=html, style={'overflow':'scroll','width':'600px','height':'1397px'})
 
-    labelcounts = Div(text="")
+    labelcounts = Div(text="",
+                      style={'overflow-y':'hidden', 'overflow-x':'scroll',
+                             'width':str(M.gui_width_pix-450-1)+'px'})
     labelcounts_update()
 
     wizard_buttons = set([
