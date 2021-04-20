@@ -2073,7 +2073,7 @@ def init(_bokeh_document):
             visualize: [groundtruth_folder],
             accuracy: [logs_folder, precision_recall_ratios],
             freeze: [context_ms, representation, window_ms, stride_ms, mel_dct, logs_folder, model_file] + list(model_parameters.values()),
-            classify: [context_ms, shiftby_ms, representation, stride_ms, logs_folder, model_file, wavtfcsv_files, labels_touse, prevalences] + list(model_parameters.values()),
+            classify: [context_ms, shiftby_ms, representation, stride_ms, logs_folder, model_file, wavtfcsv_files, labels_touse, prevalences],
             ethogram: [model_file, wavtfcsv_files],
             misses: [wavtfcsv_files],
             compare: [logs_folder],
