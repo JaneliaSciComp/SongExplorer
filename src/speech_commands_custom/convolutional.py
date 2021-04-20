@@ -52,19 +52,20 @@ def create_model(model_settings):
   # 2D convolutions
   inputs = inputs0
   while inputs_shape[2]>=kernel_sizes[0] and iconv<nlayers:
-    if use_residual and iconv%2==0:
+    if use_residual and iconv%2!=0:
       bypass = inputs
     strides=[1+(iconv>=stride_after_layer), 1]
     dilation_rate=[2**max(0,iconv-dilate_after_layer+1), 1]
     conv = Conv2D(nfeatures[0], kernel_sizes[0],
                   strides=strides, dilation_rate=dilation_rate)(inputs)
-    if use_residual and iconv%2!=0:
+    if use_residual and iconv%2==0 and iconv>1:
       bypass_shape = bypass.get_shape().as_list()
       conv_shape = conv.get_shape().as_list()
-      woffset = (bypass_shape[1] - conv_shape[1]) // 2
-      hoffset = (bypass_shape[2] - conv_shape[2]) // 2
-      conv = Add()([conv, Slice([0,hoffset,woffset,0],
-                                [-1,conv_shape[1],conv_shape[2],-1])(bypass)])
+      if bypass_shape[3]==conv_shape[3]:
+        hoffset = (bypass_shape[1] - conv_shape[1]) // 2
+        woffset = (bypass_shape[2] - conv_shape[2]) // 2
+        conv = Add()([conv, Slice([0,hoffset,woffset,0],
+                                  [-1,conv_shape[1],conv_shape[2],-1])(bypass)])
     hidden_layers.append(conv)
     relu = ReLU()(conv)
     inputs = Dropout(dropout)(relu)
@@ -74,17 +75,19 @@ def create_model(model_settings):
 
   # 1D convolutions (or actually, pan-freq 2D)
   while inputs_shape[1]>=kernel_sizes[1] and iconv<nlayers:
-    if use_residual and iconv%2==0:
+    if use_residual and iconv%2!=0:
       bypass = inputs
     strides=[1+(iconv>=stride_after_layer), 1]
     dilation_rate=[2**max(0,iconv-dilate_after_layer+1), 1]
     conv = Conv2D(nfeatures[1], (kernel_sizes[1], inputs_shape[2]),
                   strides=strides,
                   dilation_rate=dilation_rate)(inputs)
-    if use_residual and iconv%2!=0:
+    if use_residual and iconv%2==0 and iconv>1:
+      bypass_shape = bypass.get_shape().as_list()
       conv_shape = conv.get_shape().as_list()
-      offset = (bypass.get_shape().as_list()[1] - conv_shape[1]) // 2
-      conv = Add()([conv, Slice([0,offset,0,0],[-1,conv_shape[1],-1,-1])(bypass)])
+      if bypass_shape[3]==conv_shape[3]:
+        offset = (bypass_shape[1] - conv_shape[1]) // 2
+        conv = Add()([conv, Slice([0,offset,0,0],[-1,conv_shape[1],-1,-1])(bypass)])
     hidden_layers.append(conv)
     relu = ReLU()(conv)
     inputs = Dropout(dropout)(relu)
