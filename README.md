@@ -1512,6 +1512,13 @@ case, kill it with `ps auxc | grep -E '(gui.sh|bokeh)'` and then `kill -9
 comma-separated filenames.  Select multiple files in the File Browser using
 shift/command-click as you would in most other file browsers.
 
+* There is (currently) no feature to automatically pre-filter your data
+to get rid of (e.g. low-frequency) noise.  Doing so during training would
+require that each recording get filtered each time it is selected for a batch,
+which would increase the time for each step.  This slow down in learning
+might be mitigated if filtered data were cached, or if SongExplorer's data
+loader were re-worked to run in a separate parallel process.  For now you'll
+need to filter a copy of your data in advance.
 
 # Reporting Problems #
 
