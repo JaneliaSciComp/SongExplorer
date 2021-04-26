@@ -77,8 +77,7 @@ while [[ $ireplicates =~ .*,.* ]] ; do
           --validation_offset_percentage=0.0 \
           --testing_percentage=0.0 \
           --testing_files=$testing_files \
-          --time_shift_ms=$shiftby_ms \
-          --time_shift_random False \
+          --shiftby_ms=$shiftby_ms \
           --context_ms=$context_ms \
           --representation=$representation \
           --window_ms=$window_ms \

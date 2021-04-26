@@ -44,8 +44,7 @@ expr="/usr/bin/python3 $DIR/speech_commands_custom/infer-sparse.py \
       --validation_offset_percentage=0.0 \
       --testing_equalize_ratio=$equalize_ratio \
       --testing_max_sounds=$max_sounds \
-      --time_shift_ms=$shiftby_ms \
-      --time_shift_random False \
+      --shiftby_ms=$shiftby_ms \
       --dct_ncoefficients=$dct \
       --filterbank_nchannels=$mel \
       --model_architecture=$architecture \

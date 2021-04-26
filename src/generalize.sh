@@ -74,8 +74,7 @@ while (( $# > 0 )) ; do
           --validation_percentage=0 \
           --validation_offset_percentage=0 \
           --testing_files=$testing_files \
-          --time_shift_ms=$shiftby_ms \
-          --time_shift_random False \
+          --shiftby_ms=$shiftby_ms \
           --filterbank_nchannels=$mel \
           --dct_ncoefficients=$dct \
           --model_architecture=$architecture \

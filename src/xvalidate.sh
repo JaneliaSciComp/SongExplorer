@@ -76,8 +76,7 @@ while [[ $ifolds =~ .*,.* ]] ; do
           --validation_percentage=$kpercent \
           --validation_offset_percentage=$koffset \
           --testing_files=$testing_files \
-          --time_shift_ms=$shiftby_ms \
-          --time_shift_random False \
+          --shiftby_ms=$shiftby_ms \
           --filterbank_nchannels=$mel \
           --dct_ncoefficients=$dct \
           --model_architecture=$architecture \

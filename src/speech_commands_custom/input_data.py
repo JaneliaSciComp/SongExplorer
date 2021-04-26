@@ -91,7 +91,7 @@ class AudioProcessor(object):
   """Handles loading, partitioning, and preparing audio training data."""
 
   def __init__(self, data_dir,
-               time_shift_ms, time_shift_random,
+               shiftby_ms,
                labels_touse, kinds_touse,
                validation_percentage, validation_offset_percentage, validation_files,
                testing_percentage, testing_files, subsample_skip, subsample_label,
@@ -101,7 +101,7 @@ class AudioProcessor(object):
     self.data_dir = data_dir
     random.seed(None if random_seed_batch==-1 else random_seed_batch)
     np.random.seed(None if random_seed_batch==-1 else random_seed_batch)
-    self.prepare_data_index(time_shift_ms, time_shift_random,
+    self.prepare_data_index(shiftby_ms,
                             labels_touse, kinds_touse,
                             validation_percentage, validation_offset_percentage, validation_files,
                             testing_percentage, testing_files, subsample_skip, subsample_label,
@@ -114,7 +114,7 @@ class AudioProcessor(object):
 
 
   def prepare_data_index(self,
-                         time_shift_ms, time_shift_random,
+                         shiftby_ms,
                          labels_touse, kinds_touse,
                          validation_percentage, validation_offset_percentage, validation_files,
                          testing_percentage, testing_files, subsample_skip, subsample_label,
@@ -143,7 +143,7 @@ class AudioProcessor(object):
     Raises:
       Exception: If expected files are not found.
     """
-    time_shift_tics = int((time_shift_ms * model_settings["audio_tic_rate"]) / 1000)
+    shiftby_tics = int((shiftby_ms * model_settings["audio_tic_rate"]) / 1000)
     # Make sure the shuffling is deterministic.
     labels_touse_index = {}
     for index, label_touse in enumerate(labels_touse):
@@ -186,14 +186,9 @@ class AudioProcessor(object):
           _, data = spiowav.read(wav_path, mmap=True)
           wav_ntics[wav_path] = len(data)
         ntics = wav_ntics[wav_path]
-        if time_shift_random:
-          if ticks[0] < context_tics + time_shift_tics or \
-             ticks[1] > (ntics - context_tics - time_shift_tics):
-            continue
-        else:
-          if ticks[0] < context_tics + time_shift_tics or \
-             ticks[1] > (ntics - context_tics + time_shift_tics):
-            continue
+        if ticks[0] < context_tics//2 + shiftby_tics or \
+           ticks[1] > (ntics - context_tics//2 + shiftby_tics):
+          continue
         all_labels[label] = True
         if wavfile in validation_files:
           set_index = 'validation'
@@ -285,7 +280,7 @@ class AudioProcessor(object):
     return len(self.data_index[mode])
 
   def get_data(self, how_many, offset, model_settings, 
-               time_shift_ms, time_shift_random, mode):
+               shiftby_ms, mode):
     """Gather sounds from the data set, applying transformations as needed.
 
     When the mode is 'training', a random selection of sounds will be returned,
@@ -298,7 +293,6 @@ class AudioProcessor(object):
       offset: Where to start when fetching deterministically.
       model_settings: Information about the current model being trained.
       time_shift: How much to randomly shift the clips by in time.
-      time_shift_random:  True means to pick a random shift; False means shift by exactly this value
       mode: Which partition to use, must be 'training', 'validation', or
         'testing'.
       sess: TensorFlow session that was active when processor was created.
@@ -306,10 +300,10 @@ class AudioProcessor(object):
     Returns:
       List of sound data for the transformed sounds, and list of label indexes
     """
-    time_shift_tics = int((time_shift_ms * model_settings["audio_tic_rate"]) / 1000)
+    shiftby_tics = int((shiftby_ms * model_settings["audio_tic_rate"]) / 1000)
     # Pick one of the partitions to choose sounds from.
     candidates = self.data_index[mode]
-    ncandidates = len(self.data_index[mode])
+    ncandidates = len(candidates)
     if how_many == -1:
       nsounds = ncandidates
     else:
@@ -333,7 +327,7 @@ class AudioProcessor(object):
       if how_many == -1 or pick_deterministically:
         isound = i
       else:
-        isound = np.random.randint(len(candidates))
+        isound = np.random.randint(ncandidates)
       sound = candidates[isound]
 
       foreground_offset = (np.random.randint(sound['ticks'][0], 1+sound['ticks'][1]) if
@@ -343,15 +337,8 @@ class AudioProcessor(object):
         song = np.expand_dims(song, axis=1)
       assert audio_tic_rate == model_settings['audio_tic_rate']
       assert np.shape(song)[1] == nchannels
-      if time_shift_tics > 0:
-        if time_shift_random:
-          time_shift_amount = np.random.randint(-time_shift_tics, time_shift_tics)
-        else:
-          time_shift_amount = time_shift_tics
-      else:
-        time_shift_amount = 0
-      foreground_clipped = song[foreground_offset-context_tics//2 - time_shift_amount :
-                                foreground_offset+context_tics//2 - time_shift_amount,
+      foreground_clipped = song[foreground_offset-context_tics//2 - shiftby_tics :
+                                foreground_offset+context_tics//2 - shiftby_tics,
                                 :]
       foreground_float32 = foreground_clipped.astype(np.float32)
       foreground_scaled = foreground_float32 / abs(np.iinfo(np.int16).min) #extreme

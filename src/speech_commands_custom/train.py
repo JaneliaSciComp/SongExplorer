@@ -135,7 +135,7 @@ def main():
 
   audio_processor = input_data.AudioProcessor(
       FLAGS.data_dir,
-      FLAGS.time_shift_ms, FLAGS.time_shift_random,
+      FLAGS.shiftby_ms,
       FLAGS.labels_touse.split(','), FLAGS.kinds_touse.split(','),
       FLAGS.validation_percentage, FLAGS.validation_offset_percentage,
       FLAGS.validation_files.split(','),
@@ -186,8 +186,7 @@ def main():
   if FLAGS.how_many_training_steps==0:
       # pre-process a batch of data to make sure settings are valid
       train_fingerprints, train_ground_truth, _ = audio_processor.get_data(
-          FLAGS.batch_size, 0, model_settings, FLAGS.time_shift_ms, FLAGS.time_shift_random,
-          'training')
+          FLAGS.batch_size, 0, model_settings, FLAGS.shiftby_ms, 'training')
       evaluate_step(thismodel, train_fingerprints, train_ground_truth, False)
       return
 
@@ -199,8 +198,7 @@ def main():
   def train_step():
     # Pull the sounds we'll use for training.
     train_fingerprints, train_ground_truth, _ = audio_processor.get_data(
-        FLAGS.batch_size, 0, model_settings, FLAGS.time_shift_ms, FLAGS.time_shift_random,
-        'training')
+        FLAGS.batch_size, 0, model_settings, FLAGS.shiftby_ms, 'training')
 
     # Run the graph with this batch of training data.
     with tf.GradientTape() as tape:
@@ -251,9 +249,7 @@ def main():
 def validate_test_step(model, set_kind, model_settings, audio_processor, nlabels, isound):
   fingerprints, ground_truth, sounds = (
       audio_processor.get_data(FLAGS.batch_size, isound, model_settings,
-                               0.0 if FLAGS.time_shift_random else FLAGS.time_shift_ms,
-                               FLAGS.time_shift_random,
-                               set_kind))
+                               FLAGS.shiftby_ms, set_kind))
   needed = FLAGS.batch_size - fingerprints.shape[0]
   logits, accuracy, predicted_indices, hidden_activations = evaluate_step(model, fingerprints,
                                                                           ground_truth, False)
@@ -345,18 +341,11 @@ if __name__ == '__main__':
       Where to download the speech training data to.
       """)
   parser.add_argument(
-      '--time_shift_ms',
+      '--shiftby_ms',
       type=float,
       default=100.0,
       help="""\
       Range to shift the training audio by in time.
-      """)
-  parser.add_argument(
-      '--time_shift_random',
-      type=str2bool,
-      default=True,
-      help="""\
-      True shifts randomly within +/- time_shift_ms; False shifts by exactly time_shift_ms.
       """)
   parser.add_argument(
       '--testing_files',

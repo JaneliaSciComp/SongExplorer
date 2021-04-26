@@ -71,7 +71,7 @@ def main():
 
   audio_processor = input_data.AudioProcessor(
       FLAGS.data_dir,
-      FLAGS.time_shift_ms, FLAGS.time_shift_random,
+      FLAGS.shiftby_ms,
       FLAGS.labels_touse.split(','), FLAGS.kinds_touse.split(','),
       FLAGS.validation_percentage, FLAGS.validation_offset_percentage,
       FLAGS.validation_files.split(','),
@@ -89,16 +89,14 @@ def main():
   checkpoint = tf.train.Checkpoint(thismodel=thismodel)
   checkpoint.read(FLAGS.start_checkpoint)
 
-  time_shift_tics = int((FLAGS.time_shift_ms * FLAGS.audio_tic_rate) / 1000)
+  time_shift_tics = int((FLAGS.shiftby_ms * FLAGS.audio_tic_rate) / 1000)
 
   testing_set_size = audio_processor.set_size('testing')
 
   def infer_step(isound):
     fingerprints, _, sounds = audio_processor.get_data(
                                  FLAGS.batch_size, isound, model_settings,
-                                 0.0 if FLAGS.time_shift_random else time_shift_tics,
-                                 FLAGS.time_shift_random,
-                                 'testing')
+                                 time_shift_tics, 'testing')
     needed = FLAGS.batch_size - fingerprints.shape[0]
     hidden_activations, logits = thismodel(fingerprints, training=False)
     return fingerprints, sounds, needed, logits, hidden_activations
@@ -149,18 +147,11 @@ if __name__ == '__main__':
       Where to download the speech training data to.
       """)
   parser.add_argument(
-      '--time_shift_ms',
+      '--shiftby_ms',
       type=float,
       default=100.0,
       help="""\
       Range to shift the training audio by in time.
-      """)
-  parser.add_argument(
-      '--time_shift_random',
-      type=str2bool,
-      default=True,
-      help="""\
-      True shifts randomly within +/- time_shift_ms; False shifts by exactly time_shift_ms.
       """)
   parser.add_argument(
       '--testing_files',
