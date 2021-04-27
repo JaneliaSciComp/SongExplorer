@@ -515,10 +515,8 @@ First, let's get some data bundled with SongExplorer into your home directory.
     20190122T132554a-14-annotated-person3.csv*
     20190122T132554a-14.wav*
     Antigua_20110313095210_ch26.wav
-    my_frozen_graph_1k_0.pb*
     PS_20130625111709_ch3-annotated-person1.csv
     PS_20130625111709_ch3.wav*
-    vgg_labels.txt*
 
     $ mkdir -p groundtruth-data/round1
 
