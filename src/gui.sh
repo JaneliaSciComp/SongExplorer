@@ -6,7 +6,7 @@
 # http://<hostname>:<port>/gui
 
 # e.g.
-# $SONGEXPLORER_BIN gui.sh `pwd`/configuration.sh 5006
+# $SONGEXPLORER_BIN gui.sh `pwd`/configuration.pysh 5006
 
 configuration_file=$1
 port=$2

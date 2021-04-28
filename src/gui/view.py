@@ -19,7 +19,13 @@ import logging
 import base64
 import io
 from natsort import natsorted
+
+# use agg here as otherwise pims tries to open gtk
+# see https://github.com/soft-matter/pims/issues/351
+import matplotlib as mpl
+mpl.use('Agg')
 import pims
+
 import av
 from bokeh import palettes
 from itertools import cycle, product
