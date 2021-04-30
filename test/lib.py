@@ -18,7 +18,7 @@ def check_file_exists(filename):
     return False
   return True
 
-def count_lines_with_label(filename, label, rightanswer):
+def count_lines_with_label(filename, label, rightanswer, kind):
   if not check_file_exists(filename): return
   count = 0
   with open(filename,'r') as fid:
@@ -26,7 +26,9 @@ def count_lines_with_label(filename, label, rightanswer):
       if label in line:
         count += 1
   if count != rightanswer:
-    print("ERROR: "+filename+" has "+str(count)+" "+label+" when it should have "+str(rightanswer))
+    print(kind+": "+filename+" has "+str(count)+" "+label+" when it should have "+str(rightanswer))
+    if kind=="WARNING":
+      print(kind+": it is normal for this to be close but not exact")
 
 def count_lines(filename, rightanswer):
   if not check_file_exists(filename): return

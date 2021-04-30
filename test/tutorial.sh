@@ -10,14 +10,19 @@ check_file_exists() {
     return 1
   fi
   return 0; }
+
 count_lines_with_label() {
   check_file_exists $1 || return
   local count=$(grep $2 $1 | wc -l)
-  (( "$count" == "$3" )) || echo ERROR: $1 has $count $2 when it should have $3; }
+  (( "$count" == "$3" )) && return
+  echo $4: $1 has $count $2 when it should have $3
+  if [ "$4" == "WARNING" ]; then echo $4: it is normal for this to be close but not exact; fi; }
+
 count_lines() {
   check_file_exists $1 || return
   local count=$(cat $1 | wc -l)
-  (( "$count" == "$2" )) || echo ERROR: $1 has $count lines when it should have $2; }
+  (( "$count" == "$2" )) && return
+  echo ERROR: $1 has $count lines when it should have $2; }
 
 repo_path=$(dirname $(dirname $(which detect.sh)))
 
@@ -48,9 +53,9 @@ detect.sh \
 
 check_file_exists ${wavpath_noext}-detect.log
 check_file_exists ${wavpath_noext}-detected.csv
-count_lines_with_label ${wavpath_noext}-detected.csv time 536
-count_lines_with_label ${wavpath_noext}-detected.csv frequency 45
-count_lines_with_label ${wavpath_noext}-detected.csv neither 1635
+count_lines_with_label ${wavpath_noext}-detected.csv time 536 ERROR
+count_lines_with_label ${wavpath_noext}-detected.csv frequency 45 ERROR
+count_lines_with_label ${wavpath_noext}-detected.csv neither 1635 ERROR
 
 context_ms=204.8
 shiftby_ms=0.0
@@ -212,9 +217,9 @@ check_file_exists ${wavpath_noext}-ethogram.log
 for pr in $(echo $precision_recall_ratios | sed "s/,/ /g") ; do
   check_file_exists ${wavpath_noext}-predicted-${pr}pr.csv
 done
-count_lines_with_label ${wavpath_noext}-predicted-1.0pr.csv mel-pulse 1010
-count_lines_with_label ${wavpath_noext}-predicted-1.0pr.csv mel-sine 958
-count_lines_with_label ${wavpath_noext}-predicted-1.0pr.csv ambient 88
+count_lines_with_label ${wavpath_noext}-predicted-1.0pr.csv mel-pulse 416 WARNING
+count_lines_with_label ${wavpath_noext}-predicted-1.0pr.csv mel-sine 439 WARNING
+count_lines_with_label ${wavpath_noext}-predicted-1.0pr.csv ambient 212 WARNING
 
 detect.sh \
       ${wavpath_noext}.wav \
@@ -225,15 +230,15 @@ detect.sh \
 
 check_file_exists ${wavpath_noext}-detect.log
 check_file_exists ${wavpath_noext}-detected.csv
-count_lines_with_label ${wavpath_noext}-detected.csv time 1298
-count_lines_with_label ${wavpath_noext}-detected.csv frequency 179
+count_lines_with_label ${wavpath_noext}-detected.csv time 1298 ERROR
+count_lines_with_label ${wavpath_noext}-detected.csv frequency 179 ERROR
 
 csvfiles=${wavpath_noext}-detected.csv,${wavpath_noext}-predicted-1.0pr.csv
 misses.sh $csvfiles &> ${wavpath_noext}-misses.log
 
 check_file_exists ${wavpath_noext}-misses.log
 check_file_exists ${wavpath_noext}-missed.csv
-count_lines_with_label ${wavpath_noext}-missed.csv other 1607
+count_lines_with_label ${wavpath_noext}-missed.csv other 1607 WARNING
 
 mkdir $data_dir/round1/cluster
 mv $data_dir/{activations,cluster}* $data_dir/round1/cluster

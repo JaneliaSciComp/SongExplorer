@@ -50,9 +50,9 @@ wait_for_job(M.status_ticker_queue)
 
 check_file_exists(wavpath_noext+"-detect.log")
 check_file_exists(wavpath_noext+"-detected.csv")
-count_lines_with_label(wavpath_noext+"-detected.csv", "time", 536)
-count_lines_with_label(wavpath_noext+"-detected.csv", "frequency", 45)
-count_lines_with_label(wavpath_noext+"-detected.csv", "neither", 1635)
+count_lines_with_label(wavpath_noext+"-detected.csv", "time", 536, "ERROR")
+count_lines_with_label(wavpath_noext+"-detected.csv", "frequency", 45, "ERROR")
+count_lines_with_label(wavpath_noext+"-detected.csv", "neither", 1635, "ERROR")
 
 V.context_ms.value = "204.8"
 V.shiftby_ms.value = "0.0"
@@ -193,9 +193,9 @@ wait_for_job(M.status_ticker_queue)
 check_file_exists(wavpath_noext+"-ethogram.log")
 for pr in V.precision_recall_ratios.value.split(','):
   check_file_exists(wavpath_noext+"-predicted-"+pr+"pr.csv")
-count_lines_with_label(wavpath_noext+"-predicted-1.0pr.csv", "mel-pulse", 1010)
-count_lines_with_label(wavpath_noext+"-predicted-1.0pr.csv", "mel-sine", 958)
-count_lines_with_label(wavpath_noext+"-predicted-1.0pr.csv", "ambient", 88)
+count_lines_with_label(wavpath_noext+"-predicted-1.0pr.csv", "mel-pulse", 416, "WARNING")
+count_lines_with_label(wavpath_noext+"-predicted-1.0pr.csv", "mel-sine", 439, "WARNING")
+count_lines_with_label(wavpath_noext+"-predicted-1.0pr.csv", "ambient", 212, "WARNING")
 
 asyncio.run(C.detect_actuate())
 
@@ -203,8 +203,8 @@ wait_for_job(M.status_ticker_queue)
 
 check_file_exists(wavpath_noext+"-detect.log")
 check_file_exists(wavpath_noext+"-detected.csv")
-count_lines_with_label(wavpath_noext+"-detected.csv", "time", 1298)
-count_lines_with_label(wavpath_noext+"-detected.csv", "frequency", 179)
+count_lines_with_label(wavpath_noext+"-detected.csv", "time", 1298, "ERROR")
+count_lines_with_label(wavpath_noext+"-detected.csv", "frequency", 179, "ERROR")
 
 V.wavtfcsv_files.value = wavpath_noext+"-detected.csv,"+ \
                                wavpath_noext+"-predicted-1.0pr.csv"
@@ -214,7 +214,7 @@ wait_for_job(M.status_ticker_queue)
 
 check_file_exists(wavpath_noext+"-misses.log")
 check_file_exists(wavpath_noext+"-missed.csv")
-count_lines_with_label(wavpath_noext+"-missed.csv", "other", 1607)
+count_lines_with_label(wavpath_noext+"-missed.csv", "other", 1607, "WARNING")
 
 os.mkdir(os.path.join(V.groundtruth_folder.value, "round1", "cluster"))
 for file in glob.glob(os.path.join(V.groundtruth_folder.value, "activations*")):

@@ -10,8 +10,8 @@ $repo_path/test/tutorial.sh
 $repo_path/test/tutorial.py
 
 if (( $(diff <(tree $repo_path/test/scratch/tutorial-sh | grep -v tfevents) \
-             <(tree $repo_path/test/scratch/tutorial-py | grep -v tfevents) | wc -l) > 4 )) ; then
-  echo ERROR
+             <(tree $repo_path/test/scratch/tutorial-py | grep -v tfevents) | wc -l) > 8 )) ; then
+  echo ERROR directory hierarchies differ between tutorial-{py,sh}
 fi
 files=(groundtruth-data/round1/PS_20130625111709_ch3-detected.csv
        trained-classifier1/train_1r/thresholds.ckpt-10.csv
@@ -39,6 +39,7 @@ for file in ${files[*]} ; do
   if [[ $(diff $repo_path/test/scratch/tutorial-sh/$file \
                $repo_path/test/scratch/tutorial-py/$file) ]] ; then
       echo WARNING $file in tutorial-sh/ and tutorial-py/ differ
+      echo WARNING is is normal that the numbers therein are close but not exact
   fi
 done
 

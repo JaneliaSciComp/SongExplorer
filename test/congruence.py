@@ -13,7 +13,7 @@ import asyncio
 import tarfile
 import pandas as pd
 
-from lib import wait_for_job, check_file_exists, count_lines_with_label, count_lines
+from lib import wait_for_job, check_file_exists
 
 def check_value(dfrow, colname, shouldbe):
   if int(dfrow[colname]) != shouldbe:
