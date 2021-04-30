@@ -83,7 +83,7 @@ selem = np.ones((time_smooth), dtype=np.uint8)
 
 for ichannel in range(nchannels):
   song_median = np.median(song[:,ichannel])
-  song_mad = stats.median_absolute_deviation(song[:,ichannel])
+  song_mad = stats.median_abs_deviation(song[:,ichannel])
 
   song_thresholded = np.abs(song[:,ichannel]-song_median) > time_sigma_signal*song_mad
   song_morphed = closing(song_thresholded, selem)

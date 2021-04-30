@@ -38,7 +38,7 @@ run(["hetero", "start", "1", "1", "1"])
 wavpath_noext = os.path.join(repo_path,
                              "test/scratch/tutorial-py/groundtruth-data/round1/PS_20130625111709_ch3")
 V.wavtfcsv_files.value = wavpath_noext+".wav"
-V.time_sigma.value = "6,3"
+V.time_sigma.value = "9,4"
 V.time_smooth_ms.value = "6.4"
 V.frequency_n_ms.value = "25.6"
 V.frequency_nw.value = "4"
@@ -50,9 +50,9 @@ wait_for_job(M.status_ticker_queue)
 
 check_file_exists(wavpath_noext+"-detect.log")
 check_file_exists(wavpath_noext+"-detected.csv")
-count_lines_with_label(wavpath_noext+"-detected.csv", "time", 543)
+count_lines_with_label(wavpath_noext+"-detected.csv", "time", 536)
 count_lines_with_label(wavpath_noext+"-detected.csv", "frequency", 45)
-count_lines_with_label(wavpath_noext+"-detected.csv", "neither", 1138)
+count_lines_with_label(wavpath_noext+"-detected.csv", "neither", 1635)
 
 V.context_ms.value = "204.8"
 V.shiftby_ms.value = "0.0"
@@ -203,7 +203,7 @@ wait_for_job(M.status_ticker_queue)
 
 check_file_exists(wavpath_noext+"-detect.log")
 check_file_exists(wavpath_noext+"-detected.csv")
-count_lines_with_label(wavpath_noext+"-detected.csv", "time", 1309)
+count_lines_with_label(wavpath_noext+"-detected.csv", "time", 1298)
 count_lines_with_label(wavpath_noext+"-detected.csv", "frequency", 179)
 
 V.wavtfcsv_files.value = wavpath_noext+"-detected.csv,"+ \
@@ -214,7 +214,7 @@ wait_for_job(M.status_ticker_queue)
 
 check_file_exists(wavpath_noext+"-misses.log")
 check_file_exists(wavpath_noext+"-missed.csv")
-count_lines_with_label(wavpath_noext+"-missed.csv", "other", 2199)
+count_lines_with_label(wavpath_noext+"-missed.csv", "other", 1607)
 
 os.mkdir(os.path.join(V.groundtruth_folder.value, "round1", "cluster"))
 for file in glob.glob(os.path.join(V.groundtruth_folder.value, "activations*")):

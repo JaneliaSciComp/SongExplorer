@@ -31,8 +31,8 @@ cp $repo_path/data/PS_20130625111709_ch3.wav \
    $repo_path/test/scratch/tutorial-sh/groundtruth-data/round1
 
 wavpath_noext=$repo_path/test/scratch/tutorial-sh/groundtruth-data/round1/PS_20130625111709_ch3
-time_sigma_signal=6
-time_sigma_noise=3
+time_sigma_signal=9
+time_sigma_noise=4
 time_smooth_ms=6.4
 frequency_n_ms=25.6
 frequency_nw=4
@@ -48,9 +48,9 @@ detect.sh \
 
 check_file_exists ${wavpath_noext}-detect.log
 check_file_exists ${wavpath_noext}-detected.csv
-count_lines_with_label ${wavpath_noext}-detected.csv time 543
+count_lines_with_label ${wavpath_noext}-detected.csv time 536
 count_lines_with_label ${wavpath_noext}-detected.csv frequency 45
-count_lines_with_label ${wavpath_noext}-detected.csv neither 1138
+count_lines_with_label ${wavpath_noext}-detected.csv neither 1635
 
 context_ms=204.8
 shiftby_ms=0.0
@@ -225,7 +225,7 @@ detect.sh \
 
 check_file_exists ${wavpath_noext}-detect.log
 check_file_exists ${wavpath_noext}-detected.csv
-count_lines_with_label ${wavpath_noext}-detected.csv time 1309
+count_lines_with_label ${wavpath_noext}-detected.csv time 1298
 count_lines_with_label ${wavpath_noext}-detected.csv frequency 179
 
 csvfiles=${wavpath_noext}-detected.csv,${wavpath_noext}-predicted-1.0pr.csv
@@ -233,7 +233,7 @@ misses.sh $csvfiles &> ${wavpath_noext}-misses.log
 
 check_file_exists ${wavpath_noext}-misses.log
 check_file_exists ${wavpath_noext}-missed.csv
-count_lines_with_label ${wavpath_noext}-missed.csv other 2199
+count_lines_with_label ${wavpath_noext}-missed.csv other 1607
 
 mkdir $data_dir/round1/cluster
 mv $data_dir/{activations,cluster}* $data_dir/round1/cluster

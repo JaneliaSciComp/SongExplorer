@@ -355,7 +355,7 @@ def init(_bokeh_document, _configuration_file):
                           'labels_touse':'', \
                           'kinds_touse':'', \
                           'prevalences':'', \
-                          'time_sigma':'6,3', \
+                          'time_sigma':'9,4', \
                           'time_smooth_ms':'6.4', \
                           'frequency_n_ms':'25.6', \
                           'frequency_nw':'4', \
