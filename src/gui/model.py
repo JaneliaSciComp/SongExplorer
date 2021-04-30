@@ -64,6 +64,8 @@ def save_state_callback():
                      'cluster_algorithm': V.cluster_algorithm.value,
                      'cluster_these_layers': [x for x in V.cluster_these_layers.value],
                      'precision_recall_ratios': V.precision_recall_ratios.value,
+                     'congruence_portion': V.congruence_portion.value,
+                     'congruence_convolve': V.congruence_convolve.value,
                      'nreplicates': V.nreplicates.value,
                      'batch_seed': V.batch_seed.value,
                      'weights_seed': V.weights_seed.value,
@@ -381,6 +383,8 @@ def init(_bokeh_document, _configuration_file):
                           'cluster_algorithm':'UMAP 2D', \
                           'cluster_these_layers':['0'], \
                           'precision_recall_ratios':'1.0', \
+                          'congruence_portion':'union', \
+                          'congruence_convolve':'0.0', \
                           'nreplicates':'1', \
                           'batch_seed':'-1', \
                           'weights_seed':'-1', \

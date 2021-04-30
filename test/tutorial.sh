@@ -465,8 +465,10 @@ cp $repo_path/data/20190122T093303a-7-annotated-person3.csv \
    $repo_path/test/scratch/tutorial-sh/groundtruth-data/congruence
 
 wav_file_noext=20190122T093303a-7
+portion=union
+convolve_ms=0.0
 congruence.sh \
-      $data_dir ${wav_file_noext}.wav $nprobabilities $audio_tic_rate $congruence_parallelize \
+      $data_dir ${wav_file_noext}.wav $portion $convolve_ms $nprobabilities $audio_tic_rate $congruence_parallelize \
       &> $data_dir/congruence.log
 
 check_file_exists $data_dir/congruence.log

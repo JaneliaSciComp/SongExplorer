@@ -1528,9 +1528,12 @@ async def congruence_actuate():
                             M.congruence_ncpu_cores,
                             M.congruence_ngpu_cards,
                             M.congruence_ngigabytes_memory,
-                            "", \
+                            "",
                             M.congruence_cluster_flags,
-                            V.groundtruth_folder.value, ','.join(all_files),
+                            V.groundtruth_folder.value,
+                            ','.join(all_files),
+                            V.congruence_portion.value,
+                            V.congruence_convolve.value,
                             str(M.nprobabilities),
                             str(M.audio_tic_rate),
                             str(M.congruence_parallelize))

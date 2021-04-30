@@ -1303,12 +1303,13 @@ best model to date and make ethograms of these densely annotated recordings
 using the `Classify` and `Ethogram` buttons as before.  Finally, use the
 `Congruence` button to plot the fraction of false positives and negatives,
 specifying which files you've densely annotated with `ground truth`
-and either `validation files` or `test files` (a comma-separated list of
-.wav files, a text file of .wav filenames, or a folder of .wav files; see
-[Measuring Generalization](#measuring-generalization)).  If the accuracy
-is not acceptable, iteratively adjust the hyperparameters and/or add new
-annotations to your training set, train a new model, and make new ethograms
-and congruence plots until it is.
+and either `validation files` or `test files` (a comma-separated list
+of .wav files, a text file of .wav filenames, or a folder of .wav files;
+see [Measuring Generalization](#measuring-generalization)).  Optionally,
+specify the temporal resolution within which to consider two predictions a
+hit with `convolve`.  If the accuracy is not acceptable, iteratively adjust
+the hyperparameters and/or add new annotations to your training set, train
+a new model, and make new ethograms and congruence plots until it is.
 
 Once the accuracy is acceptable on validation data, quantify the accuracy on a
 densely annotated test set.  The network should have never been trained or
@@ -1321,10 +1322,14 @@ use this test data as training or validation data going forward, and densely
 annotate a new set of data to test against.
 
 The congruence between multiple human annotators can be quantified using the
-same procedure.  Simply create "annotated-<name>.csv" files for each one.  The
-plots created by `Congruence` will include lines for the number of sounds labeled
-by all annotators (including SongExplorer), only each annotator, and not by a given
-annotator.
+same procedure.  Simply create "annotated-<name>.csv" files for each one.
+The plots created by `Congruence` will include lines for the number of sounds
+labeled by all annotators (including SongExplorer), only each annotator, and
+not by a given annotator.  If the annotators did not label the same portion
+of each recording, choose "intersection" in `portion` to specify that the
+congruence should be calculated only on the portion they have in common--
+from the maximum of the minimum annotated time point across annotators to
+the minimum of the maximum.
 
 Much as one can examine the mistakes of a particular model with respect to
 sparsely annotated ground truth by clustering with "mistaken" as one of the

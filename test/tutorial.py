@@ -425,6 +425,8 @@ shutil.copy(os.path.join(repo_path, "data/20190122T093303a-7-annotated-person3.c
 
 V.test_files.value = ""
 V.validation_files.value = "20190122T093303a-7.wav"
+V.congruence_portion.value = "union"
+V.congruence_convolve.value = "0.0"
 asyncio.run(C.congruence_actuate())
 
 wait_for_job(M.status_ticker_queue)

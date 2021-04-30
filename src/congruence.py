@@ -2,9 +2,9 @@
 
 # generate figures of false positives and negatives
 
-# congruence.py <path-to-groundtruth> <wavfiles-with-dense-annotations-and-predictions> <nprobabilities> <audio-tic-rate> <congruence-parallelize>
+# congruence.py <path-to-groundtruth> <wavfiles-with-dense-annotations-and-predictions> <portion> <convolve-ms> <nprobabilities> <audio-tic-rate> <congruence-parallelize>
 
-# congruence.py /groups/stern/sternlab/behavior/arthurb/groundtruth/kyriacou2017 PS_20130625111709_ch3.wav,PS_20130625111709_ch7.wav 20 2500 1
+# congruence.py /groups/stern/sternlab/behavior/arthurb/groundtruth/kyriacou2017 PS_20130625111709_ch3.wav,PS_20130625111709_ch7.wav 1 0 20 2500 1
 
 import sys
 import os
@@ -27,23 +27,21 @@ from sklearn import metrics
 sys.path.append(os.path.dirname(os.path.realpath(__file__)))
 from lib import *
 
-use_longest_human_interval=1  # otherwise use shortest
-convolve_ms=0
-
-_,basepath,wavfiles,nprobabilities,audio_tic_rate,congruence_parallelize = sys.argv
+_,basepath,wavfiles,portion,convolve_ms,nprobabilities,audio_tic_rate,congruence_parallelize = sys.argv
 print('basepath: '+basepath)
 print('wavfiles: '+wavfiles)
+print('portion: '+portion)
+print('convolve_ms: '+convolve_ms)
 print('nprobabilities: '+nprobabilities)
 print('audio_tic_rate: '+audio_tic_rate)
 print('congruence_parallelize: '+congruence_parallelize)
-print('use_longest_human_interval: '+str(use_longest_human_interval))
-print('convolve_ms: '+str(convolve_ms))
 wavfiles=set([os.path.basename(x) for x in wavfiles.split(',')])
+convolve_ms=float(convolve_ms)
 nprobabilities=int(nprobabilities)
 audio_tic_rate=int(audio_tic_rate)
 congruence_parallelize=int(congruence_parallelize)
 
-convolve_tic = int(convolve_ms/1000*audio_tic_rate)
+convolve_tic = int(convolve_ms/2/1000*audio_tic_rate)
 
 wavdirs = {}
 for subdir in filter(lambda x: os.path.isdir(os.path.join(basepath,x)), \
@@ -302,7 +300,7 @@ for pr in precision_recalls:
       intervals = {}
       intervals[pr] = interval(*[[x[1],x[2]] for _,x in \
                                     timestamps[label][csvbase][predicted_key].iterrows()])
-      if use_longest_human_interval:
+      if portion=="union":
         annotated_left = np.inf
         annotated_right = 0
       else:
@@ -310,7 +308,7 @@ for pr in precision_recalls:
         annotated_right = np.inf
       for human in humans:
         annotator_key = '-annotated-'+human+'.csv'
-        if use_longest_human_interval:
+        if portion=="union":
           annotated_left = min(annotated_left, annotated_left, \
                                *timestamps[label][csvbase][annotator_key][1])
           annotated_right = max(annotated_right, annotated_right, \
@@ -324,7 +322,7 @@ for pr in precision_recalls:
                                           timestamps[label][csvbase][annotator_key].iterrows()])
       print('left = '+str(annotated_left))
       print('right = '+str(annotated_right))
-      if not use_longest_human_interval:
+      if portion=="intersection":
         for human in humans:
           intervals[human] &= interval([annotated_left, annotated_right])
       intervals[pr] &= interval([annotated_left, annotated_right])
