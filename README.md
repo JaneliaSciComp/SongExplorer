@@ -87,18 +87,20 @@ that of everyone else.
 Please let us know where you have deposited your raw
 data and annotations by posting an issue to the [SongExplorer
 repository](https://github.com/JaneliaSciComp/SongExplorer).  We will endeavor to
-maintain a database of these recordings and annotations and will periodically
-re-train SongExplorer with the new data.
+maintain a list of these recordings and annotations in the
+[Citations and Repositories](#citations-and-repositories) section below.
 
-In addition, consider donating your recordings to library or museum, like the
+In addition, consider donating your recordings to a library or museum, like the
 Cornell Lab of Ornithology's [Macauley Library](www.macaulaylibrary.org) or the
 Museo de Ciencias Naturales de Madrid's [Fonoteca Zoológica](www.fonozoo.com).
 
 
 # Citations and Repositories
 
-BJ Arthur, Y Ding, M Sosale, F Khalif, S Turaga, DL Stern (in prep)  
+BJ Arthur, Y Ding, M Sosale, F Khalif, S Turaga, DL Stern (2021)  
 SongExplorer: A deep learning workflow for discovery and segmentation of animal acoustic communication signals  
+https://www.biorxiv.org/content/10.1101/2021.03.26.437280v1 
+https://figshare.com/articles/dataset/Audio_recordings_of_21_species_of_Drosophila_10_of_which_are_annotated/14328425
 
 # Notation #
 
