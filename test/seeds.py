@@ -42,7 +42,7 @@ shutil.copy(os.path.join(repo_path, "data/PS_20130625111709_ch3-annotated-person
 
 V.context_ms.value = "204.8"
 V.shiftby_ms.value = "0.0"
-V.optimizer.value = "adam"
+V.optimizer.value = "Adam"
 V.learning_rate.value = "0.0002"
 V.representation.value = "mel-cepstrum"
 V.window_ms.value = "6.4"

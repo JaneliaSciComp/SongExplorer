@@ -277,7 +277,7 @@ if __name__ == '__main__':
       '--optimizer',
       type=str,
       default='sgd',
-      help='What optimizer to use.  One of sgd, adam, adagrad, or rmsprop.')
+      help='What optimizer to use.  One of Adadelta, Adagrad, Adam, Adamax, Ftrl, Nadam, RMSProp, or SGD.')
   parser.add_argument(
       '--model_architecture',
       type=str,

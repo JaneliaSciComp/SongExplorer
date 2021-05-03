@@ -396,7 +396,7 @@ def init(_bokeh_document, _configuration_file):
                           'window_ms':'6.4', \
                           'mel&dct':'7,7', \
                           'stride_ms':'1.6', \
-                          'optimizer':'adam', \
+                          'optimizer':'Adam', \
                           'learning_rate':'0.0002'}, \
                        **{x[0]:x[3] for x in model_parameters}},
                       fid)

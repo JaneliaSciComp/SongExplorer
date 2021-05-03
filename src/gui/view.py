@@ -1884,8 +1884,7 @@ def init(_bokeh_document):
 
     optimizer = Select(title="optimizer", height=50, \
                        value=M.state['optimizer'], \
-                       options=[("sgd","SGD"), ("adam","Adam"), ("adagrad","AdaGrad"), \
-                                ("rmsprop","RMSProp")])
+                       options=["Adadelta", "Adagrad", "Adam", "Adamax", "Ftrl", "Nadam", "RMSProp", "SGD"])
     optimizer.on_change('value', lambda a,o,n: C.generic_parameters_callback(''))
 
     learning_rate = TextInput(value=M.state['learning_rate'], \

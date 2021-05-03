@@ -1150,10 +1150,14 @@ or equal to the first, and neither should greatly exceed the number of
 frequencies in the original spectrogram, which is one plus half of the
 `window` length in tics.
 
-* `optimizer` can be one of stochastic gradient descent (SGD),
+* `optimizer` can be one of [Adadelta](https://arxiv.org/abs/1212.5701),
+[AdaGrad](http://www.jmlr.org/papers/volume12/duchi11a/duchi11a.pdf),
 [Adam](https://arxiv.org/abs/1412.6980),
-[AdaGrad](http://www.jmlr.org/papers/volume12/duchi11a/duchi11a.pdf), or
-[RMSProp](https://www.cs.toronto.edu/~tijmen/csc321/slides/lecture_slides_lec6.pdf).
+[Adamax](https://arxiv.org/abs/1412.6980),
+[Ftrl](https://static.googleusercontent.com/media/research.google.com/en//pubs/archive/41159.pdf),
+[Nadam](http://cs229.stanford.edu/proj2015/054_report.pdf),
+[RMSProp](https://www.cs.toronto.edu/~tijmen/csc321/slides/lecture_slides_lec6.pdf),
+or stochastic gradient descent (SGD).
 
 * `learning rate` specifies the fraction of the gradient to change each weight
 by at each training step.  Set it such that the training curve accuracy in

@@ -150,14 +150,7 @@ def main():
   thismodel = model.create_model(model_settings)
   thismodel.summary()
 
-  if FLAGS.optimizer=='sgd':
-      thisoptimizer = SGD(learning_rate=FLAGS.learning_rate)
-  elif FLAGS.optimizer=='adam':
-      thisoptimizer = Adam(learning_rate=FLAGS.learning_rate)
-  elif FLAGS.optimizer=='adagrad':
-      thisoptimizer = Adagrad(learning_rate=FLAGS.learning_rate)
-  elif FLAGS.optimizer=='rmsprop':
-      thisoptimizer = RMSProp(learning_rate=FLAGS.learning_rate)
+  thisoptimizer = getattr(tf.keras.optimizers, FLAGS.optimizer)(learning_rate=FLAGS.learning_rate)
 
   start_step = 1
 
@@ -446,7 +439,7 @@ if __name__ == '__main__':
       '--optimizer',
       type=str,
       default='sgd',
-      help='What optimizer to use.  One of sgd, adam, adagrad, or rmsprop.')
+      help='What optimizer to use.  One of Adadelta, Adagrad, Adam, Adamax, Ftrl, Nadam, RMSProp, or SGD.')
   parser.add_argument(
       '--how_many_training_steps',
       type=int,

@@ -56,7 +56,7 @@ count_lines_with_label(wavpath_noext+"-detected.csv", "neither", 1635, "ERROR")
 
 V.context_ms.value = "204.8"
 V.shiftby_ms.value = "0.0"
-V.optimizer.value = "adam"
+V.optimizer.value = "Adam"
 V.learning_rate.value = "0.0002"
 V.representation.value = "mel-cepstrum"
 V.window_ms.value = "6.4"
