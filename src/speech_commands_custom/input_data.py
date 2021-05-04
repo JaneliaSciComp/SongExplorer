@@ -172,6 +172,7 @@ class AudioProcessor(object):
         if kind not in kinds_touse:
           continue
         wav_path=os.path.join(os.path.dirname(csv_path),wavfile)
+        wav_base2=os.path.join(os.path.basename(os.path.dirname(csv_path)), wavfile)
         if label in subsample and iannotation % subsample[label] != 0:
           continue
         if label in partition_labels:
@@ -179,7 +180,7 @@ class AudioProcessor(object):
              wavfile not in partition_validation_files:
             continue
           if wavfile in partition_training_files and \
-             sum([x['label']==label and x['file']==wav_path \
+             sum([x['label']==label and x['file']==wav_base2 \
                   for x in self.data_index['training']]) >= partition_n:
             continue
         if wav_path not in wav_ntics:
@@ -207,8 +208,10 @@ class AudioProcessor(object):
                                 testing_percentage)
         # If it's a known class, store its detail
         if label in labels_touse_index:
-          self.data_index[set_index].append({'label': label, 'file': wav_path, \
-                                             'ticks': ticks, 'kind': kind})
+          self.data_index[set_index].append({'label': label,
+                                             'file': wav_base2, \
+                                             'ticks': ticks,
+                                             'kind': kind})
     if not all_labels:
       print('WARNING: No labels to use found in labels')
     if validation_percentage+testing_percentage<100:
@@ -332,7 +335,7 @@ class AudioProcessor(object):
 
       foreground_offset = (np.random.randint(sound['ticks'][0], 1+sound['ticks'][1]) if
             sound['ticks'][0] < sound['ticks'][1] else sound['ticks'][0])
-      audio_tic_rate, song = spiowav.read(sound['file'], mmap=True)
+      audio_tic_rate, song = spiowav.read(os.path.join(self.data_dir, sound['file']), mmap=True)
       if np.ndim(song)==1:
         song = np.expand_dims(song, axis=1)
       assert audio_tic_rate == model_settings['audio_tic_rate']

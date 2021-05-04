@@ -61,11 +61,15 @@ M.init(None, os.path.join(repo_path, "test/scratch/annotating/configuration.pysh
 V.init(None)
 C.init(None)
 
-basepath = os.path.join(repo_path, "test/scratch/annotating/groundtruth-data/round1")
+groundtruth_folder = "test/scratch/annotating/groundtruth-data"
+round_folder = "round1"
+basepath = os.path.join(repo_path, groundtruth_folder, round_folder)
 os.makedirs(basepath)
 shutil.copy(os.path.join(repo_path, "data/PS_20130625111709_ch3.wav"), basepath)
 
-wavfile = os.path.join(basepath, 'PS_20130625111709_ch3.wav')
+V.groundtruth_folder.value = os.path.join(repo_path, groundtruth_folder)
+
+wavfile = os.path.join(round_folder, 'PS_20130625111709_ch3.wav')
 M.clustered_sounds = [
   {'label': 'time', 'file': wavfile, 'ticks': [2, 5], 'kind': 'detected'},
   {'label': 'frequency', 'file': wavfile, 'ticks': [10, 15], 'kind': 'detected'},

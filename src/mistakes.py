@@ -29,13 +29,14 @@ isort = [x for x,y in sorted(enumerate(sounds), key = lambda x: x[1]['ticks'][0]
 fids = []
 csvwriters = {}
 for idx in isort:
-  wavbase,_ = os.path.splitext(sounds[idx]['file'])
-  if wavbase not in csvwriters:
-    fids.append(open(wavbase+'-mistakes.csv', 'w', newline=''))
-    csvwriters[wavbase] = csv.writer(fids[-1])
+  wavroot,_ = os.path.splitext(sounds[idx]['file'])
+  if wavroot not in csvwriters:
+    fids.append(open(os.path.join(groundtruth_directory, wavroot+'-mistakes.csv'),
+                     'w', newline=''))
+    csvwriters[wavroot] = csv.writer(fids[-1])
   classified_as = np.argmax(logits[idx])
   annotated_as = labels.index(sounds[idx]['label'])
-  csvwriters[wavbase].writerow([os.path.basename(sounds[idx]['file']),
+  csvwriters[wavroot].writerow([os.path.basename(sounds[idx]['file']),
         sounds[idx]['ticks'][0], sounds[idx]['ticks'][1],
         'correct' if classified_as == annotated_as else 'mistaken',
         labels[classified_as],

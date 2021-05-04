@@ -100,11 +100,13 @@ def save_annotations():
             csvfile = wavfile[:-4]+"-annotated-"+songexplorer_starttime+".csv"
             annotated_csvfiles_all.add(csvfile)
             csvfiles_current.add(csvfile)
-            fids[wavfile] = open(csvfile, "w", newline='')
+            fids[wavfile] = open(os.path.join(V.groundtruth_folder.value, csvfile),
+                                 "w", newline='')
             csvwriters[wavfile] = csv.writer(fids[wavfile])
-        for file in annotated_csvfiles_all - csvfiles_current:
-            if os.path.exists(file):
-                os.remove(file)
+        for filename in annotated_csvfiles_all - csvfiles_current:
+            filepath = os.path.join(V.groundtruth_folder.value, filename)
+            if os.path.exists(filepath):
+                os.remove(filepath)
         corrected_sounds=[]
         for annotation in annotated_sounds:
             if annotation['label']!="" and not annotation['label'].isspace():
@@ -122,12 +124,13 @@ def save_annotations():
                                         columns=['file','start','stop','kind','label'])
             for wavfile in set([x['file'] for x in corrected_sounds]):
                 wavdir, wavbase = os.path.split(wavfile)
+                wavpath = os.path.join(V.groundtruth_folder.value, wavdir)
                 for csvbase in filter(lambda x: x.startswith(wavbase[:-4]) and
                                                 x.endswith(".csv") and
                                                 "-annotated-" in x and
                                                 songexplorer_starttime not in x,
-                                      os.listdir(wavdir)):
-                    csvfile = os.path.join(wavdir, csvbase)
+                                      os.listdir(wavpath)):
+                    csvfile = os.path.join(wavpath, csvbase)
                     df_clustered = pd.read_csv(csvfile, \
                                                names=['file','start','stop','kind','label'], \
                                                header=None, index_col=False)

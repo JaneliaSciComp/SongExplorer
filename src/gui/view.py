@@ -575,7 +575,8 @@ def snippets_update(redraw_wavs):
                 labels_annotated.append(M.annotated_sounds[iannotated]['label'])
             midpoint = np.mean(thissound['ticks'], dtype=int)
             if redraw_wavs:
-                _, wavs = spiowav.read(thissound['file'], mmap=True)
+                _, wavs = spiowav.read(os.path.join(groundtruth_folder.value, thissound['file']),
+                                       mmap=True)
                 if np.ndim(wavs)==1:
                   wavs = np.expand_dims(wavs, axis=1)
                 start_frame = max(0, midpoint-M.snippets_tic//2)
@@ -720,7 +721,7 @@ def reset_video():
 def __context_update(wavi, tapped_sound, istart_bounded, ilength):
     if video_toggle.active:
         sound_basename=os.path.basename(tapped_sound)
-        sound_dirname=os.path.dirname(tapped_sound)
+        sound_dirname=os.path.join(groundtruth_folder.value, os.path.dirname(tapped_sound))
         vids = list(filter(lambda x: x!=sound_basename and
                                      os.path.splitext(x)[0] == \
                                          os.path.splitext(sound_basename)[0] and
@@ -791,13 +792,15 @@ def context_update():
             p_waveform.title.text = tapped_sound['file']
         elif M.context_spectrogram:
             p_spectrogram.title.text = tapped_sound['file']
-        _, wavs = spiowav.read(tapped_sound['file'], mmap=True)
+        _, wavs = spiowav.read(os.path.join(groundtruth_folder.value, tapped_sound['file']),
+                               mmap=True)
         if np.ndim(wavs)==1:
             wavs = np.expand_dims(wavs, axis=1)
         M.file_nframes = np.shape(wavs)[0]
         probs = [None]*len(M.clustered_labels)
         for ilabel,label in enumerate(M.clustered_labels):
-            prob_wavfile = tapped_sound['file'][:-4]+'-'+label+'.wav'
+            prob_wavfile = os.path.join(groundtruth_folder.value,
+                                        tapped_sound['file'][:-4]+'-'+label+'.wav')
             if os.path.isfile(prob_wavfile):
                 prob_tic_rate, probs[ilabel] = spiowav.read(prob_wavfile, mmap=True)
         if istart+M.context_width_tic>0 and istart<M.file_nframes:
