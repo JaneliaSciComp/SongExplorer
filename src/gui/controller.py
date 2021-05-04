@@ -1416,9 +1416,9 @@ async def _ethogram_actuate(i, tffiles, threads, results):
     currtime = time.time()
     logdir, model, prefix, check_point = M.parse_model_file(V.model_file.value)
     if 'thresholds' in prefix:
-        thresholds_file =  prefix+'.ckpt-'+check_point+'.csv'
+        thresholds_file = os.path.basename(V.model_file.value)
     else:
-        thresholds_file =  'thresholds.ckpt-'+check_point+'.csv'
+        thresholds_file = 'thresholds.ckpt-'+check_point+'.csv'
     if tffile.lower().endswith('.wav'):
         tffile = os.path.splitext(tffile)[0]+'.tf'
     logfile = tffile[:-3]+'-ethogram.log'
