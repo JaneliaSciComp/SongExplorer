@@ -1,6 +1,33 @@
-FROM tensorflow/tensorflow:latest-gpu
-RUN apt-get update && DEBIAN_FRONTEND="noninteractive" apt-get -y install vim python3-tk dc ssh libxml2 nodejs make tree python3-dev pkg-config libavformat-dev libavcodec-dev libavdevice-dev libavutil-dev libswscale-dev libswresample-dev libavfilter-dev
+ARG UBUNTU_VERSION=20.04
+
+FROM ubuntu:${UBUNTU_VERSION} as base
+
+RUN apt-get update && apt-get install -y curl
+
+# See http://bugs.python.org/issue19846
+ENV LANG C.UTF-8
+
+RUN apt-get update && apt-get install -y \
+    python3 \
+    python3-pip
+
+RUN python3 -m pip --no-cache-dir install --upgrade \
+    pip \
+    setuptools
+
+RUN ln -s $(which python3) /usr/local/bin/python
+
+ARG TF_PACKAGE=tensorflow
+ARG TF_PACKAGE_VERSION=
+RUN python3 -m pip install --no-cache-dir ${TF_PACKAGE}${TF_PACKAGE_VERSION:+==${TF_PACKAGE_VERSION}}
+
+#FROM tensorflow/tensorflow:latest
+
+RUN apt-get update && DEBIAN_FRONTEND="noninteractive" apt-get -y install vim python3-tk dc ssh libxml2 make tree python3-dev pkg-config libavformat-dev libavcodec-dev libavdevice-dev libavutil-dev libswscale-dev libswresample-dev libavfilter-dev
 RUN pip3 install matplotlib scipy natsort scikit-image bokeh nitime sklearn umap-learn matplotlib_venn pandas av https://github.com/soft-matter/pims/archive/master.zip pyinterval dictdiffer
+
+RUN mkdir -p /usr/local/lib/nodejs ; wget https://nodejs.org/dist/v14.16.1/node-v14.16.1-linux-x64.tar.xz ; tar -xJvf node-v14.16.1-linux-x64.tar.xz -C /usr/local/lib/nodejs ; ln -s /usr/local/lib/nodejs/node-v14.16.1-linux-x64/bin/node /bin/node
+
 COPY . /opt/songexplorer
-ENV PATH="/opt/songexplorer/src:${PATH}"
+ENV PATH="/opt/songexplorer/src:${PATH}" NUMBA_CACHE_DIR=/tmp/numba_cache MPLCONFIGDIR=/tmp/mpl_cache
 CMD ["python"]
