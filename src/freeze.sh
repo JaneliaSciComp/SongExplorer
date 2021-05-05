@@ -29,6 +29,8 @@ context_ms=$(dc -e "3 k $context_ms $stride_ms $nwindows 1 - * + p")
 
 DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
 
+echo SongExplorer version: $(cat $DIR/../VERSION.txt)
+
 readarray -t labels_touse < $logdir/$model/labels.txt
 labels_touse_str=$(IFS=, ; echo "${labels_touse[*]}")
 

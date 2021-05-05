@@ -42,6 +42,8 @@ fi
 
 DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
 
+echo SongExplorer version: $(cat $DIR/../VERSION.txt)
+
 mkdir -p $logdir
 
 if [ -z "$restore_from" ] ; then

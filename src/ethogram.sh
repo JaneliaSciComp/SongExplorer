@@ -15,6 +15,8 @@ audio_tic_rate=$5
 
 DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
 
+echo SongExplorer version: $(cat $DIR/../VERSION.txt)
+
 expr="$DIR/ethogram.py $logdir $model $thresholds_file $tf_file $audio_tic_rate"
 
 cmd="date; hostname; $expr; sync; date"

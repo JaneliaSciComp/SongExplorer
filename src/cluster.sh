@@ -20,6 +20,8 @@ shift 7
 
 DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
 
+echo SongExplorer version: $(cat $DIR/../VERSION.txt)
+
 cluster_algorithm="$(echo $cluster_algorithm | tr '[A-Z]' '[a-z]')"
 varargs=("$@")
 

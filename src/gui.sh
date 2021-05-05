@@ -168,6 +168,8 @@ unset resource_kinds
 
 DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
 
+echo SongExplorer version: $(cat $DIR/../VERSION.txt)
+
 allow_websocket=--allow-websocket-origin=localhost:$port
 ipaddr=noIPv4s
 
@@ -243,4 +245,4 @@ bokeh serve \
       $allow_websocket \
       --show $DIR/gui \
       --port $port \
-      --args $configuration_file
+      --args "$(cat $DIR/../VERSION.txt)" $configuration_file

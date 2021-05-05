@@ -17,6 +17,8 @@ parallelize=$7
 
 DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
 
+echo SongExplorer version: $(cat $DIR/../VERSION.txt)
+
 expr="$DIR/congruence.py $data_dir $wav_files $portion $convolve_ms $nprobabilities $audio_tic_rate $parallelize"
 
 cmd="date; hostname; $expr; sync; date"

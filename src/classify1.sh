@@ -24,6 +24,8 @@ fi
 
 DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
 
+echo SongExplorer version: $(cat $DIR/../VERSION.txt)
+
 model_str=$logdir/$model/frozen-graph.ckpt-${check_point}.pb
 expr="/usr/bin/python3 $DIR/speech_commands_custom/infer-dense.py \
       --model=$model_str \

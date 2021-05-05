@@ -9,6 +9,7 @@
 import os
 from bokeh.plotting import curdoc
 from bokeh.layouts import column, row, Spacer
+from bokeh.models.widgets import PreText
 import threading
 import logging 
 from sys import argv
@@ -17,7 +18,7 @@ bokehlog = logging.getLogger("songexplorer")
 bokehlog.setLevel(logging.INFO)
 #bokehlog.info(...) 
 
-_, configuration_file = argv
+_, version, configuration_file = argv
 
 import model as M
 import view as V
@@ -53,15 +54,17 @@ main_content = row(column(row(V.which_layer, V.which_species, V.which_word,
                           V.p_spectrogram if M.context_spectrogram==1 else Spacer(),
                           V.p_probability,
                           Spacer(height=10),
-                          row(row(column(Spacer(height=41,width=40),
-                                         column(V.panleft, width=50),
-                                         Spacer(height=41,width=40),
-                                         column(V.allleft, width=50)),
-                                  column(V.zoomin,V.reset,V.zoomout,V.allout, width=50),
-                                  column(Spacer(height=41,width=40),
-                                         column(V.panright, width=50),
-                                         Spacer(height=41,width=40),
-                                         column(V.allright, width=50))),
+                          row(column(row(column(Spacer(height=41,width=40),
+                                                column(V.panleft, width=50),
+                                                Spacer(height=41,width=40),
+                                                column(V.allleft, width=50)),
+                                         column(V.zoomin,V.reset,V.zoomout,V.allout, width=50),
+                                         column(Spacer(height=41,width=40),
+                                                column(V.panright, width=50),
+                                                Spacer(height=41,width=40),
+                                                column(V.allright, width=50))),
+                                     Spacer(height=80),
+                                     PreText(text="version: \n"+version)),
                               Spacer(width=20),
                               row(column(V.nsounds_per_label_buttons),
                                   column(V.label_texts, width=200)),

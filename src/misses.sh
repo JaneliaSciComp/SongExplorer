@@ -11,6 +11,8 @@ IFS=',' read -ra csv_files <<< "$1"
 
 DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
 
+echo SongExplorer version: $(cat $DIR/../VERSION.txt)
+
 expr="$DIR/misses.py $directory ${csv_files[@]}"
 
 cmd="date; hostname; $expr; sync; date"

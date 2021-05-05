@@ -21,6 +21,8 @@ audio_nchannels=${11}
 
 DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
 
+echo SongExplorer version: $(cat $DIR/../VERSION.txt)
+
 expr="$DIR/detect.py $wavfile $audio_tic_rate $audio_nchannels $time_sigma_signal $time_sigma_noise $time_smooth_ms $frequency_n_ms $frequency_nw $frequency_p_signal $frequency_p_noise $frequency_smooth_ms"
 
 cmd="date; hostname; $expr; sync; date"

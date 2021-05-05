@@ -32,6 +32,8 @@ frozenlog=$logdir/$model/frozen-graph.ckpt-${check_point}.log
 
 DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
 
+echo SongExplorer version: $(cat $DIR/../VERSION.txt)
+
 wavdir=`dirname $wavfile`
 wavbase=`basename $wavfile`
 tffile=$wavdir/${wavbase%.*}.tf

@@ -14,6 +14,8 @@ parallelize=$4
 
 DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
 
+echo SongExplorer version: $(cat $DIR/../VERSION.txt)
+
 expr="$DIR/accuracy.py $logdir $precision_recall_ratios $nprobabilities $parallelize"
 
 cmd="date; hostname; $expr; sync; date"

@@ -11,6 +11,8 @@ groundtruth_directory=$1
 
 DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
 
+echo SongExplorer version: $(cat $DIR/../VERSION.txt)
+
 expr="$DIR/mistakes.py \"$groundtruth_directory\""
 
 cmd="date; hostname; $expr; sync; date"
