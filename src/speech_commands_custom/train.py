@@ -204,6 +204,7 @@ def main():
     return cross_entropy_mean, train_accuracy
 
   # Training loop.
+  print('line format is Elapsed %f, Step #%d, Train accuracy %.1f, cross entropy %f')
   for training_step in range(start_step, FLAGS.how_many_training_steps + 1):
     if training_set_size>0 and FLAGS.save_step_period>0:
       cross_entropy_mean, train_accuracy = train_step()
@@ -213,7 +214,7 @@ def main():
         tf.summary.scalar('cross_entropy', cross_entropy_mean, step=training_step)
         tf.summary.scalar('accuracy', train_accuracy, step=training_step)
 
-      print('Elapsed %f, Step #%d: accuracy %.1f%%, cross entropy %f' %
+      print('%f,%d,%.1f,%f' %
                       (t1.total_seconds(), training_step,
                        train_accuracy.numpy() * 100, cross_entropy_mean.numpy()))
 
@@ -300,9 +301,9 @@ def validate_and_test(model, set_kind, set_size, model_settings, \
   print('Confusion Matrix:\n %s\n %s' % \
                   (audio_processor.labels_list, total_conf_matrix.numpy()))
   t1=dt.datetime.now()-t0
-  print('Elapsed %f, Step %d: %s accuracy = %.1f%% (N=%d)' %
-                  (t1.total_seconds(), training_step, set_kind.capitalize(), \
-                   total_accuracy * 100, set_size))
+  print('%f,%d,%.1f %s' %
+                  (t1.total_seconds(), training_step, \
+                   total_accuracy * 100, set_kind.capitalize()))
   np.savez(os.path.join(FLAGS.train_dir,
                         'logits.'+set_kind+'.ckpt-'+str(training_step)+'.npz'), \
            sounds=sounds_data, groundtruth=groundtruth_data, logits=logit_data)

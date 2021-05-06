@@ -68,12 +68,12 @@ def confusion_string2matrix(arg):
 def parse_confusion_matrix(logfile, nlabels_touse, which_one=0, test=False):
   max_count = '-m'+str(which_one) if which_one>0 else ''
   kind = "Testing" if test else "Validation"
-  cmd = "grep -B"+str(nlabels_touse+1)+" '"+kind+" accuracy' "+logfile+" "+max_count+ \
+  cmd = "grep -B"+str(nlabels_touse+1)+" "+kind+"$ "+logfile+" "+max_count+ \
         " | tail -"+str(nlabels_touse+2)+" | head -1"
   labels_string = check_output(cmd, shell=True)
   labels_string = labels_string.decode("ascii")
   labels_string = labels_string[1:-1]
-  cmd = "grep -B"+str(nlabels_touse+0)+" '"+kind+" accuracy' "+logfile+" "+max_count+ \
+  cmd = "grep -B"+str(nlabels_touse+0)+" "+kind+"$ "+logfile+" "+max_count+ \
         " | tail -"+str(nlabels_touse+1)+" | head -"+str(nlabels_touse+0)
   confusion_string = check_output(cmd, shell=True)
   confusion_string = confusion_string.decode("ascii")
@@ -219,16 +219,6 @@ def read_log(frompath, logfile):
           nlayers += 1
         m=re.search('[^,] (\d+)',line)
         nparameters_finallayer = int(m.group(1))
-      elif "cross entropy" in line:
-        m=re.search('Elapsed (.*), Step #(.*):.*accuracy (.*)%.*cross entropy (.*)$', line)
-        train_time_value = float(m.group(1))
-        if len(train_time)>0 and \
-                (train_time_value+train_restart_correction)<train_time[-1]:
-          train_restart_correction = train_time[-1]
-        train_time.append(train_time_value+train_restart_correction)
-        train_step.append(int(m.group(2)))
-        train_accuracy.append(float(m.group(3)))
-        train_loss.append(float(m.group(4)))
       elif " [" in line and " ['" not in line and 'None' not in line:
         if " [[" in line:
           confusion_string=line
@@ -240,21 +230,32 @@ def read_log(frompath, logfile):
                   normalize_confusion_matrix(confusion_matrix)
           precision = [x[i] for (i,x) in enumerate(column_normalized_confusion_matrix)]
           recall = [x[i] for (i,x) in enumerate(row_normalized_confusion_matrix)]
-      elif "Validation accuracy" in line:
+      elif "Validation\n" in line:
         validation_precision.append(precision)
         validation_recall.append(recall)
         validation_accuracy.append(accuracy)
-        m=re.search('Elapsed (.*), Step (.*):.* = (.*)%',line)
+        m=re.search('^([0-9.]+),([0-9]+),[0-9.]+ Validation$',line)
         validation_time_value = float(m.group(1))
         if len(validation_time)>0 and \
                 (validation_time_value+validation_restart_correction)<validation_time[-1]:
           validation_restart_correction = validation_time[-1]
         validation_time.append(validation_time_value+validation_restart_correction)
         validation_step.append(int(m.group(2)))
-      elif "Testing accuracy" in line:
+      elif "Testing\n" in line:
         test_precision.append(precision)
         test_recall.append(recall)
         test_accuracy.append(accuracy)
+      else:
+        m=re.search('^([0-9.]+),([0-9]+),([0-9.]+),([0-9.]+)$', line)
+        if m:
+          train_time_value = float(m.group(1))
+          if len(train_time)>0 and \
+                  (train_time_value+train_restart_correction)<train_time[-1]:
+            train_restart_correction = train_time[-1]
+          train_time.append(train_time_value+train_restart_correction)
+          train_step.append(int(m.group(2)))
+          train_accuracy.append(float(m.group(3)))
+          train_loss.append(float(m.group(4)))
 
   return train_accuracy, train_loss, train_time, train_step, \
          validation_precision, validation_recall, validation_accuracy, \
