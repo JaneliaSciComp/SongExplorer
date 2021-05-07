@@ -889,9 +889,6 @@ async def train_actuate():
     for ireplicate in range(1, 1+nreplicates, M.models_per_job):
         logfile = os.path.join(V.logs_folder.value, "train"+str(ireplicate)+".log")
         args = [V.context_ms.value, V.shiftby_ms.value, \
-                V.representation.value, V.window_ms.value, \
-                V.stride_ms.value, \
-                *V.mel_dct.value.split(','),
                 V.optimizer.value, V.learning_rate.value, \
                 M.architecture, \
                 "'"+json.dumps({k:v.value for k,v in V.model_parameters.items()})+"'", \
@@ -962,9 +959,7 @@ async def leaveout_actuate(comma):
     for ivalidation_file in range(0, len(validation_files), M.models_per_job):
         logfile = os.path.join(V.logs_folder.value, "generalize"+str(1+ivalidation_file)+".log")
         args = [V.context_ms.value, \
-                V.shiftby_ms.value, V.representation.value, \
-                V.window_ms.value, V.stride_ms.value, \
-                *V.mel_dct.value.split(','), \
+                V.shiftby_ms.value, \
                 V.optimizer.value, \
                 V.learning_rate.value, \
                 M.architecture, \
@@ -1017,9 +1012,7 @@ async def xvalidate_actuate():
     for ifold in range(1, 1+kfolds, M.models_per_job):
         logfile = os.path.join(V.logs_folder.value, "xvalidate"+str(ifold)+".log")
         args = [V.context_ms.value, \
-                V.shiftby_ms.value, V.representation.value, \
-                V.window_ms.value, V.stride_ms.value, \
-                *V.mel_dct.value.split(','), \
+                V.shiftby_ms.value, \
                 V.optimizer.value, \
                 V.learning_rate.value, \
                 M.architecture, \
@@ -1107,9 +1100,7 @@ async def activations_actuate():
     logdir, model, _, check_point = M.parse_model_file(V.model_file.value)
     logfile = os.path.join(V.groundtruth_folder.value, "activations.log")
     args = [V.context_ms.value, \
-            V.shiftby_ms.value, V.representation.value, \
-            V.window_ms.value, V.stride_ms.value, \
-            *V.mel_dct.value.split(','), \
+            V.shiftby_ms.value, \
             M.architecture, \
             "'"+json.dumps({k:v.value for k,v in V.model_parameters.items()})+"'", \
             logdir, model, check_point, V.groundtruth_folder.value, \
@@ -1297,11 +1288,9 @@ async def _freeze_actuate(ckpts):
                             "",
                             M.freeze_cluster_flags,
                             V.context_ms.value, \
-                            V.representation.value, V.window_ms.value, \
-                            V.stride_ms.value, *V.mel_dct.value.split(','), \
                             M.architecture, \
                             "'"+json.dumps({k:v.value for k,v in V.model_parameters.items()})+"'", \
-                            logdir, model, check_point, str(M.nwindows), \
+                            logdir, model, check_point, str(M.classify_parallelize), \
                             str(M.audio_tic_rate), str(M.audio_nchannels))
     displaystring = "FREEZE " + \
                     os.path.join(os.path.basename(logdir), model, "ckpt-"+check_point) + \
@@ -1348,9 +1337,8 @@ async def _classify_actuate(wavfiles):
     logfile1 = logfile0+'1.log'
     logfile2 = logfile0+'2.log'
     args = [V.context_ms.value, \
-            V.shiftby_ms.value, V.representation.value, \
-            V.stride_ms.value, \
-            logdir, model, check_point, wavfile, str(M.audio_tic_rate), str(M.nwindows)]
+            V.shiftby_ms.value, \
+            logdir, model, check_point, wavfile, str(M.audio_tic_rate), str(M.classify_parallelize)]
     if V.prevalences.value!='':
         args += [V.labels_touse.value, V.prevalences.value]
     p = run(["date", "+%s"], stdout=PIPE, stderr=STDOUT)
@@ -1675,10 +1663,6 @@ def _copy_callback():
             elif "data_dir" in line:
                 m=re.search('data_dir = (.*)', line)
                 V.groundtruth_folder.value = m.group(1)
-            elif "dct_ncoefficients" in line:
-                m=re.search('dct_ncoefficients = (\d+)', line)
-                currmel, currdct = V.mel_dct.value.split(',')
-                V.mel_dct.value = ','.join([currmel, m.group(1)])
             elif "random_seed_batch" in line:
                 m=re.search('random_seed_batch = (.*)', line)
                 V.batch_seed.value = m.group(1)
@@ -1688,10 +1672,6 @@ def _copy_callback():
             elif "validate_step_period" in line:
                 m=re.search('validate_step_period = (\d+)', line)
                 V.save_and_validate_period.value = m.group(1)
-            elif "filterbank_nchannels" in line:
-                m=re.search('filterbank_nchannels = (\d+)', line)
-                currmel, currdct = V.mel_dct.value.split(',')
-                V.mel_dct.value = ','.join([m.group(1), currdct])
             elif "how_many_training_steps" in line:
                 m=re.search('how_many_training_steps = (\d+)', line)
                 V.nsteps.value = m.group(1)
@@ -1704,9 +1684,6 @@ def _copy_callback():
             elif "optimizer" in line:
                 m=re.search('optimizer = (.*)', line)
                 V.optimizer.value = m.group(1)
-            elif "representation = " in line:
-                m=re.search('representation = (.*)', line)
-                V.representation.value = m.group(1)
             elif "start_checkpoint = " in line:
                 m=re.search('start_checkpoint = .*ckpt-([0-9]+)', line)
                 if m:
@@ -1730,12 +1707,6 @@ def _copy_callback():
             elif "labels_touse" in line:
                 m=re.search('labels_touse = (.*)', line)
                 V.labels_touse.value = m.group(1)
-            elif "window_ms" in line:
-                m=re.search('window_ms = (.*)', line)
-                V.window_ms.value = m.group(1)
-            elif "stride_ms" in line:
-                m=re.search('stride_ms = (.*)', line)
-                V.stride_ms.value = m.group(1)
             elif "model_parameters" in line:
                 m=re.search('model_parameters = ({.*})', line)
                 params = json.loads(m.group(1))

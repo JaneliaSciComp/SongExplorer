@@ -19,15 +19,10 @@ cp $repo_path/data/PS_20130625111709_ch3-annotated-person1.csv \
 
 context_ms=204.8
 shiftby_ms=0.0
-representation=waveform
-window_ms=3.2
-mel=3
-dct=3
-stride_ms=0.8
 optimizer=Adam
 learning_rate=0.000001
 architecture=convolutional
-model_parameters='{"dropout": "0.5", "kernel_sizes": "3,32", "nlayers": "2", "nfeatures": "8,8", "dilate_after_layer": "65535", "stride_after_layer": "2", "connection_type": "plain"}'
+model_parameters='{"representation":"waveform", "window_ms":3.2, "stride_ms":0.8, "mel_dct":"3,3", "dropout": "0.5", "kernel_sizes": "3,32", "nlayers": "2", "nfeatures": "8,8", "dilate_after_layer": "65535", "stride_after_layer": "2", "connection_type": "plain"}'
 logdir=$repo_path/test/scratch/shiftby/shiftby-$shiftby_ms
 data_dir=$repo_path/test/scratch/shiftby/groundtruth-data
 labels_touse=mel-pulse,mel-sine,ambient
@@ -44,7 +39,7 @@ ireplicates=1
 mkdir $logdir
 
 train.sh \
-      $context_ms $shiftby_ms $representation $window_ms $stride_ms $mel $dct \
+      $context_ms $shiftby_ms \
       $optimizer $learning_rate \
       $architecture "$model_parameters" \
       $logdir $data_dir $labels_touse $kinds_touse \
@@ -60,7 +55,7 @@ logdir=$repo_path/test/scratch/shiftby/shiftby-$shiftby_ms
 mkdir $logdir
 
 train.sh \
-      $context_ms $shiftby_ms $representation $window_ms $stride_ms $mel $dct \
+      $context_ms $shiftby_ms \
       $optimizer $learning_rate \
       $architecture "$model_parameters" \
       $logdir $data_dir $labels_touse $kinds_touse \

@@ -62,7 +62,6 @@ isinteger gui_context_spectrogram_height_pix
 isinteger models_per_job
 isinteger pca_batch_size
 isinteger nprobabilities
-isinteger nwindows
 isinteger detect_ncpu_cores
 isinteger detect_ngpu_cards
 isinteger detect_ngigabytes_memory
@@ -126,6 +125,7 @@ isinteger congruence_ngigabytes_memory
 isinteger accuracy_parallelize
 isinteger cluster_parallelize
 isinteger congruence_parallelize
+isinteger classify_parallelize
 
 isbinary() {
   binary_re='^[0-1]$'

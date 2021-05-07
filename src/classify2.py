@@ -2,10 +2,10 @@
 
 # generate .wav files containing per-class probabilities from .tf log files
  
-# classify2.py <logdir> <model> <tffile> <context> <shift> <stride> [<labels>, <prevalences>]
+# classify2.py <logdir> <model> <tffile> <context> <shift> [<labels>, <prevalences>]
 
 # e.g.
-# classify2.py `pwd`/trained-classifier 1k `pwd`/groundtruth-data/20161207T102314_ch1_p1.tf 204.8 0 1.6 mel-pulse,mel-sine,ambient 0.1,0.1,0.8
+# classify2.py `pwd`/trained-classifier 1k `pwd`/groundtruth-data/20161207T102314_ch1_p1.tf 204.8 0 mel-pulse,mel-sine,ambient 0.1,0.1,0.8
 
 import sys
 import os
@@ -15,16 +15,14 @@ from sys import argv
 import ast
 from scipy.io import wavfile
 
-_,logdir,model,tffile,context_ms,shift_ms,stride_ms = argv[:7]
+_,logdir,model,tffile,context_ms,shift_ms = argv[:6]
 print('logdir: '+logdir)
 print('model: '+model)
 print('tffile: '+tffile)
 print('context_ms: '+context_ms)
 print('shift_ms: '+shift_ms)
-print('stride_ms: '+stride_ms)
 context_ms = float(context_ms)
 shift_ms = float(shift_ms)
-stride_ms = float(stride_ms)
 
 with open(os.path.join(logdir,model,'labels.txt'), 'r') as fid:
   model_labels = fid.read().splitlines()
@@ -57,11 +55,10 @@ regex=re.compile('[0-9]+ms (.+)')
 
 with open(tffile) as fid:
   for line in fid:
-    if "downsample_by" in line:
-      m=re.search('downsample_by = (\d+)',line)
-      downsample_by = int(m.group(1))
-      stride_ms *= downsample_by
-      npadding = round((context_ms/2+shift_ms)/stride_ms)
+    if "stride_x_downsample_ms" in line:
+      m=re.search('stride_x_downsample_ms = (.+)',line)
+      stride_x_downsample_ms = float(m.group(1))
+      npadding = round((context_ms/2+shift_ms)/stride_x_downsample_ms)
       probability_matrix = np.zeros((npadding, len(labels)))
       continue
     m = regex.match(line)
@@ -71,8 +68,8 @@ with open(tffile) as fid:
     probabilities = ast.literal_eval(m.group(1).replace('nan','0'))
     probability_matrix = np.concatenate((probability_matrix,np.array(probabilities, ndmin=2)))
 
-tic_rate = round(1000/stride_ms)
-if tic_rate != 1000/stride_ms:
+tic_rate = round(1000/stride_x_downsample_ms)
+if tic_rate != 1000/stride_x_downsample_ms:
   print('WARNING: .wav files do not support fractional sampling rates!')
 
 denominator = np.sum(probability_matrix * prevalences, axis=1)

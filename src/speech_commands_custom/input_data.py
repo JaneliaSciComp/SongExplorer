@@ -32,8 +32,6 @@ import scipy.io.wavfile as spiowav
 import numpy as np
 import tensorflow as tf
 
-from representation import *
-
 MAX_NUM_WAVS_PER_CLASS = 2**27 - 1  # ~134M
 
 
@@ -108,9 +106,6 @@ class AudioProcessor(object):
                             partition_label, partition_n, partition_training_files, partition_validation_files,
                             testing_equalize_ratio, testing_max_sounds,
                             model_settings)
-    self.waveform_ = scale_foreground
-    self.spectrogram_ = compute_spectrograms
-    self.mfcc_ = compute_mfccs
 
 
   def prepare_data_index(self,
@@ -315,13 +310,7 @@ class AudioProcessor(object):
     context_tics = model_settings['context_tics']
     nchannels = model_settings['nchannels']
     pick_deterministically = (mode != 'training')
-    if model_settings['representation']=='waveform':
-      input_to_use = lambda *x: tf.expand_dims(self.waveform_(*x), 3)
-    elif model_settings['representation']=='spectrogram':
-      input_to_use = self.spectrogram_
-    elif model_settings['representation']=='mel-cepstrum':
-      input_to_use = self.mfcc_
-    foreground_indexed = np.zeros((nsounds, nchannels, context_tics),
+    foreground_indexed = np.zeros((nsounds, context_tics, nchannels),
                                   dtype=np.float32)
     labels = np.zeros(nsounds, dtype=np.int)
     # repeatedly to generate the final output sound data we'll use in training.
@@ -344,11 +333,9 @@ class AudioProcessor(object):
                                 foreground_offset+context_tics//2 - shiftby_tics,
                                 :]
       foreground_float32 = foreground_clipped.astype(np.float32)
-      foreground_scaled = foreground_float32 / abs(np.iinfo(np.int16).min) #extreme
-      foreground_indexed[i - offset,:,:] = foreground_scaled.transpose()
+      foreground_indexed[i - offset,:,:] = foreground_float32 / abs(np.iinfo(np.int16).min)
       label_index = self.label_to_index[sound['label']]
       labels[i - offset] = label_index
       sounds.append(sound)
     # Run the graph to produce the output audio.
-    data = tf.transpose(input_to_use(foreground_indexed, 1.0, model_settings), [0,2,3,1])
-    return data, labels, sounds
+    return foreground_indexed, labels, sounds

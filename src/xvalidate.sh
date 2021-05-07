@@ -2,37 +2,32 @@
 
 # train several networks on different subsets of the annotations
 
-# xvalidate.sh <context-ms> <shiftby-ms> <representation> <window-ms> <stride_ms> <mel> <dct> <optimizer> <learning-rate> <model-architecture> <model-parameters-json> <logdir> <path-to-groundtruth> <label1>,<label2>,...,<labelN> <kinds-to-use> <nsteps> <restore-from> <save-and-validate-period> <mini-batch> <testing-files> <audio-tic-rate> <audio-nchannels> <batch-seed> <weights-seed> <kfold> <ifolds>
+# xvalidate.sh <context-ms> <shiftby-ms> <optimizer> <learning-rate> <model-architecture> <model-parameters-json> <logdir> <path-to-groundtruth> <label1>,<label2>,...,<labelN> <kinds-to-use> <nsteps> <restore-from> <save-and-validate-period> <mini-batch> <testing-files> <audio-tic-rate> <audio-nchannels> <batch-seed> <weights-seed> <kfold> <ifolds>
 
 # e.g.
-# $SONGEXPLORER_BIN xvalidate.sh 204.8 0.0 waveform 6.4 1.6 7,7 Adam 0.0002 convolutional '{"dropout":0.5, "kernel_sizes":5,128", last_conv_width":130, "nfeatures":"256,256", "dilate_after_layer":65535, "stride_after_layer":65535, "connection_type":"plain"}' `pwd`/cross-validate `pwd`/groundtruth-data mel-pulse,mel-sine,ambient,other annotated 50 '' 10 32 "" 5000 1 -1 -1 8 1,2
+# $SONGEXPLORER_BIN xvalidate.sh 204.8 0.0 Adam 0.0002 convolutional '{"representation":"waveform", "window_ms":6.4, "stride_ms":1.6, "mel_dct":"7,7", "dropout":0.5, "kernel_sizes":5,128", last_conv_width":130, "nfeatures":"256,256", "dilate_after_layer":65535, "stride_after_layer":65535, "connection_type":"plain"}' `pwd`/cross-validate `pwd`/groundtruth-data mel-pulse,mel-sine,ambient,other annotated 50 '' 10 32 "" 5000 1 -1 -1 8 1,2
 
 context_ms=$1
 shiftby_ms=$2
-representation=$3
-window_ms=$4
-stride_ms=$5
-mel=$6
-dct=$7
-optimizer=$8
-learning_rate=$9
-architecture=${10}
-model_parameters=${11}
-logdir=${12}
-data_dir=${13}
-labels_touse=${14}
-kinds_touse=${15}
-nsteps=${16}
-restore_from=${17}
-save_and_validate_period=${18}
-mini_batch=${19}
-testing_files=${20}
-audio_tic_rate=${21}
-audio_nchannels=${22}
-batch_seed=${23}
-weights_seed=${24}
-kfold=${25}
-ifolds=${26}
+optimizer=$3
+learning_rate=$4
+architecture=$5
+model_parameters=$6
+logdir=$7
+data_dir=$8
+labels_touse=$9
+kinds_touse=${10}
+nsteps=${11}
+restore_from=${12}
+save_and_validate_period=${13}
+mini_batch=${14}
+testing_files=${15}
+audio_tic_rate=${16}
+audio_nchannels=${17}
+batch_seed=${18}
+weights_seed=${19}
+kfold=${20}
+ifolds=${21}
 
 DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
 
@@ -70,8 +65,6 @@ while [[ $ifolds =~ .*,.* ]] ; do
           --audio_tic_rate=$audio_tic_rate \
           --nchannels=$audio_nchannels \
           --context_ms=$context_ms \
-          --window_ms=$window_ms \
-          --stride_ms=$stride_ms \
           --learning_rate=$learning_rate \
           --random_seed_batch=$batch_seed \
           --random_seed_weights=$weights_seed \
@@ -79,11 +72,8 @@ while [[ $ifolds =~ .*,.* ]] ; do
           --validation_offset_percentage=$koffset \
           --testing_files=$testing_files \
           --shiftby_ms=$shiftby_ms \
-          --filterbank_nchannels=$mel \
-          --dct_ncoefficients=$dct \
           --model_architecture=$architecture \
           --model_parameters='$model_parameters' \
-          --representation=$representation \
           --optimizer=$optimizer \
           --batch_size=$mini_batch"
 

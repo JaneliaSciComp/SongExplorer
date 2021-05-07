@@ -1126,6 +1126,22 @@ point in time that is annotated or being classified.  `shift by` divided by
 `stride` (see below) should be an integer.  For positive values the duration of
 the context preceding the annotation is longer than that succeeding it.
 
+* `optimizer` can be one of [Adadelta](https://arxiv.org/abs/1212.5701),
+[AdaGrad](http://www.jmlr.org/papers/volume12/duchi11a/duchi11a.pdf),
+[Adam](https://arxiv.org/abs/1412.6980),
+[Adamax](https://arxiv.org/abs/1412.6980),
+[Ftrl](https://static.googleusercontent.com/media/research.google.com/en//pubs/archive/41159.pdf),
+[Nadam](http://cs229.stanford.edu/proj2015/054_report.pdf),
+[RMSProp](https://www.cs.toronto.edu/~tijmen/csc321/slides/lecture_slides_lec6.pdf),
+or stochastic gradient descent (SGD).
+
+* `learning rate` specifies the fraction of the gradient to change each weight
+by at each training step.  Set it such that the training curve accuracy in
+"train-loss.pdf" does not saturate until after at least one epoch of ground
+truth has been trained upon.
+
+The above apply to all architectures.  Specific to convolutional networks are:
+
 * `representation` specifies whether to use the raw waveform directly, to make
 a spectrogram of the waveform to input to the neural network, or to use a
 mel-frequency cepstrum (see [Davis and Mermelstein 1980;
@@ -1149,22 +1165,6 @@ discrete cosine transform.  The second number should always be less than
 or equal to the first, and neither should greatly exceed the number of
 frequencies in the original spectrogram, which is one plus half of the
 `window` length in tics.
-
-* `optimizer` can be one of [Adadelta](https://arxiv.org/abs/1212.5701),
-[AdaGrad](http://www.jmlr.org/papers/volume12/duchi11a/duchi11a.pdf),
-[Adam](https://arxiv.org/abs/1412.6980),
-[Adamax](https://arxiv.org/abs/1412.6980),
-[Ftrl](https://static.googleusercontent.com/media/research.google.com/en//pubs/archive/41159.pdf),
-[Nadam](http://cs229.stanford.edu/proj2015/054_report.pdf),
-[RMSProp](https://www.cs.toronto.edu/~tijmen/csc321/slides/lecture_slides_lec6.pdf),
-or stochastic gradient descent (SGD).
-
-* `learning rate` specifies the fraction of the gradient to change each weight
-by at each training step.  Set it such that the training curve accuracy in
-"train-loss.pdf" does not saturate until after at least one epoch of ground
-truth has been trained upon.
-
-The above apply to all architectures.  Specific to convolutional networks are:
 
 * `kernels` is a 2-vector of the size of the convolutional kernels.  The first
 value is the size of the square 2D convolutions that are successively used

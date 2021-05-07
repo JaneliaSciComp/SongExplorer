@@ -36,34 +36,26 @@ def main():
   thismodel = tf.saved_model.load(FLAGS.model)
   recognize_graph = thismodel.inference_step
 
-  context_ms = FLAGS.context_ms + FLAGS.stride_ms * (FLAGS.nwindows - 1)
-  context_tics = np.round(context_ms * audio_tic_rate / 1000).astype(np.int)
-
-  clip_stride_ms = FLAGS.stride_ms * (FLAGS.nwindows - 1)
-
-  data_slice = tf.transpose(data[:context_tics,:])
-  _,outputs = recognize_graph(tf.expand_dims(data_slice, 0))
-  downsample_by = int((FLAGS.nwindows-1) / (outputs.shape[1]-1))
-  print('downsample_by = '+str(downsample_by))
-
-  stride_ms_adjusted = FLAGS.stride_ms * downsample_by
-  clip_stride_ms_adjusted = clip_stride_ms + stride_ms_adjusted 
-  stride_tics = np.round(stride_ms_adjusted * audio_tic_rate / 1000).astype(np.int)
-  clip_stride_tics = np.round(clip_stride_ms_adjusted * audio_tic_rate / 1000).astype(np.int)
+  clip_window_tics = thismodel.get_input_shape()[1].numpy()
+  context_tics = np.round(FLAGS.context_ms * audio_tic_rate / 1000).astype(np.int)
+  assert FLAGS.parallelize>1
+  stride_x_downsample_tics = (clip_window_tics - context_tics) // (FLAGS.parallelize-1)
+  clip_stride_tics = stride_x_downsample_tics * FLAGS.parallelize
+  print("stride_x_downsample_ms = "+str(stride_x_downsample_tics/audio_tic_rate*1000))
 
   # Inference along audio stream.
   for audio_data_offset in range(0, 1+data.shape[0], clip_stride_tics):
     input_start = audio_data_offset
-    input_end = audio_data_offset + context_tics
+    input_end = audio_data_offset + clip_window_tics
     pad_len = input_end - data.shape[0]
     
     data_slice = tf.transpose(data[input_start:input_end,:] if pad_len<=0 else \
                               np.pad(data[input_start:input_end,:],
                                      ((0,pad_len),(0,0)), mode='median'))
-    _,outputs = recognize_graph(tf.expand_dims(data_slice, 0))
+    _,outputs = recognize_graph(tf.expand_dims(tf.transpose(data_slice), 0))
     current_time_ms = np.round(audio_data_offset * 1000 / audio_tic_rate).astype(np.int)
     if pad_len>0:
-      discard_len = np.ceil(pad_len/stride_tics).astype(np.int)
+      discard_len = np.ceil(pad_len/stride_x_downsample_tics).astype(np.int)
       print(str(current_time_ms)+'ms '+
             np.array2string(outputs.numpy()[0,:-discard_len,:],
                             separator=',',
@@ -93,12 +85,7 @@ if __name__ == '__main__':
       default=1000,
       help='Length of each audio clip fed into model.')
   parser.add_argument(
-      '--stride_ms',
-      type=float,
-      default=30,
-      help='Length of audio clip stride over main trap.')
-  parser.add_argument(
-      '--nwindows',
+      '--parallelize',
       type=int,
       default=1,
       help='')

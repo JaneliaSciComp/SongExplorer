@@ -2,30 +2,20 @@
 
 # prepare the best network to use as a classifier
 
-# freeze.sh <context-ms> <representation> <window-ms> <stride-ms> <mel> <dct> <model-architecture> <model-parameters> <logdir> <model> <check-point> <nwindows> <audio-tic-rate> <audio-nchannels>
+# freeze.sh <context-ms> <model-architecture> <model-parameters> <logdir> <model> <check-point> <parallelize> <audio-tic-rate> <audio-nchannels>
 
 # e.g.
-# $SONGEXPLORER_BIN freeze.sh 204.8 waveform 6.4 1.6 7 7 convolutional '{"dropout":0.5, "kernel_sizes":5,3,3", last_conv_width":130, "nfeatures":"256,256,256", "dilate_after_layer":65535, "stride_after_layer":65535, "connection_type":"plain"}' `pwd`/trained-classifier 1k 50 65536 5000 1
+# $SONGEXPLORER_BIN freeze.sh 204.8 convolutional '{"representation":"waveform", "window_ms":6.4, "stride_ms":1.6, "mel_dct":"7,7", "dropout":0.5, "kernel_sizes":5,3,3", last_conv_width":130, "nfeatures":"256,256,256", "dilate_after_layer":65535, "stride_after_layer":65535, "connection_type":"plain"}' `pwd`/trained-classifier 1k 50 16384 5000 1
 
 context_ms=$1
-representation=$2
-window_ms=$3
-stride_ms=$4
-mel=$5
-dct=$6
-architecture=$7
-model_parameters=$8
-logdir=$9
-model=${10}
-check_point=${11}
-nwindows=${12}
-audio_tic_rate=${13}
-audio_nchannels=${14}
-
-if [ "$representation" == "waveform" ] ; then
-  stride_ms=`dc -e "16 k 1000 $audio_tic_rate / p"`
-fi
-context_ms=$(dc -e "3 k $context_ms $stride_ms $nwindows 1 - * + p")
+architecture=$2
+model_parameters=$3
+logdir=$4
+model=$5
+check_point=$6
+parallelize=$7
+audio_tic_rate=$8
+audio_nchannels=$9
 
 DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
 
@@ -39,17 +29,11 @@ expr="/usr/bin/python3 $DIR/speech_commands_custom/freeze.py \
       --output_file=$logdir/$model/frozen-graph.ckpt-${check_point}.pb \
       --labels_touse=$labels_touse_str \
       --context_ms=$context_ms \
-      --representation=$representation \
-      --window_ms=$window_ms \
-      --stride_ms=$stride_ms \
-      --nwindows=$nwindows \
+      --parallelize=$parallelize \
       --audio_tic_rate=$audio_tic_rate \
       --nchannels=$audio_nchannels \
-      --filterbank_nchannels=$mel \
-      --dct_ncoefficients=$dct \
       --model_architecture=${architecture} \
-      --model_parameters='$model_parameters' \
-      --batch_size=1"
+      --model_parameters='$model_parameters'"
 
 cmd="date; \
      hostname; \

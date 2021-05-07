@@ -1,8 +1,8 @@
 #!/usr/bin/python3
 
 # test that freeze and classify work with different representations,
-# downsamplings via strided convolutions, and numbers of windows to predict
-# in parallel
+# downsamplings via strided convolutions, and numbers of outputs tics
+# to predict in parallel
 
 # export SINGULARITYENV_SONGEXPLORER_STATE=/tmp
 # ${SONGEXPLORER_BIN/-B/-B /tmp:/opt/deepsong/test/scratch -B} test/freeze-classify.py
@@ -47,13 +47,13 @@ V.context_ms.value = "204.8"
 V.shiftby_ms.value = "0.0"
 V.optimizer.value = "Adam"
 V.learning_rate.value = "0.0002"
-V.window_ms.value = "3.2"
-V.stride_ms.value = "0.8"
-V.mel_dct.value = "3,3"
+V.model_parameters["window_ms"].value = "3.2"
+V.model_parameters["stride_ms"].value = "0.8"
+V.model_parameters["mel_dct"].value = "3,3"
 V.model_parameters["dropout"].value = "0.5"
-V.model_parameters["kernel_sizes"].value = "5,128"
+V.model_parameters["kernel_sizes"].value = "3,32"
 V.model_parameters["nlayers"].value = "2"
-V.model_parameters["nfeatures"].value = "64,64"
+V.model_parameters["nfeatures"].value = "16,16"
 V.model_parameters["dilate_after_layer"].value = "65535"
 V.model_parameters["connection_type"].value = "plain"
 V.groundtruth_folder.value = os.path.join(repo_path,
@@ -71,7 +71,7 @@ V.weights_seed.value = "1"
 V.nreplicates.value = "1"
 
 for representation in ["waveform", "spectrogram", "mel-cepstrum"]:
-  V.representation.value = representation
+  V.model_parameters["representation"].value = representation
   for stride_after_layer in ["2", "65535"]:
     V.model_parameters["stride_after_layer"].value = stride_after_layer
     V.logs_folder.value = os.path.join(repo_path,
@@ -93,7 +93,8 @@ for representation in ["waveform", "spectrogram", "mel-cepstrum"]:
           "test/scratch/freeze-classify/groundtruth-data/round1/PS_20130625111709_ch3.wav")
     V.prevalences.value = ""
 
-    for nwindows in ["1", "9"]:
+    for parallelize in ["64", "16384"]:
+      M.classify_parallelize=int(parallelize)
       asyncio.run(C.freeze_actuate())
       wait_for_job(M.status_ticker_queue)
 
@@ -110,7 +111,7 @@ for representation in ["waveform", "spectrogram", "mel-cepstrum"]:
       outpath = os.path.join(repo_path, 
                              "test/scratch/freeze-classify",
                              "trained-classifier-r="+representation+"-s="+stride_after_layer,
-                             nwindows)
+                             parallelize)
       os.makedirs(outpath)
 
       wavpath_noext = V.wavtfcsv_files.value[:-4]
@@ -128,9 +129,9 @@ for representation in ["waveform", "spectrogram", "mel-cepstrum"]:
                            "trained-classifier-r="+representation+"-s="+stride_after_layer)
     for label in V.labels_touse.value.split(','):
       wavbase_noext = os.path.basename(wavpath_noext)
-      outpath1 = os.path.join(outpath, "1", wavbase_noext+"-"+label+".wav")
-      outpath9 = os.path.join(outpath, "9", wavbase_noext+"-"+label+".wav")
-      if not filecmp.cmp(outpath1, outpath9, shallow=False):
-        print("ERROR: "+outpath1+" and "+outpath9+" are different")
+      outpath64 = os.path.join(outpath, "64", wavbase_noext+"-"+label+".wav")
+      outpath16384 = os.path.join(outpath, "16384", wavbase_noext+"-"+label+".wav")
+      if not filecmp.cmp(outpath64, outpath16384, shallow=False):
+        print("ERROR: "+outpath64+" and "+outpath16384+" are different")
 
 run(["hetero", "stop"], stdout=PIPE, stderr=STDOUT)

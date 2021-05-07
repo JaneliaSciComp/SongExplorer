@@ -23,8 +23,8 @@ to convert it into a binary GraphDef file that can be loaded into the Android,
 iOS, or Raspberry Pi example code. Here's an example of how to run it:
 
 bazel run tensorflow/examples/speech_commands/freeze -- \
---audio_tic_rate=16000 --dct_ncoefficients=40 --window_ms=20 \
---stride_ms=10 --context_ms=1000 \
+--audio_tic_rate=16000 \
+--context_ms=1000 \
 --model_architecture=conv \
 --start_checkpoint=/tmp/speech_commands_train/conv.ckpt-1300 \
 --output_file=/tmp/my_frozen_graph.pb
@@ -50,16 +50,9 @@ import json
 
 import importlib
 
-from representation import *
-
 FLAGS = None
 
-def create_inference_graph(labels_touse, audio_tic_rate, nchannels, context_ms,
-                           representation, window_ms,
-                           stride_ms, nwindows,
-                           dct_ncoefficients, filterbank_nchannels,
-                           model_architecture, model_parameters,
-                           batch_size):
+def create_inference_graph():
   """Creates an audio model with the nodes needed for inference.
 
   Uses the supplied arguments to create a model, and inserts the input and
@@ -70,9 +63,6 @@ def create_inference_graph(labels_touse, audio_tic_rate, nchannels, context_ms,
     audio_tic_rate: How many tics per second are in the input audio files.
     context_ms: How many tics to analyze for the audio pattern.
     clip_stride_ms: How often to run recognition. Useful for models with cache.
-    window_ms: Time slice duration to estimate frequencies from.
-    stride_ms: How far apart time slices should be.
-    dct_ncoefficients: Number of frequency bands to analyze.
     model_architecture: Name of the kind of model to generate.
   """
   sys.path.append(os.path.dirname(FLAGS.model_architecture))
@@ -81,9 +71,7 @@ def create_inference_graph(labels_touse, audio_tic_rate, nchannels, context_ms,
   labels_list = FLAGS.labels_touse.split(',')
   model_settings = models.prepare_model_settings(
       len(labels_list), FLAGS.audio_tic_rate, FLAGS.nchannels,
-      FLAGS.nwindows, FLAGS.batch_size, FLAGS.context_ms, FLAGS.representation,
-      FLAGS.window_ms, FLAGS.stride_ms,
-      FLAGS.dct_ncoefficients, FLAGS.filterbank_nchannels,
+      FLAGS.parallelize, 1, FLAGS.context_ms,
       FLAGS.model_parameters)
 
   thismodel = model.create_model(model_settings)
@@ -95,18 +83,15 @@ def create_inference_graph(labels_touse, audio_tic_rate, nchannels, context_ms,
   class InferenceStep(tf.Module):
       def __init__(self, thismodel):
           self.thismodel = thismodel
+          self.input_shape = thismodel.input_shape
+
+      @tf.function(input_signature=[])
+      def get_input_shape(self):
+          return self.input_shape
 
       @tf.function(input_signature=[tf.TensorSpec(shape=None, dtype=tf.float32)])
       def inference_step(self, waveform):
-          if representation=='waveform':
-              scaled_waveform = scale_foreground(waveform, 1.0, model_settings)
-              fingerprint_input = tf.expand_dims(scaled_waveform, 3)
-          elif representation=='spectrogram':
-              fingerprint_input = compute_spectrograms(waveform, 1.0, model_settings)
-          elif representation=='mel-cepstrum':
-              fingerprint_input = compute_mfccs(waveform, 1.0, model_settings)
-          hidden, output = self.thismodel(tf.transpose(fingerprint_input, [0,2,3,1]),
-                                          training=False)
+          hidden, output = self.thismodel(waveform, training=False)
           return hidden, tf.nn.softmax(output)
 
   return InferenceStep(thismodel)
@@ -118,12 +103,7 @@ def main():
     print('%s = %s' % (key, flags[key]))
 
   # Create the model and load its weights.
-  thismodel = create_inference_graph(FLAGS.labels_touse, FLAGS.audio_tic_rate, FLAGS.nchannels,
-                                     FLAGS.context_ms, FLAGS.representation,
-                                     FLAGS.window_ms, FLAGS.stride_ms, FLAGS.nwindows,
-                                     FLAGS.dct_ncoefficients, FLAGS.filterbank_nchannels,
-                                     FLAGS.model_architecture, FLAGS.model_parameters,
-                                     FLAGS.batch_size)
+  thismodel = create_inference_graph()
 
   tf.saved_model.save(thismodel, FLAGS.output_file+'/')
   print('Saved frozen graph to %s' % FLAGS.output_file)
@@ -147,40 +127,10 @@ if __name__ == '__main__':
       default=1000,
       help='Expected duration in milliseconds of the wavs',)
   parser.add_argument(
-      '--representation',
-      type=str,
-      default='waveform',
-      help='What input representation to use.  One of waveform, spectrogram, or mel-cepstrum.')
-  parser.add_argument(
-      '--window_ms',
-      type=float,
-      default=30.0,
-      help='How long each spectrogram timeslice is',)
-  parser.add_argument(
-      '--stride_ms',
-      type=float,
-      default=10.0,
-      help='How long the stride is between spectrogram timeslices',)
-  parser.add_argument(
-      '--nwindows',
+      '--parallelize',
       type=int,
       default=1,
-      help='How many context windows to process in parallel',)
-  parser.add_argument(
-      '--filterbank_nchannels',
-      type=int,
-      default=40,
-      help='How many internal bins to use for the MFCC fingerprint',)
-  parser.add_argument(
-      '--dct_ncoefficients',
-      type=int,
-      default=40,
-      help='How many output bins to use for the MFCC fingerprint',)
-  parser.add_argument(
-      '--batch_size',
-      type=int,
-      default=100,
-      help='How many items to train with at once',)
+      help='How many context windows to process simultaneously',)
   parser.add_argument(
       '--start_checkpoint',
       type=str,

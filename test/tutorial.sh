@@ -59,15 +59,10 @@ count_lines_with_label ${wavpath_noext}-detected.csv neither 1635 ERROR
 
 context_ms=204.8
 shiftby_ms=0.0
-representation=mel-cepstrum
-window_ms=6.4
-stride_ms=1.6
-mel=7
-dct=7
 optimizer=Adam
 learning_rate=0.0002
 architecture=convolutional
-model_parameters='{"dropout": "0.5", "kernel_sizes": "5,3", "nlayers": "2", "nfeatures": "64,64", "dilate_after_layer": "65535", "stride_after_layer": "65535", "connection_type": "plain"}'
+model_parameters='{"representation":"mel-cepstrum", "window_ms":"6.4", "stride_ms":"1.6", "mel_dct":"7,7", "dropout": "0.5", "kernel_sizes": "5,3", "nlayers": "2", "nfeatures": "64,64", "dilate_after_layer": "65535", "stride_after_layer": "65535", "connection_type": "plain"}'
 logdir=$repo_path/test/scratch/tutorial-sh/untrained-classifier
 data_dir=$repo_path/test/scratch/tutorial-sh/groundtruth-data
 labels_touse=time,frequency
@@ -83,7 +78,7 @@ weights_seed=1
 ireplicates=1
 mkdir $logdir
 train.sh \
-      $context_ms $shiftby_ms $representation $window_ms $stride_ms $mel $dct \
+      $context_ms $shiftby_ms \
       $optimizer $learning_rate \
       $architecture "$model_parameters" \
       $logdir $data_dir $labels_touse $kinds_touse \
@@ -101,7 +96,7 @@ check_point=$nsteps
 equalize_ratio=1000
 max_sounds=10000
 activations.sh \
-      $context_ms $shiftby_ms $representation $window_ms $stride_ms $mel $dct \
+      $context_ms $shiftby_ms \
       $architecture "$model_parameters" \
       $logdir train_${ireplicates}r $check_point \
       $data_dir $labels_touse $kinds_touse \
@@ -141,7 +136,7 @@ save_and_test_period=10
 validation_percentage=40
 mkdir $logdir
 train.sh \
-      $context_ms $shiftby_ms $representation $window_ms $stride_ms $mel $dct \
+      $context_ms $shiftby_ms \
       $optimizer $learning_rate  \
       $architecture "$model_parameters" \
       $logdir $data_dir $labels_touse $kinds_touse \
@@ -174,9 +169,9 @@ done
 
 check_point=$nsteps
 freeze.sh \
-      $context_ms $representation $window_ms $stride_ms $mel $dct \
+      $context_ms \
       $architecture "$model_parameters" \
-      $logdir train_${ireplicates}r $check_point $nwindows \
+      $logdir train_${ireplicates}r $check_point $classify_parallelize \
       $audio_tic_rate $audio_nchannels \
       &> $logdir/train_${ireplicates}r/freeze.ckpt-$check_point.log
 
@@ -189,16 +184,16 @@ cp $repo_path/data/20161207T102314_ch1.wav \
 
 wavpath_noext=$repo_path/test/scratch/tutorial-sh/groundtruth-data/round2/20161207T102314_ch1
 classify1.sh \
-      $context_ms '' $representation $stride_ms \
+      $context_ms '' \
       $logdir train_${ireplicates}r $check_point \
       ${wavpath_noext}.wav \
-      $audio_tic_rate $nwindows &> ${wavpath_noext}-classify1.log
+      $audio_tic_rate $classify_parallelize &> ${wavpath_noext}-classify1.log
 
 check_file_exists ${wavpath_noext}.tf
 check_file_exists ${wavpath_noext}-classify1.log
 
 classify2.sh \
-      $context_ms $shiftby_ms $representation $stride_ms \
+      $context_ms $shiftby_ms \
       $logdir train_${ireplicates}r $check_point \
       ${wavpath_noext}.wav $audio_tic_rate \
       &> ${wavpath_noext}-classify2.log
@@ -248,7 +243,7 @@ kinds_touse=annotated,missed
 equalize_ratio=1000
 max_sounds=10000
 activations.sh \
-      $context_ms $shiftby_ms $representation $window_ms $stride_ms $mel $dct \
+      $context_ms $shiftby_ms \
       $architecture "$model_parameters" \
       $logdir $model $check_point \
       $data_dir $labels_touse $kinds_touse \
@@ -286,7 +281,7 @@ mkdir $logdir
 ioffsets=$(seq 0 $(dc -e "${#wavfiles[@]} 1 - p"))
 for ioffset in $ioffsets ; do
   generalize.sh \
-        $context_ms $shiftby_ms $representation $window_ms $stride_ms $mel $dct \
+        $context_ms $shiftby_ms \
         $optimizer $learning_rate \
         $architecture "$model_parameters" \
         $logdir $data_dir $labels_touse $kinds_touse \
@@ -332,7 +327,7 @@ for nfeatures in ${nfeaturess[@]} ; do
   mkdir $logdir
   for ifold in $ifolds ; do
     xvalidate.sh \
-          $context_ms $shiftby_ms $representation $window_ms $stride_ms $mel $dct \
+          $context_ms $shiftby_ms \
           $optimizer $learning_rate  \
           $architecture "$model_parameters" \
           $logdir $data_dir $labels_touse $kinds_touse \
@@ -388,7 +383,7 @@ nsteps=100
 validation_percentage=20
 mkdir $logdir
 train.sh \
-      $context_ms $shiftby_ms $representation $window_ms $stride_ms $mel $dct \
+      $context_ms $shiftby_ms \
       $optimizer $learning_rate  \
       $architecture "$model_parameters" \
       $logdir $data_dir $labels_touse $kinds_touse \
@@ -420,9 +415,9 @@ for label in $(echo $labels_touse | sed "s/,/ /g") ; do
 done
 
 freeze.sh \
-      $context_ms $representation $window_ms $stride_ms $mel $dct \
+      $context_ms \
       $architecture "$model_parameters" \
-      $logdir train_${ireplicates}r $check_point $nwindows \
+      $logdir train_${ireplicates}r $check_point $classify_parallelize \
       $audio_tic_rate $audio_nchannels \
       &> $logdir/train_${ireplicates}r/freeze.ckpt-$check_point.log
 
@@ -435,16 +430,16 @@ cp $repo_path/data/20190122T093303a-7.wav \
 
 wavpath_noext=$repo_path/test/scratch/tutorial-sh/groundtruth-data/congruence/20190122T093303a-7
 classify1.sh \
-      $context_ms '' $representation $stride_ms \
+      $context_ms '' \
       $logdir train_${ireplicates}r $check_point ${wavpath_noext}.wav \
-      $audio_tic_rate $nwindows \
+      $audio_tic_rate $classify_parallelize \
       &> ${wavpath_noext}-classify1.log
 
 check_file_exists ${wavpath_noext}-classify1.log
 check_file_exists ${wavpath_noext}.tf
 
 classify2.sh \
-      $context_ms $shiftby_ms $representation $stride_ms \
+      $context_ms $shiftby_ms \
       $logdir train_${ireplicates}r $check_point \
       ${wavpath_noext}.wav $audio_tic_rate '' \
       &> ${wavpath_noext}-classify2.log

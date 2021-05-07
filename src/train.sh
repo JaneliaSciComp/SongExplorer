@@ -2,42 +2,37 @@
 
 # train a neural network with the annotations
 
-# train.sh <context-ms> <shiftby-ms> <representation> <window_ms> <stride_ms> <mel> <dct> <optimizer> <learning_rate> <model-architecture> <model-parameters-json> <logdir> <path-to-groundtruth> <label1>,<label2>,...,<labelN> <kinds-to-use> <nsteps> <restore-from> <save-and-validate-period> <validation-percentage> <mini-batch> <testing-files> <audio-tic-rate> <audio-nchannels> <batch-seed> <weights-seed> <ireplicates>
+# train.sh <context-ms> <shiftby-ms> <optimizer> <learning_rate> <model-architecture> <model-parameters-json> <logdir> <path-to-groundtruth> <label1>,<label2>,...,<labelN> <kinds-to-use> <nsteps> <restore-from> <save-and-validate-period> <validation-percentage> <mini-batch> <testing-files> <audio-tic-rate> <audio-nchannels> <batch-seed> <weights-seed> <ireplicates>
 
 # e.g.
-# $SONGEXPLORER_BIN train.sh 204.8 0.0 waveform 6.4 1.6 7,7 Adam 0.0002 convolutional '{"dropout":0.5, "kernel_sizes":5,128", last_conv_width":130, "nfeatures":"256,256", "dilate_after_layer":65535, "stride_after_layer":65535, "connection_type":"plain"}' `pwd`/trained-classifier `pwd`/groundtruth-data mel-sine,mel-pulse,ambient,other annotated 50 '' 10 40 32 "" 5000 1 -1 -1 1,2,3,4
+# $SONGEXPLORER_BIN train.sh 204.8 0.0 Adam 0.0002 convolutional '{"representation":"waveform", "window_ms":6.4, "stride_ms":1.6, "mel_dct":"7,7", "dropout":0.5, "kernel_sizes":5,128", last_conv_width":130, "nfeatures":"256,256", "dilate_after_layer":65535, "stride_after_layer":65535, "connection_type":"plain"}' `pwd`/trained-classifier `pwd`/groundtruth-data mel-sine,mel-pulse,ambient,other annotated 50 '' 10 40 32 "" 5000 1 -1 -1 1,2,3,4
 
 context_ms=$1
 shiftby_ms=$2
-representation=$3
-window_ms=$4
-stride_ms=$5
-mel=$6
-dct=$7
-optimizer=$8
-learning_rate=$9
-architecture=${10}
-model_parameters=${11}
-logdir=${12}
-data_dir=${13}
-labels_touse=${14}
-kinds_touse=${15}
-nsteps=${16}
-restore_from=${17}
-save_and_validate_period=${18}
-validation_percentage=${19}
-mini_batch=${20}
-testing_files=${21}
-audio_tic_rate=${22}
-audio_nchannels=${23}
-batch_seed=${24}
-weights_seed=${25}
-ireplicates=${26}
+optimizer=$3
+learning_rate=$4
+architecture=$5
+model_parameters=$6
+logdir=$7
+data_dir=$8
+labels_touse=$9
+kinds_touse=${10}
+nsteps=${11}
+restore_from=${12}
+save_and_validate_period=${13}
+validation_percentage=${14}
+mini_batch=${15}
+testing_files=${16}
+audio_tic_rate=${17}
+audio_nchannels=${18}
+batch_seed=${19}
+weights_seed=${20}
+ireplicates=${21}
 
-if (( "$#" == 26 )) ; then
+if (( "$#" == 21 )) ; then
   save_fingerprints=False
 else
-  save_fingerprints=${27}
+  save_fingerprints=${22}
 fi
 
 DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
@@ -81,11 +76,6 @@ while [[ $ireplicates =~ .*,.* ]] ; do
           --testing_files=$testing_files \
           --shiftby_ms=$shiftby_ms \
           --context_ms=$context_ms \
-          --representation=$representation \
-          --window_ms=$window_ms \
-          --stride_ms=$stride_ms \
-          --filterbank_nchannels=$mel \
-          --dct_ncoefficients=$dct \
           --optimizer=$optimizer \
           --learning_rate=${learning_rate} \
           --model_architecture=$architecture \

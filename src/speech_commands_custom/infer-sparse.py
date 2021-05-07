@@ -64,9 +64,6 @@ def main():
       1,
       FLAGS.batch_size,
       FLAGS.context_ms,
-      FLAGS.representation,
-      FLAGS.window_ms, FLAGS.stride_ms,
-      FLAGS.dct_ncoefficients, FLAGS.filterbank_nchannels,
       FLAGS.model_parameters)
 
   audio_processor = input_data.AudioProcessor(
@@ -219,26 +216,6 @@ if __name__ == '__main__':
       default=1000,
       help='Expected duration in milliseconds of the wavs',)
   parser.add_argument(
-      '--window_ms',
-      type=float,
-      default=30.0,
-      help='How long each spectrogram timeslice is.',)
-  parser.add_argument(
-      '--stride_ms',
-      type=float,
-      default=10.0,
-      help='How far to move in time between spectogram timeslices.',)
-  parser.add_argument(
-      '--filterbank_nchannels',
-      type=int,
-      default=40,
-      help='How many internal bins to use for the MFCC fingerprint',)
-  parser.add_argument(
-      '--dct_ncoefficients',
-      type=int,
-      default=40,
-      help='How many output bins to use for the MFCC fingerprint',)
-  parser.add_argument(
       '--batch_size',
       type=int,
       default=100,
@@ -268,11 +245,6 @@ if __name__ == '__main__':
       type=int,
       default=0,
       help='Limit number of test sounds to this number.')
-  parser.add_argument(
-      '--representation',
-      type=str,
-      default='waveform',
-      help='What input representation to use.  One of waveform, spectrogram, or mel-cepstrum.')
   parser.add_argument(
       '--optimizer',
       type=str,
