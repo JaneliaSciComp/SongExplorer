@@ -7,7 +7,7 @@ model_parameters = [
   # key in `model_settings`, title in GUI, '' for textbox or [] for pull-down, default value
   ["kernel_sizes",       "kernels",      '',                    '5,3'],
   ["nlayers",            "# layers",     '',                    '2'],
-  ["nfeatures",          "# features",   '',                    '64,64,64'],
+  ["nfeatures",          "# features",   '',                    '64,64'],
   ["dilate_after_layer", "dilate after", '',                    '65535'],
   ["stride_after_layer", "stride after", '',                    '65535'],
   ["connection_type",    "connection",   ["plain", "residual"], 'plain'],

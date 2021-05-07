@@ -67,7 +67,7 @@ dct=7
 optimizer=Adam
 learning_rate=0.0002
 architecture=convolutional
-model_parameters='{"dropout": "0.5", "kernel_sizes": "5,3,3", "nlayers": "2", "nfeatures": "64,64,64", "dilate_after_layer": "65535", "stride_after_layer": "65535", "connection_type": "plain"}'
+model_parameters='{"dropout": "0.5", "kernel_sizes": "5,3", "nlayers": "2", "nfeatures": "64,64", "dilate_after_layer": "65535", "stride_after_layer": "65535", "connection_type": "plain"}'
 logdir=$repo_path/test/scratch/tutorial-sh/untrained-classifier
 data_dir=$repo_path/test/scratch/tutorial-sh/groundtruth-data
 labels_touse=time,frequency
@@ -324,7 +324,7 @@ for label in $(echo $labels_touse | sed "s/,/ /g") ; do
   check_file_exists $logdir/validation-PvR-$label.pdf
 done
 
-nfeaturess=(32,32,32 64,64,64)
+nfeaturess=(32,32 64,64)
 for nfeatures in ${nfeaturess[@]} ; do
   logdir=$repo_path/test/scratch/tutorial-sh/nfeatures-${nfeatures%%,*}
   kfold=2

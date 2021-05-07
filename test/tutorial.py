@@ -63,9 +63,9 @@ V.window_ms.value = "6.4"
 V.stride_ms.value = "1.6"
 V.mel_dct.value = "7,7"
 V.model_parameters["dropout"].value = "0.5"
-V.model_parameters["kernel_sizes"].value = "5,3,3"
+V.model_parameters["kernel_sizes"].value = "5,3"
 V.model_parameters["nlayers"].value = "2"
-V.model_parameters["nfeatures"].value = "64,64,64"
+V.model_parameters["nfeatures"].value = "64,64"
 V.model_parameters["dilate_after_layer"].value = "65535"
 V.model_parameters["stride_after_layer"].value = "65535"
 V.model_parameters["connection_type"].value = "plain"
@@ -287,7 +287,7 @@ check_file_exists(os.path.join(V.logs_folder.value, "validation-F1.pdf"))
 for label in V.labels_touse.value.split(','):
   check_file_exists(os.path.join(V.logs_folder.value, "validation-PvR-"+label+".pdf"))
 
-nfeaturess = ["32,32,32", "64,64,64"]
+nfeaturess = ["32,32", "64,64"]
 
 for nfeatures in nfeaturess:
   V.logs_folder.value = os.path.join(repo_path,
