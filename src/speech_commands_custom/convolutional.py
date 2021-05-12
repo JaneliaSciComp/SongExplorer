@@ -4,21 +4,26 @@ import tensorflow as tf
 from tensorflow.keras.layers import *
 
 model_parameters = [
-  # key in `model_settings`, title in GUI, '' for textbox or [] for pull-down, default value
+  # key in `model_settings`, title in GUI, '' for textbox or [] for pull-down, default value, enable logic
   ["representation",     "representation", ['waveform',
                                             'spectrogram',
-                                            'mel-cepstrum'], 'mel-cepstrum'],
-  ["window_ms",          "window (msec)",  '',               '6.4'],
-  ["stride_ms",          "stride (msec)",  '',               '1.6'],
-  ["mel_dct",            "mel & DCT",      '',               '7,7'],
-  ["kernel_sizes",       "kernels",        '',               '5,3'],
-  ["nlayers",            "# layers",       '',               '2'],
-  ["nfeatures",          "# features",     '',               '64,64'],
-  ["dilate_after_layer", "dilate after",   '',               '65535'],
-  ["stride_after_layer", "stride after",   '',               '65535'],
+                                            'mel-cepstrum'], 'mel-cepstrum', []],
+  ["window_ms",          "window (msec)",  '',               '6.4',          ["representation",
+                                                                              ["spectrogram",
+                                                                               "mel-cepstrum"]]],
+  ["stride_ms",          "stride (msec)",  '',               '1.6',          ["representation",
+                                                                              ["spectrogram",
+                                                                               "mel-cepstrum"]]],
+  ["mel_dct",            "mel & DCT",      '',               '7,7',          ["representation",
+                                                                              ["mel-cepstrum"]]],
+  ["kernel_sizes",       "kernels",        '',               '5,3',          []],
+  ["nlayers",            "# layers",       '',               '2',            []],
+  ["nfeatures",          "# features",     '',               '64,64',        []],
+  ["dilate_after_layer", "dilate after",   '',               '65535',        []],
+  ["stride_after_layer", "stride after",   '',               '65535',        []],
   ["connection_type",    "connection",     ['plain',
-                                            'residual'],     'plain'],
-  ["dropout",            "dropout",        '',               '0.5'],
+                                            'residual'],     'plain',        []],
+  ["dropout",            "dropout",        '',               '0.5',          []],
   ]
 
 class Spectrogram(tf.keras.layers.Layer):
@@ -115,7 +120,7 @@ def create_model(model_settings):
   nfeatures = [int(x) for x in model_settings['nfeatures'].split(',')]
   dilate_after_layer = int(model_settings['dilate_after_layer'])
   stride_after_layer = int(model_settings['stride_after_layer'])
-  use_residual = True if model_settings['connection_type']=='residual' else False
+  use_residual = model_settings['connection_type']=='residual'
   dropout = float(model_settings['dropout'])
 
   iconv=0
