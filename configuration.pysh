@@ -135,18 +135,14 @@ freeze_cluster_flags=""
 
 classify_gpu=0
 classify_where=default_where
-classify1_gpu_ncpu_cores=-1
-classify1_gpu_ngpu_cards=-1
-classify1_gpu_ngigabytes_memory=-1
-classify1_gpu_cluster_flags=""
-classify1_cpu_ncpu_cores=-1
-classify1_cpu_ngpu_cards=-1
-classify1_cpu_ngigabytes_memory=-1
-classify1_cpu_cluster_flags=""
-classify2_ncpu_cores=-1
-classify2_ngpu_cards=-1
-classify2_ngigabytes_memory=-1
-classify2_cluster_flags=""
+classify_gpu_ncpu_cores=-1
+classify_gpu_ngpu_cards=-1
+classify_gpu_ngigabytes_memory=-1
+classify_gpu_cluster_flags=""
+classify_cpu_ncpu_cores=-1
+classify_cpu_ngpu_cards=-1
+classify_cpu_ngigabytes_memory=-1
+classify_cpu_cluster_flags=""
 
 ethogram_where=default_where
 ethogram_ncpu_cores=-1

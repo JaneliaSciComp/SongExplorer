@@ -19,18 +19,46 @@
 
 import argparse
 import sys
+import os
 
 import numpy as np
 import tensorflow as tf
 
-FLAGS = None
+from scipy.io import wavfile
 
+FLAGS = None
 
 def main():
   #Load a wav file and return audio_tic_rate and numpy data of float64 type.
   data, audio_tic_rate = tf.audio.decode_wav(tf.io.read_file(FLAGS.wav))
   audio_tic_rate = audio_tic_rate.numpy()
   print('audio_tic_rate = '+str(audio_tic_rate))
+
+  with open(FLAGS.model_labels, 'r') as fid:
+    model_labels = fid.read().splitlines()
+
+  if FLAGS.labels:
+    labels = np.array(FLAGS.labels.split(','))
+    prevalences = np.array([float(x) for x in FLAGS.prevalences.split(',')])
+    if len(labels) != len(prevalences):
+      print("ERROR: length of 'labels to use' (="+str(len(labels))+
+            ") must equal length of 'prevalences' (="+str(len(prevalences))+")")
+      exit()
+    if set(labels) != set(model_labels):
+      print("ERROR: 'labels to use' must be the same as "+
+            os.path.join(logdir,model,'labels.txt'))
+      exit()
+    prevalences /= np.sum(prevalences)
+    iimodel_labels = np.argsort(np.argsort(model_labels))
+    ilabels = np.argsort(labels)
+    labels = labels[ilabels][iimodel_labels]
+    prevalences = prevalences[ilabels][iimodel_labels]
+    assert np.all(labels==model_labels)
+  else:
+    labels = model_labels
+    prevalences = [1/len(labels) for _ in range(len(labels))]
+  print('labels: '+str(labels))
+  print('prevalences: '+str(prevalences))
 
   # Load model and create a tf session to process audio pieces
   thismodel = tf.saved_model.load(FLAGS.model)
@@ -41,7 +69,10 @@ def main():
   assert FLAGS.parallelize>1
   stride_x_downsample_tics = (clip_window_tics - context_tics) // (FLAGS.parallelize-1)
   clip_stride_tics = stride_x_downsample_tics * FLAGS.parallelize
-  print("stride_x_downsample_ms = "+str(stride_x_downsample_tics/audio_tic_rate*1000))
+
+  stride_x_downsample_ms = stride_x_downsample_tics/audio_tic_rate*1000
+  npadding = int(round((FLAGS.context_ms/2+FLAGS.shiftby_ms)/stride_x_downsample_ms))
+  probability_matrix = np.zeros((npadding, len(labels)))
 
   # Inference along audio stream.
   for audio_data_offset in range(0, 1+data.shape[0], clip_stride_tics):
@@ -56,27 +87,46 @@ def main():
     current_time_ms = np.round(audio_data_offset * 1000 / audio_tic_rate).astype(np.int)
     if pad_len>0:
       discard_len = np.ceil(pad_len/stride_x_downsample_tics).astype(np.int)
-      print(str(current_time_ms)+'ms '+
-            np.array2string(outputs.numpy()[0,:-discard_len,:],
-                            separator=',',
-                            threshold=np.iinfo(np.int).max).replace('\n',''))
+      probability_matrix = np.concatenate((probability_matrix,
+                                           np.array(outputs.numpy()[0,:-discard_len,:],
+                                                    ndmin=2)))
       break
     else:
-      print(str(current_time_ms)+'ms '+
-            np.array2string(outputs.numpy()[0,:,:],
-                            separator=',',
-                            threshold=np.iinfo(np.int).max).replace('\n',''))
+      probability_matrix = np.concatenate((probability_matrix,
+                                           np.array(outputs.numpy()[0,:,:], ndmin=2)))
 
+  tic_rate = round(1000/stride_x_downsample_ms)
+  if tic_rate != 1000/stride_x_downsample_ms:
+    print('WARNING: .wav files do not support fractional sampling rates!')
+
+  denominator = np.sum(probability_matrix * prevalences, axis=1)
+  for ch in range(len(labels)):
+    adjusted_probability = probability_matrix[:,ch] * prevalences[ch]
+    adjusted_probability[npadding:] /= denominator[npadding:]
+    #inotnan = ~isnan(probability_matrix(:,ch));
+    waveform = adjusted_probability*np.iinfo(np.int16).max  # colon was inotnan
+    filename = os.path.splitext(FLAGS.wav)[0]+'-'+labels[ch]+'.wav'
+    wavfile.write(filename, int(tic_rate), waveform.astype('int16'))
 
 if __name__ == '__main__':
   parser = argparse.ArgumentParser(description='test_streaming_accuracy')
   parser.add_argument(
       '--wav', type=str, default='', help='The wave file path to evaluate.')
   parser.add_argument(
-      '--labels',
+      '--model_labels',
       type=str,
       default='',
       help='The label file path containing all possible classes.')
+  parser.add_argument(
+      '--labels',
+      type=str,
+      default='',
+      help='A comma-separated list of all possible classes.')
+  parser.add_argument(
+      '--prevalences',
+      type=str,
+      default='',
+      help='A comma-separated list of the a priori probabilities of each label.')
   parser.add_argument(
       '--model', type=str, default='', help='The model used for inference')
   parser.add_argument(
@@ -84,6 +134,13 @@ if __name__ == '__main__':
       type=float,
       default=1000,
       help='Length of each audio clip fed into model.')
+  parser.add_argument(
+      '--shiftby_ms',
+      type=float,
+      default=100.0,
+      help="""\
+      Range to shift the training audio by in time.
+      """)
   parser.add_argument(
       '--parallelize',
       type=int,

@@ -183,22 +183,14 @@ cp $repo_path/data/20161207T102314_ch1.wav \
    $repo_path/test/scratch/tutorial-sh/groundtruth-data/round2
 
 wavpath_noext=$repo_path/test/scratch/tutorial-sh/groundtruth-data/round2/20161207T102314_ch1
-classify1.sh \
-      $context_ms '' \
-      $logdir train_${ireplicates}r $check_point \
-      ${wavpath_noext}.wav \
-      $audio_tic_rate $classify_parallelize &> ${wavpath_noext}-classify1.log
-
-check_file_exists ${wavpath_noext}.tf
-check_file_exists ${wavpath_noext}-classify1.log
-
-classify2.sh \
+classify.sh \
       $context_ms $shiftby_ms \
       $logdir train_${ireplicates}r $check_point \
-      ${wavpath_noext}.wav $audio_tic_rate \
-      &> ${wavpath_noext}-classify2.log
+      ${wavpath_noext}.wav \
+      $audio_tic_rate $classify_parallelize &> ${wavpath_noext}-classify.log
 
-check_file_exists ${wavpath_noext}-classify2.log
+check_file_exists ${wavpath_noext}-classify.log
+
 for label in $(echo $labels_touse | sed "s/,/ /g") ; do
   check_file_exists ${wavpath_noext}-${label}.wav
 done
@@ -429,22 +421,14 @@ cp $repo_path/data/20190122T093303a-7.wav \
    $repo_path/test/scratch/tutorial-sh/groundtruth-data/congruence
 
 wavpath_noext=$repo_path/test/scratch/tutorial-sh/groundtruth-data/congruence/20190122T093303a-7
-classify1.sh \
-      $context_ms '' \
+classify.sh \
+      $context_ms $shiftby_ms \
       $logdir train_${ireplicates}r $check_point ${wavpath_noext}.wav \
       $audio_tic_rate $classify_parallelize \
-      &> ${wavpath_noext}-classify1.log
+      &> ${wavpath_noext}-classify.log
 
-check_file_exists ${wavpath_noext}-classify1.log
-check_file_exists ${wavpath_noext}.tf
+check_file_exists ${wavpath_noext}-classify.log
 
-classify2.sh \
-      $context_ms $shiftby_ms \
-      $logdir train_${ireplicates}r $check_point \
-      ${wavpath_noext}.wav $audio_tic_rate '' \
-      &> ${wavpath_noext}-classify2.log
-
-check_file_exists ${wavpath_noext}-classify2.log
 for label in $(echo $labels_touse | sed "s/,/ /g") ; do
   check_file_exists ${wavpath_noext}-${label}.wav
 done

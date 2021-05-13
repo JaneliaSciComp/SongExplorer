@@ -89,7 +89,7 @@ for representation in ["waveform", "spectrogram", "mel-cepstrum"]:
     V.model_file.value = os.path.join(V.logs_folder.value,
                                       "train_"+V.nreplicates.value+"r",
                                       "ckpt-"+V.nsteps.value+".meta")
-    V.wavtfcsv_files.value = os.path.join(repo_path,
+    V.wavcsv_files.value = os.path.join(repo_path,
           "test/scratch/freeze-classify/groundtruth-data/round1/PS_20130625111709_ch3.wav")
     V.prevalences.value = ""
 
@@ -114,12 +114,9 @@ for representation in ["waveform", "spectrogram", "mel-cepstrum"]:
                              parallelize)
       os.makedirs(outpath)
 
-      wavpath_noext = V.wavtfcsv_files.value[:-4]
-      check_file_exists(wavpath_noext+".tf")
-      check_file_exists(wavpath_noext+"-classify1.log")
-      check_file_exists(wavpath_noext+"-classify2.log")
-      shutil.move(wavpath_noext+"-classify1.log", outpath)
-      shutil.move(wavpath_noext+"-classify2.log", outpath)
+      wavpath_noext = V.wavcsv_files.value[:-4]
+      check_file_exists(wavpath_noext+"-classify.log")
+      shutil.move(wavpath_noext+"-classify.log", outpath)
       for label in V.labels_touse.value.split(','):
         check_file_exists(wavpath_noext+"-"+label+".wav")
         shutil.move(wavpath_noext+"-"+label+".wav", outpath)

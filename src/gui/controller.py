@@ -646,9 +646,6 @@ def npzfile_succeeded(npzfile, reftime):
 def pbfile_succeeded(pbfile, reftime):
     return recent_file_exists(pbfile, reftime, True)
     
-def tffile_succeeded(tffile, reftime):
-    return recent_file_exists(tffile, reftime, True)
-    
 def detect_succeeded(wavfile, reftime):
     logfile = wavfile[:-4]+'-detect.log'
     if not logfile_succeeded(logfile, reftime):
@@ -660,7 +657,7 @@ def detect_succeeded(wavfile, reftime):
 
 async def detect_actuate():
     M.waitfor_job = []
-    wavfiles = V.wavtfcsv_files.value.split(',')
+    wavfiles = V.wavcsv_files.value.split(',')
     threads = [None] * len(wavfiles)
     results = [None] * len(wavfiles)
     await _detect_actuate(0, wavfiles, threads, results)
@@ -713,7 +710,7 @@ def misses_succeeded(wavfile, reftime):
 
 async def misses_actuate():
     currtime = time.time()
-    csvfile1 = V.wavtfcsv_files.value.split(',')[0]
+    csvfile1 = V.wavcsv_files.value.split(',')[0]
     basepath = os.path.dirname(csvfile1)
     with open(csvfile1) as fid:
         csvreader = csv.reader(fid)
@@ -728,7 +725,7 @@ async def misses_actuate():
                             M.misses_ngigabytes_memory,
                             "",
                             M.misses_cluster_flags, \
-                            V.wavtfcsv_files.value)
+                            V.wavcsv_files.value)
     displaystring = "MISSES "+wavfile+" ("+jobid+")"
     M.waitfor_job = [jobid]
     V.waitfor_update()
@@ -743,7 +740,6 @@ async def misses_actuate():
 
 def isoldfile(x,subdir,basewavs):
     return \
-        x.endswith('.tf') or \
         np.any([x.startswith(b+'-') and x.endswith('.wav') for b in basewavs]) or \
         x.endswith('-classify.log') or \
         '-predicted' in x or \
@@ -1315,9 +1311,6 @@ def classify_isdone(wavlogfile, reftime):
            contains_two_timestamps(wavlogfile)
 
 def classify_succeeded(modeldir, wavfile, reftime):
-    tffile = wavfile[:-4]+".tf"
-    if not tffile_succeeded(tffile, reftime):
-        return False
     with open(os.path.join(modeldir, 'labels.txt'), 'r') as fid:
         labels = fid.read().splitlines()
     for x in labels:
@@ -1327,15 +1320,13 @@ def classify_succeeded(modeldir, wavfile, reftime):
 
 async def classify_actuate():
     M.waitfor_job = []
-    await _classify_actuate(V.wavtfcsv_files.value.split(','))
+    await _classify_actuate(V.wavcsv_files.value.split(','))
 
 async def _classify_actuate(wavfiles):
     wavfile = wavfiles.pop(0)
     currtime = time.time()
     logdir, model, _, check_point = M.parse_model_file(V.model_file.value)
-    logfile0 = os.path.splitext(wavfile)[0]+'-classify'
-    logfile1 = logfile0+'1.log'
-    logfile2 = logfile0+'2.log'
+    logfile = os.path.splitext(wavfile)[0]+'-classify.log'
     args = [V.context_ms.value, \
             V.shiftby_ms.value, \
             logdir, model, check_point, wavfile, str(M.audio_tic_rate), str(M.classify_parallelize)]
@@ -1343,32 +1334,26 @@ async def _classify_actuate(wavfiles):
         args += [V.labels_touse.value, V.prevalences.value]
     p = run(["date", "+%s"], stdout=PIPE, stderr=STDOUT)
     if M.classify_gpu:
-        jobid1 = generic_actuate("classify1.sh", logfile1, M.classify_where,
-                                  M.classify1_gpu_ncpu_cores,
-                                  M.classify1_gpu_ngpu_cards,
-                                  M.classify1_gpu_ngigabytes_memory,
+        jobid = generic_actuate("classify.sh", logfile, M.classify_where,
+                                  M.classify_gpu_ncpu_cores,
+                                  M.classify_gpu_ngpu_cards,
+                                  M.classify_gpu_ngigabytes_memory,
                                   "",
-                                  M.classify1_gpu_cluster_flags,
+                                  M.classify_gpu_cluster_flags,
                                   *args)
     else:
-        jobid1 = generic_actuate("classify1.sh", logfile1, M.classify_where,
-                                  M.classify1_cpu_ncpu_cores,
-                                  M.classify1_cpu_ngpu_cards,
-                                  M.classify1_cpu_ngigabytes_memory,
+        jobid = generic_actuate("classify.sh", logfile, M.classify_where,
+                                  M.classify_cpu_ncpu_cores,
+                                  M.classify_cpu_ngpu_cards,
+                                  M.classify_cpu_ngigabytes_memory,
                                   "",
-                                  M.classify1_cpu_cluster_flags,
+                                  M.classify_cpu_cluster_flags,
                                   *args)
-    jobid2 = generic_actuate("classify2.sh", logfile2, M.classify_where,
-                            M.classify2_ncpu_cores,
-                            M.classify2_ngpu_cards,
-                            M.classify2_ngigabytes_memory,
-                            "hetero job "+jobid1,
-                            M.classify2_cluster_flags+" -w \"done("+jobid1+")\"", *args)
-    displaystring = "CLASSIFY "+os.path.basename(wavfile)+" ("+jobid1+','+jobid2+")"
-    M.waitfor_job.append(jobid2)
+    displaystring = "CLASSIFY "+os.path.basename(wavfile)+" ("+jobid+")"
+    M.waitfor_job.append(jobid)
     asyncio.create_task(actuate_monitor(displaystring, None, None, \
-                     lambda l=logfile1, t=currtime: recent_file_exists(l, t, False), \
-                     lambda w=logfile2, t=currtime: classify_isdone(w, t), \
+                     lambda l=logfile, t=currtime: recent_file_exists(l, t, False), \
+                     lambda w=logfile, t=currtime: classify_isdone(w, t), \
                      lambda m=os.path.join(logdir, model), w=wavfile, t=currtime: \
                             classify_succeeded(m, w, t)))
     await asyncio.sleep(0.001)
@@ -1380,7 +1365,7 @@ async def _classify_actuate(wavfiles):
     else:
         V.waitfor_update()
 
-def ethogram_succeeded(modeldir, ckpt, tffile, reftime):
+def ethogram_succeeded(modeldir, ckpt, wavfile, reftime):
     thresholds_file = os.path.join(modeldir, 'thresholds.ckpt-'+str(ckpt)+'.csv')
     if not os.path.exists(thresholds_file):
         return False
@@ -1389,50 +1374,48 @@ def ethogram_succeeded(modeldir, ckpt, tffile, reftime):
         row1 = next(csvreader)
     precision_recalls = row1[1:]
     for x in precision_recalls:
-        if not recent_file_exists(tffile[:-3]+'-predicted-'+x+'pr.csv', reftime, True):
+        if not recent_file_exists(wavfile[:-4]+'-predicted-'+x+'pr.csv', reftime, True):
             return False
     return True
 
 async def ethogram_actuate():
-    tffiles = V.wavtfcsv_files.value.split(',')
-    threads = [None] * len(tffiles)
-    results = [None] * len(tffiles)
-    await _ethogram_actuate(0, tffiles, threads, results)
+    wavfiles = V.wavcsv_files.value.split(',')
+    threads = [None] * len(wavfiles)
+    results = [None] * len(wavfiles)
+    await _ethogram_actuate(0, wavfiles, threads, results)
 
-async def _ethogram_actuate(i, tffiles, threads, results):
-    tffile = tffiles.pop(0)
+async def _ethogram_actuate(i, wavfiles, threads, results):
+    wavfile = wavfiles.pop(0)
     currtime = time.time()
     logdir, model, prefix, check_point = M.parse_model_file(V.model_file.value)
     if 'thresholds' in prefix:
         thresholds_file = os.path.basename(V.model_file.value)
     else:
         thresholds_file = 'thresholds.ckpt-'+check_point+'.csv'
-    if tffile.lower().endswith('.wav'):
-        tffile = os.path.splitext(tffile)[0]+'.tf'
-    logfile = tffile[:-3]+'-ethogram.log'
+    logfile = os.path.splitext(wavfile)[0]+'-ethogram.log'
     jobid = generic_actuate("ethogram.sh", logfile, M.ethogram_where,
                             M.ethogram_ncpu_cores,
                             M.ethogram_ngpu_cards,
                             M.ethogram_ngigabytes_memory,
                             "", M.ethogram_cluster_flags,
-                            logdir, model, thresholds_file, tffile,
+                            logdir, model, thresholds_file, wavfile,
                             str(M.audio_tic_rate))
-    displaystring = "ETHOGRAM "+os.path.basename(tffile)+" ("+jobid+")"
+    displaystring = "ETHOGRAM "+os.path.basename(wavfile)+" ("+jobid+")"
     M.waitfor_job.append(jobid)
     threads[i] = asyncio.create_task(actuate_monitor(displaystring, results, i, \
                                      lambda l=logfile, t=currtime: \
                                             recent_file_exists(l, t, False), \
                                      lambda l=logfile: contains_two_timestamps(l), \
                                      lambda m=os.path.join(logdir, model), \
-                                            c=check_point, l=tffile, t=currtime: \
+                                            c=check_point, l=wavfile, t=currtime: \
                                             ethogram_succeeded(m, c, l, t)))
     await asyncio.sleep(0.001)
-    if tffiles:
+    if wavfiles:
         if bokeh_document: 
-            bokeh_document.add_next_tick_callback(lambda i=i+1, tf=tffiles, th=threads, \
-                                                  r=results: _ethogram_actuate(i,tf,th,r))
+            bokeh_document.add_next_tick_callback(lambda i=i+1, wav=wavfiles, th=threads, \
+                                                  r=results: _ethogram_actuate(i,wav,th,r))
         else:
-            _ethogram_actuate(i+1, tffiles, threads, results)
+            _ethogram_actuate(i+1, wavfiles, threads, results)
     else:
         asyncio.create_task(actuate_finalize(threads, results, V.groundtruth_update))
         V.waitfor_update()
@@ -1561,7 +1544,7 @@ def model_callback():
     else:
         bokehlog.info('ERROR: a directory or file must be selected in the file browser')
 
-def wavtfcsv_files_callback():
+def wavcsv_files_callback():
     if len(V.file_dialog_source.selected.indices)==0:
         bokehlog.info('ERROR: a file(s) must be selected in the file browser')
         return
@@ -1570,7 +1553,7 @@ def wavtfcsv_files_callback():
     for i in range(1, len(V.file_dialog_source.selected.indices)):
         filename = V.file_dialog_source.data['names'][V.file_dialog_source.selected.indices[i]]
         files += ','+os.path.join(M.file_dialog_root, filename)
-    V.wavtfcsv_files.value = files
+    V.wavcsv_files.value = files
 
 def groundtruth_callback():
     if len(V.file_dialog_source.selected.indices)>=2:

@@ -40,7 +40,7 @@ bokehlog = logging.getLogger("songexplorer")
 import model as M
 import controller as C
 
-bokeh_document, cluster_dot_palette, snippet_palette, p_cluster, cluster_dots, p_snippets, snippets_label_sources_clustered, snippets_label_sources_annotated, snippets_wave_sources, snippets_wave_glyphs, snippets_gram_sources, snippets_gram_glyphs, snippets_quad_grey, dot_size_cluster, dot_alpha_cluster, cluster_circle_fuchsia, p_waveform, p_spectrogram, p_probability, probability_source, probability_glyph, spectrogram_source, spectrogram_glyph, waveform_span_red, spectrogram_span_red, waveform_quad_grey_clustered, waveform_quad_grey_annotated, waveform_quad_grey_pan, waveform_quad_fuchsia, spectrogram_quad_grey_clustered, spectrogram_quad_grey_annotated, spectrogram_quad_grey_pan, spectrogram_quad_fuchsia, snippets_quad_fuchsia, waveform_source, waveform_glyph, waveform_label_source_clustered, waveform_label_source_annotated, spectrogram_label_source_clustered, spectrogram_label_source_annotated, which_layer, which_species, which_word, which_nohyphen, which_kind, color_picker, circle_radius, dot_size, dot_alpha, zoom_context, zoom_offset, zoomin, zoomout, reset, panleft, panright, allleft, allout, allright, save_indicator, nsounds_per_label_buttons, label_texts, play, play_callback, video_toggle, video_div, undo, redo, detect, misses, configuration_file, train, leaveoneout, leaveallout, xvalidate, mistakes, activations, cluster, visualize, accuracy, freeze, classify, ethogram, compare, congruence, status_ticker, waitfor, file_dialog_source, configuration_contents, logs_folder_button, logs_folder, model_file_button, model_file, wavtfcsv_files_button, wavtfcsv_files, groundtruth_folder_button, groundtruth_folder, validation_files_button, test_files_button, validation_files, test_files, labels_touse_button, labels_touse, kinds_touse_button, kinds_touse, prevalences_button, prevalences, copy, labelsounds, makepredictions, fixfalsepositives, fixfalsenegatives, generalize, tunehyperparameters, findnovellabels, examineerrors, testdensely, doit, time_sigma, time_smooth_ms, frequency_n_ms, frequency_nw, frequency_p, frequency_smooth_ms, nsteps, restore_from, save_and_validate_period, validate_percentage, mini_batch, kfold, activations_equalize_ratio, activations_max_sounds, pca_fraction_variance_to_retain, tsne_perplexity, tsne_exaggeration, umap_neighbors, umap_distance, cluster_algorithm, cluster_these_layers, precision_recall_ratios, congruence_portion, congruence_convolve, context_ms, shiftby_ms, optimizer, learning_rate, nreplicates, batch_seed, weights_seed, file_dialog_string, file_dialog_table, readme_contents, labelcounts, wizard_buttons, action_buttons, parameter_buttons, parameter_textinputs, wizard2actions, action2parameterbuttons, action2parametertextinputs, model_parameters, model_parameters_enable_logic = [None]*162
+bokeh_document, cluster_dot_palette, snippet_palette, p_cluster, cluster_dots, p_snippets, snippets_label_sources_clustered, snippets_label_sources_annotated, snippets_wave_sources, snippets_wave_glyphs, snippets_gram_sources, snippets_gram_glyphs, snippets_quad_grey, dot_size_cluster, dot_alpha_cluster, cluster_circle_fuchsia, p_waveform, p_spectrogram, p_probability, probability_source, probability_glyph, spectrogram_source, spectrogram_glyph, waveform_span_red, spectrogram_span_red, waveform_quad_grey_clustered, waveform_quad_grey_annotated, waveform_quad_grey_pan, waveform_quad_fuchsia, spectrogram_quad_grey_clustered, spectrogram_quad_grey_annotated, spectrogram_quad_grey_pan, spectrogram_quad_fuchsia, snippets_quad_fuchsia, waveform_source, waveform_glyph, waveform_label_source_clustered, waveform_label_source_annotated, spectrogram_label_source_clustered, spectrogram_label_source_annotated, which_layer, which_species, which_word, which_nohyphen, which_kind, color_picker, circle_radius, dot_size, dot_alpha, zoom_context, zoom_offset, zoomin, zoomout, reset, panleft, panright, allleft, allout, allright, save_indicator, nsounds_per_label_buttons, label_texts, play, play_callback, video_toggle, video_div, undo, redo, detect, misses, configuration_file, train, leaveoneout, leaveallout, xvalidate, mistakes, activations, cluster, visualize, accuracy, freeze, classify, ethogram, compare, congruence, status_ticker, waitfor, file_dialog_source, configuration_contents, logs_folder_button, logs_folder, model_file_button, model_file, wavcsv_files_button, wavcsv_files, groundtruth_folder_button, groundtruth_folder, validation_files_button, test_files_button, validation_files, test_files, labels_touse_button, labels_touse, kinds_touse_button, kinds_touse, prevalences_button, prevalences, copy, labelsounds, makepredictions, fixfalsepositives, fixfalsenegatives, generalize, tunehyperparameters, findnovellabels, examineerrors, testdensely, doit, time_sigma, time_smooth_ms, frequency_n_ms, frequency_nw, frequency_p, frequency_smooth_ms, nsteps, restore_from, save_and_validate_period, validate_percentage, mini_batch, kfold, activations_equalize_ratio, activations_max_sounds, pca_fraction_variance_to_retain, tsne_perplexity, tsne_exaggeration, umap_neighbors, umap_distance, cluster_algorithm, cluster_these_layers, precision_recall_ratios, congruence_portion, congruence_convolve, context_ms, shiftby_ms, optimizer, learning_rate, nreplicates, batch_seed, weights_seed, file_dialog_string, file_dialog_table, readme_contents, labelcounts, wizard_buttons, action_buttons, parameter_buttons, parameter_textinputs, wizard2actions, action2parameterbuttons, action2parametertextinputs, model_parameters, model_parameters_enable_logic = [None]*162
 
 class ScatterNd(LayoutDOM):
 
@@ -1099,14 +1099,12 @@ def buttons_update():
     for button in action_buttons:
         button.button_type="primary" if button==M.action else "default"
         button.disabled = button not in wizard2actions[M.wizard]
-    if M.action in [detect,classify]:
-        wavtfcsv_files_button.label='wav files:'
-    elif M.action==ethogram:
-        wavtfcsv_files_button.label='tf files:'
+    if M.action in [detect,classify,ethogram]:
+        wavcsv_files_button.label='wav files:'
     elif M.action==misses:
-        wavtfcsv_files_button.label='csv files:'
+        wavcsv_files_button.label='csv files:'
     else:
-        wavtfcsv_files_button.label='wav,tf,csv files:'
+        wavcsv_files_button.label='wav,csv files:'
     if M.action == classify:
         model_file_button.label='pb folder:'
     elif M.action == ethogram:
@@ -1253,7 +1251,7 @@ async def status_ticker_update():
     status_ticker.text = status_ticker_pre+newtext+status_ticker_post
 
 def init(_bokeh_document):
-    global bokeh_document, cluster_dot_palette, snippet_palette, p_cluster, cluster_dots, p_cluster_dots, precomputed_dots, snippets_dy, p_snippets, snippets_label_sources_clustered, snippets_label_sources_annotated, snippets_wave_sources, snippets_wave_glyphs, snippets_gram_sources, snippets_gram_glyphs, snippets_quad_grey, dot_size_cluster, dot_alpha_cluster, cluster_circle_fuchsia, p_waveform, p_spectrogram, p_probability, probability_source, probability_glyph, spectrogram_source, spectrogram_glyph, waveform_span_red, spectrogram_span_red, waveform_quad_grey_clustered, waveform_quad_grey_annotated, waveform_quad_grey_pan, waveform_quad_fuchsia, spectrogram_quad_grey_clustered, spectrogram_quad_grey_annotated, spectrogram_quad_grey_pan, spectrogram_quad_fuchsia, snippets_quad_fuchsia, waveform_source, waveform_glyph, waveform_label_source_clustered, waveform_label_source_annotated, spectrogram_label_source_clustered, spectrogram_label_source_annotated, which_layer, which_species, which_word, which_nohyphen, which_kind, color_picker, circle_radius, dot_size, dot_alpha, zoom_context, zoom_offset, zoomin, zoomout, reset, panleft, panright, allleft, allout, allright, save_indicator, nsounds_per_label_buttons, label_texts, play, play_callback, video_toggle, video_div, undo, redo, detect, misses, configuration_file, train, leaveoneout, leaveallout, xvalidate, mistakes, activations, cluster, visualize, accuracy, freeze, classify, ethogram, compare, congruence, status_ticker, waitfor, file_dialog_source, configuration_contents, logs_folder_button, logs_folder, model_file_button, model_file, wavtfcsv_files_button, wavtfcsv_files, groundtruth_folder_button, groundtruth_folder, validation_files_button, test_files_button, validation_files, test_files, labels_touse_button, labels_touse, kinds_touse_button, kinds_touse, prevalences_button, prevalences, copy, labelsounds, makepredictions, fixfalsepositives, fixfalsenegatives, generalize, tunehyperparameters, findnovellabels, examineerrors, testdensely, doit, time_sigma, time_smooth_ms, frequency_n_ms, frequency_nw, frequency_p, frequency_smooth_ms, nsteps, restore_from, save_and_validate_period, validate_percentage, mini_batch, kfold, activations_equalize_ratio, activations_max_sounds, pca_fraction_variance_to_retain, tsne_perplexity, tsne_exaggeration, umap_neighbors, umap_distance, cluster_algorithm, cluster_these_layers, precision_recall_ratios, congruence_portion, congruence_convolve, context_ms, shiftby_ms, optimizer, learning_rate, nreplicates, batch_seed, weights_seed, file_dialog_string, file_dialog_table, readme_contents, labelcounts, wizard_buttons, action_buttons, parameter_buttons, parameter_textinputs, wizard2actions, action2parameterbuttons, action2parametertextinputs, status_ticker_update, status_ticker_pre, status_ticker_post, model_parameters, model_parameters_enable_logic
+    global bokeh_document, cluster_dot_palette, snippet_palette, p_cluster, cluster_dots, p_cluster_dots, precomputed_dots, snippets_dy, p_snippets, snippets_label_sources_clustered, snippets_label_sources_annotated, snippets_wave_sources, snippets_wave_glyphs, snippets_gram_sources, snippets_gram_glyphs, snippets_quad_grey, dot_size_cluster, dot_alpha_cluster, cluster_circle_fuchsia, p_waveform, p_spectrogram, p_probability, probability_source, probability_glyph, spectrogram_source, spectrogram_glyph, waveform_span_red, spectrogram_span_red, waveform_quad_grey_clustered, waveform_quad_grey_annotated, waveform_quad_grey_pan, waveform_quad_fuchsia, spectrogram_quad_grey_clustered, spectrogram_quad_grey_annotated, spectrogram_quad_grey_pan, spectrogram_quad_fuchsia, snippets_quad_fuchsia, waveform_source, waveform_glyph, waveform_label_source_clustered, waveform_label_source_annotated, spectrogram_label_source_clustered, spectrogram_label_source_annotated, which_layer, which_species, which_word, which_nohyphen, which_kind, color_picker, circle_radius, dot_size, dot_alpha, zoom_context, zoom_offset, zoomin, zoomout, reset, panleft, panright, allleft, allout, allright, save_indicator, nsounds_per_label_buttons, label_texts, play, play_callback, video_toggle, video_div, undo, redo, detect, misses, configuration_file, train, leaveoneout, leaveallout, xvalidate, mistakes, activations, cluster, visualize, accuracy, freeze, classify, ethogram, compare, congruence, status_ticker, waitfor, file_dialog_source, configuration_contents, logs_folder_button, logs_folder, model_file_button, model_file, wavcsv_files_button, wavcsv_files, groundtruth_folder_button, groundtruth_folder, validation_files_button, test_files_button, validation_files, test_files, labels_touse_button, labels_touse, kinds_touse_button, kinds_touse, prevalences_button, prevalences, copy, labelsounds, makepredictions, fixfalsepositives, fixfalsenegatives, generalize, tunehyperparameters, findnovellabels, examineerrors, testdensely, doit, time_sigma, time_smooth_ms, frequency_n_ms, frequency_nw, frequency_p, frequency_smooth_ms, nsteps, restore_from, save_and_validate_period, validate_percentage, mini_batch, kfold, activations_equalize_ratio, activations_max_sounds, pca_fraction_variance_to_retain, tsne_perplexity, tsne_exaggeration, umap_neighbors, umap_distance, cluster_algorithm, cluster_these_layers, precision_recall_ratios, congruence_portion, congruence_convolve, context_ms, shiftby_ms, optimizer, learning_rate, nreplicates, batch_seed, weights_seed, file_dialog_string, file_dialog_table, readme_contents, labelcounts, wizard_buttons, action_buttons, parameter_buttons, parameter_textinputs, wizard2actions, action2parameterbuttons, action2parametertextinputs, status_ticker_update, status_ticker_pre, status_ticker_post, model_parameters, model_parameters_enable_logic
 
     bokeh_document = _bokeh_document
 
@@ -1681,10 +1679,10 @@ def init(_bokeh_document):
     model_file = TextInput(value=M.state['model_file'], title="", disabled=False)
     model_file.on_change('value', model_file_update)
 
-    wavtfcsv_files_button = Button(label='wav,tf,csv files:', width=110)
-    wavtfcsv_files_button.on_click(C.wavtfcsv_files_callback)
-    wavtfcsv_files = TextInput(value=M.state['wavtfcsv_files'], title="", disabled=False)
-    wavtfcsv_files.on_change('value', lambda a,o,n: C.generic_parameters_callback(n))
+    wavcsv_files_button = Button(label='wav,csv files:', width=110)
+    wavcsv_files_button.on_click(C.wavcsv_files_callback)
+    wavcsv_files = TextInput(value=M.state['wavcsv_files'], title="", disabled=False)
+    wavcsv_files.on_change('value', lambda a,o,n: C.generic_parameters_callback(n))
 
     groundtruth_folder_button = Button(label='ground truth:', width=110)
     groundtruth_folder_button.on_click(C.groundtruth_callback)
@@ -1972,7 +1970,7 @@ def init(_bokeh_document):
     parameter_buttons = set([
         logs_folder_button,
         model_file_button,
-        wavtfcsv_files_button,
+        wavcsv_files_button,
         groundtruth_folder_button,
         validation_files_button,
         test_files_button,
@@ -1983,7 +1981,7 @@ def init(_bokeh_document):
     parameter_textinputs = set([
         logs_folder,
         model_file,
-        wavtfcsv_files,
+        wavcsv_files,
         groundtruth_folder,
         validation_files,
         test_files,
@@ -2039,7 +2037,7 @@ def init(_bokeh_document):
             None: action_buttons }
 
     action2parameterbuttons = {
-            detect: [wavtfcsv_files_button],
+            detect: [wavcsv_files_button],
             train: [logs_folder_button, groundtruth_folder_button, labels_touse_button, test_files_button, kinds_touse_button],
             leaveoneout: [logs_folder_button, groundtruth_folder_button, validation_files_button, test_files_button, labels_touse_button, kinds_touse_button],
             leaveallout: [logs_folder_button, groundtruth_folder_button, validation_files_button, test_files_button, labels_touse_button, kinds_touse_button],
@@ -2050,15 +2048,15 @@ def init(_bokeh_document):
             visualize: [groundtruth_folder_button],
             accuracy: [logs_folder_button],
             freeze: [logs_folder_button, model_file_button],
-            classify: [logs_folder_button, model_file_button, wavtfcsv_files_button, labels_touse_button, prevalences_button],
-            ethogram: [model_file_button, wavtfcsv_files_button],
-            misses: [wavtfcsv_files_button],
+            classify: [logs_folder_button, model_file_button, wavcsv_files_button, labels_touse_button, prevalences_button],
+            ethogram: [model_file_button, wavcsv_files_button],
+            misses: [wavcsv_files_button],
             compare: [logs_folder_button],
             congruence: [groundtruth_folder_button, validation_files_button, test_files_button],
             None: parameter_buttons }
 
     action2parametertextinputs = {
-            detect: [wavtfcsv_files, time_sigma, time_smooth_ms, frequency_n_ms, frequency_nw, frequency_p, frequency_smooth_ms],
+            detect: [wavcsv_files, time_sigma, time_smooth_ms, frequency_n_ms, frequency_nw, frequency_p, frequency_smooth_ms],
             train: [context_ms, shiftby_ms, optimizer, learning_rate, nreplicates, batch_seed, weights_seed, logs_folder, groundtruth_folder, test_files, labels_touse, kinds_touse, nsteps, restore_from, save_and_validate_period, validate_percentage, mini_batch] + list(model_parameters.values()),
             leaveoneout: [context_ms, shiftby_ms, optimizer, learning_rate, batch_seed, weights_seed, logs_folder, groundtruth_folder, validation_files, test_files, labels_touse, kinds_touse, nsteps, restore_from, save_and_validate_period, mini_batch] + list(model_parameters.values()),
             leaveallout: [context_ms, shiftby_ms, optimizer, learning_rate, batch_seed, weights_seed, logs_folder, groundtruth_folder, validation_files, test_files, labels_touse, kinds_touse, nsteps, restore_from, save_and_validate_period, mini_batch] + list(model_parameters.values()),
@@ -2069,9 +2067,9 @@ def init(_bokeh_document):
             visualize: [groundtruth_folder],
             accuracy: [logs_folder, precision_recall_ratios],
             freeze: [context_ms, logs_folder, model_file] + list(model_parameters.values()),
-            classify: [context_ms, shiftby_ms, logs_folder, model_file, wavtfcsv_files, labels_touse, prevalences],
-            ethogram: [model_file, wavtfcsv_files],
-            misses: [wavtfcsv_files],
+            classify: [context_ms, shiftby_ms, logs_folder, model_file, wavcsv_files, labels_touse, prevalences],
+            ethogram: [model_file, wavcsv_files],
+            misses: [wavcsv_files],
             compare: [logs_folder],
             congruence: [groundtruth_folder, validation_files, test_files, congruence_portion, congruence_convolve],
             None: parameter_textinputs }

@@ -37,7 +37,7 @@ run(["hetero", "start", "1", "1", "1"])
 
 wavpath_noext = os.path.join(repo_path,
                              "test/scratch/tutorial-py/groundtruth-data/round1/PS_20130625111709_ch3")
-V.wavtfcsv_files.value = wavpath_noext+".wav"
+V.wavcsv_files.value = wavpath_noext+".wav"
 V.time_sigma.value = "9,4"
 V.time_smooth_ms.value = "6.4"
 V.frequency_n_ms.value = "25.6"
@@ -172,17 +172,15 @@ os.makedirs(os.path.join(repo_path, "test/scratch/tutorial-py/groundtruth-data/r
 shutil.copy(os.path.join(repo_path, "data/20161207T102314_ch1.wav"),
             os.path.join(repo_path, "test/scratch/tutorial-py/groundtruth-data/round2"))
 
-V.wavtfcsv_files.value = os.path.join(repo_path,
+V.wavcsv_files.value = os.path.join(repo_path,
       "test/scratch/tutorial-py/groundtruth-data/round2/20161207T102314_ch1.wav")
 V.prevalences.value = ""
 asyncio.run(C.classify_actuate())
 
 wait_for_job(M.status_ticker_queue)
 
-wavpath_noext = V.wavtfcsv_files.value[:-4]
-check_file_exists(wavpath_noext+".tf")
-check_file_exists(wavpath_noext+"-classify1.log")
-check_file_exists(wavpath_noext+"-classify2.log")
+wavpath_noext = V.wavcsv_files.value[:-4]
+check_file_exists(wavpath_noext+"-classify.log")
 for label in V.labels_touse.value.split(','):
   check_file_exists(wavpath_noext+"-"+label+".wav")
 
@@ -206,7 +204,7 @@ check_file_exists(wavpath_noext+"-detected.csv")
 count_lines_with_label(wavpath_noext+"-detected.csv", "time", 1298, "ERROR")
 count_lines_with_label(wavpath_noext+"-detected.csv", "frequency", 179, "ERROR")
 
-V.wavtfcsv_files.value = wavpath_noext+"-detected.csv,"+ \
+V.wavcsv_files.value = wavpath_noext+"-detected.csv,"+ \
                                wavpath_noext+"-predicted-1.0pr.csv"
 asyncio.run(C.misses_actuate())
 
@@ -397,16 +395,14 @@ os.mkdir(os.path.join(repo_path, "test/scratch/tutorial-py/groundtruth-data/cong
 shutil.copy(os.path.join(repo_path, "data/20190122T093303a-7.wav"),
             os.path.join(repo_path, "test/scratch/tutorial-py/groundtruth-data/congruence"))
 
-V.wavtfcsv_files.value = os.path.join(repo_path,
+V.wavcsv_files.value = os.path.join(repo_path,
       "test/scratch/tutorial-py/groundtruth-data/congruence/20190122T093303a-7.wav")
 asyncio.run(C.classify_actuate())
 
 wait_for_job(M.status_ticker_queue)
 
-wavpath_noext = V.wavtfcsv_files.value[:-4]
-check_file_exists(wavpath_noext+"-classify1.log")
-check_file_exists(wavpath_noext+".tf")
-check_file_exists(wavpath_noext+"-classify2.log")
+wavpath_noext = V.wavcsv_files.value[:-4]
+check_file_exists(wavpath_noext+"-classify.log")
 for label in V.labels_touse.value.split(','):
   check_file_exists(wavpath_noext+"-"+label+".wav")
 

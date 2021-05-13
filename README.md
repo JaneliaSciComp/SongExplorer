@@ -880,29 +880,28 @@ containing the binary data.  This latter PB folder, or the "saved_model.pb" file
 therein, can in future be chosen as the model instead of a checkpoint file.
 
 Now use the `Classify` button to generate probabilities over time for each
-annotated word.  Specify which recordings using the `File Browser` and the `WAV
+annotated label.  Specify which recordings using the `File Browser` and the `WAV
 Files` button.  Note that while the "Checkpoint File" button changed to "PB
 File", you can leave the text box as is;  all SongExplorer needs is a filename from
-which it can parse "ckpt-\*".  The probabilities are first stored in a text file
-ending in ".tf", and then converted to binary WAV files for compact storage and
-easy viewing.
+which it can parse "ckpt-\*".  The probabilities for each label are stored in
+separate WAV files, with the label appended as a suffix:
 
     $ ls groundtruth-data/round2/
-    20161207T102314_ch1-ambient.wav    20161207T102314_ch1-other.wav
-    20161207T102314_ch1-classify.log   20161207T102314_ch1.tf
+    20161207T102314_ch1-ambient.wav    20161207T102314_ch1-mel-sine.wav
+    20161207T102314_ch1-classify.log   20161207T102314_ch1-other.wav
     20161207T102314_ch1-mel-pulse.wav  20161207T102314_ch1.wav
-    20161207T102314_ch1-mel-sine.wav
 
 Discretize these probabilities using thresholds based on a set of
 precision-recall ratios using the `Ethogram` button.  Choose one of the
 "thresholds.ckpt-\*.csv" files in the log files folder using the `File
 Browser`.  These are created by the `Accuracy` button and controlled by the
 `P/Rs` variable at the time you quantified the accuracy.  For convenience you
-can also just leave this text box as it was when freezing or classifying; all
-SongExplorer needs is a filename in the logs folder from which in can parse
-"ckpt-\*".  You'll also need to specify which ".tf" files to threshold using the
-`TF Files` button.  Again, for convenience, you can specify the ".wav" files too,
-and hence leave this as it was when classifying.
+can also just leave this text box as it was when freezing or classifying;
+all SongExplorer needs is a filename in the logs folder from which in
+can parse "ckpt-\*".  You'll also need to specify which ".wav" files to
+threshold using the `WAV Files` button.  Again, for convenience, you can
+leave this as it was when classifying, as what is needed here is the ".wav"
+file of the raw recording, not those containing the label probabilities.
 
     $ ls -t1 groundtruth-data/round2/ | head -2
     20161207T102314_ch1-ethogram.log
@@ -1004,7 +1003,7 @@ correct the classifier's mistakes, so don't spend much time, if any, annotating
 what it got right.
 
 Each time you train a new classifier, all of the existing "predicted.csv",
-"missed.csv", ".tf", and word-probability WAV files are moved to an "oldfiles"
+"missed.csv", and word-probability WAV files are moved to an "oldfiles"
 sub-folder as they will be out of date.  You might want to occasionally delete
 these folders to conserve disk space:
 
@@ -1517,7 +1516,7 @@ case, kill it with `ps auxc | grep -E '(gui.sh|bokeh)'` and then `kill -9
 
 # Frequently Asked Questions #
 
-* The `WAV,TF,CSV Files` text box, being plural, can contain multiple
+* The `WAV,CSV Files` text box, being plural, can contain multiple
 comma-separated filenames.  Select multiple files in the File Browser using
 shift/command-click as you would in most other file browsers.
 

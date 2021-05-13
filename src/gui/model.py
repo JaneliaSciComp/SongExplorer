@@ -31,7 +31,7 @@ def save_state_callback():
     with open(statepath, 'w') as fid:
        yaml.dump({**{'logs_folder': V.logs_folder.value,
                      'model_file': V.model_file.value,
-                     'wavtfcsv_files': V.wavtfcsv_files.value,
+                     'wavcsv_files': V.wavcsv_files.value,
                      'groundtruth_folder': V.groundtruth_folder.value,
                      'validation_files': V.validation_files.value,
                      'test_files': V.test_files.value,
@@ -349,7 +349,7 @@ def init(_bokeh_document, _configuration_file):
         with open(statepath, 'w') as fid:
             yaml.dump({**{'logs_folder':'', \
                           'model_file':'', \
-                          'wavtfcsv_files':'', \
+                          'wavcsv_files':'', \
                           'groundtruth_folder':'', \
                           'validation_files':'', \
                           'test_files':'', \
