@@ -329,8 +329,8 @@ class AudioProcessor(object):
         song = np.expand_dims(song, axis=1)
       assert audio_tic_rate == model_settings['audio_tic_rate']
       assert np.shape(song)[1] == nchannels
-      foreground_clipped = song[foreground_offset-context_tics//2 - shiftby_tics :
-                                foreground_offset+context_tics//2 - shiftby_tics,
+      foreground_clipped = song[foreground_offset-math.floor(context_tics/2) - shiftby_tics :
+                                foreground_offset+math.ceil(context_tics/2) - shiftby_tics,
                                 :]
       foreground_float32 = foreground_clipped.astype(np.float32)
       foreground_indexed[i - offset,:,:] = foreground_float32 / abs(np.iinfo(np.int16).min)
