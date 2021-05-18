@@ -162,7 +162,7 @@ def create_model(model_settings):
                                   [-1,conv_shape[1],conv_shape[2],-1])(bypass)])
     hidden_layers.append(conv)
     relu = ReLU()(conv)
-    inputs = Dropout(dropout)(relu)
+    inputs = SpatialDropout2D(dropout)(relu)
     inputs_shape = inputs.get_shape().as_list()
     noutput_tics = math.ceil((noutput_tics - kernel_sizes[0] + 1) / strides[0])
     iconv += 1
@@ -184,7 +184,7 @@ def create_model(model_settings):
         conv = Add()([conv, Slice([0,offset,0,0],[-1,conv_shape[1],-1,-1])(bypass)])
     hidden_layers.append(conv)
     relu = ReLU()(conv)
-    inputs = Dropout(dropout)(relu)
+    inputs = SpatialDropout2D(dropout)(relu)
     inputs_shape = inputs.get_shape().as_list()
     noutput_tics = math.ceil((noutput_tics - kernel_sizes[1] + 1) / strides[0])
     iconv += 1

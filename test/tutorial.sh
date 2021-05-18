@@ -131,8 +131,8 @@ cp $repo_path/data/PS_20130625111709_ch3-annotated-person1.csv \
 logdir=$repo_path/test/scratch/tutorial-sh/trained-classifier1
 labels_touse=mel-pulse,mel-sine,ambient
 kinds_touse=annotated
-nsteps=100
-save_and_test_period=10
+nsteps=300
+save_and_test_period=30
 validation_percentage=40
 mkdir $logdir
 train.sh \
@@ -204,9 +204,9 @@ check_file_exists ${wavpath_noext}-ethogram.log
 for pr in $(echo $precision_recall_ratios | sed "s/,/ /g") ; do
   check_file_exists ${wavpath_noext}-predicted-${pr}pr.csv
 done
-count_lines_with_label ${wavpath_noext}-predicted-1.0pr.csv mel-pulse 416 WARNING
-count_lines_with_label ${wavpath_noext}-predicted-1.0pr.csv mel-sine 439 WARNING
-count_lines_with_label ${wavpath_noext}-predicted-1.0pr.csv ambient 212 WARNING
+count_lines_with_label ${wavpath_noext}-predicted-1.0pr.csv mel-pulse 535 WARNING
+count_lines_with_label ${wavpath_noext}-predicted-1.0pr.csv mel-sine 518 WARNING
+count_lines_with_label ${wavpath_noext}-predicted-1.0pr.csv ambient 261 WARNING
 
 detect.sh \
       ${wavpath_noext}.wav \
@@ -225,7 +225,7 @@ misses.sh $csvfiles &> ${wavpath_noext}-misses.log
 
 check_file_exists ${wavpath_noext}-misses.log
 check_file_exists ${wavpath_noext}-missed.csv
-count_lines_with_label ${wavpath_noext}-missed.csv other 1607 WARNING
+count_lines_with_label ${wavpath_noext}-missed.csv other 1460 WARNING
 
 mkdir $data_dir/round1/cluster
 mv $data_dir/{activations,cluster}* $data_dir/round1/cluster
@@ -371,7 +371,6 @@ check_file_exists $data_dir/round1/PS_20130625111709_ch3-mistakes.csv
 
 logdir=$repo_path/test/scratch/tutorial-sh/trained-classifier2
 kinds_touse=annotated
-nsteps=100
 validation_percentage=20
 mkdir $logdir
 train.sh \

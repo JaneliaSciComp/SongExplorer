@@ -124,8 +124,8 @@ shutil.copy(os.path.join(repo_path, "data/PS_20130625111709_ch3-annotated-person
 V.logs_folder.value = os.path.join(repo_path, "test/scratch/tutorial-py/trained-classifier1")
 V.labels_touse.value = "mel-pulse,mel-sine,ambient"
 V.kinds_touse.value = "annotated"
-V.nsteps.value = "100"
-V.save_and_validate_period.value = "10"
+V.nsteps.value = "300"
+V.save_and_validate_period.value = "30"
 V.validate_percentage.value = "40"
 asyncio.run(C.train_actuate())
 
@@ -191,9 +191,9 @@ wait_for_job(M.status_ticker_queue)
 check_file_exists(wavpath_noext+"-ethogram.log")
 for pr in V.precision_recall_ratios.value.split(','):
   check_file_exists(wavpath_noext+"-predicted-"+pr+"pr.csv")
-count_lines_with_label(wavpath_noext+"-predicted-1.0pr.csv", "mel-pulse", 416, "WARNING")
-count_lines_with_label(wavpath_noext+"-predicted-1.0pr.csv", "mel-sine", 439, "WARNING")
-count_lines_with_label(wavpath_noext+"-predicted-1.0pr.csv", "ambient", 212, "WARNING")
+count_lines_with_label(wavpath_noext+"-predicted-1.0pr.csv", "mel-pulse", 535, "WARNING")
+count_lines_with_label(wavpath_noext+"-predicted-1.0pr.csv", "mel-sine", 518, "WARNING")
+count_lines_with_label(wavpath_noext+"-predicted-1.0pr.csv", "ambient", 261, "WARNING")
 
 asyncio.run(C.detect_actuate())
 
@@ -212,7 +212,7 @@ wait_for_job(M.status_ticker_queue)
 
 check_file_exists(wavpath_noext+"-misses.log")
 check_file_exists(wavpath_noext+"-missed.csv")
-count_lines_with_label(wavpath_noext+"-missed.csv", "other", 1607, "WARNING")
+count_lines_with_label(wavpath_noext+"-missed.csv", "other", 1460, "WARNING")
 
 os.mkdir(os.path.join(V.groundtruth_folder.value, "round1", "cluster"))
 for file in glob.glob(os.path.join(V.groundtruth_folder.value, "activations*")):
@@ -348,7 +348,6 @@ check_file_exists(os.path.join(V.groundtruth_folder.value, "round1",
 
 V.logs_folder.value = os.path.join(repo_path, "test/scratch/tutorial-py/trained-classifier2")
 V.kinds_touse.value = "annotated"
-V.nsteps.value = "100"
 V.validate_percentage.value = "20"
 asyncio.run(C.train_actuate())
 

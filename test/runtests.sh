@@ -14,20 +14,20 @@ if (( $(diff <(tree $repo_path/test/scratch/tutorial-sh | grep -v tfevents) \
   echo ERROR directory hierarchies differ between tutorial-{py,sh}
 fi
 files=(groundtruth-data/round1/PS_20130625111709_ch3-detected.csv
-       trained-classifier1/train_1r/thresholds.ckpt-10.csv
-       trained-classifier1/train_1r/thresholds.ckpt-100.csv
+       trained-classifier1/train_1r/thresholds.ckpt-30.csv
+       trained-classifier1/train_1r/thresholds.ckpt-300.csv
        groundtruth-data/round2/20161207T102314_ch1-predicted-1.0pr.csv
        groundtruth-data/round2/20161207T102314_ch1-detected.csv
        groundtruth-data/round2/20161207T102314_ch1-missed.csv
-       trained-classifier2/train_1r/thresholds.ckpt-10.csv
-       trained-classifier2/train_1r/thresholds.ckpt-100.csv
+       trained-classifier2/train_1r/thresholds.ckpt-30.csv
+       trained-classifier2/train_1r/thresholds.ckpt-300.csv
        groundtruth-data/round1/PS_20130625111709_ch3-mistakes.csv
-       omit-one/generalize_1w/thresholds.ckpt-10.csv
-       omit-one/generalize_1w/thresholds.ckpt-100.csv
-       nfeatures-32/xvalidate_1k/thresholds.ckpt-10.csv
-       nfeatures-32/xvalidate_1k/thresholds.ckpt-100.csv
-       nfeatures-64/xvalidate_1k/thresholds.ckpt-10.csv
-       nfeatures-64/xvalidate_1k/thresholds.ckpt-100.csv
+       omit-one/generalize_1w/thresholds.ckpt-30.csv
+       omit-one/generalize_1w/thresholds.ckpt-300.csv
+       nfeatures-32/xvalidate_1k/thresholds.ckpt-30.csv
+       nfeatures-32/xvalidate_1k/thresholds.ckpt-300.csv
+       nfeatures-64/xvalidate_1k/thresholds.ckpt-30.csv
+       nfeatures-64/xvalidate_1k/thresholds.ckpt-300.csv
        groundtruth-data/congruence.tic.ambient.csv
        groundtruth-data/congruence.tic.mel-pulse.csv
        groundtruth-data/congruence.tic.mel-sine.csv
