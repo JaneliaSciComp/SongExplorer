@@ -17,11 +17,15 @@ RUN python3 -m pip --no-cache-dir install --upgrade \
 
 RUN ln -s $(which python3) /usr/local/bin/python
 
-ARG TF_PACKAGE=tensorflow
-ARG TF_PACKAGE_VERSION=
-RUN python3 -m pip install --no-cache-dir ${TF_PACKAGE}${TF_PACKAGE_VERSION:+==${TF_PACKAGE_VERSION}}
+RUN python3 -m pip install --no-cache-dir tensorflow
 
 #FROM tensorflow/tensorflow:latest
+
+RUN apt-get update ; apt-get -y install wget zip
+
+RUN cd /usr/lib/python3/dist-packages ; wget https://github.com/philipperemy/keras-tcn/archive/master.zip ; unzip master.zip ; rm master.zip ; cd keras-tcn-master ; pip3 install -r requirements.txt ; pip3 install . ; cd .. ; rm -rf keras-tcn-master
+
+RUN cd /usr/lib/python3/dist-packages ; wget https://github.com/google-research/leaf-audio/archive/master.zip ; unzip master.zip ; rm master.zip ; cd leaf-audio-master ; sed -i "s/==/>=/" requirements.txt ; sed -i /lingvo/d requirements.txt ; sed -i '22d;150,$d' leaf_audio/postprocessing.py ; pip3 install -e .
 
 RUN apt-get update && DEBIAN_FRONTEND="noninteractive" apt-get -y install vim python3-tk dc ssh libxml2 make tree python3-dev pkg-config libavformat-dev libavcodec-dev libavdevice-dev libavutil-dev libswscale-dev libswresample-dev libavfilter-dev
 RUN pip3 install matplotlib scipy natsort scikit-image bokeh nitime sklearn umap-learn matplotlib_venn pandas av https://github.com/soft-matter/pims/archive/master.zip pyinterval dictdiffer

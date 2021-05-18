@@ -22,13 +22,36 @@ Stage: build
     export PATH=$CUDA_BIN:$PATH
     sed -i '$s/$/ universe/' /etc/apt/sources.list
     apt-get update
-    apt-get -y install wget
+    apt-get -y install wget zip
 
     # install tensorflow
     apt-get -y install python3 vim perl gcc python3-distutils
     wget https://bootstrap.pypa.io/get-pip.py --no-check-certificate
     python3 get-pip.py
     pip3 install tensorflow
+
+    # install TCN 078901b98e8538b85b5d40953ca8fc52ad9274e0
+    cd /usr/lib/python3/dist-packages
+    wget https://github.com/philipperemy/keras-tcn/archive/master.zip
+    unzip master.zip
+    rm master.zip
+    cd keras-tcn-master
+    pip3 install -r requirements.txt
+    pip3 install .
+    cd ..
+    rm -rf keras-tcn-master
+
+    # install LEAF 7ead2f9fe65da14c693c566fe8259ccaaf14129d
+    cd /usr/lib/python3/dist-packages
+    wget https://github.com/google-research/leaf-audio/archive/master.zip
+    unzip master.zip
+    rm master.zip
+    cd leaf-audio-master
+    sed -i "s/==/>=/" requirements.txt
+    sed -i /lingvo/d requirements.txt
+    sed -i '22d;150,$d' leaf_audio/postprocessing.py
+    pip3 install -e .
+    cd ..
 
     # install matplotlib etc
     apt-get -y install vim python3-tk dc ssh libxml2 make tree  #nodejs
@@ -69,15 +92,5 @@ Stage: build
     apt-get update
     apt-get install libcudnn8
 
-    wget http://developer.download.nvidia.com/compute/machine-learning/repos/ubuntu1804/x86_64/libnvinfer7_7.0.0-1+cuda10.2_amd64.deb
-    apt install ./libnvinfer7_7.0.0-1+cuda10.2_amd64.deb
-    wget http://developer.download.nvidia.com/compute/machine-learning/repos/ubuntu1804/x86_64/libnvinfer-plugin7_7.0.0-1+cuda10.2_amd64.deb
-    apt install ./libnvinfer-plugin7_7.0.0-1+cuda10.2_amd64.deb
-    apt-get update
-    apt-get install -y --no-install-recommends libnvinfer7 libnvinfer-plugin7
-    rm libnvinfer7_7.0.0-1+cuda10.2_amd64.deb
-    rm libnvinfer-plugin7_7.0.0-1+cuda10.2_amd64.deb
-
     # clean up
     rm -rf /var/cuda-repo-ubuntu2004-11-3-local/
-    rm NVIDIA* Miniconda* cuda_11* libnvinfer7* node-v12*
