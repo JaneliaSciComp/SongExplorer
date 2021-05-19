@@ -144,6 +144,8 @@ def create_model(model_settings):
   hidden_layers.append(inputs)
   inputs_shape = inputs.get_shape().as_list()
 
+  receptive_field_tics = last_stride = 1
+
   # 2D convolutions
   while inputs_shape[2]>=kernel_sizes[0] and iconv<nlayers:
     if use_residual and iconv%2!=0:
@@ -152,6 +154,9 @@ def create_model(model_settings):
     dilation_rate=[2**max(0,iconv-dilate_after_layer+1), 1]
     conv = Conv2D(nfeatures[0], kernel_sizes[0],
                   strides=strides, dilation_rate=dilation_rate)(inputs)
+    dilated_kernel_size = (kernel_sizes[0] - 1) * dilation_rate[0] + 1
+    receptive_field_tics += (dilated_kernel_size - 1) * last_stride
+    last_stride = strides[0]
     if use_residual and iconv%2==0 and iconv>1:
       bypass_shape = bypass.get_shape().as_list()
       conv_shape = conv.get_shape().as_list()
@@ -176,6 +181,9 @@ def create_model(model_settings):
     conv = Conv2D(nfeatures[1], (kernel_sizes[1], inputs_shape[2]),
                   strides=strides,
                   dilation_rate=dilation_rate)(inputs)
+    dilated_kernel_size = (kernel_sizes[1] - 1) * dilation_rate[0] + 1
+    receptive_field_tics += (dilated_kernel_size - 1) * last_stride
+    last_stride = strides[0]
     if use_residual and iconv%2==0 and iconv>1:
       bypass_shape = bypass.get_shape().as_list()
       conv_shape = conv.get_shape().as_list()
@@ -188,6 +196,9 @@ def create_model(model_settings):
     inputs_shape = inputs.get_shape().as_list()
     noutput_tics = math.ceil((noutput_tics - kernel_sizes[1] + 1) / strides[0])
     iconv += 1
+
+  receptive_field_tics *= stride_tics 
+  print("receptive_field_tics = %d" % receptive_field_tics)
 
   # a final dense layer (or actually, pan-freq pan-time 2D conv)
   strides=1+(iconv>=stride_after_layer)
