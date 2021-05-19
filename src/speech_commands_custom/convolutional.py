@@ -169,7 +169,7 @@ def create_model(model_settings):
     relu = ReLU()(conv)
     inputs = SpatialDropout2D(dropout)(relu)
     inputs_shape = inputs.get_shape().as_list()
-    noutput_tics = math.ceil((noutput_tics - kernel_sizes[0] + 1) / strides[0])
+    noutput_tics = math.ceil((noutput_tics - dilated_kernel_size + 1) / strides[0])
     iconv += 1
 
   # 1D convolutions (or actually, pan-freq 2D)
@@ -194,7 +194,7 @@ def create_model(model_settings):
     relu = ReLU()(conv)
     inputs = SpatialDropout2D(dropout)(relu)
     inputs_shape = inputs.get_shape().as_list()
-    noutput_tics = math.ceil((noutput_tics - kernel_sizes[1] + 1) / strides[0])
+    noutput_tics = math.ceil((noutput_tics - dilated_kernel_size + 1) / strides[0])
     iconv += 1
 
   receptive_field_tics *= stride_tics 
