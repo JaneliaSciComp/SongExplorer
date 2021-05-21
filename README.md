@@ -643,7 +643,7 @@ the relative proportion of each `wanted word` to `equalize ratio`.  In the case
 of "detected" `kinds to use` you'll want to set this to a large number, as it
 does not matter if the number of samples which pass the "time" threshold far
 exceeds the "frequency" threshold, or vice versa.  Output are three files in
-the ground-truth directory: "activations.log", "activations-samples.log", and
+the `Ground Truth` directory: "activations.log", "activations-samples.log", and
 "activations.npz".  The two ending in ".log" report any errors, and the ".npz"
 file contains the actual data in binary format.
 
@@ -658,7 +658,7 @@ be found in the aforementioned articles.  UMAP and t-SNE can also be optionally
 preceded by PCA, in which case you'll need to specify the fraction of
 coefficients to retain using `PCA fraction`.  You'll also need to choose which
 network layer to cluster.  At this point, choose just the input layer.  Output
-are two or three files in the ground-truth directory: "cluster.log" contains
+are two or three files in the `Ground Truth` directory: "cluster.log" contains
 any errors, "cluster.npz" contains binary data, and "cluster-pca.pdf" shows the
 results of the principal components analysis (PCA) if one was performed.
 
@@ -711,7 +711,7 @@ groups of words that share a common prefix or suffix.
 
 Once you have a few tens of examples for each word, it's time to train a
 classifier and make some predictions.  First, confirm that the annotations you
-just made were saved into an "-annotated.csv" file in the ground-truth folder.
+just made were saved into an "-annotated.csv" file in the `Ground Truth` folder.
 
     $ tree groundtruth-data
     groundtruth-data
@@ -741,7 +741,7 @@ the progress, withhold 40% of the annotations to validate on, and do so every
 10 steps.  Enter these values into the `# steps`, `validate %`, and `validate
 period` variables.  You'll also need to change the `labels to use` variable to
 "mel-pulse,mel-sine,ambient,other", and `kinds to use` to "annotated" so that it
-will ignore the detected annotations in the ground-truth directory.  Note that
+will ignore the detected annotations in the `Ground Truth` directory.  Note that
 the total number of annotations must exceed the size of the mini-batches,
 which is specified by the `mini-batch` variable.
 
@@ -938,7 +938,7 @@ Let's manually check whether our classifier in hand accurately calls sounds
 using these thresholds.  First, click on the `Fix False Positives` button.
 Double check that the `kinds to use` variable was auto-populated with
 "annotated,predicted".  Not having "detected" in this field ensures that
-"detected.csv" files in the ground-truth folder are ignored.  Finally, cluster
+"detected.csv" files in the `Ground Truth` folder are ignored.  Finally, cluster
 and visualize the neural network's hidden state activations as we did before
 using the `Activations`, `Cluster`, and `Visualize` buttons.  This time though
 choose to cluster just the last hidden layer.  So that words with few samples
@@ -1087,7 +1087,7 @@ To train one classifier with a single recording or set of recordings withheld
 for validation, first click on `Generalize` and then `Omit All`.  Use the `File
 Browser` to either select (1) specific WAV file(s), (2) a text file
 containing a list of WAV file(s) (either comma separated or one per line), or
-(3) the ground-truth folder or a subdirectory therein.  Finally press the
+(3) the `Ground Truth` folder or a subdirectory therein.  Finally press the
 `Validation Files` button and `DoIt!`.
 
 To train multiple classifiers, each of which withholds a single recording in a
@@ -1245,13 +1245,13 @@ while `Activations` uses the entire ground truth or a randomly sampled subset
 thereof.
 
 As [mentioned earlier](#quantifying-accuracy), the `Accuracy` button creates a
-"predictions/" folder in the Log Folder containing CSV files itemizing whether
+"predictions/" folder in the `Logs Folder` containing CSV files itemizing whether
 the sounds in the validation set were correctly or incorrectly classified.
-Each CSV file corresponds to a sub-folder within the ground-truth folder.  The
+Each CSV file corresponds to a sub-folder within the `Ground Truth` folder.  The
 file format is similar to SongExplorer's other CSV files, with the difference being
 that the penultimate column is the prediction and the final one the annotation.
 To use these predictions, copy these CSV files into their corresponding
-ground-truth sub-folders.
+`Ground Truth` sub-folders.
 
     $ tail -n 10 trained-classifier1/predictions/round1-mistakes.csv 
     PS_20130625111709_ch3.wav,377778,377778,correct,mel-pulse,mel-pulse
@@ -1269,7 +1269,7 @@ Similarly, the `Activations` button creates an "activations.npz" file
 containing the logits of the output layer (which is just a vector of word
 probabilities), as well as the correct answer from the ground-truth
 annotations.  To turn these data into a CSV file, use the `Mistakes` button.
-In the ground-truth subfolders, CSV files are created for each WAV file, with
+In the `Ground Truth` subfolders, CSV files are created for each WAV file, with
 an extra column just like above.  No need to copy any files here.
 
 Now detect sounds in the ground-truth recordings for which you haven't done so
@@ -1307,14 +1307,57 @@ file with the name of the annotator (e.g. "annotated-<name>.csv").  Take your
 best model to date and make ethograms of these densely annotated recordings
 using the `Classify` and `Ethogram` buttons as before.  Finally, use the
 `Congruence` button to plot the fraction of false positives and negatives,
-specifying which files you've densely annotated with `ground truth`
-and either `validation files` or `test files` (a comma-separated list
+specifying which files you've densely annotated with `Ground Truth`
+and either `Validation Files` or `Test Files` (a comma-separated list
 of .wav files, a text file of .wav filenames, or a folder of .wav files;
 see [Measuring Generalization](#measuring-generalization)).  Optionally,
 specify the temporal resolution within which to consider two predictions a
-hit with `convolve`.  If the accuracy is not acceptable, iteratively adjust
-the hyperparameters and/or add new annotations to your training set, train
-a new model, and make new ethograms and congruence plots until it is.
+hit with `convolve`.  Output are the following charts in the `Ground Truth`
+folder and sub-folders therein:
+
+* "<sub-folder>/\*-disjoint-everyone.csv" contains the intervals in time
+which SongExplorer and the anotator(s) agreed upon for each WAV file.
+
+* "<sub-folder>/\*-disjoint-{label,tic}-only<annotator>.csv" contains the
+intervals which only one of them labelled.  There is a separate file for each
+annotator, with SongExplorer's file name containing the precision-recall
+ratio used when making the ethograms (e.g. "only1.0pr").  The difference
+between the "label" and "tic" files is that for the former any overlap in
+the predicted/annotated intervals is considered a perfect hit, whereas in
+the latter the two intervals will be broken up into their constituent tics
+in time if there is a partial overlap.  See the source code documentation in
+"src/congruence.py" for more details.
+
+* If there was more than one human annotator (see below)
+"<sub-folder>/\*-disjoint-{tic,label}-not<annotator>.csv" contains the
+intervals in time which everyone except the indicated annotator agreed upon.
+
+* "congruence-{tic,label}-<word>.csv contains the aggregate statistics
+across all WAV files.  Whereas the one row whose first column ends in
+"pr" shows the congruence for the threshold calculated by `Accuracy` and
+the desired precision-recall ratio on just the sparsely annotated points
+in time, the other rows show how the congruence varies with the threshold.
+
+* "congruence-{tic,label}-<word>.\*pr[-venn].pdf plots with bars and Venn
+diagrams the "pr" row of the corresponding CSV file.
+
+* "congruence-{tic,label}-<word>.pdf plots the congruence versus
+threshold data contained in the corresponding CSV file.  The vertical
+line in the left panel labelled "sparse P/R" corresponds to the
+threshold calculated by `Accuracy` on just the annotated points in time.
+"dense P/R" is the threshold at which the "only SongExplorer" and "only
+<Annotator>" lines cross (or "not SongExplorer" if there are multiple
+human annotators).  These densely calculated thresholds are stored in a
+new "thresholds-dense-<YYYYMMDDTHHMMSS>.ckpt-\*.csv" file in the `Logs
+Folder`.  Take note of the timestamp and use this file going forward
+when making new ethograms, as these thresholds most accurately deliver
+the desired precision-recall ratio.  The right panel re-plots the same
+data by parameterizing precision and recall as a function of threshold.
+The area under this curve would be 1.0 for a perfect classifier.
+
+If the congruence is not acceptable, iteratively adjust the hyperparameters
+and/or add new annotations to your training set, train a new model, and
+make new ethograms and congruence plots until it is.
 
 Once the accuracy is acceptable on validation data, quantify the accuracy on a
 densely annotated test set.  The network should have never been trained or

@@ -179,11 +179,11 @@ def interval_diff(A,B):
 
 def doit(intervals):
 
-  #for the intervals everyone agrees upon (i.e. "everyone"), choose one of the
-  #sets at random.  iterate through each interval therein, testing whether it
-  #overlaps with any of the intervals in all of the other sets.  if it does,
-  #delete the matching intervals in the other sets, and add to the "everyone"
-  #set just intersection of the matching intervals.
+  #to calculate the intervals everyone agrees upon (i.e. "everyone"), choose
+  #one of the sets at random.  iterate through each interval therein, testing
+  #whether it overlaps with any of the intervals in all of the other sets.
+  #if it does, delete the matching intervals in the other sets, and add to
+  #the "everyone" set just intersection of the matching intervals.
 
   intervals_copy = intervals.copy()
   key0 = next(iter(intervals_copy.keys()))
@@ -544,16 +544,21 @@ def plot_versus_thresholds(roc_table, kind):
       ax1 = fig.add_subplot(1,2,1)
       for not_only_every in sorted(roc_table[label][thresholds[0]].keys()):
         ydata = [roc_table[label][x][not_only_every] for x in thresholds]
-        ax1.plot(xdata, ydata, '.-' if len(xdata)<10 else '-', label=not_only_every)
+        thislabel=not_only_every
         if not_only_every=='Everyone':
           TP = ydata
+          thislabel += ' (TP)'
         elif not_only_every=='only SongExplorer':
           FP = ydata
+          thislabel += ' (FP)'
         else:
           if len(humans)==1:
             FN = ydata
+            thislabel += ' (FN)'
           elif not_only_every=='not SongExplorer':
             FN = ydata
+            thislabel += ' (FN)'
+        ax1.plot(xdata, ydata, '.-' if len(xdata)<10 else '-', label=thislabel)
       for (ipr,pr) in enumerate(precision_recalls_sparse):
         th = float([x[1:] for x in thresholds_sparse if x[0]==label][0][ipr])
         if 0<=th<=1 and not np.isnan(th):
