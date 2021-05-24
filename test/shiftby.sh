@@ -4,7 +4,7 @@
 
 #${SONGEXPLORER_BIN/-B/-B /tmp:/opt/songexplorer/test/scratch -B} bash -c "test/shiftby.sh"
 
-repo_path=$(dirname $(dirname $(which detect.sh)))
+repo_path=$(dirname $(dirname $(which detect.py)))
 
 mkdir -p $repo_path/test/scratch/shiftby
 cp $repo_path/configuration.pysh $repo_path/test/scratch/shiftby
@@ -38,7 +38,7 @@ weights_seed=1
 ireplicates=1
 mkdir $logdir
 
-train.sh \
+train.py \
       $context_ms $shiftby_ms \
       $optimizer $learning_rate \
       $architecture "$model_parameters" \
@@ -54,7 +54,7 @@ shiftby_ms=51.2
 logdir=$repo_path/test/scratch/shiftby/shiftby-$shiftby_ms
 mkdir $logdir
 
-train.sh \
+train.py \
       $context_ms $shiftby_ms \
       $optimizer $learning_rate \
       $architecture "$model_parameters" \

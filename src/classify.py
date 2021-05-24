@@ -1,3 +1,5 @@
+#!/usr/bin/python3
+
 #This file, originally from the TensorFlow speech recognition tutorial,
 #has been heavily modified for use by SongExplorer.
 
@@ -17,9 +19,28 @@
 # limitations under the License.
 # ==============================================================================
 
+
+# generate .wav files of per-label probabilities
+
+# e.g.
+# $SONGEXPLORER_BIN classify.sh \
+#      --context_ms=204.8 \
+#      --shiftby_ms=0.0 \
+#      --model=`pwd`/trained-classifier/train_1k/frozen-graph.ckpt-50.pb \
+#      --model_labels=`pwd`/trained-classifier/train_1k/labels.txt \
+#      --wav=`pwd`/groundtruth-data/round1/20161207T102314_ch1_p1.wav \
+#      --parallelize=65536 \
+#      --labels=mel-pulse,mel-sine,ambient \
+#      --prevalences=0.1,0.1,0.8
+
+
 import argparse
 import sys
 import os
+
+from datetime import datetime
+import socket
+from subprocess import run, PIPE, STDOUT
 
 import numpy as np
 import tensorflow as tf
@@ -146,11 +167,24 @@ if __name__ == '__main__':
       type=int,
       default=1,
       help='')
-  parser.add_argument(
-      '--verbose',
-      action='store_true',
-      default=False,
-      help='Whether to print streaming accuracy on stdout.')
 
   FLAGS, unparsed = parser.parse_known_args()
-  main()
+
+  print(str(datetime.now())+": start time")
+  repodir = os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
+  with open(os.path.join(repodir, "VERSION.txt"), 'r') as fid:
+    print('SongExplorer version = '+fid.read().strip().replace('\n',', '))
+  print("hostname = "+socket.gethostname())
+  print("CUDA_VISIBLE_DEVICES = "+os.environ.get('CUDA_VISIBLE_DEVICES',''))
+  p = run('which nvidia-smi && nvidia-smi', shell=True, stdout=PIPE, stderr=STDOUT)
+  print(p.stdout.decode('ascii').rstrip())
+
+  try:
+    main()
+
+  except Exception as e:
+    print(e)
+
+  finally:
+    os.sync()
+    print(str(datetime.now())+": finish time")

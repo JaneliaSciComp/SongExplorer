@@ -12,52 +12,70 @@ import sys
 import numpy as np
 import csv
 from itertools import cycle
+from datetime import datetime
+import socket
 
-sys.path.append(os.path.dirname(os.path.realpath(__file__)))
+repodir = os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
+
+sys.path.append(os.path.join(repodir, "src"))
 from lib import *
 
-csv_files = sys.argv[1:]
-print('csv_files: '+str(csv_files))
+print(str(datetime.now())+": start time")
+with open(os.path.join(repodir, "VERSION.txt"), 'r') as fid:
+  print('SongExplorer version = '+fid.read().strip().replace('\n',', '))
+print("hostname = "+socket.gethostname())
 
-detected_events = {}
-predicted_events = {}
-for csv_file in csv_files:
-  with open(csv_file) as fid:
-    csvreader = csv.reader(fid)
-    unused_rows = False
-    for row in csvreader:
-      if row[3]=='detected':
-        if row[0] not in detected_events:
-          detected_events[row[0]] = []
-        detected_events[row[0]].append(row)
-      elif row[3]=='predicted':
-        if row[0] not in predicted_events:
-          predicted_events[row[0]] = []
-        predicted_events[row[0]].append(row)
-      else:
-        unused_rows = True
-    if unused_rows:
-      print("WARNING: "+csv_file+" has some rows which are neither detected nor predicted events")
+try:
 
-if detected_events.keys() != predicted_events.keys():
-  d_not_p = set(detected_events.keys()) - set(predicted_events.keys())
-  if len(d_not_p)>0:
-    print("ERROR: "+str(d_not_p)+" has detected events but not predicted events")
-  p_not_d = set(predicted_events.keys()) - set(detected_events.keys())
-  if len(p_not_d)>0:
-    print("ERROR: "+str(p_not_d)+" has predicted events but not detected events")
-  exit()
+  csv_files = sys.argv[1].split(',')
+  print('csv_files: '+str(csv_files))
 
-for wavfile in detected_events.keys():
-  start_times, stop_times, ifeature = combine_events(
-        detected_events[wavfile], predicted_events[wavfile],
-        lambda x,y: np.logical_and(x, np.logical_not(y)))
+  detected_events = {}
+  predicted_events = {}
+  for csv_file in csv_files:
+    with open(csv_file) as fid:
+      csvreader = csv.reader(fid)
+      unused_rows = False
+      for row in csvreader:
+        if row[3]=='detected':
+          if row[0] not in detected_events:
+            detected_events[row[0]] = []
+          detected_events[row[0]].append(row)
+        elif row[3]=='predicted':
+          if row[0] not in predicted_events:
+            predicted_events[row[0]] = []
+          predicted_events[row[0]].append(row)
+        else:
+          unused_rows = True
+      if unused_rows:
+        print("WARNING: "+csv_file+" has some rows which are neither detected nor predicted events")
 
-  noext = os.path.splitext(wavfile)[0]
-  basepath = os.path.dirname(csv_files[0])
-  filename = os.path.join(basepath, noext+'-missed.csv')
-  with open(filename,'w') as fid:
-    csvwriter = csv.writer(fid)
-    csvwriter.writerows(zip(cycle([wavfile]), \
-                            start_times[:ifeature], stop_times[:ifeature], \
-                            cycle(['missed']), cycle(['other'])))
+  if detected_events.keys() != predicted_events.keys():
+    d_not_p = set(detected_events.keys()) - set(predicted_events.keys())
+    if len(d_not_p)>0:
+      print("ERROR: "+str(d_not_p)+" has detected events but not predicted events")
+    p_not_d = set(predicted_events.keys()) - set(detected_events.keys())
+    if len(p_not_d)>0:
+      print("ERROR: "+str(p_not_d)+" has predicted events but not detected events")
+    exit()
+
+  for wavfile in detected_events.keys():
+    start_times, stop_times, ifeature = combine_events(
+          detected_events[wavfile], predicted_events[wavfile],
+          lambda x,y: np.logical_and(x, np.logical_not(y)))
+
+    noext = os.path.splitext(wavfile)[0]
+    basepath = os.path.dirname(csv_files[0])
+    filename = os.path.join(basepath, noext+'-missed.csv')
+    with open(filename,'w') as fid:
+      csvwriter = csv.writer(fid)
+      csvwriter.writerows(zip(cycle([wavfile]), \
+                              start_times[:ifeature], stop_times[:ifeature], \
+                              cycle(['missed']), cycle(['other'])))
+
+except Exception as e:
+  print(e)
+
+finally:
+  os.sync()
+  print(str(datetime.now())+": finish time")

@@ -216,8 +216,7 @@ def init(_bokeh_document, _configuration_file):
     exec(open(_configuration_file).read(), globals())
 
     sys.path.append(os.path.dirname(architecture))
-    sys.path.append(os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
-                                 "speech_commands_custom"))
+    sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
     model = importlib.import_module(os.path.basename(architecture))
     model_parameters = model.model_parameters
 

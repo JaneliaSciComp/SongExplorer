@@ -1,3 +1,5 @@
+#!/usr/bin/python3
+
 #This file, originally from the TensorFlow speech recognition tutorial,
 #has been heavily modified for use by SongExplorer.
 
@@ -16,17 +18,39 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 # ==============================================================================
-r"""
-run just the forward pass of model on the test set
-"""
+
+
+# save input, hidden, and output layer activations at the time points annotated in the test set
+
+# e.g.
+# $SONGEXPLORER_BIN activations.py \
+#      --context_ms=204.8 \
+#      --shiftby_ms=0.0 \
+#      --model_architecture=convolutional \
+#      --model_parameters='{"representation":"waveform", "window_ms":6.4, "stride_ms":1.6, "mel_dct":"7,7", "dropout":0.5, "kernel_sizes":5,3,3", last_conv_width":130, "nfeatures":"256,256,256", "dilate_after_layer":65535, "stride_after_layer":65535, "connection_type":"plain"}' \
+#      --start_checkpoint=`pwd`/trained-classifier/train_1k/ckpt-50 \
+#      --data_dir=`pwd`/groundtruth-data \
+#      --labels_touse=mel-sine,mel-pulse,ambient,other \
+#      --kinds_touse=annotated \
+#      --testing_equalize_ratio=1000 \
+#      --testing_max_sounds=10000 \
+#      --batch_size=32 \
+#      --audio_tic_rate=5000 \
+#      --nchannels=1
+
+
 import argparse
 import os.path
 import sys
 
+from datetime import datetime
+import socket
+from subprocess import run, PIPE, STDOUT
+
 import numpy as np
 import tensorflow as tf
 
-import input_data
+import data
 import models
 
 import datetime as dt
@@ -36,7 +60,6 @@ import json
 import importlib
 
 FLAGS = None
-
 
 def main():
   sys.path.append(os.path.dirname(FLAGS.model_architecture))
@@ -66,7 +89,7 @@ def main():
       FLAGS.context_ms,
       FLAGS.model_parameters)
 
-  audio_processor = input_data.AudioProcessor(
+  audio_processor = data.AudioProcessor(
       FLAGS.data_dir,
       FLAGS.shiftby_ms,
       FLAGS.labels_touse.split(','), FLAGS.kinds_touse.split(','),
@@ -272,4 +295,22 @@ if __name__ == '__main__':
       help='Whether to save fingerprint input layer during processing')
 
   FLAGS, unparsed = parser.parse_known_args()
-  main()
+
+  print(str(datetime.now())+": start time")
+  repodir = os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
+  with open(os.path.join(repodir, "VERSION.txt"), 'r') as fid:
+    print('SongExplorer version = '+fid.read().strip().replace('\n',', '))
+  print("hostname = "+socket.gethostname())
+  print("CUDA_VISIBLE_DEVICES = "+os.environ.get('CUDA_VISIBLE_DEVICES',''))
+  p = run('which nvidia-smi && nvidia-smi', shell=True, stdout=PIPE, stderr=STDOUT)
+  print(p.stdout.decode('ascii').rstrip())
+
+  try:
+    main()
+
+  except Exception as e:
+    print(e)
+
+  finally:
+    os.sync()
+    print(str(datetime.now())+": finish time")

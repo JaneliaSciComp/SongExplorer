@@ -1,3 +1,5 @@
+#!/usr/bin/python3
+
 #This file, originally from the TensorFlow speech recognition tutorial,
 #has been heavily modified for use by SongExplorer.
 
@@ -16,38 +18,33 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 # ==============================================================================
-r"""Converts a trained checkpoint into a frozen model for mobile inference.
 
-Once you've trained a model using the `train.py` script, you can use this tool
-to convert it into a binary GraphDef file that can be loaded into the Android,
-iOS, or Raspberry Pi example code. Here's an example of how to run it:
 
-bazel run tensorflow/examples/speech_commands/freeze -- \
---audio_tic_rate=16000 \
---context_ms=1000 \
---model_architecture=conv \
---start_checkpoint=/tmp/speech_commands_train/conv.ckpt-1300 \
---output_file=/tmp/my_frozen_graph.pb
+# save a trained model into a binary file that can be used as a classifier
 
-One thing to watch out for is that you need to pass in the same arguments for
-`audio_tic_rate` and other command line variables here as you did for the training
-script.
+# e.g.
+# $SONGEXPLORER_BIN freeze.py \
+#      --context_ms=204.8 \
+#      --model_architecture=convolutional \
+#      --model_parameters='{"representation":"waveform", "window_ms":6.4, "stride_ms":1.6, "mel_dct":"7,7", "dropout":0.5, "kernel_sizes":5,3,3", last_conv_width":130, "nfeatures":"256,256,256", "dilate_after_layer":65535, "stride_after_layer":65535, "connection_type":"plain"}' \
+#      --start_checkpoint=`pwd`/trained-classifier/train_1k/ckpt-50 \
+#      --output_file=`pwd`/trained-classifier/train_1k/frozen-graph.ckpt-50.pb \
+#      --labels_touse=pulse,sine,ambient \
+#      --parallelize=16384 \
+#      --audio_tic_rate=5000 \
+#      --nchannels=1
 
-The resulting graph has an input for WAV-encoded data named 'wav_data', one for
-raw PCM data (as floats in the range -1.0 to 1.0) called 'decoded_sound_data',
-and the output is called 'labels_softmax'.
 
-"""
 import argparse
 import os.path
 import sys
 
+from datetime import datetime
+import socket
+
 import tensorflow as tf
-
 import models
-
 import json
-
 import importlib
 
 FLAGS = None
@@ -154,4 +151,19 @@ if __name__ == '__main__':
   parser.add_argument(
       '--output_file', type=str, help='Where to save the frozen graph.')
   FLAGS, unparsed = parser.parse_known_args()
-  main()
+
+  print(str(datetime.now())+": start time")
+  repodir = os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
+  with open(os.path.join(repodir, "VERSION.txt"), 'r') as fid:
+    print('SongExplorer version = '+fid.read().strip().replace('\n',', '))
+  print("hostname = "+socket.gethostname())
+
+  try:
+    main()
+
+  except Exception as e:
+    print(e)
+
+  finally:
+    os.sync()
+    print(str(datetime.now())+": finish time")

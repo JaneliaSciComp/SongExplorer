@@ -205,10 +205,10 @@ def read_log(frompath, logfile):
         else:
           m=re.search('\s*(\d+)\s(.*)',line)
           label_counts[m.group(2)]=int(m.group(1))
-      if "labels_touse" in line:
+      if "labels_touse = " in line:
         m=re.search('labels_touse = (.+)',line)
         labels_touse = m.group(1).split(',')
-      elif "batch_size" in line:
+      elif "batch_size = " in line:
         m=re.search('batch_size = (\d+)',line)
         batch_size = int(m.group(1))
       elif "Trainable params" in line:

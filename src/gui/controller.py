@@ -24,6 +24,8 @@ import view as V
 def generic_actuate(cmd, logfile, where,
                     ncpu_cores, ngpu_cards, ngigabyes_memory, localdeps, clusterflags, *args):
     args = ["\'\'" if x=="" else x for x in args]
+    with open(logfile, 'w') as fid:
+        fid.write(cmd+" "+' '.join(args)+'\n')
     if V.waitfor.active:
         if localdeps=="":
             localdeps = ""
@@ -37,7 +39,7 @@ def generic_actuate(cmd, logfile, where,
             clusterflags = clusterflags[:-2]
     if where == "local":
         p = run(["hetero", "submit",
-                 "{ export CUDA_VISIBLE_DEVICES=$QUEUE1; "+cmd+" "+' '.join(args)+"; } &> "+logfile,
+                 "{ export CUDA_VISIBLE_DEVICES=$QUEUE1; "+cmd+" "+' '.join(args)+"; } &>> "+logfile,
                  str(ncpu_cores), str(ngpu_cards), str(ngigabyes_memory), localdeps],
                 stdout=PIPE, stderr=STDOUT)
         jobid = p.stdout.decode('ascii').rstrip()
@@ -45,7 +47,7 @@ def generic_actuate(cmd, logfile, where,
     elif where == "server":
         p = run(["ssh", M.server_ipaddr, "export SINGULARITYENV_PREPEND_PATH="+M.source_path+";",
                  "$SONGEXPLORER_BIN", "hetero", "submit",
-                 "\"{ export CUDA_VISIBLE_DEVICES=\$QUEUE1; "+cmd+" "+' '.join(args).replace('"','\\"')+"; } &> "+logfile+"\"",
+                 "\"{ export CUDA_VISIBLE_DEVICES=\$QUEUE1; "+cmd+" "+' '.join(args).replace('"','\\"')+"; } &>> "+logfile+"\"",
                  str(ncpu_cores), str(ngpu_cards), str(ngigabyes_memory), "'"+localdeps+"'"],
                 stdout=PIPE, stderr=STDOUT)
         jobid = p.stdout.decode('ascii').rstrip()
@@ -614,11 +616,12 @@ def contains_two_timestamps(thisfile):
     with open(thisfile) as fid:
         ntimestamps=0
         for line in fid:
-            try:
-                datetime.strptime(line.rstrip('\n'), "%a %b %d %H:%M:%S %Z %Y")
-                ntimestamps += 1
-            except:
-                pass
+            if "start time" in line or "finish time" in line:
+                try:
+                    datetime.strptime(line[:line.rindex(':')], "%Y-%m-%d %H:%M:%S.%f")
+                    ntimestamps += 1
+                except:
+                    pass
     return ntimestamps==2
 
 def logfile_succeeded(logfile, reftime):
@@ -666,7 +669,7 @@ async def _detect_actuate(i, wavfiles, threads, results):
     wavfile = wavfiles.pop(0)
     currtime = time.time()
     logfile = os.path.splitext(wavfile)[0]+'-detect.log'
-    jobid = generic_actuate("detect.sh", logfile, \
+    jobid = generic_actuate("detect.py", logfile, \
                             M.detect_where,
                             M.detect_ncpu_cores,
                             M.detect_ngpu_cards,
@@ -718,7 +721,7 @@ async def misses_actuate():
     wavfile = row1[0]
     noext = os.path.join(basepath, os.path.splitext(wavfile)[0])
     logfile = noext+'-misses.log'
-    jobid = generic_actuate("misses.sh", logfile, \
+    jobid = generic_actuate("misses.py", logfile, \
                             M.misses_where,
                             M.misses_ncpu_cores,
                             M.misses_ngpu_cards,
@@ -800,13 +803,13 @@ def _train_succeeded(logdir, kind, model, reftime):
     validate_step_period = save_step_period = how_many_training_steps = None
     with open(train_dir+".log") as fid:
         for line in fid:
-            if "validate_step_period" in line:
+            if "validate_step_period = " in line:
                 m=re.search('validate_step_period = (\d+)',line)
                 validate_step_period = int(m.group(1))
-            if "save_step_period" in line:
+            if "save_step_period = " in line:
                 m=re.search('save_step_period = (\d+)',line)
                 save_step_period = int(m.group(1))
-            if "how_many_training_steps" in line:
+            if "how_many_training_steps = " in line:
                 m=re.search('how_many_training_steps = (\d+)',line)
                 how_many_training_steps = int(m.group(1))
     if validate_step_period is None or save_step_period is None or how_many_training_steps is None:
@@ -898,14 +901,14 @@ async def train_actuate():
                 ','.join([str(x) for x in range(ireplicate, min(1+nreplicates, \
                                                                 ireplicate+M.models_per_job))])]
         if M.train_gpu == 1:
-            jobid = generic_actuate("train.sh", logfile, M.train_where,
+            jobid = generic_actuate("train.py", logfile, M.train_where,
                                     M.train_gpu_ncpu_cores,
                                     M.train_gpu_ngpu_cards,
                                     M.train_gpu_ngigabytes_memory,
                                     "", M.train_gpu_cluster_flags,
                                     *args)
         else:
-            jobid = generic_actuate("train.sh", logfile, M.train_where,
+            jobid = generic_actuate("train.py", logfile, M.train_where,
                                     M.train_cpu_ncpu_cores,
                                     M.train_cpu_ngpu_cards,
                                     M.train_cpu_ngigabytes_memory,
@@ -970,7 +973,7 @@ async def leaveout_actuate(comma):
                 str(ivalidation_file),
                 *validation_files[ivalidation_file:ivalidation_file+M.models_per_job]]
         if M.generalize_gpu == 1:
-            jobid = generic_actuate("generalize.sh", logfile, M.generalize_where,
+            jobid = generic_actuate("generalize.py", logfile, M.generalize_where,
                                     M.generalize_gpu_ncpu_cores,
                                     M.generalize_gpu_ngpu_cards,
                                     M.generalize_gpu_ngigabytes_memory,
@@ -978,7 +981,7 @@ async def leaveout_actuate(comma):
                                     M.generalize_gpu_cluster_flags, \
                                     *args)
         else:
-            jobid = generic_actuate("generalize.sh", logfile, M.generalize_where,
+            jobid = generic_actuate("generalize.py", logfile, M.generalize_where,
                                     M.generalize_cpu_ncpu_cores,
                                     M.generalize_cpu_ngpu_cards,
                                     M.generalize_cpu_ngigabytes_memory,
@@ -1023,7 +1026,7 @@ async def xvalidate_actuate():
                 V.kfold.value, \
                 ','.join([str(x) for x in range(ifold, min(1+kfolds, ifold+M.models_per_job))])]
         if M.xvalidate_gpu == 1:
-            jobid = generic_actuate("xvalidate.sh", logfile, M.xvalidate_where,
+            jobid = generic_actuate("xvalidate.py", logfile, M.xvalidate_where,
                                     M.xvalidate_gpu_ncpu_cores,
                                     M.xvalidate_gpu_ngpu_cards,
                                     M.xvalidate_gpu_ngigabytes_memory,
@@ -1031,7 +1034,7 @@ async def xvalidate_actuate():
                                     M.xvalidate_gpu_cluster_flags, \
                                     *args)
         else:
-            jobid = generic_actuate("xvalidate.sh", logfile, M.xvalidate_where,
+            jobid = generic_actuate("xvalidate.py", logfile, M.xvalidate_where,
                                     M.xvalidate_cpu_ncpu_cores,
                                     M.xvalidate_cpu_ngpu_cards,
                                     M.xvalidate_cpu_ngigabytes_memory,
@@ -1062,7 +1065,7 @@ def mistakes_succeeded(groundtruthdir, reftime):
 async def mistakes_actuate():
     currtime = time.time()
     logfile = os.path.join(V.groundtruth_folder.value, "mistakes.log")
-    jobid = generic_actuate("mistakes.sh", logfile,
+    jobid = generic_actuate("mistakes.py", logfile,
                             M.mistakes_where,
                             M.mistakes_ncpu_cores,
                             M.mistakes_ngpu_cards,
@@ -1095,18 +1098,24 @@ async def activations_actuate():
     currtime = time.time()
     logdir, model, _, check_point = M.parse_model_file(V.model_file.value)
     logfile = os.path.join(V.groundtruth_folder.value, "activations.log")
-    args = [V.context_ms.value, \
-            V.shiftby_ms.value, \
-            M.architecture, \
-            "'"+json.dumps({k:v.value for k,v in V.model_parameters.items()})+"'", \
-            logdir, model, check_point, V.groundtruth_folder.value, \
-            V.labels_touse.value, V.kinds_touse.value, \
-            V.activations_equalize_ratio.value, \
-            V.activations_max_sounds.value, \
-            V.mini_batch.value, \
-            str(M.audio_tic_rate), str(M.audio_nchannels)]
+    args = ["--context_ms="+V.context_ms.value, \
+            "--shiftby_ms="+V.shiftby_ms.value, \
+            "--model_architecture="+M.architecture, \
+            "--model_parameters='"+json.dumps({k:v.value for k,v in V.model_parameters.items()})+"'", \
+            "--start_checkpoint="+os.path.join(logdir,model,"ckpt-"+check_point),
+            "--data_dir="+V.groundtruth_folder.value, \
+            "--labels_touse="+V.labels_touse.value,
+            "--kinds_touse="+V.kinds_touse.value, \
+            "--testing_equalize_ratio="+V.activations_equalize_ratio.value, \
+            "--testing_max_sounds="+V.activations_max_sounds.value, \
+            "--batch_size="+V.mini_batch.value, \
+            "--audio_tic_rate="+str(M.audio_tic_rate),
+            "--nchannels="+str(M.audio_nchannels),
+            "--validation_percentage=0.0",
+            "--validation_offset_percentage=0.0",
+            "--save_activations=True"]
     if M.activations_gpu:
-        jobid = generic_actuate("activations.sh", logfile, M.activations_where,
+        jobid = generic_actuate("activations.py", logfile, M.activations_where,
                                 M.activations_gpu_ncpu_cores,
                                 M.activations_gpu_ngpu_cards,
                                 M.activations_gpu_ngigabytes_memory,
@@ -1114,7 +1123,7 @@ async def activations_actuate():
                                 M.activations_gpu_cluster_flags,
                                 *args)
     else:
-        jobid = generic_actuate("activations.sh", logfile, M.activations_where,
+        jobid = generic_actuate("activations.py", logfile, M.activations_where,
                                 M.activations_cpu_ncpu_cores,
                                 M.activations_cpu_ngpu_cards,
                                 M.activations_cpu_ngigabytes_memory,
@@ -1135,7 +1144,7 @@ async def activations_actuate():
 
 async def cluster_actuate():
     currtime = time.time()
-    algorithm, ndims = V.cluster_algorithm.value.split(' ')
+    algorithm, ndims = V.cluster_algorithm.value[:-1].split(' ')
     these_layers = ','.join([x for x in V.cluster_these_layers.value])
     logfile = os.path.join(V.groundtruth_folder.value, "cluster.log")
     args = [V.groundtruth_folder.value, \
@@ -1147,7 +1156,7 @@ async def cluster_actuate():
         args.extend([V.tsne_perplexity.value, V.tsne_exaggeration.value])
     elif algorithm == "UMAP":
         args.extend([V.umap_neighbors.value, V.umap_distance.value])
-    jobid = generic_actuate("cluster.sh", logfile,
+    jobid = generic_actuate("cluster.py", logfile,
                             M.cluster_where,
                             M.cluster_ncpu_cores,
                             M.cluster_ngpu_cards,
@@ -1239,7 +1248,7 @@ def accuracy_succeeded(logdir, reftime):
 async def accuracy_actuate():
     currtime = time.time()
     logfile = os.path.join(V.logs_folder.value, "accuracy.log")
-    jobid = generic_actuate("accuracy.sh", logfile,
+    jobid = generic_actuate("accuracy.py", logfile,
                             M.accuracy_where,
                             M.accuracy_ncpu_cores,
                             M.accuracy_ngpu_cards,
@@ -1276,18 +1285,24 @@ async def _freeze_actuate(ckpts):
     currtime = time.time()
     logdir, model, _, check_point = M.parse_model_file(ckpt)
     logfile = os.path.join(logdir, model, "freeze.ckpt-"+str(check_point)+".log")
-    jobid = generic_actuate("freeze.sh", logfile,
+    with open(os.path.join(logdir,model,'labels.txt'), 'r') as fid:
+        labels = fid.read().splitlines()
+    jobid = generic_actuate("freeze.py", logfile,
                             M.freeze_where,
                             M.freeze_ncpu_cores,
                             M.freeze_ngpu_cards,
                             M.freeze_ngigabytes_memory,
                             "",
                             M.freeze_cluster_flags,
-                            V.context_ms.value, \
-                            M.architecture, \
-                            "'"+json.dumps({k:v.value for k,v in V.model_parameters.items()})+"'", \
-                            logdir, model, check_point, str(M.classify_parallelize), \
-                            str(M.audio_tic_rate), str(M.audio_nchannels))
+                            "--start_checkpoint="+os.path.join(logdir,model,"ckpt-"+check_point), \
+                            "--output_file="+os.path.join(logdir,model,"frozen-graph.ckpt-"+check_point+".pb"), \
+                            "--labels_touse="+','.join(labels),
+                            "--context_ms="+V.context_ms.value,
+                            "--model_architecture="+M.architecture,
+                            "--model_parameters='"+json.dumps({k:v.value for k,v in V.model_parameters.items()})+"'",
+                            "--parallelize="+str(M.classify_parallelize),
+                            "--audio_tic_rate="+str(M.audio_tic_rate),
+                            "--nchannels="+str(M.audio_nchannels))
     displaystring = "FREEZE " + \
                     os.path.join(os.path.basename(logdir), model, "ckpt-"+check_point) + \
                     " ("+jobid+")"
@@ -1327,14 +1342,20 @@ async def _classify_actuate(wavfiles):
     currtime = time.time()
     logdir, model, _, check_point = M.parse_model_file(V.model_file.value)
     logfile = os.path.splitext(wavfile)[0]+'-classify.log'
-    args = [V.context_ms.value, \
-            V.shiftby_ms.value, \
-            logdir, model, check_point, wavfile, str(M.audio_tic_rate), str(M.classify_parallelize)]
+    args = ["--context_ms="+V.context_ms.value,
+            "--shiftby_ms="+V.shiftby_ms.value,
+            "--model="+os.path.join(logdir,model,"frozen-graph.ckpt-"+check_point+".pb"),
+            "--model_labels="+os.path.join(logdir,model,"labels.txt"),
+            "--wav="+wavfile,
+            "--parallelize="+str(M.classify_parallelize)]
     if V.prevalences.value!='':
-        args += [V.labels_touse.value, V.prevalences.value]
+        args += ["--labels="+V.labels_touse.value,
+                 "--prevalences="+V.prevalences.value]
+    else:
+        args += ["--labels=", "--prevalences="]
     p = run(["date", "+%s"], stdout=PIPE, stderr=STDOUT)
     if M.classify_gpu:
-        jobid = generic_actuate("classify.sh", logfile, M.classify_where,
+        jobid = generic_actuate("classify.py", logfile, M.classify_where,
                                   M.classify_gpu_ncpu_cores,
                                   M.classify_gpu_ngpu_cards,
                                   M.classify_gpu_ngigabytes_memory,
@@ -1342,7 +1363,7 @@ async def _classify_actuate(wavfiles):
                                   M.classify_gpu_cluster_flags,
                                   *args)
     else:
-        jobid = generic_actuate("classify.sh", logfile, M.classify_where,
+        jobid = generic_actuate("classify.py", logfile, M.classify_where,
                                   M.classify_cpu_ncpu_cores,
                                   M.classify_cpu_ngpu_cards,
                                   M.classify_cpu_ngigabytes_memory,
@@ -1393,7 +1414,7 @@ async def _ethogram_actuate(i, wavfiles, threads, results):
     else:
         thresholds_file = 'thresholds.ckpt-'+check_point+'.csv'
     logfile = os.path.splitext(wavfile)[0]+'-ethogram.log'
-    jobid = generic_actuate("ethogram.sh", logfile, M.ethogram_where,
+    jobid = generic_actuate("ethogram.py", logfile, M.ethogram_where,
                             M.ethogram_ncpu_cores,
                             M.ethogram_ngpu_cards,
                             M.ethogram_ngigabytes_memory,
@@ -1434,7 +1455,7 @@ def compare_succeeded(logdirprefix, reftime):
 async def compare_actuate():
     currtime = time.time()
     logfile = V.logs_folder.value+'-compare.log'
-    jobid = generic_actuate("compare.sh", logfile,
+    jobid = generic_actuate("compare.py", logfile,
                             M.compare_where,
                             M.compare_ncpu_cores,
                             M.compare_ngpu_cards,
@@ -1494,7 +1515,7 @@ async def congruence_actuate():
     if '' in all_files:
         all_files.remove('')
     logfile = os.path.join(V.groundtruth_folder.value,'congruence.log')
-    jobid = generic_actuate("congruence.sh", logfile,
+    jobid = generic_actuate("congruence.py", logfile,
                             M.congruence_where,
                             M.congruence_ncpu_cores,
                             M.congruence_ngpu_cards,
@@ -1634,37 +1655,37 @@ def _copy_callback():
         return
     with open(logfile, "r") as fid:
         for line in fid:
-            if "batch_size" in line:
+            if "batch_size = " in line:
                 m=re.search('batch_size = (\d+)', line)
                 V.mini_batch.value = m.group(1)
-            elif "context_ms" in line:
+            elif "context_ms = " in line:
                 m=re.search('context_ms = (.*)', line)
                 V.context_ms.value = m.group(1)
-            elif "time_shift_ms" in line:
+            elif "time_shift_ms = " in line:
                 m=re.search('time_shift_ms = (.*)', line)
                 V.shiftby_ms.value = m.group(1)
-            elif "data_dir" in line:
+            elif "data_dir = " in line:
                 m=re.search('data_dir = (.*)', line)
                 V.groundtruth_folder.value = m.group(1)
-            elif "random_seed_batch" in line:
+            elif "random_seed_batch = " in line:
                 m=re.search('random_seed_batch = (.*)', line)
                 V.batch_seed.value = m.group(1)
-            elif "random_seed_weights" in line:
+            elif "random_seed_weights = " in line:
                 m=re.search('random_seed_weights = (.*)', line)
                 V.weights_seed.value = m.group(1)
-            elif "validate_step_period" in line:
+            elif "validate_step_period = " in line:
                 m=re.search('validate_step_period = (\d+)', line)
                 V.save_and_validate_period.value = m.group(1)
-            elif "how_many_training_steps" in line:
+            elif "how_many_training_steps = " in line:
                 m=re.search('how_many_training_steps = (\d+)', line)
                 V.nsteps.value = m.group(1)
-            elif "kinds_touse" in line:
+            elif "kinds_touse = " in line:
                 m=re.search('kinds_touse = (.*)', line)
                 V.kinds_touse.value = m.group(1)
-            elif "learning_rate" in line:
+            elif "learning_rate = " in line:
                 m=re.search('learning_rate = (.*)', line)
                 V.learning_rate.value = m.group(1)
-            elif "optimizer" in line:
+            elif "optimizer = " in line:
                 m=re.search('optimizer = (.*)', line)
                 V.optimizer.value = m.group(1)
             elif "start_checkpoint = " in line:
@@ -1673,13 +1694,13 @@ def _copy_callback():
                     V.restore_from.value = m.group(1)
                 else:
                     V.restore_from.value = ''
-            elif "testing_files" in line:
+            elif "testing_files = " in line:
                 m=re.search('testing_files = (.*)', line)
                 V.test_files.value = m.group(1)
-            elif "validation_files" in line:
+            elif "validation_files = " in line:
                 m=re.search('validation_files = (.*)', line)
                 V.validation_files.value = m.group(1)
-            elif "validation_percentage" in line:
+            elif "validation_percentage = " in line:
                 m=re.search('validation_percentage = (.*)', line)
                 V.validate_percentage.value = m.group(1)
                 validate_perentage_float = float(V.validate_percentage.value)
@@ -1687,10 +1708,10 @@ def _copy_callback():
                     V.kfold.value = str(int(round(100/validate_perentage_float)))
                 else:
                     V.kfold.value = "0"
-            elif "labels_touse" in line:
+            elif "labels_touse = " in line:
                 m=re.search('labels_touse = (.*)', line)
                 V.labels_touse.value = m.group(1)
-            elif "model_parameters" in line:
+            elif "model_parameters = " in line:
                 m=re.search('model_parameters = ({.*})', line)
                 params = json.loads(m.group(1))
                 for k,v in params.items():

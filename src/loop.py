@@ -1,3 +1,5 @@
+#!/usr/bin/python3
+
 #This file, originally from the TensorFlow speech recognition tutorial,
 #has been heavily modified for use by SongExplorer.
 
@@ -78,10 +80,12 @@ import numpy as np
 import tensorflow as tf
 from tensorflow.keras.optimizers import *
 
-import input_data
+import data
 import models
 
-import datetime as dt
+from subprocess import run, PIPE, STDOUT
+from datetime import datetime
+import socket
 
 import json
 
@@ -130,7 +134,7 @@ def main():
       FLAGS.context_ms,
       FLAGS.model_parameters)
 
-  audio_processor = input_data.AudioProcessor(
+  audio_processor = data.AudioProcessor(
       FLAGS.data_dir,
       FLAGS.shiftby_ms,
       FLAGS.labels_touse.split(','), FLAGS.kinds_touse.split(','),
@@ -161,7 +165,7 @@ def main():
     print('Saving to "%s-%d"' % (checkpoint_basepath, 0))
     checkpoint.write(checkpoint_basepath+'-0')
 
-  t0 = dt.datetime.now()
+  t0 = datetime.now()
   print('Training from time %s, step: %d ' % (t0.isoformat(), start_step))
 
   # Save list of labels.
@@ -205,7 +209,7 @@ def main():
   for training_step in range(start_step, FLAGS.how_many_training_steps + 1):
     if training_set_size>0 and FLAGS.save_step_period>0:
       cross_entropy_mean, train_accuracy = train_step()
-      t1=dt.datetime.now()-t0
+      t1=datetime.now()-t0
 
       with train_writer.as_default():
         tf.summary.scalar('cross_entropy', cross_entropy_mean, step=training_step)
@@ -297,7 +301,7 @@ def validate_and_test(model, set_kind, set_size, model_settings, \
         input_layer[isound:isound+obtained,...] = fingerprints
   print('Confusion Matrix:\n %s\n %s' % \
                   (audio_processor.labels_list, total_conf_matrix.numpy()))
-  t1=dt.datetime.now()-t0
+  t1=datetime.now()-t0
   print('%f,%d,%.1f %s' %
                   (t1.total_seconds(), training_step, \
                    total_accuracy * 100, set_kind.capitalize()))
@@ -500,4 +504,22 @@ if __name__ == '__main__':
       help='Whether to save fingerprint input layer during processing')
 
   FLAGS, unparsed = parser.parse_known_args()
-  main()
+
+  print(str(datetime.now())+": start time")
+  repodir = os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
+  with open(os.path.join(repodir, "VERSION.txt"), 'r') as fid:
+    print('SongExplorer version = '+fid.read().strip().replace('\n',', '))
+  print("hostname = "+socket.gethostname())
+  print("CUDA_VISIBLE_DEVICES = "+os.environ.get('CUDA_VISIBLE_DEVICES',''))
+  p = run('which nvidia-smi && nvidia-smi', shell=True, stdout=PIPE, stderr=STDOUT)
+  print(p.stdout.decode('ascii').rstrip())
+
+  try:
+    main()
+
+  except Exception as e:
+    print(e)
+
+  finally:
+    os.sync()
+    print(str(datetime.now())+": finish time")

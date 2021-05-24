@@ -24,7 +24,7 @@ count_lines() {
   (( "$count" == "$2" )) && return
   echo ERROR: $1 has $count lines when it should have $2; }
 
-repo_path=$(dirname $(dirname $(which detect.sh)))
+repo_path=$(dirname $(dirname $(which detect.py)))
 
 mkdir -p $repo_path/test/scratch/tutorial-sh
 cp $repo_path/configuration.pysh $repo_path/test/scratch/tutorial-sh
@@ -44,12 +44,12 @@ frequency_nw=4
 frequency_p_signal=0.1
 frequency_p_noise=1.0
 frequency_smooth_ms=25.6
-detect.sh \
+detect.py \
       ${wavpath_noext}.wav \
       $time_sigma_signal $time_sigma_noise $time_smooth_ms \
       $frequency_n_ms $frequency_nw $frequency_p_signal $frequency_p_noise $frequency_smooth_ms \
       $audio_tic_rate $audio_nchannels \
-      &> ${wavpath_noext}-detect.log
+      &>> ${wavpath_noext}-detect.log
 
 check_file_exists ${wavpath_noext}-detect.log
 check_file_exists ${wavpath_noext}-detected.csv
@@ -77,7 +77,7 @@ batch_seed=1
 weights_seed=1
 ireplicates=1
 mkdir $logdir
-train.sh \
+train.py \
       $context_ms $shiftby_ms \
       $optimizer $learning_rate \
       $architecture "$model_parameters" \
@@ -86,7 +86,7 @@ train.sh \
       $mini_batch "$testing_files" \
       $audio_tic_rate $audio_nchannels \
       $batch_seed $weights_seed $ireplicates \
-      &> $logdir/train1.log
+      &>> $logdir/train1.log
 
 check_file_exists $logdir/train1.log
 check_file_exists $logdir/train_1r.log
@@ -95,31 +95,40 @@ check_file_exists $logdir/train_1r/ckpt-$nsteps.index
 check_point=$nsteps
 equalize_ratio=1000
 max_sounds=10000
-activations.sh \
-      $context_ms $shiftby_ms \
-      $architecture "$model_parameters" \
-      $logdir train_${ireplicates}r $check_point \
-      $data_dir $labels_touse $kinds_touse \
-      $equalize_ratio $max_sounds $mini_batch \
-      $audio_tic_rate $audio_nchannels \
-      &> $data_dir/activations.log
+activations.py \
+      --context_ms=$context_ms \
+      --shiftby_ms=$shiftby_ms \
+      --model_architecture=$architecture \
+      --model_parameters="$model_parameters" \
+      --start_checkpoint=$logdir/train_${ireplicates}r/ckpt-$check_point \
+      --data_dir=$data_dir \
+      --labels_touse=$labels_touse \
+      --kinds_touse=$kinds_touse \
+      --testing_equalize_ratio=$equalize_ratio \
+      --testing_max_sounds=$max_sounds \
+      --batch_size=$mini_batch \
+      --audio_tic_rate=$audio_tic_rate \
+      --nchannels=$audio_nchannels \
+      --validation_percentage=0.0 \
+      --validation_offset_percentage=0.0 \
+      --save_activations=True \
+      &>> $data_dir/activations.log
 
 check_file_exists $data_dir/activations.log
-check_file_exists $data_dir/activations-sounds.log
 check_file_exists $data_dir/activations.npz
 
 groundtruth_directory=$data_dir
 these_layers=0
 pca_fraction_variance_to_retain=0.99
 pca_batch_size=0
-cluster_algorithm=tsne
+cluster_algorithm=tSNE
 cluster_ndims=2
 cluster_args=(30 12)
-cluster.sh \
+cluster.py \
       $groundtruth_directory $these_layers \
       $pca_fraction_variance_to_retain $pca_batch_size \
       $cluster_algorithm $cluster_ndims $cluster_parallelize ${cluster_args[@]} \
-      &> $data_dir/cluster.log
+      &>> $data_dir/cluster.log
 
 check_file_exists $data_dir/cluster.log
 check_file_exists $data_dir/cluster.npz
@@ -135,7 +144,7 @@ nsteps=300
 save_and_test_period=30
 validation_percentage=40
 mkdir $logdir
-train.sh \
+train.py \
       $context_ms $shiftby_ms \
       $optimizer $learning_rate  \
       $architecture "$model_parameters" \
@@ -144,7 +153,7 @@ train.sh \
       $mini_batch "$testing_files" \
       $audio_tic_rate $audio_nchannels \
       $batch_seed $weights_seed $ireplicates \
-      &> $logdir/train1.log
+      &>> $logdir/train1.log
 
 check_file_exists $logdir/train1.log
 check_file_exists $logdir/train_1r.log
@@ -152,9 +161,9 @@ check_file_exists $logdir/train_1r/ckpt-$nsteps.index
 check_file_exists $logdir/train_1r/logits.validation.ckpt-$nsteps.npz
 
 precision_recall_ratios=0.5,1.0,2.0
-accuracy.sh $logdir $precision_recall_ratios \
+accuracy.py $logdir $precision_recall_ratios \
       $nprobabilities $accuracy_parallelize \
-      &> $logdir/accuracy.log
+      &>> $logdir/accuracy.log
 
 check_file_exists $logdir/accuracy.log
 check_file_exists $logdir/accuracy.pdf
@@ -168,26 +177,36 @@ for label in $(echo $labels_touse | sed "s/,/ /g") ; do
 done
 
 check_point=$nsteps
-freeze.sh \
-      $context_ms \
-      $architecture "$model_parameters" \
-      $logdir train_${ireplicates}r $check_point $classify_parallelize \
-      $audio_tic_rate $audio_nchannels \
-      &> $logdir/train_${ireplicates}r/freeze.ckpt-$check_point.log
+freeze.py \
+      --context_ms=$context_ms \
+      --model_architecture=$architecture \
+      --model_parameters="$model_parameters" \
+      --start_checkpoint=${logdir}/train_${ireplicates}r/ckpt-$check_point \
+      --output_file=${logdir}/train_${ireplicates}r/frozen-graph.ckpt-${check_point}.pb \
+      --labels_touse=$labels_touse \
+      --parallelize=$classify_parallelize \
+      --audio_tic_rate=$audio_tic_rate \
+      --nchannels=$audio_nchannels \
+      &>> $logdir/train_${ireplicates}r/freeze.ckpt-${check_point}.log
 
-check_file_exists $logdir/train_${ireplicates}r/freeze.ckpt-$check_point.log
-check_file_exists $logdir/train_${ireplicates}r/frozen-graph.ckpt-$check_point.pb
+check_file_exists $logdir/train_${ireplicates}r/freeze.ckpt-${check_point}.log
+check_file_exists $logdir/train_${ireplicates}r/frozen-graph.ckpt-${check_point}.pb
 
 mkdir $repo_path/test/scratch/tutorial-sh/groundtruth-data/round2
 cp $repo_path/data/20161207T102314_ch1.wav \
    $repo_path/test/scratch/tutorial-sh/groundtruth-data/round2
 
 wavpath_noext=$repo_path/test/scratch/tutorial-sh/groundtruth-data/round2/20161207T102314_ch1
-classify.sh \
-      $context_ms $shiftby_ms \
-      $logdir train_${ireplicates}r $check_point \
-      ${wavpath_noext}.wav \
-      $audio_tic_rate $classify_parallelize &> ${wavpath_noext}-classify.log
+classify.py \
+      --context_ms=$context_ms \
+      --shiftby_ms=$shiftby_ms \
+      --model=$logdir/train_${ireplicates}r/frozen-graph.ckpt-${check_point}.pb \
+      --model_labels=$logdir/train_${ireplicates}r/labels.txt \
+      --wav=${wavpath_noext}.wav \
+      --parallelize=$classify_parallelize \
+      --labels= \
+      --prevalences= \
+      &>> ${wavpath_noext}-classify.log
 
 check_file_exists ${wavpath_noext}-classify.log
 
@@ -195,10 +214,10 @@ for label in $(echo $labels_touse | sed "s/,/ /g") ; do
   check_file_exists ${wavpath_noext}-${label}.wav
 done
 
-ethogram.sh \
+ethogram.py \
       $logdir train_${ireplicates}r thresholds.ckpt-${check_point}.csv \
       $wavpath_noext $audio_tic_rate \
-      &> ${wavpath_noext}-ethogram.log
+      &>> ${wavpath_noext}-ethogram.log
 
 check_file_exists ${wavpath_noext}-ethogram.log
 for pr in $(echo $precision_recall_ratios | sed "s/,/ /g") ; do
@@ -208,12 +227,12 @@ count_lines_with_label ${wavpath_noext}-predicted-1.0pr.csv mel-pulse 535 WARNIN
 count_lines_with_label ${wavpath_noext}-predicted-1.0pr.csv mel-sine 518 WARNING
 count_lines_with_label ${wavpath_noext}-predicted-1.0pr.csv ambient 261 WARNING
 
-detect.sh \
+detect.py \
       ${wavpath_noext}.wav \
       $time_sigma_signal $time_sigma_noise $time_smooth_ms \
       $frequency_n_ms $frequency_nw $frequency_p_signal $frequency_p_noise $frequency_smooth_ms \
       $audio_tic_rate $audio_nchannels \
-      &> ${wavpath_noext}-detect.log
+      &>> ${wavpath_noext}-detect.log
 
 check_file_exists ${wavpath_noext}-detect.log
 check_file_exists ${wavpath_noext}-detected.csv
@@ -221,7 +240,7 @@ count_lines_with_label ${wavpath_noext}-detected.csv time 1298 ERROR
 count_lines_with_label ${wavpath_noext}-detected.csv frequency 179 ERROR
 
 csvfiles=${wavpath_noext}-detected.csv,${wavpath_noext}-predicted-1.0pr.csv
-misses.sh $csvfiles &> ${wavpath_noext}-misses.log
+misses.py $csvfiles &> ${wavpath_noext}-misses.log
 
 check_file_exists ${wavpath_noext}-misses.log
 check_file_exists ${wavpath_noext}-missed.csv
@@ -234,32 +253,41 @@ model=train_${ireplicates}r
 kinds_touse=annotated,missed
 equalize_ratio=1000
 max_sounds=10000
-activations.sh \
-      $context_ms $shiftby_ms \
-      $architecture "$model_parameters" \
-      $logdir $model $check_point \
-      $data_dir $labels_touse $kinds_touse \
-      $equalize_ratio $max_sounds $mini_batch \
-      $audio_tic_rate $audio_nchannels \
-      &> $data_dir/activations.log
+activations.py \
+      --context_ms=$context_ms \
+      --shiftby_ms=$shiftby_ms \
+      --model_architecture=$architecture \
+      --model_parameters="$model_parameters" \
+      --start_checkpoint=$logdir/$model/ckpt-$check_point \
+      --data_dir=$data_dir \
+      --labels_touse=$labels_touse \
+      --kinds_touse=$kinds_touse \
+      --testing_equalize_ratio=$equalize_ratio \
+      --testing_max_sounds=$max_sounds \
+      --batch_size=$mini_batch \
+      --audio_tic_rate=$audio_tic_rate \
+      --nchannels=$audio_nchannels \
+      --validation_percentage=0.0 \
+      --validation_offset_percentage=0.0 \
+      --save_activations=True \
+      &>> $data_dir/activations.log
 
 check_file_exists $data_dir/activations.log
-check_file_exists $data_dir/activations-sounds.log
 check_file_exists $data_dir/activations.npz
 
 groundtruth_directory=$data_dir
 these_layers=2,3
 pca_fraction_variance_to_retain=1.0
 pca_batch_size=0
-cluster_algorithm=umap
+cluster_algorithm=UMAP
 cluster_ndims=3
 cluster_parallelize=1
 cluster_args=(10 0.1)
-cluster.sh \
+cluster.py \
       $groundtruth_directory $these_layers \
       $pca_fraction_variance_to_retain $pca_batch_size \
       $cluster_algorithm $cluster_ndims $cluster_parallelize ${cluster_args[@]} \
-      &> $data_dir/cluster.log
+      &>> $data_dir/cluster.log
 
 check_file_exists $data_dir/cluster.log
 check_file_exists $data_dir/cluster.npz
@@ -272,7 +300,7 @@ wavfiles=(PS_20130625111709_ch3.wav 20161207T102314_ch1.wav)
 mkdir $logdir
 ioffsets=$(seq 0 $(dc -e "${#wavfiles[@]} 1 - p"))
 for ioffset in $ioffsets ; do
-  generalize.sh \
+  generalize.py \
         $context_ms $shiftby_ms \
         $optimizer $learning_rate \
         $architecture "$model_parameters" \
@@ -281,7 +309,7 @@ for ioffset in $ioffsets ; do
         "$testing_files" $audio_tic_rate $audio_nchannels \
         $batch_seed $weights_seed \
         $ioffset ${wavfiles[ioffset]} \
-        &> $logdir/generalize$(dc -e "${ioffset} 1 + p").log
+        &>> $logdir/generalize$(dc -e "${ioffset} 1 + p").log
 done
 
 for ioffset in $ioffsets ; do
@@ -292,9 +320,9 @@ for ioffset in $ioffsets ; do
   check_file_exists $logdir/generalize_${ioffset1}w/logits.validation.ckpt-$nsteps.npz
 done
 
-accuracy.sh $logdir $precision_recall_ratios \
+accuracy.py $logdir $precision_recall_ratios \
       $nprobabilities $accuracy_parallelize \
-      &> $logdir/accuracy.log
+      &>> $logdir/accuracy.log
 
 check_file_exists $logdir/accuracy.log
 check_file_exists $logdir/accuracy.pdf
@@ -318,7 +346,7 @@ for nfeatures in ${nfeaturess[@]} ; do
   ifolds=$(seq 1 $kfold)
   mkdir $logdir
   for ifold in $ifolds ; do
-    xvalidate.sh \
+    xvalidate.py \
           $context_ms $shiftby_ms \
           $optimizer $learning_rate  \
           $architecture "$model_parameters" \
@@ -327,7 +355,7 @@ for nfeatures in ${nfeaturess[@]} ; do
           "$testing_files" $audio_tic_rate $audio_nchannels \
           $batch_seed $weights_seed \
           $kfold $ifold \
-          &> $logdir/xvalidate${ifold}.log
+          &>> $logdir/xvalidate${ifold}.log
   done
 
   for ifold in $ifolds ; do
@@ -337,9 +365,9 @@ for nfeatures in ${nfeaturess[@]} ; do
     check_file_exists $logdir/xvalidate_${ifold}k/logits.validation.ckpt-$nsteps.npz
   done
 
-  accuracy.sh $logdir $precision_recall_ratios \
+  accuracy.py $logdir $precision_recall_ratios \
         $nprobabilities $accuracy_parallelize \
-        &> $logdir/accuracy.log
+        &>> $logdir/accuracy.log
 
   check_file_exists $logdir/accuracy.log
   check_file_exists $logdir/accuracy.pdf
@@ -357,14 +385,14 @@ for nfeatures in ${nfeaturess[@]} ; do
 done
 
 logdirs_prefix=$repo_path/test/scratch/tutorial-sh/nfeatures
-compare.sh $logdirs_prefix &> ${logdirs_prefix}-compare.log
+compare.py $logdirs_prefix &> ${logdirs_prefix}-compare.log
 
 check_file_exists ${logdirs_prefix}-compare.log
 check_file_exists ${logdirs_prefix}-compare-precision-recall.pdf
 check_file_exists ${logdirs_prefix}-compare-confusion-matrices.pdf
 check_file_exists ${logdirs_prefix}-compare-overall-params-speed.pdf
 
-mistakes.sh $data_dir &> $data_dir/mistakes.log
+mistakes.py $data_dir &> $data_dir/mistakes.log
 
 check_file_exists $data_dir/mistakes.log
 check_file_exists $data_dir/round1/PS_20130625111709_ch3-mistakes.csv
@@ -373,7 +401,7 @@ logdir=$repo_path/test/scratch/tutorial-sh/trained-classifier2
 kinds_touse=annotated
 validation_percentage=20
 mkdir $logdir
-train.sh \
+train.py \
       $context_ms $shiftby_ms \
       $optimizer $learning_rate  \
       $architecture "$model_parameters" \
@@ -382,7 +410,7 @@ train.sh \
       $mini_batch "$testing_files" \
       $audio_tic_rate $audio_nchannels \
       $batch_seed $weights_seed $ireplicates \
-      &> $logdir/train1.log
+      &>> $logdir/train1.log
 
 check_file_exists $logdir/train1.log
 check_file_exists $logdir/train_1r.log
@@ -390,9 +418,9 @@ check_file_exists $logdir/train_1r/ckpt-$nsteps.index
 check_file_exists $logdir/train_1r/logits.validation.ckpt-$nsteps.npz
 
 precision_recall_ratios=1.0
-accuracy.sh $logdir $precision_recall_ratios \
+accuracy.py $logdir $precision_recall_ratios \
       $nprobabilities $accuracy_parallelize \
-      &> $logdir/accuracy.log
+      &>> $logdir/accuracy.log
 
 check_file_exists $logdir/accuracy.log
 check_file_exists $logdir/accuracy.pdf
@@ -405,26 +433,36 @@ for label in $(echo $labels_touse | sed "s/,/ /g") ; do
   check_file_exists $logdir/validation-PvR-$label.pdf
 done
 
-freeze.sh \
-      $context_ms \
-      $architecture "$model_parameters" \
-      $logdir train_${ireplicates}r $check_point $classify_parallelize \
-      $audio_tic_rate $audio_nchannels \
-      &> $logdir/train_${ireplicates}r/freeze.ckpt-$check_point.log
+freeze.py \
+      --context_ms=$context_ms \
+      --model_architecture=$architecture \
+      --model_parameters="$model_parameters" \
+      --start_checkpoint=${logdir}/train_${ireplicates}r/ckpt-$check_point \
+      --output_file=${logdir}/train_${ireplicates}r/frozen-graph.ckpt-${check_point}.pb \
+      --labels_touse=$labels_touse \
+      --parallelize=$classify_parallelize \
+      --audio_tic_rate=$audio_tic_rate \
+      --nchannels=$audio_nchannels \
+      &>> $logdir/train_${ireplicates}r/freeze.ckpt-${check_point}.log
 
-check_file_exists $logdir/train_${ireplicates}r/freeze.ckpt-$check_point.log
-check_file_exists $logdir/train_${ireplicates}r/frozen-graph.ckpt-$check_point.pb
+check_file_exists $logdir/train_${ireplicates}r/freeze.ckpt-${check_point}.log
+check_file_exists $logdir/train_${ireplicates}r/frozen-graph.ckpt-${check_point}.pb
 
 mkdir $repo_path/test/scratch/tutorial-sh/groundtruth-data/congruence
 cp $repo_path/data/20190122T093303a-7.wav \
    $repo_path/test/scratch/tutorial-sh/groundtruth-data/congruence
 
 wavpath_noext=$repo_path/test/scratch/tutorial-sh/groundtruth-data/congruence/20190122T093303a-7
-classify.sh \
-      $context_ms $shiftby_ms \
-      $logdir train_${ireplicates}r $check_point ${wavpath_noext}.wav \
-      $audio_tic_rate $classify_parallelize \
-      &> ${wavpath_noext}-classify.log
+classify.py \
+      --context_ms=$context_ms \
+      --shiftby_ms=$shiftby_ms \
+      --model=$logdir/train_${ireplicates}r/frozen-graph.ckpt-${check_point}.pb \
+      --model_labels=$logdir/train_${ireplicates}r/labels.txt \
+      --wav=${wavpath_noext}.wav \
+      --parallelize=$classify_parallelize \
+      --labels= \
+      --prevalences= \
+      &>> ${wavpath_noext}-classify.log
 
 check_file_exists ${wavpath_noext}-classify.log
 
@@ -432,10 +470,10 @@ for label in $(echo $labels_touse | sed "s/,/ /g") ; do
   check_file_exists ${wavpath_noext}-${label}.wav
 done
 
-ethogram.sh \
+ethogram.py \
       $logdir train_${ireplicates}r thresholds.ckpt-${check_point}.csv \
       ${wavpath_noext}.wav $audio_tic_rate \
-      &> ${wavpath_noext}-ethogram.log
+      &>> ${wavpath_noext}-ethogram.log
 
 check_file_exists ${wavpath_noext}-ethogram.log
 for pr in $(echo $precision_recall_ratios | sed "s/,/ /g") ; do
@@ -450,9 +488,9 @@ cp $repo_path/data/20190122T093303a-7-annotated-person3.csv \
 wav_file_noext=20190122T093303a-7
 portion=union
 convolve_ms=0.0
-congruence.sh \
+congruence.py \
       $data_dir ${wav_file_noext}.wav $portion $convolve_ms $nprobabilities $audio_tic_rate $congruence_parallelize \
-      &> $data_dir/congruence.log
+      &>> $data_dir/congruence.log
 
 check_file_exists $data_dir/congruence.log
 check_file_exists $data_dir/congruence/$wav_file_noext-disjoint-everyone.csv

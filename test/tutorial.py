@@ -101,7 +101,6 @@ asyncio.run(C.activations_actuate())
 wait_for_job(M.status_ticker_queue)
 
 check_file_exists(os.path.join(V.groundtruth_folder.value, "activations.log"))
-check_file_exists(os.path.join(V.groundtruth_folder.value, "activations-sounds.log"))
 check_file_exists(os.path.join(V.groundtruth_folder.value, "activations.npz"))
 
 V.cluster_these_layers.value = ["0"]
@@ -232,7 +231,6 @@ asyncio.run(C.activations_actuate())
 wait_for_job(M.status_ticker_queue)
 
 check_file_exists(os.path.join(V.groundtruth_folder.value, "activations.log"))
-check_file_exists(os.path.join(V.groundtruth_folder.value, "activations-sounds.log"))
 check_file_exists(os.path.join(V.groundtruth_folder.value, "activations.npz"))
 
 V.cluster_these_layers.value = ["2","3"]

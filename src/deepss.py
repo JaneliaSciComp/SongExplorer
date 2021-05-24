@@ -55,7 +55,6 @@ def create_model(model_settings):
     else:
         window_tics = int(audio_tic_rate * float(model_settings['window_ms']) / 1000)
         stride_tics = int(audio_tic_rate * float(model_settings['stride_ms']) / 1000)
-
     kernel_size = int(model_settings['kernel_size'])
     nstacks = int(model_settings['nstacks'])
     dilations = [int(x) for x in model_settings['dilations'].split(',')]
