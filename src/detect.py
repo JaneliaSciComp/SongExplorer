@@ -63,7 +63,12 @@ try:
           ") is not the same as specified in the config file (="+str(audio_tic_rate)+")")
 
   if not (frequency_n & (frequency_n-1) == 0) or frequency_n == 0:
-    raise Exception("ERROR: `freq N (msec)` should be a power of two when converted to tics")
+    next_higher = np.power(2, np.ceil(np.log2(frequency_n))).astype(np.int)
+    next_lower = np.power(2, np.floor(np.log2(frequency_n))).astype(np.int)
+    sigdigs = np.ceil(np.log10(next_higher)).astype(np.int)+1
+    next_higher_ms = np.around(next_higher/audio_tic_rate*1000, decimals=sigdigs)
+    next_lower_ms = np.around(next_lower/audio_tic_rate*1000, decimals=sigdigs)
+    raise Exception("ERROR: 'freq N (msec)' should be a power of two when converted to tics.  "+frequency_n_ms+" ms is "+str(frequency_n)+" tics for Fs="+str(audio_tic_rate)+".  try "+str(next_lower_ms)+" ms (="+str(next_lower)+") or "+str(next_higher_ms)+"ms (="+str(next_higher)+") instead.")
 
   if np.ndim(song)==1:
     song = np.expand_dims(song, axis=1)

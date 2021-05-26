@@ -3,6 +3,8 @@ import math
 import tensorflow as tf
 from tensorflow.keras.layers import *
 
+import numpy as np
+
 model_parameters = [
   # key in `model_settings`, title in GUI, '' for textbox or [] for pull-down, default value, enable logic
   ["representation",     "representation", ['waveform',
@@ -110,11 +112,6 @@ class Slice(tf.keras.layers.Layer):
 def create_model(model_settings):
   audio_tic_rate = model_settings['audio_tic_rate']
   representation = model_settings['representation']
-  if representation == "waveform":
-    window_tics = stride_tics = 1
-  else:
-    window_tics = int(audio_tic_rate * float(model_settings['window_ms']) / 1000)
-    stride_tics = int(audio_tic_rate * float(model_settings['stride_ms']) / 1000)
   kernel_sizes = [int(x) for x in model_settings['kernel_sizes'].split(',')]
   nlayers = int(model_settings['nlayers'])
   nfeatures = [int(x) for x in model_settings['nfeatures'].split(',')]
@@ -123,10 +120,33 @@ def create_model(model_settings):
   use_residual = model_settings['connection_type']=='residual'
   dropout = float(model_settings['dropout'])
 
+  if representation == "waveform":
+    window_tics = stride_tics = 1
+  else:
+    window_tics = round(audio_tic_rate * float(model_settings['window_ms']) / 1000)
+    stride_tics = round(audio_tic_rate * float(model_settings['stride_ms']) / 1000)
+
+    if not (window_tics & (window_tics-1) == 0) or window_tics == 0:
+      next_higher = np.power(2, np.ceil(np.log2(window_tics))).astype(np.int)
+      next_lower = np.power(2, np.floor(np.log2(window_tics))).astype(np.int)
+      sigdigs = np.ceil(np.log10(next_higher)).astype(np.int)+1
+      next_higher_ms = np.around(next_higher/audio_tic_rate*1000, decimals=sigdigs)
+      next_lower_ms = np.around(next_lower/audio_tic_rate*1000, decimals=sigdigs)
+      raise Exception("ERROR: 'window (msec)' should be a power of two when converted to tics.  "+
+                      model_settings['window_ms']+" ms is "+str(window_tics)+" tics for Fs="+
+                      str(audio_tic_rate)+".  try "+str(next_lower_ms)+" ms (="+str(next_lower)+
+                      ") or "+str(next_higher_ms)+"ms (="+str(next_higher)+") instead.")
+
+  downsample_by = max(0, nlayers - stride_after_layer + 1)
+  output_tic_rate = audio_tic_rate / stride_tics / 2**downsample_by
+  if output_tic_rate != round(output_tic_rate):
+    raise Exception("ERROR: 1000 / 'stride (msec)' should be an integer multiple of the downsampling rate achieved by `stride after`")
+  else:
+    print('output_tic_rate = '+str(output_tic_rate))
+
   iconv=0
   hidden_layers = []
 
-  downsample_by = max(0, nlayers - stride_after_layer + 1)
   ninput_tics = model_settings['context_tics'] + \
            (model_settings['parallelize']-1) * stride_tics * 2 ** downsample_by
   noutput_tics = (model_settings['context_tics']-window_tics) // stride_tics + 1

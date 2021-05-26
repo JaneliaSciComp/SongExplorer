@@ -193,7 +193,6 @@ configuration file.  For now, you just need to decide where you're going to put 
 and then specify the full path to that file in the alias definition (e.g.
 "$HOME/songexplorer/configuration.pysh").
 
-
 ## Docker for Windows and Mac ##
 
 Platform-specific installation instructions can be found at
@@ -1154,7 +1153,8 @@ constitute the spectrogram.  `window` / 1000 * `audio_tic_rate` is the
 window length in tics and should round down to a power of two.
 
 * `stride` is the time, in milliseconds, by which the `window`s in the
-spectrogram are shifted.  1000/`stride` must be an integer.
+spectrogram are shifted.  1000/`stride` must be an integer multiple of
+the downsampling rate achieved by `stride after`.
 
 * `mel & DCT` controls the frequency resolution of the mel-frequency cepstrum.
 The first number specifies how many frequencies to use when resampling the
