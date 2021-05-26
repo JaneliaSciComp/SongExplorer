@@ -30,6 +30,7 @@ mkdir -p $repo_path/test/scratch/tutorial-sh
 cp $repo_path/configuration.pysh $repo_path/test/scratch/tutorial-sh
 
 source $repo_path/test/scratch/tutorial-sh/configuration.pysh
+deterministic=1
 
 mkdir -p $repo_path/test/scratch/tutorial-sh/groundtruth-data/round1
 cp $repo_path/data/PS_20130625111709_ch3.wav \
@@ -85,7 +86,8 @@ train.py \
       $nsteps "$restore_from" $save_and_test_period $validation_percentage \
       $mini_batch "$testing_files" \
       $audio_tic_rate $audio_nchannels \
-      $batch_seed $weights_seed $ireplicates \
+      $batch_seed $weights_seed $deterministic \
+      $ireplicates \
       &>> $logdir/train1.log
 
 check_file_exists $logdir/train1.log
@@ -111,6 +113,7 @@ activations.py \
       --nchannels=$audio_nchannels \
       --validation_percentage=0.0 \
       --validation_offset_percentage=0.0 \
+      --deterministic=$deterministic \
       --save_activations=True \
       &>> $data_dir/activations.log
 
@@ -152,7 +155,8 @@ train.py \
       $nsteps "$restore_from" $save_and_test_period $validation_percentage \
       $mini_batch "$testing_files" \
       $audio_tic_rate $audio_nchannels \
-      $batch_seed $weights_seed $ireplicates \
+      $batch_seed $weights_seed $deterministic \
+      $ireplicates \
       &>> $logdir/train1.log
 
 check_file_exists $logdir/train1.log
@@ -204,6 +208,7 @@ classify.py \
       --model_labels=$logdir/train_${ireplicates}r/labels.txt \
       --wav=${wavpath_noext}.wav \
       --parallelize=$classify_parallelize \
+      --deterministic=$deterministic \
       --labels= \
       --prevalences= \
       &>> ${wavpath_noext}-classify.log
@@ -223,7 +228,7 @@ check_file_exists ${wavpath_noext}-ethogram.log
 for pr in $(echo $precision_recall_ratios | sed "s/,/ /g") ; do
   check_file_exists ${wavpath_noext}-predicted-${pr}pr.csv
 done
-count_lines_with_label ${wavpath_noext}-predicted-1.0pr.csv mel-pulse 535 WARNING
+count_lines_with_label ${wavpath_noext}-predicted-1.0pr.csv mel-pulse 536 WARNING
 count_lines_with_label ${wavpath_noext}-predicted-1.0pr.csv mel-sine 518 WARNING
 count_lines_with_label ${wavpath_noext}-predicted-1.0pr.csv ambient 261 WARNING
 
@@ -269,6 +274,7 @@ activations.py \
       --nchannels=$audio_nchannels \
       --validation_percentage=0.0 \
       --validation_offset_percentage=0.0 \
+      --deterministic=$deterministic \
       --save_activations=True \
       &>> $data_dir/activations.log
 
@@ -307,7 +313,7 @@ for ioffset in $ioffsets ; do
         $logdir $data_dir $labels_touse $kinds_touse \
         $nsteps "$restore_from" $save_and_test_period $mini_batch \
         "$testing_files" $audio_tic_rate $audio_nchannels \
-        $batch_seed $weights_seed \
+        $batch_seed $weights_seed $deterministic \
         $ioffset ${wavfiles[ioffset]} \
         &>> $logdir/generalize$(dc -e "${ioffset} 1 + p").log
 done
@@ -353,7 +359,7 @@ for nfeatures in ${nfeaturess[@]} ; do
           $logdir $data_dir $labels_touse $kinds_touse \
           $nsteps "$restore_from" $save_and_test_period $mini_batch \
           "$testing_files" $audio_tic_rate $audio_nchannels \
-          $batch_seed $weights_seed \
+          $batch_seed $weights_seed $deterministic \
           $kfold $ifold \
           &>> $logdir/xvalidate${ifold}.log
   done
@@ -409,7 +415,8 @@ train.py \
       $nsteps "$restore_from" $save_and_test_period $validation_percentage \
       $mini_batch "$testing_files" \
       $audio_tic_rate $audio_nchannels \
-      $batch_seed $weights_seed $ireplicates \
+      $batch_seed $weights_seed $deterministic \
+      $ireplicates \
       &>> $logdir/train1.log
 
 check_file_exists $logdir/train1.log
@@ -460,6 +467,7 @@ classify.py \
       --model_labels=$logdir/train_${ireplicates}r/labels.txt \
       --wav=${wavpath_noext}.wav \
       --parallelize=$classify_parallelize \
+      --deterministic=$deterministic \
       --labels= \
       --prevalences= \
       &>> ${wavpath_noext}-classify.log

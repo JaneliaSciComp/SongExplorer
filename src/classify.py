@@ -50,6 +50,8 @@ from scipy.io import wavfile
 FLAGS = None
 
 def main():
+  os.environ['TF_DETERMINISTIC_OPS']=FLAGS.deterministic
+
   #Load a wav file and return audio_tic_rate and numpy data of float64 type.
   data, audio_tic_rate = tf.audio.decode_wav(tf.io.read_file(FLAGS.wav))
   audio_tic_rate = audio_tic_rate.numpy()
@@ -166,6 +168,11 @@ if __name__ == '__main__':
       '--parallelize',
       type=int,
       default=1,
+      help='')
+  parser.add_argument(
+      '--deterministic',
+      type=str,
+      default='0',
       help='')
 
   FLAGS, unparsed = parser.parse_known_args()

@@ -29,6 +29,8 @@ M.init(None, os.path.join(repo_path, "test/scratch/tutorial-py/configuration.pys
 V.init(None)
 C.init(None)
 
+M.deterministic='1'
+
 os.makedirs(os.path.join(repo_path, "test/scratch/tutorial-py/groundtruth-data/round1"))
 shutil.copy(os.path.join(repo_path, "data/PS_20130625111709_ch3.wav"), \
             os.path.join(repo_path, "test/scratch/tutorial-py/groundtruth-data/round1"))
@@ -190,7 +192,7 @@ wait_for_job(M.status_ticker_queue)
 check_file_exists(wavpath_noext+"-ethogram.log")
 for pr in V.precision_recall_ratios.value.split(','):
   check_file_exists(wavpath_noext+"-predicted-"+pr+"pr.csv")
-count_lines_with_label(wavpath_noext+"-predicted-1.0pr.csv", "mel-pulse", 535, "WARNING")
+count_lines_with_label(wavpath_noext+"-predicted-1.0pr.csv", "mel-pulse", 536, "WARNING")
 count_lines_with_label(wavpath_noext+"-predicted-1.0pr.csv", "mel-sine", 518, "WARNING")
 count_lines_with_label(wavpath_noext+"-predicted-1.0pr.csv", "ambient", 261, "WARNING")
 

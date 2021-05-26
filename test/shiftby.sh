@@ -46,7 +46,7 @@ train.py \
       $nsteps "$restore_from" $save_and_test_period $validation_percentage \
       $mini_batch "$testing_files" \
       $audio_tic_rate $audio_nchannels \
-      $batch_seed $weights_seed $ireplicates \
+      $batch_seed $weights_seed $deterministic $ireplicates \
       True \
       &> $logdir/train1.log
 
@@ -62,6 +62,6 @@ train.py \
       $nsteps "$restore_from" $save_and_test_period $validation_percentage \
       $mini_batch "$testing_files" \
       $audio_tic_rate $audio_nchannels \
-      $batch_seed $weights_seed $ireplicates \
+      $batch_seed $weights_seed $deterministic $ireplicates \
       True \
       &> $logdir/train1.log

@@ -2,10 +2,10 @@
 
 # train several networks withholding different subsets of the recordings to test upon
 
-# generalize.sh <context-ms> <shiftby-ms> <optimizer> <learning-rate> <model-architecture> <model-parameters-json> <logdir> <path-to-groundtruth> <label1>,<label2>,...,<labelN> <kinds-to-use> <nsteps> <restore-from> <save-and-validate-period> <mini-batch> <testing-files> <audio-tic-rate> <audio-nchannels> <batch-seed> <weights-seed> <ioffset> <subset1> [<subset2> [<subset3>]...]
+# generalize.sh <context-ms> <shiftby-ms> <optimizer> <learning-rate> <model-architecture> <model-parameters-json> <logdir> <path-to-groundtruth> <label1>,<label2>,...,<labelN> <kinds-to-use> <nsteps> <restore-from> <save-and-validate-period> <mini-batch> <testing-files> <audio-tic-rate> <audio-nchannels> <batch-seed> <weights-seed> <deterministic> <ioffset> <subset1> [<subset2> [<subset3>]...]
 
 # e.g.
-# $SONGEXPLORER_BIN generalize.sh 204.8 0.0 Adam 0.0002 convolutional '{"representation":"waveform", "window_ms":6.4, "stride_ms":1.6, "mel_dct":"7,7", "dropout":0.5, "kernel_sizes":5,128", last_conv_width":130, "nfeatures":"256,256", "dilate_after_layer":65535, "stride_after_layer":65535, "connection_type":"plain"}' `pwd`/leave-one-out `pwd`/groundtruth-data mel-pulse,mel-sine,ambient,other annotated 50 '' 10 32 "" 5000 1 -1 -1 3 20161207T102314_ch1_p1.wav,20161207T102314_ch1_p2.wav,20161207T102314_ch1_p3.wav PS_20130625111709_ch3_p1.wav,PS_20130625111709_ch3_p2.wav,PS_20130625111709_ch3_p3.wav
+# $SONGEXPLORER_BIN generalize.sh 204.8 0.0 Adam 0.0002 convolutional '{"representation":"waveform", "window_ms":6.4, "stride_ms":1.6, "mel_dct":"7,7", "dropout":0.5, "kernel_sizes":5,128", last_conv_width":130, "nfeatures":"256,256", "dilate_after_layer":65535, "stride_after_layer":65535, "connection_type":"plain"}' `pwd`/leave-one-out `pwd`/groundtruth-data mel-pulse,mel-sine,ambient,other annotated 50 '' 10 32 "" 5000 1 -1 -1 0 3 20161207T102314_ch1_p1.wav,20161207T102314_ch1_p2.wav,20161207T102314_ch1_p3.wav PS_20130625111709_ch3_p1.wav,PS_20130625111709_ch3_p2.wav,PS_20130625111709_ch3_p3.wav
 
 import os
 import sys
@@ -26,9 +26,9 @@ print(p.stdout.decode('ascii').rstrip())
 
 try:
 
-  _, context_ms, shiftby_ms, optimizer, learning_rate, architecture, model_parameters, logdir, data_dir, labels_touse, kinds_touse, nsteps, restore_from, save_and_validate_period, mini_batch, testing_files, audio_tic_rate, audio_nchannels, batch_seed, weights_seed, ioffset = sys.argv[:21]
+  _, context_ms, shiftby_ms, optimizer, learning_rate, architecture, model_parameters, logdir, data_dir, labels_touse, kinds_touse, nsteps, restore_from, save_and_validate_period, mini_batch, testing_files, audio_tic_rate, audio_nchannels, batch_seed, weights_seed, deterministic, ioffset = sys.argv[:22]
 
-  subsets = sys.argv[21:]
+  subsets = sys.argv[22:]
 
   print('context_ms: '+context_ms)
   print('shiftby_ms: '+shiftby_ms)
@@ -49,6 +49,7 @@ try:
   print('audio_nchannels: '+audio_nchannels)
   print('batch_seed: '+batch_seed)
   print('weights_seed: '+weights_seed)
+  print('deterministic: '+deterministic)
   print('ioffset: '+ioffset)
   print('subsets: '+str(subsets))
 
@@ -87,6 +88,7 @@ try:
             "--nchannels="+audio_nchannels,
             "--random_seed_batch="+batch_seed,
             "--random_seed_weights="+weights_seed,
+            "--deterministic="+deterministic,
             "--train_dir="+os.path.join(logdir,"generalize_"+model),
             "--summaries_dir="+os.path.join(logdir,"summaries_"+model),
             "--validation_files="+subset,

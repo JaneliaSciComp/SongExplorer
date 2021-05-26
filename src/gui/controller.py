@@ -897,7 +897,7 @@ async def train_actuate():
                 V.save_and_validate_period.value, \
                 V.validate_percentage.value, V.mini_batch.value, test_files, \
                 str(M.audio_tic_rate), str(M.audio_nchannels), \
-                V.batch_seed.value, V.weights_seed.value, \
+                V.batch_seed.value, V.weights_seed.value, M.deterministic, \
                 ','.join([str(x) for x in range(ireplicate, min(1+nreplicates, \
                                                                 ireplicate+M.models_per_job))])]
         if M.train_gpu == 1:
@@ -969,7 +969,7 @@ async def leaveout_actuate(comma):
                 V.save_and_validate_period.value, \
                 V.mini_batch.value, test_files, \
                 str(M.audio_tic_rate), str(M.audio_nchannels), \
-                V.batch_seed.value, V.weights_seed.value, \
+                V.batch_seed.value, V.weights_seed.value, M.deterministic, \
                 str(ivalidation_file),
                 *validation_files[ivalidation_file:ivalidation_file+M.models_per_job]]
         if M.generalize_gpu == 1:
@@ -1022,7 +1022,7 @@ async def xvalidate_actuate():
                 V.save_and_validate_period.value, \
                 V.mini_batch.value, test_files, \
                 str(M.audio_tic_rate), str(M.audio_nchannels), \
-                V.batch_seed.value, V.weights_seed.value, \
+                V.batch_seed.value, V.weights_seed.value, M.deterministic, \
                 V.kfold.value, \
                 ','.join([str(x) for x in range(ifold, min(1+kfolds, ifold+M.models_per_job))])]
         if M.xvalidate_gpu == 1:
@@ -1113,6 +1113,7 @@ async def activations_actuate():
             "--nchannels="+str(M.audio_nchannels),
             "--validation_percentage=0.0",
             "--validation_offset_percentage=0.0",
+            "--deterministic="+str(M.deterministic),
             "--save_activations=True"]
     if M.activations_gpu:
         jobid = generic_actuate("activations.py", logfile, M.activations_where,
@@ -1347,7 +1348,8 @@ async def _classify_actuate(wavfiles):
             "--model="+os.path.join(logdir,model,"frozen-graph.ckpt-"+check_point+".pb"),
             "--model_labels="+os.path.join(logdir,model,"labels.txt"),
             "--wav="+wavfile,
-            "--parallelize="+str(M.classify_parallelize)]
+            "--parallelize="+str(M.classify_parallelize),
+            "--deterministic="+str(M.deterministic)]
     if V.prevalences.value!='':
         args += ["--labels="+V.labels_touse.value,
                  "--prevalences="+V.prevalences.value]

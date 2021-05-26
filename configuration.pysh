@@ -182,5 +182,11 @@ nprobabilities=20
 # must be greater than one.
 classify_parallelize=64
 
-# used by developers to specifiy the location of writable code files
+
+# what follows is for developers only
+
+# the location of writable code files
 source_path=""
+
+# a boolean to make the output exactly reproducible
+deterministic=0

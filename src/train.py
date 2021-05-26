@@ -2,10 +2,10 @@
 
 # train a neural network with the annotations
 
-# train.py <context-ms> <shiftby-ms> <optimizer> <learning_rate> <model-architecture> <model-parameters-json> <logdir> <path-to-groundtruth> <label1>,<label2>,...,<labelN> <kinds-to-use> <nsteps> <restore-from> <save-and-validate-period> <validation-percentage> <mini-batch> <testing-files> <audio-tic-rate> <audio-nchannels> <batch-seed> <weights-seed> <ireplicates>
+# train.py <context-ms> <shiftby-ms> <optimizer> <learning_rate> <model-architecture> <model-parameters-json> <logdir> <path-to-groundtruth> <label1>,<label2>,...,<labelN> <kinds-to-use> <nsteps> <restore-from> <save-and-validate-period> <validation-percentage> <mini-batch> <testing-files> <audio-tic-rate> <audio-nchannels> <batch-seed> <weights-seed> <deterministic> <ireplicates>
 
 # e.g.
-# $SONGEXPLORER_BIN train.py 204.8 0.0 Adam 0.0002 convolutional '{"representation":"waveform", "window_ms":6.4, "stride_ms":1.6, "mel_dct":"7,7", "dropout":0.5, "kernel_sizes":5,128", last_conv_width":130, "nfeatures":"256,256", "dilate_after_layer":65535, "stride_after_layer":65535, "connection_type":"plain"}' `pwd`/trained-classifier `pwd`/groundtruth-data mel-sine,mel-pulse,ambient,other annotated 50 '' 10 40 32 "" 5000 1 -1 -1 1,2,3,4
+# $SONGEXPLORER_BIN train.py 204.8 0.0 Adam 0.0002 convolutional '{"representation":"waveform", "window_ms":6.4, "stride_ms":1.6, "mel_dct":"7,7", "dropout":0.5, "kernel_sizes":5,128", last_conv_width":130, "nfeatures":"256,256", "dilate_after_layer":65535, "stride_after_layer":65535, "connection_type":"plain"}' `pwd`/trained-classifier `pwd`/groundtruth-data mel-sine,mel-pulse,ambient,other annotated 50 '' 10 40 32 "" 5000 1 -1 -1 0 1,2,3,4
 
 import os
 import sys
@@ -26,7 +26,7 @@ print(p.stdout.decode('ascii').rstrip())
 
 try:
 
-  _, context_ms, shiftby_ms, optimizer, learning_rate, architecture, model_parameters, logdir, data_dir, labels_touse, kinds_touse, nsteps, restore_from, save_and_validate_period, validation_percentage, mini_batch, testing_files, audio_tic_rate, audio_nchannels, batch_seed, weights_seed, ireplicates = sys.argv[:22]
+  _, context_ms, shiftby_ms, optimizer, learning_rate, architecture, model_parameters, logdir, data_dir, labels_touse, kinds_touse, nsteps, restore_from, save_and_validate_period, validation_percentage, mini_batch, testing_files, audio_tic_rate, audio_nchannels, batch_seed, weights_seed, deterministic, ireplicates = sys.argv[:23]
 
   print('context_ms: '+context_ms)
   print('shiftby_ms: '+shiftby_ms)
@@ -48,6 +48,7 @@ try:
   print('audio_nchannels: '+audio_nchannels)
   print('batch_seed: '+batch_seed)
   print('weights_seed: '+weights_seed)
+  print('deterministic: '+deterministic)
   print('ireplicates: '+ireplicates)
 
   save_fingerprints="False" if len(sys.argv)==23 else sys.argv[23]
@@ -90,6 +91,7 @@ try:
             "--nchannels="+audio_nchannels,
             "--random_seed_batch="+batch_seed,
             "--random_seed_weights="+weights_seed,
+            "--deterministic="+deterministic,
             "--train_dir="+os.path.join(logdir,"train_"+model),
             "--summaries_dir="+os.path.join(logdir,"summaries_"+model),
             "--save_fingerprints="+save_fingerprints]

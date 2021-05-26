@@ -107,6 +107,8 @@ def evaluate_step(model, fingerprint_input, ground_truth_input, istraining):
     return logits, accuracy, predicted_indices, hidden_activations
 
 def main():
+  os.environ['TF_DETERMINISTIC_OPS']=FLAGS.deterministic
+
   sys.path.append(os.path.dirname(FLAGS.model_architecture))
   model = importlib.import_module(os.path.basename(FLAGS.model_architecture))
 
@@ -502,6 +504,11 @@ if __name__ == '__main__':
       type=str2bool,
       default=False,
       help='Whether to save fingerprint input layer during processing')
+  parser.add_argument(
+      '--deterministic',
+      type=str,
+      default='0',
+      help='')
 
   FLAGS, unparsed = parser.parse_known_args()
 

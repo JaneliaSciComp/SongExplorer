@@ -2,10 +2,10 @@
 
 # train several networks on different subsets of the annotations
 
-# xvalidate.sh <context-ms> <shiftby-ms> <optimizer> <learning-rate> <model-architecture> <model-parameters-json> <logdir> <path-to-groundtruth> <label1>,<label2>,...,<labelN> <kinds-to-use> <nsteps> <restore-from> <save-and-validate-period> <mini-batch> <testing-files> <audio-tic-rate> <audio-nchannels> <batch-seed> <weights-seed> <kfold> <ifolds>
+# xvalidate.sh <context-ms> <shiftby-ms> <optimizer> <learning-rate> <model-architecture> <model-parameters-json> <logdir> <path-to-groundtruth> <label1>,<label2>,...,<labelN> <kinds-to-use> <nsteps> <restore-from> <save-and-validate-period> <mini-batch> <testing-files> <audio-tic-rate> <audio-nchannels> <batch-seed> <weights-seed> <deterministic> <kfold> <ifolds>
 
 # e.g.
-# $SONGEXPLORER_BIN xvalidate.sh 204.8 0.0 Adam 0.0002 convolutional '{"representation":"waveform", "window_ms":6.4, "stride_ms":1.6, "mel_dct":"7,7", "dropout":0.5, "kernel_sizes":5,128", last_conv_width":130, "nfeatures":"256,256", "dilate_after_layer":65535, "stride_after_layer":65535, "connection_type":"plain"}' `pwd`/cross-validate `pwd`/groundtruth-data mel-pulse,mel-sine,ambient,other annotated 50 '' 10 32 "" 5000 1 -1 -1 8 1,2
+# $SONGEXPLORER_BIN xvalidate.sh 204.8 0.0 Adam 0.0002 convolutional '{"representation":"waveform", "window_ms":6.4, "stride_ms":1.6, "mel_dct":"7,7", "dropout":0.5, "kernel_sizes":5,128", last_conv_width":130, "nfeatures":"256,256", "dilate_after_layer":65535, "stride_after_layer":65535, "connection_type":"plain"}' `pwd`/cross-validate `pwd`/groundtruth-data mel-pulse,mel-sine,ambient,other annotated 50 '' 10 32 "" 5000 1 -1 -1 0 8 1,2
 
 import os
 import sys
@@ -26,7 +26,7 @@ print(p.stdout.decode('ascii').rstrip())
 
 try:
 
-  _, context_ms, shiftby_ms, optimizer, learning_rate, architecture, model_parameters, logdir, data_dir, labels_touse, kinds_touse, nsteps, restore_from, save_and_validate_period, mini_batch, testing_files, audio_tic_rate, audio_nchannels, batch_seed, weights_seed, kfold, ifolds = sys.argv[:22]
+  _, context_ms, shiftby_ms, optimizer, learning_rate, architecture, model_parameters, logdir, data_dir, labels_touse, kinds_touse, nsteps, restore_from, save_and_validate_period, mini_batch, testing_files, audio_tic_rate, audio_nchannels, batch_seed, weights_seed, deterministic, kfold, ifolds = sys.argv[:23]
 
   print('context_ms: '+context_ms)
   print('shiftby_ms: '+shiftby_ms)
@@ -47,6 +47,7 @@ try:
   print('audio_nchannels: '+audio_nchannels)
   print('batch_seed: '+batch_seed)
   print('weights_seed: '+weights_seed)
+  print('deterministic: '+deterministic)
   print('kfold: '+kfold)
   print('ifolds: '+ifolds)
 
@@ -87,6 +88,7 @@ try:
             "--nchannels="+audio_nchannels,
             "--random_seed_batch="+batch_seed,
             "--random_seed_weights="+weights_seed,
+            "--deterministic="+deterministic,
             "--validation_percentage="+str(kpercent),
             "--validation_offset_percentage="+str(koffset),
             "--train_dir="+os.path.join(logdir,"xvalidate_"+model),
