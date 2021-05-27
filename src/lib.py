@@ -27,8 +27,8 @@ sys.path.append(os.path.dirname(os.path.realpath(__file__)))
 from jitter import *
 
 def combine_events(events1, events2, logic):
-  max_time1 = np.max([int(x[2]) for x in events1])
-  max_time2 = np.max([int(x[2]) for x in events2])
+  max_time1 = np.max([int(x[2]) for x in events1]+[0])
+  max_time2 = np.max([int(x[2]) for x in events2]+[0])
   max_time = max(max_time1, max_time2)
 
   bool1 = np.full((max_time,), False)
