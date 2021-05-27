@@ -318,14 +318,21 @@ def waveform_tap_callback(event):
     M.context_waveform_high = [1]*M.audio_nchannels
     V.context_update()
     
+def spectrogram_window_callback(attr, old, new):
+    M.spectrogram_length_ms = [float(x) for x in V.spectrogram_length.value.split(',')]
+    M.save_state_callback()
+    V.context_update()
+    
 def zoom_context_callback(attr, old, new):
     M.context_width_ms = float(new)
     M.context_width_tic = int(np.rint(M.context_width_ms/1000*M.audio_tic_rate))
+    M.save_state_callback()
     V.context_update()
 
 def zoom_offset_callback(attr, old, new):
     M.context_offset_ms = float(new)
     M.context_offset_tic = int(np.rint(M.context_offset_ms/1000*M.audio_tic_rate))
+    M.save_state_callback()
     V.context_update()
 
 def zoomin_callback():
@@ -412,6 +419,7 @@ def spectrogram_mousewheel_callback(event):
             M.spectrogram_length_ms[ichannel] = M.spectrogram_length_ms[ichannel]/2
         else:
             return
+    V.spectrogram_length.value = ','.join([str(x) for x in M.spectrogram_length_ms])
     V.context_update()
 
 def spectrogram_pan_start_callback(event):
