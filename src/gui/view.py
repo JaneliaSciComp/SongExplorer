@@ -595,9 +595,7 @@ def snippets_update(redraw_wavs):
                 for ichannel in range(M.audio_nchannels):
                     wavi = wavs[start_frame : start_frame+nframes_to_get, ichannel]
                     if M.snippets_waveform:
-                        wavi_downsampled = decimate(wavi, M.snippets_decimate_by,
-                                        n=M.filter_order,
-                                        ftype='iir', zero_phase=True)
+                        wavi_downsampled = wavi[0::M.snippets_decimate_by]
                         np.pad(wavi_downsampled, ((left_pad, right_pad),),
                                'constant', constant_values=(np.nan,))
                         wavi_trimmed = wavi_downsampled[:M.snippets_pix]
@@ -809,15 +807,13 @@ def context_update():
             ilength = np.minimum(M.file_nframes-istart_bounded, context_tic_adjusted)
 
             tic2pix = M.context_width_tic / M.gui_width_pix
-            context_decimate_by = round(tic2pix/M.filter_ratio_max) if \
-                     tic2pix>M.filter_ratio_max else 1
+            context_decimate_by = round(tic2pix/M.tic2pix_max) if tic2pix>M.tic2pix_max else 1
             context_pix = round(M.context_width_tic / context_decimate_by)
 
             if any([isinstance(x, np.ndarray) for x in probs]):
                 tic_rate_ratio = prob_tic_rate / M.audio_tic_rate
                 tic2pix = round(M.context_width_tic*tic_rate_ratio / M.gui_width_pix)
-                prob_decimate_by = round(tic2pix/M.filter_ratio_max) if \
-                         tic2pix>M.filter_ratio_max else 1
+                prob_decimate_by = round(tic2pix/M.tic2pix_max) if tic2pix>M.tic2pix_max else 1
                 prob_pix = round(M.context_width_tic*tic_rate_ratio / prob_decimate_by)
 
             for ichannel in range(M.audio_nchannels):
@@ -838,8 +834,7 @@ def context_update():
                                                 ilength))
 
                 if M.context_waveform:
-                    wavi_downsampled = decimate(wavi, context_decimate_by, n=M.filter_order,
-                                                ftype='iir', zero_phase=True)
+                    wavi_downsampled = wavi[0::context_decimate_by]
                     wavi_trimmed = wavi_downsampled[:context_pix]
 
                     scales[ichannel]=np.minimum(np.iinfo(np.int16).max-1,
