@@ -3,6 +3,8 @@
 # tagliasacchi, 2021), and using full 2D convolutions instead of separable
 # 1D convolutions.  one can also use spectrograms on multi-channel data
 
+import math
+
 import tensorflow as tf
 from tensorflow.keras.layers import *
 from leaf_audio.frontend import Leaf
@@ -10,24 +12,62 @@ from tcn import TCN
 
 import numpy as np
 
+import logging 
+bokehlog = logging.getLogger("songexplorer") 
+
+def _callback(ps,M,V,C):
+    C.time.sleep(0.5)
+    for p in ps:
+        V.model_parameters[p].css_classes = []
+    M.save_state_callback()
+    V.buttons_update()
+
+def window_callback(n,M,V,C):
+    ps = []
+    changed, window_ms2 = M.next_pow2_ms(float(V.model_parameters['window_ms'].value))
+    if changed:
+        V.model_parameters['window_ms'].css_classes = ['changed']
+        V.model_parameters['window_ms'].value = str(window_ms2)
+        ps.append('window_ms')
+    if changed:
+        if V.bokeh_document:
+            V.bokeh_document.add_next_tick_callback(lambda: _callback(ps,M,V,C))
+        else:
+            _callback(ps,M,V,C)
+
+def stride_callback(n,M,V,C):
+    if V.model_parameters['representation'].value == "waveform":
+        stride_ms = 1000/M.audio_tic_rate
+    else:
+        stride_ms = float(V.model_parameters['stride_ms'].value)
+    output_tic_rate = 1000 / stride_ms
+    if output_tic_rate != round(output_tic_rate):
+        stride_ms2 = 1000 / math.floor(output_tic_rate)
+        V.model_parameters['stride_ms'].css_classes = ['changed']
+        V.model_parameters['stride_ms'].value = str(stride_ms2)
+        if V.bokeh_document:
+            V.bokeh_document.add_next_tick_callback(lambda: _callback(['stride_ms'],M,V,C))
+        else:
+            _callback(['stride_ms'],M,V,C)
+
 model_parameters = [
-  # key in `model_settings`, title in GUI, '' for textbox or [] for pull-down, default value, enable logic
+  # key in `model_settings`, title in GUI, '' for textbox or [] for pull-down, default value, enable logic, callback
   ["representation",     "representation", ['waveform',
-                                            'leaf'],         'leaf',       []],
+                                            'leaf'],         'leaf',       [],                None],
   ["window_ms",          "window (msec)",  '',               '6.4',        ["representation",
-                                                                            ["leaf"]]],
+                                                                            ["leaf"]],        window_callback],
   ["stride_ms",          "stride (msec)",  '',               '1.6',        ["representation",
-                                                                            ["leaf"]]],
+                                                                            ["leaf"]],        stride_callback],
   ["nfilters",           "# filters",      '',               '9',          ["representation",
                                                                             ["leaf"]]],
-  ["kernel_size",        "kernel size",    '',               '8',          []],
-  ["nstacks",            "# stacks",       '',               '3',          []],
-  ["nfeatures",          "# features",     '',               '16',         []],
-  ["dilations",          "dilations",      '',               '1,2,4,8,16', []],
-  ["upsample",           "upsample",       ['yes','no'],     'yes',        []],
+  ["kernel_size",        "kernel size",    '',               '8',          [],                None],
+  ["nstacks",            "# stacks",       '',               '3',          [],                None],
+  ["nfeatures",          "# features",     '',               '16',         [],                None],
+  ["dilations",          "dilations",      '',               '1,2,4,8,16', [],                None],
+  ["upsample",           "upsample",       ['yes','no'],     'yes',        [],                None],
   ["connection_type",    "connection",     ['plain',
-                                            'skip'],         'skip',       []],
-  ["dropout",            "dropout",        '',               '0.1',        []],
+                                            'skip'],         'skip',       [],                None],
+  ["dropout",            "dropout",        '',               '0.1',        [],                None],
   ]
 
 class Slice(tf.keras.layers.Layer):
@@ -55,8 +95,6 @@ def create_model(model_settings):
     kernel_size = int(model_settings['kernel_size'])
     nstacks = int(model_settings['nstacks'])
     dilations = [int(x) for x in model_settings['dilations'].split(',')]
-    receptive_field_tics = stride_tics * (1 + 2 * (kernel_size - 1) * nstacks * sum(dilations))
-    print("receptive_field_tics = %d" % receptive_field_tics)
 
     if representation == "waveform":
         window_tics = stride_tics = 1
@@ -76,9 +114,12 @@ def create_model(model_settings):
                              " ms (="+str(next_lower)+") or "+str(next_higher_ms)+"ms (="+
                              str(next_higher)+") instead.")
 
-    output_tic_rate = audio_tic_rate / stride_tics / 2**downsample_by
+    receptive_field_tics = stride_tics * (1 + 2 * (kernel_size - 1) * nstacks * sum(dilations))
+    print("receptive_field_tics = %d" % receptive_field_tics)
+
+    output_tic_rate = 1000 / float(model_settings['stride_ms'])
     if output_tic_rate != round(output_tic_rate):
-        raise Exception("ERROR: 1000 / 'stride (msec)' should be an integer multiple of the downsampling rate achieved by `stride after`")
+        raise Exception("ERROR: 1000 / 'stride (msec)' should be an integer")
     else:
       print('output_tic_rate = '+str(output_tic_rate))
 

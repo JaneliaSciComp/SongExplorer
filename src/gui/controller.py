@@ -68,9 +68,29 @@ def generic_actuate(cmd, logfile, where,
         bokehlog.info(jobinfo)
     return jobid
 
+def _frequency_n_callback():
+    time.sleep(0.5)
+    V.frequency_n_ms.css_classes = []
+    V.frequency_smooth_ms.css_classes = []
+    M.save_state_callback()
+    V.buttons_update()
+
+def frequency_n_callback(a,o,n):
+    changed, frequency_n_ms2 = M.next_pow2_ms(float(V.frequency_n_ms.value))
+    if changed:
+        V.frequency_n_ms.css_classes = ['changed']
+        V.frequency_n_ms.value = str(frequency_n_ms2)
+    if float(V.frequency_smooth_ms.value) < float(V.frequency_n_ms.value):
+        V.frequency_smooth_ms.css_classes = ['changed']
+        V.frequency_smooth_ms.value = V.frequency_n_ms.value
+    if bokeh_document:
+        bokeh_document.add_next_tick_callback(_frequency_n_callback)
+    else:
+        _frequency_n_callback()
+
 def generic_parameters_callback(n):
     if ' ' in n:
-      bokehlog.info('ERROR: textboxes should not contain spaces')
+        bokehlog.info('ERROR: textboxes should not contain spaces')
     M.save_state_callback()
     V.buttons_update()
 
@@ -317,11 +337,29 @@ def waveform_tap_callback(event):
     M.context_waveform_low = [-1]*M.audio_nchannels
     M.context_waveform_high = [1]*M.audio_nchannels
     V.context_update()
-    
-def spectrogram_window_callback(attr, old, new):
-    M.spectrogram_length_ms = [float(x) for x in V.spectrogram_length.value.split(',')]
+
+def _spectrogram_window_callback(any_changed):
+    if any_changed:
+        time.sleep(0.5)
+        V.spectrogram_length.css_classes = []
     M.save_state_callback()
     V.context_update()
+
+def spectrogram_window_callback(attr, old, new):
+    M.spectrogram_length_ms = [float(x) for x in V.spectrogram_length.value.split(',')]
+    any_changed = False
+    for ilength, length_ms in enumerate(M.spectrogram_length_ms):
+        changed, length_ms2 = M.next_pow2_ms(length_ms)
+        if changed:
+            any_changed = True
+            V.spectrogram_length.css_classes = ['changed']
+            M.spectrogram_length_ms[ilength] = str(length_ms2)
+    if any_changed:
+        V.spectrogram_length.value = ','.join([str(x) for x in M.spectrogram_length_ms])
+    if bokeh_document:
+        bokeh_document.add_next_tick_callback(lambda x=any_changed: _spectrogram_window_callback(x))
+    else:
+        _spectrogram_window_callback(any_changed)
     
 def zoom_context_callback(attr, old, new):
     M.context_width_ms = float(new)
@@ -401,7 +439,7 @@ spectrogram_mousewheel_last_change = time.time()
 def spectrogram_mousewheel_callback(event):
     global spectrogram_mousewheel_last_change
     this_change = time.time()
-    if this_change-spectrogram_mousewheel_last_change < 0.5:
+    if this_change-spectrogram_mousewheel_last_change < 1:
         return
     if not event.y:
         return

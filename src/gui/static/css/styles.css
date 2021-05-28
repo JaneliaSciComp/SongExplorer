@@ -2,3 +2,7 @@
     font-family: Monaco, monospace !important;
     font-size: 11px !important;
 }
+
+.changed .bk-input {
+    background-color: #FFA500 !important;
+}

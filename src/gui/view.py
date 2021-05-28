@@ -1,4 +1,5 @@
 import os
+import sys
 from bokeh.models.widgets import RadioButtonGroup, TextInput, Button, Div, DateFormatter, TextAreaInput, Select, NumberFormatter, Slider, Toggle, ColorPicker, MultiSelect
 from bokeh.models.formatters import FuncTickFormatter
 from bokeh.models import ColumnDataSource, TableColumn, DataTable, LayoutDOM, Span
@@ -603,7 +604,7 @@ def snippets_update(redraw_wavs):
                                                    np.max(np.abs(wavi_trimmed)))
                         ywav[ichannel]=wavi_trimmed/scale[ichannel]
                     if M.snippets_spectrogram:
-                        window_length = round(M.spectrogram_length_ms[ichannel]/1000*M.audio_tic_rate)
+                        window_length = int(round(M.spectrogram_length_ms[ichannel]/1000*M.audio_tic_rate))
                         gram_freq[ichannel], gram_time[ichannel], gram_image[ichannel] = \
                                 spectrogram(wavi,
                                             fs=M.audio_tic_rate,
@@ -855,7 +856,7 @@ def context_update():
                                        (istart+(context_pix-1)*context_decimate_by)/M.audio_tic_rate]
 
                 if M.context_spectrogram:
-                    window_length = round(M.spectrogram_length_ms[ichannel]/1000*M.audio_tic_rate)
+                    window_length = int(round(M.spectrogram_length_ms[ichannel]/1000*M.audio_tic_rate))
                     gram_freq[ichannel], gram_time[ichannel], gram_image[ichannel] = \
                             spectrogram(wavi,
                                         fs=M.audio_tic_rate,
@@ -1760,7 +1761,7 @@ def init(_bokeh_document):
     frequency_n_ms = TextInput(value=M.state['frequency_n_ms'], \
                                       title="freq N (msec)", \
                                       disabled=False)
-    frequency_n_ms.on_change('value', lambda a,o,n: C.generic_parameters_callback(n))
+    frequency_n_ms.on_change('value', C.frequency_n_callback)
 
     frequency_nw = TextInput(value=M.state['frequency_nw'], \
                                     title="freq NW", \
@@ -1873,20 +1874,24 @@ def init(_bokeh_document):
 
     model_parameters = OrderedDict()
     model_parameters_enable_logic = {}
+    V = sys.modules[__name__]
+    def get_callback(f):
+        def callback(a,o,n):
+            f(n,M,V,C) if f else C.generic_parameters_callback(n)
+        return callback
     for parameter in M.model_parameters:
-      if parameter[2]=='':
-        thisparameter = TextInput(value=M.state[parameter[0]], \
-                                  title=parameter[1], \
-                                  disabled=False, width=94)
-        thisparameter.on_change('value', lambda a,o,n: C.generic_parameters_callback(n))
-      else:
-        thisparameter = Select(value=M.state[parameter[0]], \
-                               title=parameter[1], \
-                               options=parameter[2], \
-                               height=50, width=94)
-        thisparameter.on_change('value', lambda a,o,n: C.generic_parameters_callback(''))
-      model_parameters[parameter[0]] = thisparameter
-      model_parameters_enable_logic[thisparameter] = parameter[4]
+        if parameter[2]=='':
+            thisparameter = TextInput(value=M.state[parameter[0]], \
+                                      title=parameter[1], \
+                                      disabled=False, width=94)
+        else:
+            thisparameter = Select(value=M.state[parameter[0]], \
+                                   title=parameter[1], \
+                                   options=parameter[2], \
+                                   height=50, width=94)
+        thisparameter.on_change('value', get_callback(parameter[5]))
+        model_parameters[parameter[0]] = thisparameter
+        model_parameters_enable_logic[thisparameter] = parameter[4]
 
     configuration_contents = TextAreaInput(rows=49-3*np.ceil(len(model_parameters)/6).astype(np.int),
                                            max_length=50000, \
