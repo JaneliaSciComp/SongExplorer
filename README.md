@@ -1191,6 +1191,13 @@ arXiv](https://arxiv.org/abs/1512.03385).
 * `dropout` is the fraction of hidden units on each forward pass to omit
 during training.  See [Srivastava, Hinton, *et al* (2014; J. Machine Learning Res.)](http://jmlr.org/papers/v15/srivastava14a.html).
 
+* `augment volume` is the range within which to uniformly pick a random
+number to muliply each waveform by.
+
+* `augment noise` is the range within which to uniformly pick a random
+number to use as the standard deviation of a Gaussian distribution which
+is added to each waveform.
+
 There is also:
 
 * `weights seed` specifies whether to randomize the initial weights or not.  A

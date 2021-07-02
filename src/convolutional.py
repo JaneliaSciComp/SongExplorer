@@ -141,7 +141,35 @@ model_parameters = [
   ["connection_type",    "connection",     ['plain',
                                             'residual'],     'plain',        [],                  None],
   ["dropout",            "dropout",        '',               '0.5',          [],                  None],
+  ["augment_volume",     "augment volume", '',               '1,1',          [],                  None],
+  ["augment_noise",      "augment noise",  '',               '0,0',          [],                  None],
   ]
+
+class Augment(tf.keras.layers.Layer):
+    def __init__(self, volume_range, noise_range, **kwargs):
+        super(Augment, self).__init__(**kwargs)
+        self.volume_range = volume_range
+        self.noise_range = noise_range
+    def get_config(self):
+        config = super().get_config().copy()
+        config.update({
+            'volume_range': self.volume_range,
+            'noise_range': self.noise_range,
+        })
+        return config
+    def call(self, inputs, training=None):
+        if not training:
+            return inputs
+        if self.volume_range != [1,1] or self.noise_range != [0,0]:
+            nbatch_1_nchannel = tf.concat((tf.shape(inputs)[0], 1, tf.shape(inputs)[2]), axis=0)
+        if self.volume_range != [1,1]:
+            volume_ranges = tf.random.uniform(nbatch_1_nchannel, *self.volume_range)
+            inputs = tf.math.multiply(volume_ranges, inputs)
+        if self.noise_range != [0,0]:
+            noise_ranges = tf.random.uniform(nbatch_1_nchannel, *self.noise_range)
+            noises = tf.random.uniform(tf.shape(inputs), 0, noise_ranges)
+            inputs = tf.math.add(noises, inputs)
+        return inputs
 
 class Spectrogram(tf.keras.layers.Layer):
     def __init__(self, window_tics, stride_tics, **kwargs):
@@ -267,16 +295,23 @@ def create_model(model_settings):
   noutput_tics = (model_settings['context_tics']-window_tics) // stride_tics + 1
 
   inputs0 = Input(shape=(ninput_tics, model_settings['nchannels']))
+  hidden_layers.append(inputs0)
+  
+  volume_range = [float(x) for x in model_settings['augment_volume'].split(',')]
+  noise_range = [float(x) for x in model_settings['augment_noise'].split(',')]
+  if volume_range != [1,1] or noise_range != [0,0]:
+    inputs = Augment(volume_range, noise_range)(inputs0)
+  else:
+    inputs = inputs0
 
   if representation == "waveform":
-    inputs = Reshape((ninput_tics,1,model_settings['nchannels']))(inputs0)
+    inputs = Reshape((ninput_tics,1,model_settings['nchannels']))(inputs)
   elif representation == "spectrogram":
-    inputs = Spectrogram(window_tics, stride_tics)(inputs0)
+    inputs = Spectrogram(window_tics, stride_tics)(inputs)
   elif representation == "mel-cepstrum":
     filterbank_nchannels, dct_ncoefficients = model_settings['mel_dct'].split(',')
     inputs = MelCepstrum(window_tics, stride_tics, audio_tic_rate,
-                         int(filterbank_nchannels), int(dct_ncoefficients))(inputs0)
-  hidden_layers.append(inputs)
+                         int(filterbank_nchannels), int(dct_ncoefficients))(inputs)
   inputs_shape = inputs.get_shape().as_list()
 
   receptive_field_tics = last_stride = 1
