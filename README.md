@@ -1202,6 +1202,12 @@ number to muliply each waveform by.
 number to use as the standard deviation of a Gaussian distribution which
 is added to each waveform.
 
+* `normalization` specifies whether to normalize each mini-batch of samples
+before or after the non-linearity in each layer, either across the entire
+batch dimension or in groups across the channel dimension.  See [Ioffe and
+Szegedy (2015; arXiv:1502.03167v3)](https://arxiv.org/abs/1502.03167) and
+[Wu and He (2018; arXiv:1803.08494v3)](https://arxiv.org/abs/1803.08494).
+
 There is also:
 
 * `weights seed` specifies whether to randomize the initial weights or not.  A

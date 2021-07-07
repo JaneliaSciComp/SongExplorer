@@ -2,6 +2,7 @@ import math
 
 import tensorflow as tf
 from tensorflow.keras.layers import *
+from tensorflow_addons.layers import *
 
 import numpy as np
 from itertools import chain, zip_longest
@@ -120,34 +121,55 @@ def nlayers_callback(n,M,V,C):
         else:
             _callback(['nlayers'],M,V,C)
 
+def ngroups_callback(n,M,V,C):
+    ngroups = [int(x) for x in V.model_parameters['ngroups'].value.split(',')]
+    nfeatures = [int(x) for x in V.model_parameters['nfeatures'].value.split(',')]
+    if any([g<1 for g in ngroups]) or any([g>f for g,f in zip(ngroups,nfeatures)]):
+        bokehlog.info("WARNING:  adjusting `# groups` to be between 1 and `# features`")
+        V.model_parameters['ngroups'].css_classes = ['changed']
+        V.model_parameters['ngroups'].value = ','.join([str(max(1, min(g,f)))
+                                                        for g,f in zip(ngroups,nfeatures)])
+        if V.bokeh_document:
+            V.bokeh_document.add_next_tick_callback(lambda: _callback(['ngroups'],M,V,C))
+        else:
+            _callback(['ngroups'],M,V,C)
+
 model_parameters = [
   # key in `model_settings`, title in GUI, '' for textbox or [] for pull-down, default value, enable logic, callback
   ["representation",     "representation", ['waveform',
                                             'spectrogram',
-                                            'mel-cepstrum'], 'mel-cepstrum', [],                 None],
-  ["window_ms",          "window (msec)",  '',               '6.4',          ["representation",
-                                                                              ["spectrogram",
-                                                                               "mel-cepstrum"]], window_callback],
-  ["stride_ms",          "stride (msec)",  '',               '1.6',          ["representation",
-                                                                              ["spectrogram",
-                                                                               "mel-cepstrum"]], stride_callback],
-  ["mel_dct",            "mel & DCT",      '',               '7,7',          ["representation",
-                                                                              ["mel-cepstrum"]], mel_dct_callback],
-  ["kernel_sizes",       "kernels",        '',               '5,3',          [],                  None],
-  ["nlayers",            "# layers",       '',               '2',            [],                  nlayers_callback],
-  ["nfeatures",          "# features",     '',               '64,64',        [],                  None],
-  ["dilate_after_layer", "dilate after",   '',               '65535',        [],                  None],
-  ["stride_after_layer", "stride after",   '',               '65535',        [],                  stride_after_layer_callback],
+                                            'mel-cepstrum'],     'mel-cepstrum', [],                     None],
+  ["window_ms",          "window (msec)",  '',                   '6.4',          ["representation",
+                                                                                  ["spectrogram",
+                                                                                   "mel-cepstrum"]],     window_callback],
+  ["stride_ms",          "stride (msec)",  '',                   '1.6',          ["representation",
+                                                                                  ["spectrogram",
+                                                                                   "mel-cepstrum"]],     stride_callback],
+  ["mel_dct",            "mel & DCT",      '',                   '7,7',          ["representation",
+                                                                                  ["mel-cepstrum"]],     mel_dct_callback],
+  ["kernel_sizes",       "kernels",        '',                   '5,3',          [],                     None],
+  ["nlayers",            "# layers",       '',                   '2',            [],                     nlayers_callback],
+  ["nfeatures",          "# features",     '',                   '64,64',        [],                     None],
+  ["dilate_after_layer", "dilate after",   '',                   '65535',        [],                     None],
+  ["stride_after_layer", "stride after",   '',                   '65535',        [],                     stride_after_layer_callback],
   ["connection_type",    "connection",     ['plain',
-                                            'residual'],     'plain',        [],                  None],
+                                            'residual'],         'plain',        [],                     None],
   ["dropout_kind",       "dropout kind",   ['none',
                                             'unit',
-                                            'map'],          'unit',         [],                  None],
-  ["dropout_rate",       "dropout %",      '',               '50',           ["dropout_kind",
-                                                                              ["unit",
-                                                                               "map"]],           None],
-  ["augment_volume",     "augment volume", '',               '1,1',          [],                  None],
-  ["augment_noise",      "augment noise",  '',               '0,0',          [],                  None],
+                                            'map'],              'unit',         [],                     None],
+  ["dropout_rate",       "dropout %",      '',                   '50',           ["dropout_kind",
+                                                                                  ["unit",
+                                                                                   "map"]],              None],
+  ["augment_volume",     "augment volume", '',                   '1,1',          [],                     None],
+  ["augment_noise",      "augment noise",  '',                   '0,0',          [],                     None],
+  ["normalization",      "normalization",  ['none',
+                                            'batch before ReLU',
+                                            'batch after ReLU',
+                                            'group before ReLU',
+                                            'group after ReLU'], 'none',         [],                     None],
+  ["ngroups",            "# groups",       '',                   '1,1',           ["normalization",
+                                                                                  ["group before ReLU",
+                                                                                   "group after ReLU"]], ngroups_callback],
   ]
 
 class Augment(tf.keras.layers.Layer):
@@ -274,6 +296,14 @@ def create_model(model_settings):
   else:
     def Identity(x): return lambda x: x
     dropout_kind = Identity
+  normalize_before = 'before' in model_settings['normalization']
+  normalize_after = 'after' in model_settings['normalization']
+  if model_settings['normalization'].startswith('batch'):
+    normalize_kind = lambda i: BatchNormalization()
+  elif model_settings['normalization'].startswith('group'):
+    normalize_kind = lambda i: GroupNormalization(int(model_settings['ngroups'].split(',')[i]))
+  else:
+    normalize_kind = None
 
   if representation == "waveform":
     window_tics = stride_tics = 1
@@ -348,7 +378,11 @@ def create_model(model_settings):
         conv = Add()([conv, Slice([0,hoffset,woffset,0],
                                   [-1,conv_shape[1],conv_shape[2],-1])(bypass)])
     hidden_layers.append(conv)
+    if normalize_before:
+      conv = normalize_kind(0)(conv)
     relu = ReLU()(conv)
+    if normalize_after:
+      relu = normalize_kind(0)(relu)
     inputs = dropout_kind(dropout_rate)(relu)
     inputs_shape = inputs.get_shape().as_list()
     noutput_tics = math.ceil((noutput_tics - dilated_kernel_size + 1) / strides[0])
@@ -373,7 +407,11 @@ def create_model(model_settings):
         offset = (bypass_shape[1] - conv_shape[1]) // 2
         conv = Add()([conv, Slice([0,offset,0,0],[-1,conv_shape[1],-1,-1])(bypass)])
     hidden_layers.append(conv)
+    if normalize_before:
+      conv = normalize_kind(1)(conv)
     relu = ReLU()(conv)
+    if normalize_after:
+      relu = normalize_kind(1)(relu)
     inputs = dropout_kind(dropout_rate)(relu)
     inputs_shape = inputs.get_shape().as_list()
     noutput_tics = math.ceil((noutput_tics - dilated_kernel_size + 1) / strides[0])
