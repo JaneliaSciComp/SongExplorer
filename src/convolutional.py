@@ -140,7 +140,12 @@ model_parameters = [
   ["stride_after_layer", "stride after",   '',               '65535',        [],                  stride_after_layer_callback],
   ["connection_type",    "connection",     ['plain',
                                             'residual'],     'plain',        [],                  None],
-  ["dropout",            "dropout",        '',               '0.5',          [],                  None],
+  ["dropout_kind",       "dropout kind",   ['none',
+                                            'unit',
+                                            'map'],          'unit',         [],                  None],
+  ["dropout_rate",       "dropout %",      '',               '50',           ["dropout_kind",
+                                                                              ["unit",
+                                                                               "map"]],           None],
   ["augment_volume",     "augment volume", '',               '1,1',          [],                  None],
   ["augment_noise",      "augment noise",  '',               '0,0',          [],                  None],
   ]
@@ -261,7 +266,14 @@ def create_model(model_settings):
   dilate_after_layer = int(model_settings['dilate_after_layer'])
   stride_after_layer = int(model_settings['stride_after_layer'])
   use_residual = model_settings['connection_type']=='residual'
-  dropout = float(model_settings['dropout'])
+  dropout_rate = float(model_settings['dropout_rate'])/100
+  if model_settings['dropout_kind']=='unit':
+    dropout_kind = Dropout
+  elif model_settings['dropout_kind']=='map':
+    dropout_kind = SpatialDropout2D
+  else:
+    def Identity(x): return lambda x: x
+    dropout_kind = Identity
 
   if representation == "waveform":
     window_tics = stride_tics = 1
@@ -337,7 +349,7 @@ def create_model(model_settings):
                                   [-1,conv_shape[1],conv_shape[2],-1])(bypass)])
     hidden_layers.append(conv)
     relu = ReLU()(conv)
-    inputs = SpatialDropout2D(dropout)(relu)
+    inputs = dropout_kind(dropout_rate)(relu)
     inputs_shape = inputs.get_shape().as_list()
     noutput_tics = math.ceil((noutput_tics - dilated_kernel_size + 1) / strides[0])
     iconv += 1
@@ -362,7 +374,7 @@ def create_model(model_settings):
         conv = Add()([conv, Slice([0,offset,0,0],[-1,conv_shape[1],-1,-1])(bypass)])
     hidden_layers.append(conv)
     relu = ReLU()(conv)
-    inputs = SpatialDropout2D(dropout)(relu)
+    inputs = dropout_kind(dropout_rate)(relu)
     inputs_shape = inputs.get_shape().as_list()
     noutput_tics = math.ceil((noutput_tics - dilated_kernel_size + 1) / strides[0])
     iconv += 1

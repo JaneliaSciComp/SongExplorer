@@ -1188,8 +1188,12 @@ start striding the convolutional kernels by two.
 models with many layers converge.  See [He, Zhang, Ren, and Sun (2015;
 arXiv](https://arxiv.org/abs/1512.03385).
 
-* `dropout` is the fraction of hidden units on each forward pass to omit
-during training.  See [Srivastava, Hinton, *et al* (2014; J. Machine Learning Res.)](http://jmlr.org/papers/v15/srivastava14a.html).
+* `dropout %` is the percentage of hidden units on each forward pass
+to omit during training.  See [Srivastava, Hinton, *et al* (2014;
+J. Machine Learning Res.)](http://jmlr.org/papers/v15/srivastava14a.html).
+`dropout kind` specifies whether to omit entire feature maps at a time,
+or to omit individual neurons separately.  See [Tompson, Foroshin, *et al*
+(2014; arXiv:1411.4280v3)](https://arxiv.org/abs/1411.4280v3).
 
 * `augment volume` is the range within which to uniformly pick a random
 number to muliply each waveform by.
