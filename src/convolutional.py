@@ -359,11 +359,11 @@ def create_model(model_settings):
   receptive_field_tics = last_stride = 1
 
   # 2D convolutions
-  while inputs_shape[2]>=kernel_sizes[0] and iconv<nlayers:
+  while inputs_shape[2]>=kernel_sizes[0] and inputs_shape[1]>=kernel_sizes[1] and iconv<nlayers:
     if use_residual and iconv%2!=0:
       bypass = inputs
-    strides=[1+(iconv>=stride_after_layer), 1]
-    dilation_rate=[2**max(0,iconv-dilate_after_layer+1), 1]
+    strides=[1+(iconv>=stride_after_layer), 1+(iconv>=stride_after_layer)]
+    dilation_rate=[2**max(0,iconv-dilate_after_layer+1), 2**max(0,iconv-dilate_after_layer+1)]
     conv = Conv2D(nfeatures[0], kernel_sizes[0],
                   strides=strides, dilation_rate=dilation_rate)(inputs)
     dilated_kernel_size = (kernel_sizes[0] - 1) * dilation_rate[0] + 1
