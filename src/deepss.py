@@ -51,23 +51,23 @@ def stride_callback(n,M,V,C):
             _callback(['stride_ms'],M,V,C)
 
 model_parameters = [
-  # key in `model_settings`, title in GUI, '' for textbox or [] for pull-down, default value, enable logic, callback
+  # key in `model_settings`, title in GUI, '' for textbox or [] for pull-down, default value, enable logic, callback, required
   ["representation",     "representation", ['waveform',
-                                            'leaf'],         'leaf',       [],                None],
+                                            'leaf'],         'leaf',       [],                None,            True],
   ["window_ms",          "window (msec)",  '',               '6.4',        ["representation",
-                                                                            ["leaf"]],        window_callback],
+                                                                            ["leaf"]],        window_callback, True],
   ["stride_ms",          "stride (msec)",  '',               '1.6',        ["representation",
-                                                                            ["leaf"]],        stride_callback],
+                                                                            ["leaf"]],        stride_callback, True],
   ["nfilters",           "# filters",      '',               '9',          ["representation",
-                                                                            ["leaf"]]],
-  ["kernel_size",        "kernel size",    '',               '8',          [],                None],
-  ["nstacks",            "# stacks",       '',               '3',          [],                None],
-  ["nfeatures",          "# features",     '',               '16',         [],                None],
-  ["dilations",          "dilations",      '',               '1,2,4,8,16', [],                None],
-  ["upsample",           "upsample",       ['yes','no'],     'yes',        [],                None],
+                                                                            ["leaf"]],        None,            True],
+  ["kernel_size",        "kernel size",    '',               '8',          [],                None,            True],
+  ["nstacks",            "# stacks",       '',               '3',          [],                None,            True],
+  ["nfeatures",          "# features",     '',               '16',         [],                None,            True],
+  ["dilations",          "dilations",      '',               '1,2,4,8,16', [],                None,            True],
+  ["upsample",           "upsample",       ['yes','no'],     'yes',        [],                None,            True],
   ["connection_type",    "connection",     ['plain',
-                                            'skip'],         'skip',       [],                None],
-  ["dropout",            "dropout",        '',               '0.1',        [],                None],
+                                            'skip'],         'skip',       [],                None,            True],
+  ["dropout",            "dropout",        '',               '0.1',        [],                None,            True],
   ]
 
 class Slice(tf.keras.layers.Layer):

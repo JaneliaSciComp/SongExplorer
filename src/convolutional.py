@@ -43,8 +43,8 @@ def stride_callback(n,M,V,C):
     stride_ms = float(V.model_parameters['stride_ms'].value)
     stride_tics = round(M.audio_tic_rate * stride_ms / 1000)
     stride_ms2 = stride_tics / M.audio_tic_rate * 1000
-    downsample_by = 2 ** max(0, int(V.model_parameters['nlayers'].value) -
-                              int(V.model_parameters['stride_after_layer'].value) + 1)
+    downsample_by = 2 ** max(0, int(V.model_parameters['nconvlayers'].value) -
+                                int(V.model_parameters['stride_after_layer'].value) + 1)
     output_tic_rate = M.audio_tic_rate / stride_tics / downsample_by
     if output_tic_rate != round(output_tic_rate) or stride_ms2 != stride_ms:
         if output_tic_rate == round(output_tic_rate):
@@ -88,13 +88,13 @@ def mel_dct_callback(n,M,V,C):
             _callback(['mel_dct'],M,V,C)
 
 def stride_after_layer_callback(n,M,V,C):
-    nlayers = int(V.model_parameters['nlayers'].value)
+    nconvlayers = int(V.model_parameters['nconvlayers'].value)
     stride_after = int(V.model_parameters['stride_after_layer'].value)
-    downsampled_rate = M.audio_tic_rate / 2 ** max(0, nlayers - stride_after + 1)
+    downsampled_rate = M.audio_tic_rate / 2 ** max(0, nconvlayers - stride_after + 1)
     if stride_after<0 or downsampled_rate != round(downsampled_rate):
         bokehlog.info("WARNING:  adjusting `stride after` such that the downsampled rate achieved in conjunction with `# layers` is an integer")
-        for this_stride_after in range(stride_after,nlayers):
-            downsampled_rate = M.audio_tic_rate / 2 ** max(0, nlayers - this_stride_after + 1)
+        for this_stride_after in range(stride_after,nconvlayers):
+            downsampled_rate = M.audio_tic_rate / 2 ** max(0, nconvlayers - this_stride_after + 1)
             if downsampled_rate == round(downsampled_rate):
                 break
         V.model_parameters['stride_after_layer'].css_classes = ['changed']
@@ -105,21 +105,21 @@ def stride_after_layer_callback(n,M,V,C):
             _callback(['stride_after_layer'],M,V,C)
 
 def nlayers_callback(n,M,V,C):
-    nlayers = int(V.model_parameters['nlayers'].value)
+    nconvlayers = int(V.model_parameters['nconvlayers'].value)
     stride_after = int(V.model_parameters['stride_after_layer'].value)
-    downsampled_rate = M.audio_tic_rate / 2 ** max(0, nlayers - stride_after + 1)
-    if nlayers<0 or downsampled_rate != round(downsampled_rate):
-        bokehlog.info("WARNING:  adjusting `# layers` such that the downsampled rate achieved in conjunction with `stride after` is an integer")
-        for this_nlayers in range(nlayers,0,-1):
-            downsampled_rate = M.audio_tic_rate / 2 ** max(0, this_nlayers - stride_after + 1)
+    downsampled_rate = M.audio_tic_rate / 2 ** max(0, nconvlayers - stride_after + 1)
+    if nconvlayers<0 or downsampled_rate != round(downsampled_rate):
+        bokehlog.info("WARNING:  adjusting `# conv layers` such that the downsampled rate achieved in conjunction with `stride after` is an integer")
+        for this_nconvlayers in range(nconvlayers,0,-1):
+            downsampled_rate = M.audio_tic_rate / 2 ** max(0, this_nconvlayers - stride_after + 1)
             if downsampled_rate == round(downsampled_rate):
                 break
-        V.model_parameters['nlayers'].css_classes = ['changed']
-        V.model_parameters['nlayers'].value = str(this_nlayers)
+        V.model_parameters['nconvlayers'].css_classes = ['changed']
+        V.model_parameters['nconvlayers'].value = str(this_nconvlayers)
         if V.bokeh_document:
-            V.bokeh_document.add_next_tick_callback(lambda: _callback(['nlayers'],M,V,C))
+            V.bokeh_document.add_next_tick_callback(lambda: _callback(['nconvlayers'],M,V,C))
         else:
-            _callback(['nlayers'],M,V,C)
+            _callback(['nconvlayers'],M,V,C)
 
 def ngroups_callback(n,M,V,C):
     ngroups = [int(x) for x in V.model_parameters['ngroups'].value.split(',')]
@@ -135,41 +135,42 @@ def ngroups_callback(n,M,V,C):
             _callback(['ngroups'],M,V,C)
 
 model_parameters = [
-  # key in `model_settings`, title in GUI, '' for textbox or [] for pull-down, default value, enable logic, callback
+  # key in `model_settings`, title in GUI, '' for textbox or [] for pull-down, default value, enable logic, callback, required
+  ["augment_volume",     "augment volume", '',                   '1,1',          [],                     None,                        True],
+  ["augment_noise",      "augment noise",  '',                   '0,0',          [],                     None,                        True],
   ["representation",     "representation", ['waveform',
                                             'spectrogram',
-                                            'mel-cepstrum'],     'mel-cepstrum', [],                     None],
+                                            'mel-cepstrum'],     'mel-cepstrum', [],                     None,                        True],
   ["window_ms",          "window (msec)",  '',                   '6.4',          ["representation",
                                                                                   ["spectrogram",
-                                                                                   "mel-cepstrum"]],     window_callback],
+                                                                                   "mel-cepstrum"]],     window_callback,             True],
   ["stride_ms",          "stride (msec)",  '',                   '1.6',          ["representation",
                                                                                   ["spectrogram",
-                                                                                   "mel-cepstrum"]],     stride_callback],
+                                                                                   "mel-cepstrum"]],     stride_callback,             True],
   ["mel_dct",            "mel & DCT",      '',                   '7,7',          ["representation",
-                                                                                  ["mel-cepstrum"]],     mel_dct_callback],
-  ["kernel_sizes",       "kernels",        '',                   '5,3',          [],                     None],
-  ["nlayers",            "# layers",       '',                   '2',            [],                     nlayers_callback],
-  ["nfeatures",          "# features",     '',                   '64,64',        [],                     None],
-  ["dilate_after_layer", "dilate after",   '',                   '65535',        [],                     None],
-  ["stride_after_layer", "stride after",   '',                   '65535',        [],                     stride_after_layer_callback],
+                                                                                  ["mel-cepstrum"]],     mel_dct_callback,            True],
+  ["nconvlayers",        "# conv layers",  '',                   '2',            [],                     nlayers_callback,            True],
+  ["kernel_sizes",       "kernels",        '',                   '5,3',          [],                     None,                        True],
+  ["nfeatures",          "# features",     '',                   '64,64',        [],                     None,                        True],
+  ["dilate_after_layer", "dilate after",   '',                   '65535',        [],                     None,                        True],
+  ["stride_after_layer", "stride after",   '',                   '65535',        [],                     stride_after_layer_callback, True],
   ["connection_type",    "connection",     ['plain',
-                                            'residual'],         'plain',        [],                     None],
+                                            'residual'],         'plain',        [],                     None,                        True],
+  ["denselayers",        "dense layers",   '',                   '',             [],                     None,                        False],
   ["dropout_kind",       "dropout kind",   ['none',
                                             'unit',
-                                            'map'],              'unit',         [],                     None],
+                                            'map'],              'unit',         [],                     None,                        True],
   ["dropout_rate",       "dropout %",      '',                   '50',           ["dropout_kind",
                                                                                   ["unit",
-                                                                                   "map"]],              None],
-  ["augment_volume",     "augment volume", '',                   '1,1',          [],                     None],
-  ["augment_noise",      "augment noise",  '',                   '0,0',          [],                     None],
+                                                                                   "map"]],              None,                        True],
   ["normalization",      "normalization",  ['none',
                                             'batch before ReLU',
                                             'batch after ReLU',
                                             'group before ReLU',
-                                            'group after ReLU'], 'none',         [],                     None],
-  ["ngroups",            "# groups",       '',                   '1,1',           ["normalization",
+                                            'group after ReLU'], 'none',         [],                     None,                        True],
+  ["ngroups",            "# groups",       '',                   '1,1',          ["normalization",
                                                                                   ["group before ReLU",
-                                                                                   "group after ReLU"]], ngroups_callback],
+                                                                                   "group after ReLU"]], ngroups_callback,            True],
   ]
 
 class Augment(tf.keras.layers.Layer):
@@ -283,7 +284,9 @@ def create_model(model_settings):
   audio_tic_rate = model_settings['audio_tic_rate']
   representation = model_settings['representation']
   kernel_sizes = [int(x) for x in model_settings['kernel_sizes'].split(',')]
-  nlayers = int(model_settings['nlayers'])
+  nconvlayers = int(model_settings['nconvlayers'])
+  denselayers = [] if model_settings['denselayers']=='' \
+                   else [int(x) for x in model_settings['denselayers'].split(',')]
   nfeatures = [int(x) for x in model_settings['nfeatures'].split(',')]
   dilate_after_layer = int(model_settings['dilate_after_layer'])
   stride_after_layer = int(model_settings['stride_after_layer'])
@@ -322,7 +325,7 @@ def create_model(model_settings):
                       str(audio_tic_rate)+".  try "+str(next_lower_ms)+" ms (="+str(next_lower)+
                       ") or "+str(next_higher_ms)+"ms (="+str(next_higher)+") instead.")
 
-  downsample_by = 2 ** max(0, nlayers - stride_after_layer + 1)
+  downsample_by = 2 ** max(0, nconvlayers - stride_after_layer + 1)
   output_tic_rate = audio_tic_rate / stride_tics / downsample_by
   print('downsample_by = '+str(downsample_by))
   print('output_tic_rate = '+str(output_tic_rate))
@@ -359,7 +362,8 @@ def create_model(model_settings):
   receptive_field_tics = last_stride = 1
 
   # 2D convolutions
-  while inputs_shape[2]>=kernel_sizes[0] and inputs_shape[1]>=kernel_sizes[1] and iconv<nlayers:
+  while inputs_shape[2]>=kernel_sizes[0] and \
+        inputs_shape[1]>=kernel_sizes[1] and iconv<nconvlayers:
     if use_residual and iconv%2!=0:
       bypass = inputs
     strides=[1+(iconv>=stride_after_layer), 1+(iconv>=stride_after_layer)]
@@ -389,21 +393,20 @@ def create_model(model_settings):
     iconv += 1
 
   # 1D convolutions (or actually, pan-freq 2D)
-  while inputs_shape[1]>=kernel_sizes[1] and iconv<nlayers:
+  while inputs_shape[1]>=kernel_sizes[1] and iconv<nconvlayers:
     if use_residual and iconv%2!=0:
       bypass = inputs
     strides=[1+(iconv>=stride_after_layer), 1]
     dilation_rate=[2**max(0,iconv-dilate_after_layer+1), 1]
     conv = Conv2D(nfeatures[1], (kernel_sizes[1], inputs_shape[2]),
-                  strides=strides,
-                  dilation_rate=dilation_rate)(inputs)
+                  strides=strides, dilation_rate=dilation_rate)(inputs)
     dilated_kernel_size = (kernel_sizes[1] - 1) * dilation_rate[0] + 1
     receptive_field_tics += (dilated_kernel_size - 1) * last_stride
     last_stride = strides[0]
     if use_residual and iconv%2==0 and iconv>1:
       bypass_shape = bypass.get_shape().as_list()
       conv_shape = conv.get_shape().as_list()
-      if bypass_shape[3]==conv_shape[3]:
+      if bypass_shape[2]==conv_shape[2] and bypass_shape[3]==conv_shape[3]:
         offset = (bypass_shape[1] - conv_shape[1]) // 2
         conv = Add()([conv, Slice([0,offset,0,0],[-1,conv_shape[1],-1,-1])(bypass)])
     hidden_layers.append(conv)
@@ -420,10 +423,13 @@ def create_model(model_settings):
   receptive_field_tics *= stride_tics 
   print("receptive_field_tics = %d" % receptive_field_tics)
 
-  # a final dense layer (or actually, pan-freq pan-time 2D conv)
-  strides=1+(iconv>=stride_after_layer)
-  final = Conv2D(model_settings['nlabels'], (noutput_tics, inputs_shape[2]),
-                 strides=strides)(inputs)
-  final = Reshape((-1,model_settings['nlabels']))(final)
+  # final dense layers (or actually, pan-freq pan-time 2D convs)
+  for idense, nunits in enumerate(denselayers+[model_settings['nlabels']]):
+    strides=1+(iconv>=stride_after_layer and idense==0)
+    inputs = Conv2D(nunits, (noutput_tics if idense==0 else 1, inputs_shape[2]),
+                    strides=strides)(inputs)
+    inputs_shape = inputs.get_shape().as_list()
+
+  final = Reshape((-1,model_settings['nlabels']))(inputs)
 
   return tf.keras.Model(inputs=inputs0, outputs=[hidden_layers, final])

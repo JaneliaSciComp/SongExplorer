@@ -1165,13 +1165,19 @@ or equal to the first, and neither should greatly exceed the number of
 frequencies in the original spectrogram, which is one plus half of the
 `window` length in tics.
 
+* `# conv layers` is an integer specifying the number of convolutional layers.
+`dense layers` is a comma-separated list of integers specifying the number
+of hidden units in a sequence of optional dense layers after the convolutions.
+Leave it blank to not add any dense layers.
+
 * `kernels` is a 2-vector of the size of the convolutional kernels.  The first
 value is the size of the square 2D convolutions that are successively used
-for each layer until the tensor height in the frequency axis is smaller than
-the kernel.  Then full-height 1D convolutions are repeatedly applied whose
-width is the second value in `kernels`.  No further layers are added if
-`# layers` is reached, or the width becomes less than the second number in
-`kernels`.  Only the second value matters when `representation` is "waveform".
+for each layer until the tensor height in the frequency axis is smaller
+than the kernel.  Then full-height 1D convolutions are repeatedly applied
+whose width is the second value in `kernels`.  No further convolutional
+layers are added if the first number in `# layers` is reached, or the width
+becomes less than the second number in `kernels`.  Only the second value
+matters when `representation` is "waveform".
 
 * `# features` is the number of feature maps to use at each of the
 corresponding stages in `kernels`.  See [LeCun *et al* (1989; Neural
