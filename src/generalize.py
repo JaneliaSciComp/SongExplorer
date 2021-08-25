@@ -62,7 +62,10 @@ try:
 
   async def redirect(cmd):
     with open(cmd[-1], 'a') as fid:
-      run(cmd[:-1], stderr=PIPE, stdout=fid)
+      proc = await asyncio.create_subprocess_exec(*cmd[:-1],
+                                                  stderr=asyncio.subprocess.PIPE,
+                                                  stdout=fid)
+      await proc.communicate()
 
   async def main():
     cmds = []
