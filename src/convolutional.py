@@ -279,6 +279,9 @@ class Slice(tf.keras.layers.Layer):
     def call(self, inputs):
         return tf.slice(inputs, self.begin, self.size)
 
+def dilation(iconv, dilate_after_layer):
+  return 2**max(0,iconv-dilate_after_layer)
+
 #`model_settings` is a dictionary of hyperparameters
 def create_model(model_settings):
   audio_tic_rate = model_settings['audio_tic_rate']
@@ -332,7 +335,6 @@ def create_model(model_settings):
   if output_tic_rate != round(output_tic_rate):
     raise Exception("ERROR: 1000 / 'stride (msec)' should be an integer multiple of the downsampling rate achieved by `stride after`")
 
-  iconv=0
   hidden_layers = []
 
   ninput_tics = model_settings['context_tics'] + \
@@ -360,17 +362,19 @@ def create_model(model_settings):
   inputs_shape = inputs.get_shape().as_list()
 
   receptive_field_tics = last_stride = 1
+  iconv=0
+  dilation_rate = dilation(iconv, dilate_after_layer)
 
   # 2D convolutions
-  while inputs_shape[2]>=kernel_sizes[0] and \
-        inputs_shape[1]>=kernel_sizes[1] and iconv<nconvlayers:
+  dilated_kernel_size = (kernel_sizes[0] - 1) * dilation_rate + 1
+  while inputs_shape[2] >= dilated_kernel_size and \
+        inputs_shape[1] >= dilated_kernel_size and \
+        iconv<nconvlayers:
     if use_residual and iconv%2!=0:
       bypass = inputs
     strides=[1+(iconv>=stride_after_layer), 1+(iconv>=stride_after_layer)]
-    dilation_rate=[2**max(0,iconv-dilate_after_layer+1), 2**max(0,iconv-dilate_after_layer+1)]
     conv = Conv2D(nfeatures[0], kernel_sizes[0],
-                  strides=strides, dilation_rate=dilation_rate)(inputs)
-    dilated_kernel_size = (kernel_sizes[0] - 1) * dilation_rate[0] + 1
+                  strides=strides, dilation_rate=[dilation_rate,dilation_rate])(inputs)
     receptive_field_tics += (dilated_kernel_size - 1) * last_stride
     last_stride = strides[0]
     if use_residual and iconv%2==0 and iconv>1:
@@ -391,16 +395,18 @@ def create_model(model_settings):
     inputs_shape = inputs.get_shape().as_list()
     noutput_tics = math.ceil((noutput_tics - dilated_kernel_size + 1) / strides[0])
     iconv += 1
+    dilation_rate = dilation(iconv,dilate_after_layer)
+    dilated_kernel_size = (kernel_sizes[0] - 1) * dilation_rate + 1
 
   # 1D convolutions (or actually, pan-freq 2D)
-  while inputs_shape[1]>=kernel_sizes[1] and iconv<nconvlayers:
+  dilated_kernel_size = (kernel_sizes[1] - 1) * dilation_rate + 1
+  while inputs_shape[1] >= dilated_kernel_size and \
+        iconv<nconvlayers:
     if use_residual and iconv%2!=0:
       bypass = inputs
     strides=[1+(iconv>=stride_after_layer), 1]
-    dilation_rate=[2**max(0,iconv-dilate_after_layer+1), 1]
     conv = Conv2D(nfeatures[1], (kernel_sizes[1], inputs_shape[2]),
-                  strides=strides, dilation_rate=dilation_rate)(inputs)
-    dilated_kernel_size = (kernel_sizes[1] - 1) * dilation_rate[0] + 1
+                  strides=strides, dilation_rate=[dilation_rate, 1])(inputs)
     receptive_field_tics += (dilated_kernel_size - 1) * last_stride
     last_stride = strides[0]
     if use_residual and iconv%2==0 and iconv>1:
@@ -419,6 +425,8 @@ def create_model(model_settings):
     inputs_shape = inputs.get_shape().as_list()
     noutput_tics = math.ceil((noutput_tics - dilated_kernel_size + 1) / strides[0])
     iconv += 1
+    dilation_rate = dilation(iconv,dilate_after_layer)
+    dilated_kernel_size = (kernel_sizes[1] - 1) * dilation_rate + 1
 
   receptive_field_tics *= stride_tics 
   print("receptive_field_tics = %d" % receptive_field_tics)
