@@ -29,6 +29,7 @@ Table of Contents
       * [Measuring Generalization](#measuring-generalization)
       * [Searching Hyperparameters](#searching-hyperparameters)
       * [Examining Errors](#examining-errors)
+      * [Ensemble Models](#ensemble-models)
       * [Testing Densely](#testing-densely)
       * [Discovering Novel Sounds](#discovering-novel-sounds)
       * [Scripting Automation](#scripting-automation)
@@ -1041,13 +1042,13 @@ achieved, quantitatively measure your model's ability to generalize
 by leaving entire recordings out for validation ([see Measuring
 Generalization](#measuring-generalization)).  Use cross validation to
 maximize the accuracy by fine tuning the hyperparameters (see [Searching
-Hyperparameters](#searching-hyperparameters)).  Then train a single model
-with nearly all of your annotations for use in your experiments.  Optionally,
-use `# replicates` to train multiple models with different batch orderings
-and initial weights to measure the variance.  These replicate models
-can also be combined into an ensemble model with even greater accuracy.
-Finally, report accuracy on an entirely separate set of densely-annotated
-test data([see Testing Densely](#testing-densely)).
+Hyperparameters](#searching-hyperparameters)).  Then train a single model with
+nearly all of your annotations for use in your experiments.  Optionally, use
+`# replicates` to train multiple models with different batch orderings and
+initial weights to measure the variance.  These replicate models can also
+be combined into an ensemble model (see [Ensemble Models](#ensemble-models))
+for even greater accuracy.  Finally, report accuracy on an entirely separate
+set of densely-annotated test data([see Testing Densely](#testing-densely)).
 
 ## Double Checking Annotations
 
@@ -1233,7 +1234,7 @@ to the first value you want to try and choose a name for the `Logs Folder` such
 that its prefix will be shared across all of the hyperparameter values you plan
 to validate.  Suffix any additional hyperparameters of interest using
 underscores.  (For example, to search mini-batch and keep track of kernel size
-and feature maps, use "mb-64_ks129_fm64".)  If your models is small, use
+and feature maps, use "mb-64_ks129_fm64".)  If your model is small, use
 `models_per_job` in "configuration.pysh" to train multiple folds on a GPU.
 Click the `X-Validate` button and then `DoIt!`.  One classifier will be trained
 for each fold, using it as the validation set and the remaining folds for
@@ -1254,6 +1255,12 @@ trainable parameters, and training time for each model.
 
 * "[suffix]-compare-precision-recall.pdf" shows the final error rates for each
 model and wanted word.
+
+Training multiple models like this with the same hyperparameters is not
+only useful for quantifying the variability in the accuracy, but can also
+be used to reduce that same variability by averaging the outputs across all
+of the folds.  [Ensemble Models](#ensemble-models) describes how to
+do just this by combining multiple models into a single one.
 
 ## Examining Errors ##
 
@@ -1406,13 +1413,13 @@ Much as one can examine the mistakes of a particular model with respect to
 sparsely annotated ground truth by clustering with "mistaken" as one of the
 `kinds to use`, one can look closely at the errors in congruence between a model
 and a densely annotated test set by using
-"everyone|{tic,word}-{only,not}{1.0pr,annotator1,annotator2,...}" as the `label
-types`.  The Congruence button generates a bunch of "disjoint.csv" files:
+"everyone|{tic,word}-{only,not}{1.0pr,annotator1,annotator2,...}" as the kinds.
+The Congruence button generates a bunch of "disjoint.csv" files:
 "disjoint-everyone.csv" contains the intersection of intervals that SongExplorer
 and all annotators agreed upon; "disjoint-only\*.csv" files contain the intervals
 which only SongExplorer or one particular annotator labelled; "disjoint-not\*.csv"
 contains those which were labelled by everyone except SongExplorer or a given
-annotator.  Choose one or all of these label types and then use the
+annotator.  Choose one or all of these kinds and then use the
 `Activations`, `Cluster`, and `Visualize` buttons as before.
 
 When the overall accuracy as judged by, for example, F1 is acceptable, but
@@ -1442,6 +1449,29 @@ Note that these dense thresholds CSV files are suffixed with a timestamp,
 so that they are not overwritten by successive runs of `Congruence`.
 Take care to choose the correct one.
 
+## Ensemble Models ##
+
+The procedure used to optimize hyperparameters results in slightly different
+models with repeated trainings due to the random intialization of weights
+and sampling of ground truth batches.  While initially this might seem
+undesirable, it affords an opportunity to increase accuracy by averaging
+across multiple models.  Generalization is nominally improved with such
+combined models due to the reduction in variance.
+
+First create multiple models using either (1) the `Train` button with `#
+replicates` set to be greater than one, (2) the `X-Validate` button with
+`k-fold` greater than one, or even (3) the `Omit One` button after having
+annotated multiple recordings.  Then use the `Ensemble` button and select
+one checkpoint file from each of those models as a comma-separated list.
+A new subfolder will be created in the `Logs Folder` with a graph folder
+therein called "frozen-graph.ensemble.pb".  To create a corresponding
+thresholds file, follow the steps for measuring congruence as described
+in the previous section ([Testing Densely](#testing-densely)):  (1) use this
+model to classify a densely labelled recording, (2) make an ethogram using
+the thresholds file of one of the constituent models, and (3) calculate the
+`Congruence`.  A new thresholds file suffixed with "-dense" will be created.
+Manually copy this file into the newly created ensemble folder, and use
+it whenever classifying recordings with this ensemble model.
 
 ## Discovering Novel Sounds ##
 

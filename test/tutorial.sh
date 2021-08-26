@@ -228,9 +228,9 @@ check_file_exists ${wavpath_noext}-ethogram.log
 for pr in $(echo $precision_recall_ratios | sed "s/,/ /g") ; do
   check_file_exists ${wavpath_noext}-predicted-${pr}pr.csv
 done
-count_lines_with_label ${wavpath_noext}-predicted-1.0pr.csv mel-pulse 536 WARNING
-count_lines_with_label ${wavpath_noext}-predicted-1.0pr.csv mel-sine 518 WARNING
-count_lines_with_label ${wavpath_noext}-predicted-1.0pr.csv ambient 261 WARNING
+count_lines_with_label ${wavpath_noext}-predicted-1.0pr.csv mel-pulse 508 WARNING
+count_lines_with_label ${wavpath_noext}-predicted-1.0pr.csv mel-sine 765 WARNING
+count_lines_with_label ${wavpath_noext}-predicted-1.0pr.csv ambient 125 WARNING
 
 detect.py \
       ${wavpath_noext}.wav \
@@ -346,6 +346,7 @@ for label in $(echo $labels_touse | sed "s/,/ /g") ; do
 done
 
 nfeaturess=(32,32 64,64)
+precision_recall_ratios=1.0
 for nfeatures in ${nfeaturess[@]} ; do
   logdir=$repo_path/test/scratch/tutorial-sh/nfeatures-${nfeatures%%,*}
   kfold=2
@@ -424,7 +425,6 @@ check_file_exists $logdir/train_1r.log
 check_file_exists $logdir/train_1r/ckpt-$nsteps.index
 check_file_exists $logdir/train_1r/logits.validation.ckpt-$nsteps.npz
 
-precision_recall_ratios=1.0
 accuracy.py $logdir $precision_recall_ratios \
       $nprobabilities $accuracy_parallelize \
       &>> $logdir/accuracy.log
@@ -488,12 +488,12 @@ for pr in $(echo $precision_recall_ratios | sed "s/,/ /g") ; do
   check_file_exists ${wavpath_noext}-predicted-${pr}pr.csv
 done
 
-cp $repo_path/data/20190122T093303a-7-annotated-person2.csv \
+wav_file_noext=20190122T093303a-7
+cp $repo_path/data/${wav_file_noext}-annotated-person2.csv \
    $repo_path/test/scratch/tutorial-sh/groundtruth-data/congruence
-cp $repo_path/data/20190122T093303a-7-annotated-person3.csv \
+cp $repo_path/data/${wav_file_noext}-annotated-person3.csv \
    $repo_path/test/scratch/tutorial-sh/groundtruth-data/congruence
 
-wav_file_noext=20190122T093303a-7
 portion=union
 convolve_ms=0.0
 congruence.py \
@@ -501,7 +501,102 @@ congruence.py \
       &>> $data_dir/congruence.log
 
 check_file_exists $data_dir/congruence.log
+mv $data_dir/congruence.log $data_dir/congruence
 check_file_exists $data_dir/congruence/$wav_file_noext-disjoint-everyone.csv
+kinds=(tic label)
+persons=(person2 person3)
+IFS=', ' read -r -a prs <<< "$precision_recall_ratios"
+IFS=', ' read -r -a labels <<< "$labels_touse"
+for kind in ${kinds[@]} ; do
+  for label in ${labels[@]} ; do
+    check_file_exists $data_dir/congruence.${kind}.${label}.csv
+    count_lines $data_dir/congruence.${kind}.${label}.csv $(( $nprobabilities + 2 ))
+    check_file_exists $data_dir/congruence.${kind}.${label}.pdf
+    mv $data_dir/congruence.${kind}.${label}.pdf $data_dir/congruence
+    mv $data_dir/congruence.${kind}.${label}.csv $data_dir/congruence
+  done
+  for pr in ${prs[@]} ; do
+    for label in ${labels[@]} ; do
+      check_file_exists $data_dir/congruence.${kind}.${label}.${pr}pr-venn.pdf
+      check_file_exists $data_dir/congruence.${kind}.${label}.${pr}pr.pdf
+      mv $data_dir/congruence.${kind}.${label}.${pr}pr-venn.pdf $data_dir/congruence
+      mv $data_dir/congruence.${kind}.${label}.${pr}pr.pdf $data_dir/congruence
+    done
+    check_file_exists $data_dir/congruence/$wav_file_noext-disjoint-${kind}-not${pr}pr.csv
+    check_file_exists $data_dir/congruence/$wav_file_noext-disjoint-${kind}-only${pr}pr.csv
+  done
+  for person in ${persons[@]} ; do
+    check_file_exists $data_dir/congruence/$wav_file_noext-disjoint-${kind}-not${person}.csv
+    check_file_exists $data_dir/congruence/$wav_file_noext-disjoint-${kind}-only${person}.csv
+  done
+done
+
+logdir=${repo_path}/test/scratch/tutorial-sh/nfeatures-64
+
+mkdir ${logdir}/xvalidate_1k,2k
+ensemble.py \
+      --start_checkpoints=${logdir}/xvalidate_1k/ckpt-300,${logdir}/xvalidate_2k/ckpt-300 \
+      --output_file=${logdir}/xvalidate_1k,2k/frozen-graph.ckpt-300,300.pb \
+      --labels_touse=mel-pulse,mel-sine,ambient \
+      --context_ms=$context_ms \
+      --model_architecture=$architecture \
+      --model_parameters="$model_parameters" \
+      --parallelize=$classify_parallelize \
+      --audio_tic_rate=$audio_tic_rate \
+      --nchannels=$audio_nchannels \
+      &> ${logdir}/xvalidate_1k,2k/ensemble.log
+
+check_file_exists ${logdir}/xvalidate_1k,2k/ensemble.log
+check_file_exists ${logdir}/xvalidate_1k,2k/frozen-graph.ckpt-${check_point},${check_point}.pb/saved_model.pb 
+
+mkdir -p $repo_path/test/scratch/tutorial-sh/groundtruth-data/congruence-ensemble
+cp $repo_path/data/20190122T132554a-14.wav \
+   $repo_path/test/scratch/tutorial-sh/groundtruth-data/congruence-ensemble
+
+wavpath_noext=$repo_path/test/scratch/tutorial-sh/groundtruth-data/congruence-ensemble/20190122T132554a-14
+classify.py \
+      --context_ms=$context_ms \
+      --shiftby_ms=$shiftby_ms \
+      --model=${logdir}/xvalidate_1k,2k/frozen-graph.ckpt-${check_point},${check_point}.pb \
+      --model_labels=${logdir}/xvalidate_1k,2k/labels.txt \
+      --wav=${wavpath_noext}.wav \
+      --parallelize=$classify_parallelize \
+      --deterministic=$deterministic \
+      --labels= \
+      --prevalences= \
+      &>> ${wavpath_noext}-classify.log
+
+check_file_exists ${wavpath_noext}-classify.log
+
+for label in $(echo $labels_touse | sed "s/,/ /g") ; do
+  check_file_exists ${wavpath_noext}-${label}.wav
+done
+
+ethogram.py \
+      $logdir xvalidate_1k thresholds.ckpt-${check_point}.csv \
+      $wavpath_noext $audio_tic_rate \
+      &>> ${wavpath_noext}-ethogram.log
+
+check_file_exists ${wavpath_noext}-ethogram.log
+for pr in $(echo $precision_recall_ratios | sed "s/,/ /g") ; do
+  check_file_exists ${wavpath_noext}-predicted-${pr}pr.csv
+done
+count_lines_with_label ${wavpath_noext}-predicted-1.0pr.csv mel-pulse 56 WARNING
+count_lines_with_label ${wavpath_noext}-predicted-1.0pr.csv mel-sine 140 WARNING
+count_lines_with_label ${wavpath_noext}-predicted-1.0pr.csv ambient 69 WARNING
+
+wav_file_noext=20190122T132554a-14
+cp $repo_path/data/${wav_file_noext}-annotated-person2.csv \
+   $repo_path/test/scratch/tutorial-sh/groundtruth-data/congruence-ensemble
+cp $repo_path/data/${wav_file_noext}-annotated-person3.csv \
+   $repo_path/test/scratch/tutorial-sh/groundtruth-data/congruence-ensemble
+
+congruence.py \
+      $data_dir ${wav_file_noext}.wav $portion $convolve_ms $nprobabilities $audio_tic_rate $congruence_parallelize \
+      &>> $data_dir/congruence.log
+
+check_file_exists $data_dir/congruence.log
+check_file_exists $data_dir/congruence-ensemble/$wav_file_noext-disjoint-everyone.csv
 kinds=(tic label)
 persons=(person2 person3)
 IFS=', ' read -r -a prs <<< "$precision_recall_ratios"
@@ -517,11 +612,44 @@ for kind in ${kinds[@]} ; do
       check_file_exists $data_dir/congruence.${kind}.${label}.${pr}pr-venn.pdf
       check_file_exists $data_dir/congruence.${kind}.${label}.${pr}pr.pdf
     done
-    check_file_exists $data_dir/congruence/$wav_file_noext-disjoint-${kind}-not${pr}pr.csv
-    check_file_exists $data_dir/congruence/$wav_file_noext-disjoint-${kind}-only${pr}pr.csv
+    check_file_exists $data_dir/congruence-ensemble/$wav_file_noext-disjoint-${kind}-not${pr}pr.csv
+    check_file_exists $data_dir/congruence-ensemble/$wav_file_noext-disjoint-${kind}-only${pr}pr.csv
   done
   for person in ${persons[@]} ; do
-    check_file_exists $data_dir/congruence/$wav_file_noext-disjoint-${kind}-not${person}.csv
-    check_file_exists $data_dir/congruence/$wav_file_noext-disjoint-${kind}-only${person}.csv
+    check_file_exists $data_dir/congruence-ensemble/$wav_file_noext-disjoint-${kind}-not${person}.csv
+    check_file_exists $data_dir/congruence-ensemble/$wav_file_noext-disjoint-${kind}-only${person}.csv
   done
 done
+
+wavpath_noext=$repo_path/test/scratch/tutorial-sh/groundtruth-data/round1/PS_20130625111709_ch3
+classify.py \
+      --context_ms=$context_ms \
+      --shiftby_ms=$shiftby_ms \
+      --model=${logdir}/xvalidate_1k,2k/frozen-graph.ckpt-${check_point},${check_point}.pb \
+      --model_labels=${logdir}/xvalidate_1k,2k/labels.txt \
+      --wav=${wavpath_noext}.wav \
+      --parallelize=$classify_parallelize \
+      --deterministic=$deterministic \
+      --labels= \
+      --prevalences= \
+      &>> ${wavpath_noext}-classify.log
+
+check_file_exists ${wavpath_noext}-classify.log
+
+for label in $(echo $labels_touse | sed "s/,/ /g") ; do
+  check_file_exists ${wavpath_noext}-${label}.wav
+done
+
+thresholds_dense_file=$(basename $(ls ${logdir}/xvalidate_1k/thresholds-dense-*))
+mv ${logdir}/xvalidate_1k/${thresholds_dense_file} ${logdir}/xvalidate_1k,2k
+
+ethogram.py \
+      $logdir xvalidate_1k,2k ${thresholds_dense_file} \
+      $wavpath_noext $audio_tic_rate \
+      &>> ${wavpath_noext}-ethogram.log
+
+check_file_exists ${wavpath_noext}-ethogram.log
+for pr in $(echo $precision_recall_ratios | sed "s/,/ /g") ; do
+  check_file_exists ${wavpath_noext}-predicted-${pr}pr.csv
+done
+count_lines_with_label ${wavpath_noext}-predicted-1.0pr.csv mel-pulse 592 WARNING

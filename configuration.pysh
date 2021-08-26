@@ -133,6 +133,12 @@ freeze_ngpu_cards=-1
 freeze_ngigabytes_memory=-1
 freeze_cluster_flags=""
 
+ensemble_where=default_where
+ensemble_ncpu_cores=-1
+ensemble_ngpu_cards=-1
+ensemble_ngigabytes_memory=-1
+ensemble_cluster_flags=""
+
 classify_gpu=0
 classify_where=default_where
 classify_gpu_ncpu_cores=-1

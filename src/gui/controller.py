@@ -11,6 +11,7 @@ import re
 import asyncio
 import math
 import json
+import shutil
 
 bokehlog = logging.getLogger("songexplorer") 
 #class Object(object):
@@ -1372,6 +1373,77 @@ async def _freeze_actuate(ckpts):
             _freeze_actuate(ckpts)
     else:
         V.waitfor_update()
+
+def ensemble_succeeded(modeldir, reftime, ckpts):
+    logfile = os.path.join(modeldir, "ensemble.log")
+    if not logfile_succeeded(logfile, reftime):
+        return False
+    pbfile = os.path.join(modeldir, "frozen-graph.ckpt-"+ckpts+".pb", "saved_model.pb")
+    if not pbfile_succeeded(pbfile, reftime):
+        return False
+    return True
+
+async def ensemble_actuate():
+    M.waitfor_job = []
+    currtime = time.time()
+    logdir = V.logs_folder.value
+    if len(V.model_file.value.split(','))>1:
+        V_model_file_value = []
+        for model in V.model_file.value.split(','):
+            thislogdir, thismodel, _, thisckpt = M.parse_model_file(model)
+            V_model_file_value.append(os.path.join(thislogdir, thismodel, "ckpt-"+thisckpt))
+    else:
+        thislogdir, thismodel, _, thisckpt = M.parse_model_file(V.model_file.value)
+        V_model_file_value = []
+        for model in filter(lambda x: x.startswith(thismodel.split('_')[0]+'_') and
+                                      ',' not in x and
+                                      os.path.isdir(os.path.join(thislogdir,x)),
+                            os.listdir(thislogdir)):
+            V_model_file_value.append(os.path.join(thislogdir, model, "ckpt-"+thisckpt))
+    V_model_file_value = ','.join(V_model_file_value)
+    models = []
+    ckpts = []
+    for ckpt in V_model_file_value.split(','):
+        _, thismodel, _, thisckpt = M.parse_model_file(ckpt)
+        root, rkw = thismodel.split('_')
+        model = root
+        models.append(rkw)
+        ckpts.append(thisckpt)
+    model += '_'+','.join(models)
+    os.makedirs(os.path.join(logdir, model), exist_ok=True)
+    shutil.copy(os.path.join(os.path.dirname(V_model_file_value.split(',')[0].rstrip(os.path.sep)),
+                             "labels.txt"),
+                os.path.join(logdir, model))
+    logfile = os.path.join(logdir, model, "ensemble.log")
+    with open(os.path.join(logdir,model,'labels.txt'), 'r') as fid:
+        labels = fid.read().splitlines()
+    jobid = generic_actuate("ensemble.py", logfile,
+                            M.ensemble_where,
+                            M.ensemble_ncpu_cores,
+                            M.ensemble_ngpu_cards,
+                            M.ensemble_ngigabytes_memory,
+                            "",
+                            M.ensemble_cluster_flags,
+                            "--start_checkpoints="+V_model_file_value, \
+                            "--output_file="+os.path.join(logdir, model,
+                                                          "frozen-graph.ckpt-"+','.join(ckpts)+".pb"), \
+                            "--labels_touse="+','.join(labels),
+                            "--context_ms="+V.context_ms.value,
+                            "--model_architecture="+M.architecture,
+                            "--model_parameters='"+json.dumps({k:v.value for k,v in V.model_parameters.items()})+"'",
+                            "--parallelize="+str(M.classify_parallelize),
+                            "--audio_tic_rate="+str(M.audio_tic_rate),
+                            "--nchannels="+str(M.audio_nchannels))
+    displaystring = "ENSEMBLE " + \
+                    os.path.join(os.path.basename(logdir), model) + \
+                    " ("+jobid+")"
+    M.waitfor_job.append(jobid)
+    asyncio.create_task(actuate_monitor(displaystring, None, None, \
+                        lambda l=logfile, t=currtime: recent_file_exists(l, t, False), \
+                        lambda l=logfile: contains_two_timestamps(l), \
+                        lambda m=os.path.join(logdir, model), t=currtime, c=','.join(ckpts): \
+                               ensemble_succeeded(m, t, c)))
+    V.waitfor_update()
 
 def classify_isdone(wavlogfile, reftime):
     return recent_file_exists(wavlogfile, reftime, False) and \

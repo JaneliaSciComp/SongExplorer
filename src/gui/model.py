@@ -23,7 +23,7 @@ def parse_model_file(modelstr):
         filepath, filename = os.path.split(filepath)
     logdir, modeldir = os.path.split(filepath)
     prefix = filename.split('.')[0]
-    m=re.search('ckpt-(\d+)',filename)
+    m=re.search('ckpt-([\d,]+)',filename)
     check_point = m.group(1)
     return logdir, modeldir, prefix, check_point
 

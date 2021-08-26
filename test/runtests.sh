@@ -10,7 +10,7 @@ $repo_path/test/tutorial.sh
 $repo_path/test/tutorial.py
 
 if (( $(diff <(tree $repo_path/test/scratch/tutorial-sh | grep -v tfevents) \
-             <(tree $repo_path/test/scratch/tutorial-py | grep -v tfevents) | wc -l) > 8 )) ; then
+             <(tree $repo_path/test/scratch/tutorial-py | grep -v tfevents) | wc -l) > 12 )) ; then
   echo ERROR directory hierarchies differ between tutorial-{py,sh}
 fi
 files=(groundtruth-data/round1/PS_20130625111709_ch3-detected.csv
