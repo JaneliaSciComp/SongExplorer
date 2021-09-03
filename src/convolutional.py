@@ -368,7 +368,7 @@ def create_model(model_settings):
   # 2D convolutions
   dilated_kernel_size = (kernel_sizes[0] - 1) * dilation_rate + 1
   while inputs_shape[2] >= dilated_kernel_size and \
-        inputs_shape[1] >= dilated_kernel_size and \
+        noutput_tics >= dilated_kernel_size and \
         iconv<nconvlayers:
     if use_residual and iconv%2!=0:
       bypass = inputs
@@ -400,7 +400,7 @@ def create_model(model_settings):
 
   # 1D convolutions (or actually, pan-freq 2D)
   dilated_kernel_size = (kernel_sizes[1] - 1) * dilation_rate + 1
-  while inputs_shape[1] >= dilated_kernel_size and \
+  while noutput_tics >= dilated_kernel_size and \
         iconv<nconvlayers:
     if use_residual and iconv%2!=0:
       bypass = inputs
