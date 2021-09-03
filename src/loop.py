@@ -99,7 +99,7 @@ def loss_fn(logits, ground_truth_input):
             labels=ground_truth_input,
             logits=logits[:,0,:])
 
-def evaluate_step(model, fingerprint_input, ground_truth_input, istraining):
+def evaluate_fn(model, fingerprint_input, ground_truth_input, istraining):
     hidden_activations, logits = model(fingerprint_input, training=istraining)
     predicted_indices = tf.math.argmax(logits, 2)[:,0]
     correct_prediction = tf.equal(predicted_indices, ground_truth_input)
@@ -183,7 +183,7 @@ def main():
       # pre-process a batch of data to make sure settings are valid
       train_fingerprints, train_ground_truth, _ = audio_processor.get_data(
           FLAGS.batch_size, 0, model_settings, FLAGS.shiftby_ms, 'training')
-      evaluate_step(thismodel, train_fingerprints, train_ground_truth, False)
+      evaluate_fn(thismodel, train_fingerprints, train_ground_truth, False)
       return
 
   training_set_size = audio_processor.set_size('training')
@@ -191,15 +191,11 @@ def main():
   validation_set_size = audio_processor.set_size('validation')
 
   @tf.function
-  def train_step():
-    # Pull the sounds we'll use for training.
-    train_fingerprints, train_ground_truth, _ = audio_processor.get_data(
-        FLAGS.batch_size, 0, model_settings, FLAGS.shiftby_ms, 'training')
-
+  def train_step(train_fingerprints, train_ground_truth):
     # Run the graph with this batch of training data.
     with tf.GradientTape() as tape:
-      logits, train_accuracy, _, _ = evaluate_step(thismodel, train_fingerprints,
-                                                   train_ground_truth, True)
+      logits, train_accuracy, _, _ = evaluate_fn(thismodel, train_fingerprints,
+                                                 train_ground_truth, True)
       loss_value = loss_fn(logits, train_ground_truth)
     gradients = tape.gradient(loss_value, thismodel.trainable_variables)
     thisoptimizer.apply_gradients(zip(gradients, thismodel.trainable_variables))
@@ -210,7 +206,12 @@ def main():
   print('line format is Elapsed %f, Step #%d, Train accuracy %.1f, cross entropy %f')
   for training_step in range(start_step, FLAGS.how_many_training_steps + 1):
     if training_set_size>0 and FLAGS.save_step_period>0:
-      cross_entropy_mean, train_accuracy = train_step()
+      # Pull the sounds we'll use for training.
+      train_fingerprints, train_ground_truth, _ = audio_processor.get_data(
+          FLAGS.batch_size, 0, model_settings, FLAGS.shiftby_ms, 'training')
+
+      cross_entropy_mean, train_accuracy = train_step(tf.constant(train_fingerprints),
+                                                      tf.constant(train_ground_truth))
       t1=datetime.now()-t0
 
       with train_writer.as_default():
@@ -242,21 +243,18 @@ def main():
                       audio_processor, True, FLAGS.how_many_training_steps, t0, nlabels, \
                       validation_writer)
 
-# @tf.function here produces warnings, and logits.*.npz files then have tensors inside
-def validate_test_step(model, set_kind, model_settings, audio_processor, nlabels, isound):
-  fingerprints, ground_truth, sounds = (
-      audio_processor.get_data(FLAGS.batch_size, isound, model_settings,
-                               FLAGS.shiftby_ms, set_kind))
+@tf.function
+def validate_test_step(model, nlabels, fingerprints, ground_truth):
   needed = FLAGS.batch_size - fingerprints.shape[0]
-  logits, accuracy, predicted_indices, hidden_activations = evaluate_step(model, fingerprints,
-                                                                          ground_truth, False)
+  logits, accuracy, predicted_indices, hidden_activations = evaluate_fn(model, fingerprints,
+                                                                        ground_truth, False)
   loss_value = loss_fn(logits, ground_truth)
   cross_entropy_mean = tf.math.reduce_mean(loss_value)
   confusion_matrix = tf.math.confusion_matrix(ground_truth,
                                               predicted_indices,
                                               num_classes=nlabels)
 
-  return fingerprints, ground_truth, sounds, needed, logits, accuracy, hidden_activations, cross_entropy_mean, confusion_matrix
+  return needed, logits, accuracy, hidden_activations, cross_entropy_mean, confusion_matrix
 
 def validate_and_test(model, set_kind, set_size, model_settings, \
                       audio_processor, is_last_step, training_step, t0, nlabels, \
@@ -264,10 +262,12 @@ def validate_and_test(model, set_kind, set_size, model_settings, \
   total_accuracy = 0
   total_conf_matrix = None
   for isound in range(0, set_size, FLAGS.batch_size):
-
-    fingerprints, ground_truth, sounds, needed, logits, accuracy, hidden_activations, cross_entropy_mean, confusion_matrix = \
-            validate_test_step(model, set_kind, model_settings, audio_processor,
-                               nlabels, isound)
+    fingerprints, ground_truth, sounds = (
+        audio_processor.get_data(FLAGS.batch_size, isound, model_settings,
+                                 FLAGS.shiftby_ms, set_kind))
+    needed, logits, accuracy, hidden_activations, cross_entropy_mean, confusion_matrix = \
+            validate_test_step(model, tf.constant(nlabels),
+                               tf.constant(fingerprints), tf.constant(ground_truth))
 
     with validation_writer.as_default():
       tf.summary.scalar('cross_entropy', cross_entropy_mean, step=training_step)
