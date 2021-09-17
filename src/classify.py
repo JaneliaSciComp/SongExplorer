@@ -95,7 +95,7 @@ def main():
 
   stride_x_downsample_ms = stride_x_downsample_tics/audio_tic_rate*1000
   npadding = int(round((FLAGS.context_ms/2+FLAGS.shiftby_ms)/stride_x_downsample_ms))
-  probability_matrix = np.zeros((npadding, len(labels)))
+  probability_list = [np.zeros((npadding, len(labels)), dtype=np.float32)]
 
   # Inference along audio stream.
   for audio_data_offset in range(0, 1+data.shape[0], clip_stride_tics):
@@ -110,18 +110,16 @@ def main():
     current_time_ms = np.round(audio_data_offset * 1000 / audio_tic_rate).astype(np.int)
     if pad_len>0:
       discard_len = np.ceil(pad_len/stride_x_downsample_tics).astype(np.int)
-      probability_matrix = np.concatenate((probability_matrix,
-                                           np.array(outputs.numpy()[0,:-discard_len,:],
-                                                    ndmin=2)))
+      probability_list.append(np.array(outputs.numpy()[0,:-discard_len,:]))
       break
     else:
-      probability_matrix = np.concatenate((probability_matrix,
-                                           np.array(outputs.numpy()[0,:,:], ndmin=2)))
+      probability_list.append(np.array(outputs.numpy()[0,:,:]))
 
   tic_rate = round(1000/stride_x_downsample_ms)
   if tic_rate != 1000/stride_x_downsample_ms:
     print('WARNING: .wav files do not support fractional sampling rates!')
 
+  probability_matrix = np.concatenate(probability_list)
   denominator = np.sum(probability_matrix * prevalences, axis=1)
   for ch in range(len(labels)):
     adjusted_probability = probability_matrix[:,ch] * prevalences[ch]
