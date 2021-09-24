@@ -41,7 +41,7 @@ bokehlog = logging.getLogger("songexplorer")
 import model as M
 import controller as C
 
-bokeh_document, cluster_dot_palette, snippet_palette, p_cluster, cluster_dots, p_snippets, snippets_label_sources_clustered, snippets_label_sources_annotated, snippets_wave_sources, snippets_wave_glyphs, snippets_gram_sources, snippets_gram_glyphs, snippets_quad_grey, dot_size_cluster, dot_alpha_cluster, cluster_circle_fuchsia, p_waveform, p_spectrogram, p_probability, probability_source, probability_glyph, spectrogram_source, spectrogram_glyph, waveform_span_red, spectrogram_span_red, waveform_quad_grey_clustered, waveform_quad_grey_annotated, waveform_quad_grey_pan, waveform_quad_fuchsia, spectrogram_quad_grey_clustered, spectrogram_quad_grey_annotated, spectrogram_quad_grey_pan, spectrogram_quad_fuchsia, snippets_quad_fuchsia, waveform_source, waveform_glyph, waveform_label_source_clustered, waveform_label_source_annotated, spectrogram_label_source_clustered, spectrogram_label_source_annotated, which_layer, which_species, which_word, which_nohyphen, which_kind, color_picker, circle_radius, dot_size, dot_alpha, spectrogram_length, zoom_context, zoom_offset, zoomin, zoomout, reset, panleft, panright, allleft, allout, allright, save_indicator, nsounds_per_label_buttons, label_texts, play, play_callback, video_toggle, video_div, undo, redo, detect, misses, configuration_file, train, leaveoneout, leaveallout, xvalidate, mistakes, activations, cluster, visualize, accuracy, freeze, ensemble, classify, ethogram, compare, congruence, status_ticker, waitfor, file_dialog_source, configuration_contents, logs_folder_button, logs_folder, model_file_button, model_file, wavcsv_files_button, wavcsv_files, groundtruth_folder_button, groundtruth_folder, validation_files_button, test_files_button, validation_files, test_files, labels_touse_button, labels_touse, kinds_touse_button, kinds_touse, prevalences_button, prevalences, copy, labelsounds, makepredictions, fixfalsepositives, fixfalsenegatives, generalize, tunehyperparameters, findnovellabels, examineerrors, testdensely, doit, time_sigma, time_smooth_ms, frequency_n_ms, frequency_nw, frequency_p, frequency_smooth_ms, nsteps, restore_from, save_and_validate_period, validate_percentage, mini_batch, kfold, activations_equalize_ratio, activations_max_sounds, pca_fraction_variance_to_retain, tsne_perplexity, tsne_exaggeration, umap_neighbors, umap_distance, cluster_algorithm, cluster_these_layers, precision_recall_ratios, congruence_portion, congruence_convolve, context_ms, shiftby_ms, optimizer, learning_rate, nreplicates, batch_seed, weights_seed, file_dialog_string, file_dialog_table, readme_contents, labelcounts, wizard_buttons, action_buttons, parameter_buttons, parameter_textinputs, wizard2actions, action2parameterbuttons, action2parametertextinputs, model_parameters, model_parameters_enable_logic, model_parameters_required = [None]*165
+bokeh_document, cluster_dot_palette, snippet_palette, p_cluster, cluster_dots, p_snippets, snippets_label_sources_clustered, snippets_label_sources_annotated, snippets_wave_sources, snippets_wave_glyphs, snippets_gram_sources, snippets_gram_glyphs, snippets_quad_grey, dot_size_cluster, dot_alpha_cluster, cluster_circle_fuchsia, p_waveform, p_spectrogram, p_probability, probability_source, probability_glyph, spectrogram_source, spectrogram_glyph, waveform_span_red, spectrogram_span_red, waveform_quad_grey_clustered, waveform_quad_grey_annotated, waveform_quad_grey_pan, waveform_quad_fuchsia, spectrogram_quad_grey_clustered, spectrogram_quad_grey_annotated, spectrogram_quad_grey_pan, spectrogram_quad_fuchsia, snippets_quad_fuchsia, waveform_source, waveform_glyph, waveform_label_source_clustered, waveform_label_source_annotated, spectrogram_label_source_clustered, spectrogram_label_source_annotated, which_layer, which_species, which_word, which_nohyphen, which_kind, color_picker, circle_radius, dot_size, dot_alpha, spectrogram_length, zoom_context, zoom_offset, zoomin, zoomout, reset, panleft, panright, allleft, allout, allright, save_indicator, nsounds_per_label_buttons, label_texts, play, play_callback, video_toggle, video_div, undo, redo, recordings, detect, misses, configuration_file, train, leaveoneout, leaveallout, xvalidate, mistakes, activations, cluster, visualize, accuracy, freeze, ensemble, classify, ethogram, compare, congruence, status_ticker, waitfor, file_dialog_source, configuration_contents, logs_folder_button, logs_folder, model_file_button, model_file, wavcsv_files_button, wavcsv_files, groundtruth_folder_button, groundtruth_folder, validation_files_button, test_files_button, validation_files, test_files, labels_touse_button, labels_touse, kinds_touse_button, kinds_touse, prevalences_button, prevalences, copy, labelsounds, makepredictions, fixfalsepositives, fixfalsenegatives, generalize, tunehyperparameters, findnovellabels, examineerrors, testdensely, doit, time_sigma, time_smooth_ms, frequency_n_ms, frequency_nw, frequency_p, frequency_smooth_ms, nsteps, restore_from, save_and_validate_period, validate_percentage, mini_batch, kfold, activations_equalize_ratio, activations_max_sounds, pca_fraction_variance_to_retain, tsne_perplexity, tsne_exaggeration, umap_neighbors, umap_distance, cluster_algorithm, cluster_these_layers, precision_recall_ratios, congruence_portion, congruence_convolve, context_ms, shiftby_ms, optimizer, learning_rate, nreplicates, batch_seed, weights_seed, file_dialog_string, file_dialog_table, readme_contents, labelcounts, wizard_buttons, action_buttons, parameter_buttons, parameter_textinputs, wizard2actions, action2parameterbuttons, action2parametertextinputs, model_parameters, model_parameters_enable_logic, model_parameters_required = [None]*166
 
 class ScatterNd(LayoutDOM):
 
@@ -380,6 +380,12 @@ def cluster_initialize(newcolors=True):
 
     M.clustered_stops = [x['ticks'][1] for x in M.clustered_sounds]
     M.iclustered_stops_sorted = np.argsort(M.clustered_stops)
+
+    recordings.options = sorted(list(set([x['file'] for x in M.clustered_sounds])))
+    for recording in recordings.options:
+        M.clustered_recording2firstsound[recording] = \
+              next(filter(lambda x: x[1]['file']==recording, enumerate(M.clustered_sounds)))[0]
+    recordings.options = [""] + recordings.options
 
     cluster_isnotnan = [not np.isnan(x[0]) and not np.isnan(x[1]) \
                         for x in M.clustered_activations[layer0]]
@@ -752,7 +758,6 @@ def _context_update(wavi, tapped_sound, istart_bounded, ilength):
             __context_update(wavi, tapped_sound, istart_bounded, ilength))
 
 def context_update():
-    p_waveform.title.text = p_spectrogram.title.text = ''
     tapped_ticks = [np.nan, np.nan]
     istart = np.nan
     scales = [0]*M.audio_nchannels
@@ -787,10 +792,8 @@ def context_update():
         tapped_ticks = tapped_sound['ticks']
         M.context_midpoint_tic = np.mean(tapped_ticks, dtype=int)
         istart = M.context_midpoint_tic-M.context_width_tic//2 + M.context_offset_tic
-        if M.context_waveform:
-            p_waveform.title.text = tapped_sound['file']
-        elif M.context_spectrogram:
-            p_spectrogram.title.text = tapped_sound['file']
+        M.user_changed_recording=False
+        recordings.value = tapped_sound['file']
         _, wavs = spiowav.read(os.path.join(groundtruth_folder.value, tapped_sound['file']),
                                mmap=True)
         if np.ndim(wavs)==1:
@@ -1248,7 +1251,7 @@ async def status_ticker_update():
     status_ticker.text = status_ticker_pre+newtext+status_ticker_post
 
 def init(_bokeh_document):
-    global bokeh_document, cluster_dot_palette, snippet_palette, p_cluster, cluster_dots, p_cluster_dots, precomputed_dots, snippets_dy, p_snippets, snippets_label_sources_clustered, snippets_label_sources_annotated, snippets_wave_sources, snippets_wave_glyphs, snippets_gram_sources, snippets_gram_glyphs, snippets_quad_grey, dot_size_cluster, dot_alpha_cluster, cluster_circle_fuchsia, p_waveform, p_spectrogram, p_probability, probability_source, probability_glyph, spectrogram_source, spectrogram_glyph, waveform_span_red, spectrogram_span_red, waveform_quad_grey_clustered, waveform_quad_grey_annotated, waveform_quad_grey_pan, waveform_quad_fuchsia, spectrogram_quad_grey_clustered, spectrogram_quad_grey_annotated, spectrogram_quad_grey_pan, spectrogram_quad_fuchsia, snippets_quad_fuchsia, waveform_source, waveform_glyph, waveform_label_source_clustered, waveform_label_source_annotated, spectrogram_label_source_clustered, spectrogram_label_source_annotated, which_layer, which_species, which_word, which_nohyphen, which_kind, color_picker, circle_radius, dot_size, dot_alpha, spectrogram_length, zoom_context, zoom_offset, zoomin, zoomout, reset, panleft, panright, allleft, allout, allright, save_indicator, nsounds_per_label_buttons, label_texts, play, play_callback, video_toggle, video_div, undo, redo, detect, misses, configuration_file, train, leaveoneout, leaveallout, xvalidate, mistakes, activations, cluster, visualize, accuracy, freeze, ensemble, classify, ethogram, compare, congruence, status_ticker, waitfor, file_dialog_source, configuration_contents, logs_folder_button, logs_folder, model_file_button, model_file, wavcsv_files_button, wavcsv_files, groundtruth_folder_button, groundtruth_folder, validation_files_button, test_files_button, validation_files, test_files, labels_touse_button, labels_touse, kinds_touse_button, kinds_touse, prevalences_button, prevalences, copy, labelsounds, makepredictions, fixfalsepositives, fixfalsenegatives, generalize, tunehyperparameters, findnovellabels, examineerrors, testdensely, doit, time_sigma, time_smooth_ms, frequency_n_ms, frequency_nw, frequency_p, frequency_smooth_ms, nsteps, restore_from, save_and_validate_period, validate_percentage, mini_batch, kfold, activations_equalize_ratio, activations_max_sounds, pca_fraction_variance_to_retain, tsne_perplexity, tsne_exaggeration, umap_neighbors, umap_distance, cluster_algorithm, cluster_these_layers, precision_recall_ratios, congruence_portion, congruence_convolve, context_ms, shiftby_ms, optimizer, learning_rate, nreplicates, batch_seed, weights_seed, file_dialog_string, file_dialog_table, readme_contents, labelcounts, wizard_buttons, action_buttons, parameter_buttons, parameter_textinputs, wizard2actions, action2parameterbuttons, action2parametertextinputs, status_ticker_update, status_ticker_pre, status_ticker_post, model_parameters, model_parameters_enable_logic, model_parameters_required
+    global bokeh_document, cluster_dot_palette, snippet_palette, p_cluster, cluster_dots, p_cluster_dots, precomputed_dots, snippets_dy, p_snippets, snippets_label_sources_clustered, snippets_label_sources_annotated, snippets_wave_sources, snippets_wave_glyphs, snippets_gram_sources, snippets_gram_glyphs, snippets_quad_grey, dot_size_cluster, dot_alpha_cluster, cluster_circle_fuchsia, p_waveform, p_spectrogram, p_probability, probability_source, probability_glyph, spectrogram_source, spectrogram_glyph, waveform_span_red, spectrogram_span_red, waveform_quad_grey_clustered, waveform_quad_grey_annotated, waveform_quad_grey_pan, waveform_quad_fuchsia, spectrogram_quad_grey_clustered, spectrogram_quad_grey_annotated, spectrogram_quad_grey_pan, spectrogram_quad_fuchsia, snippets_quad_fuchsia, waveform_source, waveform_glyph, waveform_label_source_clustered, waveform_label_source_annotated, spectrogram_label_source_clustered, spectrogram_label_source_annotated, which_layer, which_species, which_word, which_nohyphen, which_kind, color_picker, circle_radius, dot_size, dot_alpha, spectrogram_length, zoom_context, zoom_offset, zoomin, zoomout, reset, panleft, panright, allleft, allout, allright, save_indicator, nsounds_per_label_buttons, label_texts, play, play_callback, video_toggle, video_div, undo, redo, recordings, detect, misses, configuration_file, train, leaveoneout, leaveallout, xvalidate, mistakes, activations, cluster, visualize, accuracy, freeze, ensemble, classify, ethogram, compare, congruence, status_ticker, waitfor, file_dialog_source, configuration_contents, logs_folder_button, logs_folder, model_file_button, model_file, wavcsv_files_button, wavcsv_files, groundtruth_folder_button, groundtruth_folder, validation_files_button, test_files_button, validation_files, test_files, labels_touse_button, labels_touse, kinds_touse_button, kinds_touse, prevalences_button, prevalences, copy, labelsounds, makepredictions, fixfalsepositives, fixfalsenegatives, generalize, tunehyperparameters, findnovellabels, examineerrors, testdensely, doit, time_sigma, time_smooth_ms, frequency_n_ms, frequency_nw, frequency_p, frequency_smooth_ms, nsteps, restore_from, save_and_validate_period, validate_percentage, mini_batch, kfold, activations_equalize_ratio, activations_max_sounds, pca_fraction_variance_to_retain, tsne_perplexity, tsne_exaggeration, umap_neighbors, umap_distance, cluster_algorithm, cluster_these_layers, precision_recall_ratios, congruence_portion, congruence_convolve, context_ms, shiftby_ms, optimizer, learning_rate, nreplicates, batch_seed, weights_seed, file_dialog_string, file_dialog_table, readme_contents, labelcounts, wizard_buttons, action_buttons, parameter_buttons, parameter_textinputs, wizard2actions, action2parameterbuttons, action2parametertextinputs, status_ticker_update, status_ticker_pre, status_ticker_post, model_parameters, model_parameters_enable_logic, model_parameters_required
 
     bokeh_document = _bokeh_document
 
@@ -1355,7 +1358,6 @@ def init(_bokeh_document):
     p_waveform.x_range.range_padding = p_waveform.y_range.range_padding = 0.0
     p_waveform.y_range.start = -1
     p_waveform.y_range.end = 1
-    p_waveform.title.text=' '
 
     waveform_span_red = Span(location=0, dimension='height', line_color='red')
     p_waveform.add_layout(waveform_span_red)
@@ -1573,7 +1575,7 @@ def init(_bokeh_document):
 
         label_callbacks.append(lambda a,o,n,i=i: C.label_callback(n,i))
         label_texts.append(TextInput(value=M.state['labels'][i],
-                                            css_classes=['hide-label']))
+                                     css_classes=['hide-label'], height=32))
         label_texts[-1].on_change("value", label_callbacks[-1])
 
     C.nsounds_per_label_callback(M.ilabel)
@@ -1598,6 +1600,9 @@ def init(_bokeh_document):
 
     redo = Button(label='redo', disabled=True)
     redo.on_click(C.redo_callback)
+
+    recordings = Select(title="recording:", height=50)
+    recordings.on_change('value', C.recordings_callback)
 
     detect = Button(label='detect')
     detect.on_click(lambda: C.action_callback(detect, C.detect_actuate))
@@ -1943,7 +1948,7 @@ def init(_bokeh_document):
     with open(os.path.join(os.path.dirname(os.path.realpath(__file__)),'..','..','README.md'), 'r', encoding='utf-8') as fid:
         contents = fid.read()
     html = markdown.markdown(contents, extensions=['tables','toc'])
-    readme_contents = Div(text=html, style={'overflow':'scroll','width':'600px','height':'1397px'})
+    readme_contents = Div(text=html, style={'overflow':'scroll','width':'600px','height':'1440px'})
 
     labelcounts = Div(text="",
                       style={'overflow-y':'hidden', 'overflow-x':'scroll',

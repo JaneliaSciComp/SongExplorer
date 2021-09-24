@@ -219,6 +219,27 @@ aud.play()
 vid.play()
 """
 
+def recordings_callback(a,o,n):
+    if M.user_changed_recording:
+        if n=="":
+            isound = -1
+            M.xcluster = M.ycluster = M.zcluster = np.nan
+        else:
+            isound = M.clustered_recording2firstsound[V.recordings.value]
+            coordinates = M.clustered_activations[M.ilayer][isound,:]
+            M.xcluster, M.ycluster = coordinates[0], coordinates[1]
+            if M.ndcluster==3:
+                M.zcluster = coordinates[2]
+        V.cluster_circle_fuchsia.data.update(cx=[M.xcluster],
+                                             cy=[M.ycluster],
+                                             cz=[M.zcluster],
+                                             cr=[M.state["circle_radius"]],
+                                             cc=[M.cluster_circle_color])
+        M.isnippet = isound
+        V.snippets_update(True)
+        V.context_update()
+    M.user_changed_recording=True
+
 def cluster_tap_callback(event):
     M.xcluster, M.ycluster = event[0], event[1]
     if M.ndcluster==3:
