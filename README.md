@@ -33,7 +33,7 @@ Table of Contents
       * [Testing Densely](#testing-densely)
       * [Discovering Novel Sounds](#discovering-novel-sounds)
       * [Scripting Automation](#scripting-automation)
-      * [Customizing Architectures](#customizing-architectures)
+      * [Customizing the Architecture](#customizing-the-architecture)
    * [Troubleshooting](#troubleshooting)
    * [Frequently Asked Questions](#frequently-asked-questions)
    * [Reporting Problems](#reporting-problems)
@@ -102,6 +102,7 @@ BJ Arthur, Y Ding, M Sosale, F Khalif, S Turaga, DL Stern (2021)
 SongExplorer: A deep learning workflow for discovery and segmentation of animal acoustic communication signals  
 https://www.biorxiv.org/content/10.1101/2021.03.26.437280v1 
 https://figshare.com/articles/dataset/Audio_recordings_of_21_species_of_Drosophila_10_of_which_are_annotated/14328425
+
 
 # Notation #
 
@@ -269,6 +270,7 @@ default to only use half the available CPU cores and half of the memory.  This
 configuration can be changed in the Preferences window.  Note that even when
 SongExplorer is idle these resources will *not* be available to other programs,
 including the operating system.
+
 
 ## System Configuration ##
 
@@ -1114,7 +1116,7 @@ depends on choosing the right model architecture.  SongExplorer by default
 uses convolutional neural networks, and there are many free parameters by
 which to tune its architecture.  You configure them by editing the variables
 itemized below, and then use cross-validation to compare different choices.
-[Customizing Architectures](#customizing-architectures) describes how to
+[Customizing the Architecture](#customizing-the-architecture) describes how to
 use recurrent networks instead, or anything else of your choosing.
 
 * `context` is the temporal duration, in milliseconds, that the classifier
@@ -1582,25 +1584,59 @@ These two files implement, as Bash and Python scripts respectively, the entire
 workflow presented in this [Tutorial](#tutorial), from [Detecting
 Sounds](#detecting-sounds) all the way to [Testing Densely](#testing-densely).
 
-## Customizing Architectures ##
+## Customizing the Architecture ##
 
-The default network architecture is a set of layered convolutions, the
-depth and width of which can be configured as shown above.  SongExplorer
-also comes with a recurrent network as an alternative.  To plug this in,
-set `architecture` in "configuration.pysh" to "recurrent".  The buttons
-immediately above the configuration textbox in the GUI will change to reflect
-the different hyperparameters used by this architecture.  All the workflows
-described above (detecting sounds, making predicions, fixing mistakes, etc)
-can be used with recurrent networks in an identical manner.
+The default network architecture is a set of layered convolutions, the depth
+and width of which can be configured as shown above.  Should this not prove
+flexible enough, SongExplorer is designed with a means to supply your own
+TensorFlow code that implements a whiz bang architecture of any arbitrary
+design.  See the minimal example in "src/plugin.py" for a template of how
+this works, a pared down version of which is as follows:
 
-One can also supply your own tensorflow code that implements a
-whiz bang architecture of any arbitrary design.  Use the examples in
-"src/speech_commands_custom/{convolutional,recurrent}.py" as a template.
-Two objects must be supplied in this python file:  (1) a list of
+  import tensorflow as tf
+
+  # a list of lists specifying the architecture-specific hyperparameters in the GUI
+  model_parameters = [
+    # each hyperparameter is described by a list with these entries:
+    # [ key in `model_settings`,
+    #   title in GUI,
+    #   "" for textbox or [] for pull-down,
+    #   default value,
+    #   enable logic,
+    #   callback,
+    #   required ]
+    ]
+
+  # a function which returns a keras model
+  def create_model(model_settings):
+      # `model_settings` is a superset of the hyperparameters above.  see src/models.py
+
+      # hidden_layers is used to visualize intermediate clusters in the GUI
+      hidden_layers = []
+
+      # 'parallelize' specifies the number of tics to evaluate simultaneously when classifying
+      ninput_tics = model_settings["context_tics"] + model_settings["parallelize"] - 1
+      input_layer = Input(shape=(ninput_tics, model_settings["nchannels"]))
+
+      # add custom layers here, e.g. x = Conv1D()(x)
+      # append interesting ones to hidden_layers
+
+      # last layer must be convolutional with nlabels as the output size
+      output_layer = Conv1D(model_settings['nlabels'], 1)(x)
+
+      return tf.keras.Model(inputs=input_layer, outputs=[hidden_layers, output_layer])
+
+In brief, two objects must be supplied in a python file:  (1) a list of
 `model_parameters` which defines the variable names, titles, and default
-values to appear in the GUI, and (2) a function `create_model` which
+values, etc. to appear in the GUI, and (2) a function `create_model` which
 builds and returns the network graph.  Specify as the `architecture` in
 "configuration.pysh" the full path to this file, without the ".py" suffix.
+The buttons immediately above the configuration textbox in the GUI will
+change to reflect the different hyperparameters used by this architecture.
+All the workflows described above (detecting sounds, making predicions, fixing
+mistakes, etc) can be used with this custom network in an identical manner.
+The default convolutional architecture is itself written as a plug-in, and
+can be found in src/convolutional.py.
 
 
 # Troubleshooting #

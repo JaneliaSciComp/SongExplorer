@@ -162,7 +162,8 @@ main_content = row(column(row(V.which_layer, V.which_species, V.which_word,
                                   V.file_dialog_table),
                            column(*[row(model_parameters[i:min(len(model_parameters)+1,i+6)])
                                     for i in range(0,len(model_parameters),6)],
-                                  V.configuration_contents))),
+                                  V.configuration_contents,
+                                  width=M.gui_width_pix//2))),
                    V.readme_contents)
 
 doc.add_root(main_content)
