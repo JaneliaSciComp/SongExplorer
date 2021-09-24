@@ -241,6 +241,18 @@ def snippets_tap_callback(event):
     V.snippets_update(False)
     V.context_update()
 
+def get_shortest_tapped_sound(x_tic, currfile):
+    ileft = np.searchsorted(M.clustered_starts_sorted, x_tic)
+    sounds_righthere = set(range(0,ileft))
+    iright = np.searchsorted(M.clustered_stops, x_tic,
+                             sorter=M.iclustered_stops_sorted)
+    sounds_righthere &= set([M.iclustered_stops_sorted[i] for i in \
+            range(iright, len(M.iclustered_stops_sorted))])
+    sounds_inthisfile = filter(lambda x: M.clustered_sounds[x]['file'] == currfile,
+                                sounds_righthere)
+    return sorted(sounds_inthisfile, key=lambda x: \
+                  M.clustered_sounds[x]['ticks'][1]-M.clustered_sounds[x]['ticks'][0])
+
 def context_doubletap_callback(event, midpoint):
     x_tic = int(np.rint(event.x*M.audio_tic_rate))
     currfile = M.clustered_sounds[M.isnippet]['file']
@@ -265,18 +277,9 @@ def context_doubletap_callback(event, midpoint):
     else:
         if M.state['labels'][M.ilabel]=='':
             return
-        ileft = np.searchsorted(M.clustered_starts_sorted, x_tic)
-        sounds_righthere = set(range(0,ileft))
-        iright = np.searchsorted(M.clustered_stops, x_tic,
-                                 sorter=M.iclustered_stops_sorted)
-        sounds_righthere &= set([M.iclustered_stops_sorted[i] for i in \
-                range(iright, len(M.iclustered_stops_sorted))])
-        sounds_inthisfile = filter(lambda x: M.clustered_sounds[x]['file'] == currfile,
-                                    sounds_righthere)
-        sounds_shortest = sorted(sounds_inthisfile, key=lambda x: \
-                M.clustered_sounds[x]['ticks'][1]-M.clustered_sounds[x]['ticks'][0])
-        if len(sounds_shortest)>0:
-            toggle_annotation(sounds_shortest[0])
+        isounds_shortest = get_shortest_tapped_sound(x_tic, currfile)
+        if len(isounds_shortest)>0:
+            toggle_annotation(isounds_shortest[0])
 
 pan_start_x = pan_start_y = pan_start_sx = pan_start_sy = None
 
@@ -335,8 +338,24 @@ def waveform_pan_end_callback(event):
     V.context_update()
 
 def waveform_tap_callback(event):
-    M.context_waveform_low = [-1]*M.audio_nchannels
-    M.context_waveform_high = [1]*M.audio_nchannels
+    x_tic = int(np.rint(event.x*M.audio_tic_rate))
+    currfile = M.clustered_sounds[M.isnippet]['file']
+    isounds_shortest = get_shortest_tapped_sound(x_tic, currfile)
+    if event.sy<0 or len(isounds_shortest)==0:
+        M.context_waveform_low = [-1]*M.audio_nchannels
+        M.context_waveform_high = [1]*M.audio_nchannels
+    else:
+        coordinates = M.clustered_activations[M.ilayer][isounds_shortest[0],:]
+        M.xcluster, M.ycluster = coordinates[0], coordinates[1]
+        if M.ndcluster==3:
+            M.zcluster = coordinates[2]
+        V.cluster_circle_fuchsia.data.update(cx=[M.xcluster],
+                                             cy=[M.ycluster],
+                                             cz=[M.zcluster],
+                                             cr=[M.state["circle_radius"]],
+                                             cc=[M.cluster_circle_color])
+        M.isnippet = isounds_shortest[0]
+        V.snippets_update(True)
     V.context_update()
 
 def _spectrogram_window_callback(any_changed):
@@ -512,9 +531,25 @@ def spectrogram_pan_end_callback(event):
     V.context_update()
     
 def spectrogram_tap_callback(event):
-    ichannel = M.audio_nchannels-1 - int(np.floor(event.y))
-    M.spectrogram_low_hz[ichannel] = 0
-    M.spectrogram_high_hz[ichannel] = M.audio_tic_rate/2
+    x_tic = int(np.rint(event.x*M.audio_tic_rate))
+    currfile = M.clustered_sounds[M.isnippet]['file']
+    isounds_shortest = get_shortest_tapped_sound(x_tic, currfile)
+    if event.sy<0 or len(isounds_shortest)==0:
+        ichannel = M.audio_nchannels-1 - int(np.floor(event.y))
+        M.spectrogram_low_hz[ichannel] = 0
+        M.spectrogram_high_hz[ichannel] = M.audio_tic_rate/2
+    else:
+        coordinates = M.clustered_activations[M.ilayer][isounds_shortest[0],:]
+        M.xcluster, M.ycluster = coordinates[0], coordinates[1]
+        if M.ndcluster==3:
+            M.zcluster = coordinates[2]
+        V.cluster_circle_fuchsia.data.update(cx=[M.xcluster],
+                                             cy=[M.ycluster],
+                                             cz=[M.zcluster],
+                                             cr=[M.state["circle_radius"]],
+                                             cc=[M.cluster_circle_color])
+        M.isnippet = isounds_shortest[0]
+        V.snippets_update(True)
     V.context_update()
     
 def toggle_annotation(idouble_tapped_sound):
