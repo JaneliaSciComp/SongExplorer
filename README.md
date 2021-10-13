@@ -32,6 +32,7 @@ Table of Contents
       * [Ensemble Models](#ensemble-models)
       * [Testing Densely](#testing-densely)
       * [Discovering Novel Sounds](#discovering-novel-sounds)
+      * [Unsupervised Methods](#unsupervised-methods)
       * [Scripting Automation](#scripting-automation)
       * [Customizing the Architecture](#customizing-the-architecture)
    * [Troubleshooting](#troubleshooting)
@@ -48,6 +49,11 @@ sounds are.  SongExplorer is trained to recognize such words by manually giving
 it a few examples.  It will then automatically calculate the probability,
 over time, of when those words occur in all of your recordings.
 
+Alternatively, you have two or more sets of audio recordings, and you want to
+know if there are differences between them.  SongExplorer can automatically
+detect sounds in those recordings and cluster them based on how well it
+can distinguish between them.
+
 Applications suitable for SongExplorer include quantifying the rate or pattern
 of words emitted by a particular species, distinguishing a recording of one
 species from another, and discerning whether individuals of the same species
@@ -57,17 +63,17 @@ Underneath the hood is a deep convolutional neural network.  The input is the
 raw audio stream, and the output is a set of mutually-exclusive probability
 waveforms corresponding to each word of interest.
 
-Training begins by first thresholding one of your recordings in the
-time- and frequency-domains to find sounds that exceed the ambient noise.
-These sounds are then clustered into similar categories for you to manually
+Training begins by first thresholding one of your recordings in the time- and
+frequency-domains to find sounds that exceed the ambient noise.  These sounds
+are then clustered based on similarities in the waveforms for you to manually
 annotate with however many word labels naturally occur.  A classifier is
 then trained on this corpus of ground truth, and a new recording is analyzed
-by it.  The words it automatically finds are then clustered as before, but
-this time are displayed with predicted labels.  You manually correct the
-mistakes, both re-labeling words that it got wrong, as well as labeling
-words it missed.  These new annotations are added to the ground truth,
-and the process of retraining the classifier and analyzing and correcting
-new recordings is repeated until the desired accuracy is reached.
+by it.  The words it automatically finds are then clustered, this time using
+the activations of the hidden neurons, and displayed with predicted labels.
+You manually correct the mistakes, both re-labeling words that it got wrong,
+as well as labeling words it missed.  These new annotations are added to the
+ground truth, and the process of retraining the classifier and analyzing and
+correcting new recordings is repeated until the desired accuracy is reached.
 
 
 # Public Domain Annotations #
@@ -499,6 +505,21 @@ same resources.
 
 
 # Tutorial #
+
+SongExplorer provides two main workflows.  A supervised approach in
+which you iteratively train a model to output the probabilities over
+time of specific words of your choosing (yellow curve below).  And an
+unsupervised approach in which the recordings are such that labels can be
+applied automatically, with the output being how those sounds cluster
+after a model is trained to distinguish between them (pink curve).
+This tutorial describes both, starting with the supervised workflow.
+It's best to read it in it's entirety, but you could also skip to
+[Unsupervised Methods](#unsupervised-methods).  The blue curve below is
+described in [Discovering Novel Sounds](#discovering-novel-sounds).  [Video
+tutorials](https://www.youtube.com/playlist?list=PLYXyXDkMwZip8x78RAyN6ee9NK42WBbKb)
+are also available.
+
+<img src='gui/static/workflows.svg' width=400px></img>
 
 Let's walk through the steps needed to train a classifier completely from
 scratch.
@@ -1493,6 +1514,41 @@ alternately switch between `annotated` and `detected` in the `kind` pull-down
 menu to find any differences in the density distributions.  Click on any new
 hot spots you find in the detected clusters, and annotate sounds which are
 labeled as detected but not annotated.  Create new word types as necessary.
+
+## Unsupervised Methods ##
+
+Until now we have only considered the workflow to manually annotate
+individual sounds.  Some data sets and experiments are amendable to
+automatically labelling them *en masse* however.  Say, for example, it is
+known for sure that there is only a single species audible in each recording
+and all that is needed is to identify the species.  In this and other similar
+cases a sequence of actions already individually described above can be used.
+First use the `Detect` button to find sounds in each recording.  Then manually
+edit the resulting CSV files to change each "time" and "frequency" entry to
+the name of the species.  Finally use the `Train` button to create a species
+detector by setting `kinds to use` to "detected" and `labels to use` to the
+species names.  You can now use the `Accuracy`, `Freeze`, `Classify`, and
+`Ethogram` buttons as before to make predictions on new recordings.  How well
+this works is subject to the signal-to-noise ratio of your data of course;
+you might need to carefully tune the parameters used when detecting sounds.
+
+A simple model like this is useful for more that just classifying species.
+It can also be used to look for differences in vocalizations in closely
+related species, genetic mutants of the same species, or even individuals
+within the same species.  To do so, use the species, mutant, or individuals
+name as the label in the CSV files when training the model.  Then cluster
+the hidden state activations of the already detected sounds using this same
+model with the `Activations`, `Cluster`, and `Visualize` buttons as before.
+Any non-overlapping clumps are evidence of unique vocalizations.
+
+Finally it should be noted that large amounts of ambient and "other"
+annotations can be in some cases be automatically labelled.  If you can
+devise a way to position your microphone in a place and time for which no
+natural sounds are made but for which the "room tone" is otherwise the
+same, then the entire recording can be considered ambient.  Similarly,
+even if there are natural sounds present, so long as none of them are from
+any species of interest, then the `Detect` button can be used to pick out
+sounds that can all be considered "other".
 
 ## Scripting Automation ##
 
