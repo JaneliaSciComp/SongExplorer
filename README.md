@@ -1798,7 +1798,7 @@ that everything works both after you've first installed it as well as after any
 changes have been made to the code.  The tests exercise both the Python GUI as
 well as the Linux Bash interfaces.  To run them, simply execute "runtests.sh":
 
-    $ singularity exec -B /tmp:/opt/songexplorer/test/scratch [--nv] <songexplorer.sif> \
+    $ singularity exec -B /tmp:/opt/songexplorer/test/scratch <songexplorer.sif> \
             /opt/songexplorer/test/runtests.sh
 
 or with docker:
@@ -1807,3 +1807,6 @@ or with docker:
             [-v <other-disks>] [-u <userid>] [-w <working-directory] \
             -e SONGEXPLORER_BIN bjarthur/songexplorer:<tag> \
             /opt/songexplorer/test/runtests.sh
+
+Tensorflow with a GPU is not completely deterministic, so don't use the
+`--nv` flag when exercising the tests.

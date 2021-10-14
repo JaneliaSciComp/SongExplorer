@@ -108,6 +108,7 @@ def evaluate_fn(model, fingerprint_input, ground_truth_input, istraining):
 
 def main():
   os.environ['TF_DETERMINISTIC_OPS']=FLAGS.deterministic
+  os.environ['TF_DISABLE_SPARSE_SOFTMAX_XENT_WITH_LOGITS_OP_DETERMINISM_EXCEPTIONS']=FLAGS.deterministic
 
   sys.path.append(os.path.dirname(FLAGS.model_architecture))
   model = importlib.import_module(os.path.basename(FLAGS.model_architecture))

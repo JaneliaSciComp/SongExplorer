@@ -335,19 +335,19 @@ export class ScatterNd extends LayoutDOM {
 """
 )
 
-    cx = String
-    cy = String
-    cz = String
-    cr = String
-    cc = String
+    cx = String()
+    cy = String()
+    cz = String()
+    cr = String()
+    cc = String()
 
-    dx = String
-    dy = String
-    dz = String
-    dl = String
-    dc = String
-    ds = String
-    da = String
+    dx = String()
+    dy = String()
+    dz = String()
+    dl = String()
+    dc = String()
+    ds = String()
+    da = String()
 
     click_position = List(Float)
 
@@ -691,8 +691,8 @@ def nparray2base64wav(data, tic_rate):
 def nparray2base64mp4(filename, start_sec, stop_sec):
     vid = pims.open(filename)
 
-    start_frame = round(start_sec * vid.frame_rate).astype(np.int)
-    stop_frame = round(stop_sec * vid.frame_rate).astype(np.int)
+    start_frame = round(start_sec * vid.frame_rate)
+    stop_frame = round(stop_sec * vid.frame_rate)
 
     fid=io.BytesIO()
     container = av.open(fid, mode='w', format='mp4')

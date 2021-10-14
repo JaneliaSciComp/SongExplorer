@@ -198,9 +198,9 @@ wait_for_job(M.status_ticker_queue)
 check_file_exists(wavpath_noext+"-ethogram.log")
 for pr in V.precision_recall_ratios.value.split(','):
   check_file_exists(wavpath_noext+"-predicted-"+pr+"pr.csv")
-count_lines_with_label(wavpath_noext+"-predicted-1.0pr.csv", "mel-pulse", 508, "WARNING")
-count_lines_with_label(wavpath_noext+"-predicted-1.0pr.csv", "mel-sine", 765, "WARNING")
-count_lines_with_label(wavpath_noext+"-predicted-1.0pr.csv", "ambient", 125, "WARNING")
+count_lines_with_label(wavpath_noext+"-predicted-1.0pr.csv", "mel-pulse", 510, "WARNING")
+count_lines_with_label(wavpath_noext+"-predicted-1.0pr.csv", "mel-sine", 767, "WARNING")
+count_lines_with_label(wavpath_noext+"-predicted-1.0pr.csv", "ambient", 124, "WARNING")
 
 asyncio.run(C.detect_actuate())
 
@@ -219,7 +219,7 @@ wait_for_job(M.status_ticker_queue)
 
 check_file_exists(wavpath_noext+"-misses.log")
 check_file_exists(wavpath_noext+"-missed.csv")
-count_lines_with_label(wavpath_noext+"-missed.csv", "other", 1460, "WARNING")
+count_lines_with_label(wavpath_noext+"-missed.csv", "other", 1569, "WARNING")
 
 os.mkdir(os.path.join(V.groundtruth_folder.value, "round1", "cluster"))
 for file in glob.glob(os.path.join(V.groundtruth_folder.value, "activations*")):
@@ -514,7 +514,7 @@ for pr in V.precision_recall_ratios.value.split(','):
   check_file_exists(wavpath_noext+"-predicted-"+pr+"pr.csv")
 count_lines_with_label(wavpath_noext+"-predicted-1.0pr.csv", "mel-pulse", 56, "WARNING")
 count_lines_with_label(wavpath_noext+"-predicted-1.0pr.csv", "mel-sine", 140, "WARNING")
-count_lines_with_label(wavpath_noext+"-predicted-1.0pr.csv", "ambient", 69, "WARNING")
+count_lines_with_label(wavpath_noext+"-predicted-1.0pr.csv", "ambient", 70, "WARNING")
 
 shutil.copy(os.path.join(repo_path, "data/20190122T132554a-14-annotated-person2.csv"),
             os.path.join(repo_path, "test/scratch/tutorial-py/groundtruth-data/congruence-ensemble"))
@@ -581,6 +581,6 @@ wait_for_job(M.status_ticker_queue)
 check_file_exists(wavpath_noext+"-ethogram.log")
 for pr in V.precision_recall_ratios.value.split(','):
   check_file_exists(wavpath_noext+"-predicted-"+pr+"pr.csv")
-count_lines_with_label(wavpath_noext+"-predicted-1.0pr.csv", "mel-pulse", 592, "WARNING")
+count_lines_with_label(wavpath_noext+"-predicted-1.0pr.csv", "mel-pulse", 594, "WARNING")
 
 run(["hetero", "stop"], stdout=PIPE, stderr=STDOUT)

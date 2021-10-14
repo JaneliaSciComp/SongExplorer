@@ -51,6 +51,7 @@ FLAGS = None
 
 def main():
   os.environ['TF_DETERMINISTIC_OPS']=FLAGS.deterministic
+  os.environ['TF_DISABLE_SPARSE_SOFTMAX_XENT_WITH_LOGITS_OP_DETERMINISM_EXCEPTIONS']=FLAGS.deterministic
 
   #Load a wav file and return audio_tic_rate and numpy data of float64 type.
   data, audio_tic_rate = tf.audio.decode_wav(tf.io.read_file(FLAGS.wav))

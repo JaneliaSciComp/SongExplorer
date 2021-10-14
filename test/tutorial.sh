@@ -228,9 +228,9 @@ check_file_exists ${wavpath_noext}-ethogram.log
 for pr in $(echo $precision_recall_ratios | sed "s/,/ /g") ; do
   check_file_exists ${wavpath_noext}-predicted-${pr}pr.csv
 done
-count_lines_with_label ${wavpath_noext}-predicted-1.0pr.csv mel-pulse 508 WARNING
-count_lines_with_label ${wavpath_noext}-predicted-1.0pr.csv mel-sine 765 WARNING
-count_lines_with_label ${wavpath_noext}-predicted-1.0pr.csv ambient 125 WARNING
+count_lines_with_label ${wavpath_noext}-predicted-1.0pr.csv mel-pulse 510 WARNING
+count_lines_with_label ${wavpath_noext}-predicted-1.0pr.csv mel-sine 767 WARNING
+count_lines_with_label ${wavpath_noext}-predicted-1.0pr.csv ambient 124 WARNING
 
 detect.py \
       ${wavpath_noext}.wav \
@@ -249,7 +249,7 @@ misses.py $csvfiles &> ${wavpath_noext}-misses.log
 
 check_file_exists ${wavpath_noext}-misses.log
 check_file_exists ${wavpath_noext}-missed.csv
-count_lines_with_label ${wavpath_noext}-missed.csv other 1460 WARNING
+count_lines_with_label ${wavpath_noext}-missed.csv other 1569 WARNING
 
 mkdir $data_dir/round1/cluster
 mv $data_dir/{activations,cluster}* $data_dir/round1/cluster
@@ -583,7 +583,7 @@ for pr in $(echo $precision_recall_ratios | sed "s/,/ /g") ; do
 done
 count_lines_with_label ${wavpath_noext}-predicted-1.0pr.csv mel-pulse 56 WARNING
 count_lines_with_label ${wavpath_noext}-predicted-1.0pr.csv mel-sine 140 WARNING
-count_lines_with_label ${wavpath_noext}-predicted-1.0pr.csv ambient 69 WARNING
+count_lines_with_label ${wavpath_noext}-predicted-1.0pr.csv ambient 70 WARNING
 
 wav_file_noext=20190122T132554a-14
 cp $repo_path/data/${wav_file_noext}-annotated-person2.csv \
@@ -652,4 +652,4 @@ check_file_exists ${wavpath_noext}-ethogram.log
 for pr in $(echo $precision_recall_ratios | sed "s/,/ /g") ; do
   check_file_exists ${wavpath_noext}-predicted-${pr}pr.csv
 done
-count_lines_with_label ${wavpath_noext}-predicted-1.0pr.csv mel-pulse 592 WARNING
+count_lines_with_label ${wavpath_noext}-predicted-1.0pr.csv mel-pulse 594 WARNING

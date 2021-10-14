@@ -35,7 +35,7 @@ model_parameters = list(V.model_parameters.values())
 main_content = row(column(row(V.which_layer, V.which_species, V.which_word,
                               V.which_nohyphen, V.which_kind,
                               column(V.color_picker, width=75),
-                              width=M.gui_width_pix-9),
+                              width=M.gui_width_pix-75),
                           row(V.p_cluster, V.p_snippets),
                           row(column(V.dot_size, width=100),
                               column(V.dot_alpha, width=100),

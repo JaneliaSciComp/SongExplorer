@@ -194,5 +194,5 @@ classify_parallelize=64
 # the location of writable code files
 source_path=""
 
-# a boolean to make the output exactly reproducible
+# a boolean to make the output (more) reproducible
 deterministic=0
