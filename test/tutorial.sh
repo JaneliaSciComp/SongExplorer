@@ -49,7 +49,7 @@ detect.py \
       ${wavpath_noext}.wav \
       $time_sigma_signal $time_sigma_noise $time_smooth_ms \
       $frequency_n_ms $frequency_nw $frequency_p_signal $frequency_p_noise $frequency_smooth_ms \
-      $audio_tic_rate $audio_nchannels \
+      $detect_time_sigma_robust $audio_tic_rate $audio_nchannels \
       &>> ${wavpath_noext}-detect.log
 
 check_file_exists ${wavpath_noext}-detect.log
@@ -236,7 +236,7 @@ detect.py \
       ${wavpath_noext}.wav \
       $time_sigma_signal $time_sigma_noise $time_smooth_ms \
       $frequency_n_ms $frequency_nw $frequency_p_signal $frequency_p_noise $frequency_smooth_ms \
-      $audio_tic_rate $audio_nchannels \
+      $detect_time_sigma_robust $audio_tic_rate $audio_nchannels \
       &>> ${wavpath_noext}-detect.log
 
 check_file_exists ${wavpath_noext}-detect.log

@@ -791,6 +791,7 @@ async def _detect_actuate(i, wavfiles, threads, results):
                             V.frequency_nw.value, \
                             *V.frequency_p.value.split(','), \
                             V.frequency_smooth_ms.value,
+                            str(M.detect_time_sigma_robust),
                             str(M.audio_tic_rate), str(M.audio_nchannels))
     M.waitfor_job.append(jobid)
     displaystring = "DETECT "+os.path.basename(wavfile)+" ("+jobid+")"

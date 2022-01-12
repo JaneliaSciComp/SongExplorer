@@ -168,6 +168,9 @@ congruence_ngpu_cards=-1
 congruence_ngigabytes_memory=-1
 congruence_cluster_flags=""
 
+# use mean and stddev for threshold if 0, otherise median and median absolute deviation
+detect_time_sigma_robust=1
+
 # simultaneously train multiple models on one GPU
 models_per_job=1
 
@@ -181,7 +184,7 @@ cluster_parallelize=-1
 accuracy_parallelize=-1
 congruence_parallelize=-1
 
-# how many points to use for the precision-recall and sensitivity-specificity curves
+# how many points to use for the precision-recall, sensitivity-specificity, and congruence curves
 nprobabilities=20
 
 # used by freeze and classify to specify how many output time tics to process in parallel.

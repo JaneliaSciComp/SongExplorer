@@ -2,10 +2,10 @@
 
 # threshold an audio recording in both the time and frequency spaces
 
-# detect.py <full-path-to-wavfile> <time-sigma-signal> <time-sigma-noise> <time-smooth-ms> <frequency-n-ms> <frequency-nw> <frequency-p-signal> <frequency-p-noise> <frequency-smooth-ms> <audio-tic-rate> <audio-nchannels>
+# detect.py <full-path-to-wavfile> <time-sigma-signal> <time-sigma-noise> <time-smooth-ms> <frequency-n-ms> <frequency-nw> <frequency-p-signal> <frequency-p-noise> <frequency-smooth-ms> <detect-time-sigma-robust> <audio-tic-rate> <audio-nchannels>
 
 # e.g.
-# detect.py `pwd`/groundtruth-data/round2/20161207T102314_ch1_p1.wav 4 2 6.4 25.6 4 0.1 1.0 25.6 2500 1
+# detect.py `pwd`/groundtruth-data/round2/20161207T102314_ch1_p1.wav 4 2 6.4 25.6 4 0.1 1.0 25.6 1 2500 1
 
 import os
 import numpy as np
@@ -33,7 +33,7 @@ print("hostname = "+socket.gethostname())
 
 try:
 
-  _, filename, time_sigma_signal, time_sigma_noise, time_smooth_ms, frequency_n_ms, frequency_nw, frequency_p_signal, frequency_p_noise, frequency_smooth_ms, audio_tic_rate, audio_nchannels = sys.argv
+  _, filename, time_sigma_signal, time_sigma_noise, time_smooth_ms, frequency_n_ms, frequency_nw, frequency_p_signal, frequency_p_noise, frequency_smooth_ms, detect_time_sigma_robust, audio_tic_rate, audio_nchannels = sys.argv
   print('filename: '+filename)
   print('time_sigma_signal: '+time_sigma_signal)
   print('time_sigma_noise: '+time_sigma_noise)
@@ -43,6 +43,7 @@ try:
   print('frequency_p_signal: '+frequency_p_signal)
   print('frequency_p_noise: '+frequency_p_noise)
   print('frequency_smooth_ms: '+frequency_smooth_ms)
+  print('detect_time_sigma_robust'+detect_time_sigma_robust)
   print('audio_tic_rate: '+audio_tic_rate)
   print('audio_nchannels: '+audio_nchannels)
 
@@ -56,6 +57,7 @@ try:
   frequency_p_signal = float(frequency_p_signal)
   frequency_p_noise = float(frequency_p_noise)
   frequency_smooth = round(float(frequency_smooth_ms)/1000*audio_tic_rate) // (frequency_n//2)
+  detect_time_sigma_robust = int(detect_time_sigma_robust)
 
   fs, song = spiowav.read(filename)
   if fs!=audio_tic_rate:
@@ -95,8 +97,12 @@ try:
   selem = np.ones((time_smooth), dtype=np.uint8)
 
   for ichannel in range(nchannels):
-    song_median = np.median(song[:,ichannel])
-    song_mad = stats.median_abs_deviation(song[:,ichannel])
+    if detect_time_sigma_robust==1:
+      song_median = np.median(song[:,ichannel])
+      song_mad = stats.median_abs_deviation(song[:,ichannel])
+    else:
+      song_median = np.mean(song[:,ichannel])
+      song_mad = np.std(song[:,ichannel])
 
     song_thresholded = np.abs(song[:,ichannel]-song_median) > time_sigma_signal*song_mad
     song_morphed = closing(song_thresholded, selem)
