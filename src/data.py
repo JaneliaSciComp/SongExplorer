@@ -179,8 +179,14 @@ class AudioProcessor(object):
                   for x in self.data_index['training']]) >= partition_n:
             continue
         if wav_path not in wav_ntics:
-          _, data = spiowav.read(wav_path, mmap=True)
-          wav_ntics[wav_path] = len(data)
+          audio_tic_rate, song = spiowav.read(wav_path, mmap=True)
+          if audio_tic_rate != model_settings['audio_tic_rate']:
+            print('ERROR: audio_tic_rate is set to %d in configuration.sh but is actually %d in %s' % (model_settings['audio_tic_rate'], audio_tic_rate, wav_path))
+          if np.ndim(song)==1:
+            song = np.expand_dims(song, axis=1)
+          if np.shape(song)[1] != model_settings['nchannels']:
+            print('ERROR: nchannels is set to %d in configuration.sh but is actually %d in %s' % (model_settings['nchannels'], np.shape(song)[1], wav_path))
+          wav_ntics[wav_path] = len(song)
         ntics = wav_ntics[wav_path]
         if ticks[0] < context_tics//2 + shiftby_tics or \
            ticks[1] > (ntics - context_tics//2 + shiftby_tics):
@@ -324,11 +330,10 @@ class AudioProcessor(object):
 
       foreground_offset = (np.random.randint(sound['ticks'][0], 1+sound['ticks'][1]) if
             sound['ticks'][0] < sound['ticks'][1] else sound['ticks'][0])
-      audio_tic_rate, song = spiowav.read(os.path.join(self.data_dir, sound['file']), mmap=True)
+      wavpath = os.path.join(self.data_dir, sound['file'])
+      audio_tic_rate, song = spiowav.read(wavpath, mmap=True)
       if np.ndim(song)==1:
         song = np.expand_dims(song, axis=1)
-      assert audio_tic_rate == model_settings['audio_tic_rate']
-      assert np.shape(song)[1] == nchannels
       foreground_clipped = song[foreground_offset-math.floor(context_tics/2) - shiftby_tics :
                                 foreground_offset+math.ceil(context_tics/2) - shiftby_tics,
                                 :]
