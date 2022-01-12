@@ -104,11 +104,9 @@ Museo de Ciencias Naturales de Madrid's [Fonoteca Zoológica](www.fonozoo.com).
 
 # Citations and Repositories
 
-BJ Arthur, Y Ding, M Sosale, F Khalif, S Turaga, DL Stern (2021)  
-SongExplorer: A deep learning workflow for discovery and segmentation of animal acoustic communication signals  
-https://www.biorxiv.org/content/10.1101/2021.03.26.437280v1 
-https://figshare.com/articles/dataset/Audio_recordings_of_21_species_of_Drosophila_10_of_which_are_annotated/14328425
-
+BJ Arthur, Y Ding, M Sosale, F Khalif, E Kim, P Waddell, S Turaga, DL Stern (2021)  
+*SongExplorer*: A deep learning workflow for discovery and segmentation of animal acoustic communication signals  
+[bioRxiv doi: 10.1101/2021.03.26.437280](https://www.biorxiv.org/content/10.1101/2021.03.26.437280v1)  [figshare](https://figshare.com/articles/dataset/Audio_recordings_of_21_species_of_Drosophila_10_of_which_are_annotated/14328425)
 
 # Notation #
 
