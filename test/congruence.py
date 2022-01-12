@@ -70,10 +70,10 @@ pr1 = l1.loc[l1['Unnamed: 0'] == '1.0pr']
 check_value(pr1, "Everyone", 1)
 check_value(pr1, "only Person1", 2)
 check_value(pr1, "only Person2", 3)
-check_value(pr1, "only SongExplorer", 4)
+check_value(pr1, "only SE", 4)
 check_value(pr1, "not Person1", 5)
 check_value(pr1, "not Person2", 6)
-check_value(pr1, "not SongExplorer", 7)
+check_value(pr1, "not SE", 7)
 
 l2 = pd.read_csv(os.path.join(V.groundtruth_folder.value, "congruence.label.label2.csv"))
 pr1 = l2.loc[l2['Unnamed: 0'] == '1.0pr']
@@ -81,8 +81,8 @@ pr1 = l2.loc[l2['Unnamed: 0'] == '1.0pr']
 check_value(pr1, "Everyone", 1)
 check_value(pr1, "only Person1", 2)
 check_value(pr1, "only Person2", 3)
-check_value(pr1, "only SongExplorer", 0)
-check_value(pr1, "not SongExplorer", 0)
+check_value(pr1, "only SE", 0)
+check_value(pr1, "not SE", 0)
 
 for i in range(3,8):
   li = pd.read_csv(os.path.join(V.groundtruth_folder.value,
@@ -97,10 +97,10 @@ pr1 = l1.loc[l1['Unnamed: 0'] == '1.0pr']
 check_value(pr1, "Everyone", 1)
 check_value(pr1, "only Person1", 2)
 check_value(pr1, "only Person2", 3)
-check_value(pr1, "only SongExplorer", 4)
+check_value(pr1, "only SE", 4)
 check_value(pr1, "not Person1", 5)
 check_value(pr1, "not Person2", 6)
-check_value(pr1, "not SongExplorer", 7)
+check_value(pr1, "not SE", 7)
 
 l2 = pd.read_csv(os.path.join(V.groundtruth_folder.value, "congruence.tic.label2.csv"))
 pr1 = l2.loc[l2['Unnamed: 0'] == '1.0pr']
@@ -108,14 +108,14 @@ pr1 = l2.loc[l2['Unnamed: 0'] == '1.0pr']
 check_value(pr1, "Everyone", 1)
 check_value(pr1, "only Person1", 2)
 check_value(pr1, "only Person2", 3)
-check_value(pr1, "only SongExplorer", 22)
-check_value(pr1, "not SongExplorer", 0)
+check_value(pr1, "only SE", 22)
+check_value(pr1, "not SE", 0)
 
 l3 = pd.read_csv(os.path.join(V.groundtruth_folder.value, "congruence.tic.label3.csv"))
 pr1 = l3.loc[l3['Unnamed: 0'] == '1.0pr']
 
-check_value(pr1, "only SongExplorer", 10)
-check_value(pr1, "not SongExplorer", 0)
+check_value(pr1, "only SE", 10)
+check_value(pr1, "not SE", 0)
 check_value(pr1, "only Person1", 5)
 check_value(pr1, "not Person1", 0)
 check_value(pr1, "only Person2", 0)
@@ -125,8 +125,8 @@ check_value(pr1, "Everyone", 0)
 l4 = pd.read_csv(os.path.join(V.groundtruth_folder.value, "congruence.tic.label4.csv"))
 pr1 = l4.loc[l4['Unnamed: 0'] == '1.0pr']
 
-check_value(pr1, "only SongExplorer", 10)
-check_value(pr1, "not SongExplorer", 0)
+check_value(pr1, "only SE", 10)
+check_value(pr1, "not SE", 0)
 check_value(pr1, "only Person1", 6)
 check_value(pr1, "not Person1", 0)
 check_value(pr1, "only Person2", 0)
@@ -136,8 +136,8 @@ check_value(pr1, "Everyone", 0)
 l5 = pd.read_csv(os.path.join(V.groundtruth_folder.value, "congruence.tic.label5.csv"))
 pr1 = l5.loc[l5['Unnamed: 0'] == '1.0pr']
 
-check_value(pr1, "only SongExplorer", 10)
-check_value(pr1, "not SongExplorer", 0)
+check_value(pr1, "only SE", 10)
+check_value(pr1, "not SE", 0)
 check_value(pr1, "only Person1", 7)
 check_value(pr1, "not Person1", 0)
 check_value(pr1, "only Person2", 0)
@@ -147,8 +147,8 @@ check_value(pr1, "Everyone", 0)
 l6 = pd.read_csv(os.path.join(V.groundtruth_folder.value, "congruence.tic.label6.csv"))
 pr1 = l6.loc[l6['Unnamed: 0'] == '1.0pr']
 
-check_value(pr1, "only SongExplorer", 10)
-check_value(pr1, "not SongExplorer", 0)
+check_value(pr1, "only SE", 10)
+check_value(pr1, "not SE", 0)
 check_value(pr1, "only Person1", 5)
 check_value(pr1, "not Person1", 0)
 check_value(pr1, "only Person2", 0)
@@ -158,8 +158,8 @@ check_value(pr1, "Everyone", 0)
 l7 = pd.read_csv(os.path.join(V.groundtruth_folder.value, "congruence.tic.label7.csv"))
 pr1 = l7.loc[l7['Unnamed: 0'] == '1.0pr']
 
-check_value(pr1, "only SongExplorer", 10)
-check_value(pr1, "not SongExplorer", 0)
+check_value(pr1, "only SE", 10)
+check_value(pr1, "not SE", 0)
 check_value(pr1, "only Person1", 7)
 check_value(pr1, "not Person1", 0)
 check_value(pr1, "only Person2", 0)

@@ -350,20 +350,20 @@ try:
     if len(sorted_hm)<4:
       ax_venn = fig_venn.add_subplot(nrows,ncols,iplot)
       ax_venn.set_title(os.path.basename(csvbase), fontsize=8)
-    xdata=['Everyone', *['only '+(x if x!=pr else 'SongExplorer') for x in sorted_hm]]
+    xdata=['Everyone', *['only '+(x if x!=pr else 'SE') for x in sorted_hm]]
     ydata=only_data
     if len(sorted_hm)>2:
-      xdata.extend(['not '+(x if x!=pr else 'SongExplorer') for x in sorted_hm])
+      xdata.extend(['not '+(x if x!=pr else 'SE') for x in sorted_hm])
       ydata.extend(not_data)
     if len(sorted_hm)==2:
       idx = [1,2,0]  # Ab, aB, AB
       venn2(subsets=[ydata[x] for x in idx],
-            set_labels=[x if x!=pr else 'SongExplorer' for x in sorted_hm],
+            set_labels=[x if x!=pr else 'SE' for x in sorted_hm],
             ax=ax_venn)
     elif len(sorted_hm)==3:
       idx = [1,2,6,3,5,4,0]  # Abc, aBc, ABc, abC, AbC, aBC, ABC
       venn3(subsets=[ydata[x] for x in idx],
-            set_labels=[x if x!=pr else 'SongExplorer' for x in sorted_hm],
+            set_labels=[x if x!=pr else 'SE' for x in sorted_hm],
             ax=ax_venn)
     ax.bar(xdata, ydata, color='k')
     ax.set_title(os.path.basename(csvbase), fontsize=8)
@@ -374,20 +374,20 @@ try:
     if len(sorted_hm)<4:
       ax_venn = fig_venn.add_subplot(nrows,ncols,1)
       ax_venn.set_title('all files', fontsize=8)
-    xdata=['Everyone', *['only '+(x if x!=pr else 'SongExplorer') for x in sorted_hm]]
+    xdata=['Everyone', *['only '+(x if x!=pr else 'SE') for x in sorted_hm]]
     ydata=only_data
     if len(sorted_hm)>2:
-      xdata.extend(['not '+(x if x!=pr else 'SongExplorer') for x in sorted_hm])
+      xdata.extend(['not '+(x if x!=pr else 'SE') for x in sorted_hm])
       ydata.extend(not_data)
     if len(sorted_hm)==2:
       idx = [1,2,0]
       venn2(subsets=[ydata[x] for x in idx],
-            set_labels=[x if x!=pr else 'SongExplorer' for x in sorted_hm],
+            set_labels=[x if x!=pr else 'SE' for x in sorted_hm],
             ax=ax_venn)
     elif len(sorted_hm)==3:
       idx = [1,2,6,3,5,4,0]
       venn3(subsets=[ydata[x] for x in idx],
-            set_labels=[x if x!=pr else 'SongExplorer' for x in sorted_hm],
+            set_labels=[x if x!=pr else 'SE' for x in sorted_hm],
             ax=ax_venn)
     ax.bar(xdata, ydata, color='k')
     ax.set_xticklabels(xdata, rotation=40, ha='right')
@@ -527,12 +527,12 @@ try:
       csvbase0 = next(iter(onlyone_tic[pr][label].keys()))
       sorted_hm = natsorted(onlyone_tic[pr][label][csvbase0].keys())
       for hm in sorted_hm:
-        key = 'only '+hm if hm!=pr else 'only SongExplorer'
+        key = 'only '+hm if hm!=pr else 'only SE'
         roc_table_tic[label][pr][key] = int(sum([sum([y[1]-y[0]+1 for y in f[hm]]) \
                                                 for f in onlyone_tic[pr][label].values()]))
         roc_table_label[label][pr][key] = sum([len(f[hm]) for f in onlyone_label[pr][label].values()])
         if len(sorted_hm)>2:
-          key = 'not '+hm if hm!=pr else 'not SongExplorer'
+          key = 'not '+hm if hm!=pr else 'not SE'
           roc_table_tic[label][pr][key] = int(sum([sum([y[1]-y[0]+1 for y in f[hm]]) \
                                                   for f in notone_tic[pr][label].values()]))
           roc_table_label[label][pr][key] = sum([len(f[hm])
@@ -559,14 +559,14 @@ try:
           if not_only_every=='Everyone':
             TP = ydata
             thislabel += ' (TP)'
-          elif not_only_every=='only SongExplorer':
+          elif not_only_every=='only SE':
             FP = ydata
             thislabel += ' (FP)'
           else:
             if len(humans)==1:
               FN = ydata
               thislabel += ' (FN)'
-            elif not_only_every=='not SongExplorer':
+            elif not_only_every=='not SE':
               FN = ydata
               thislabel += ' (FN)'
           ax1.plot(xdata, ydata, '.-' if len(xdata)<10 else '-', label=thislabel)
