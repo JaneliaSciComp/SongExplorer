@@ -89,7 +89,7 @@ def main():
   recognize_graph = thismodel.inference_step
 
   clip_window_tics = thismodel.get_input_shape()[1].numpy()
-  context_tics = np.round(FLAGS.context_ms * audio_tic_rate / 1000).astype(np.int)
+  context_tics = int(FLAGS.context_ms * audio_tic_rate / 1000)
   assert FLAGS.parallelize>1
   stride_x_downsample_tics = (clip_window_tics - context_tics) // (FLAGS.parallelize-1)
   clip_stride_tics = stride_x_downsample_tics * FLAGS.parallelize
