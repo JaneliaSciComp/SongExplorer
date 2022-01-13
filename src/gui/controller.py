@@ -691,11 +691,16 @@ async def actuate_monitor(displaystring, results, idx, isrunningfun, isdonefun, 
         bokeh_document.add_next_tick_callback(V.status_ticker_update)
     while not isdonefun():
         await asyncio.sleep(1)
-    for sec in [3,10,30,100,300,1000]:
-        M.status_ticker_queue[displaystring] = "succeeded" if succeededfun() else "failed"
+    for sec in [3,10,30,100,300]:
+        if displaystring in M.status_ticker_queue:
+            M.status_ticker_queue[displaystring] = "succeeded" if succeededfun() else "failed"
         if bokeh_document: 
             bokeh_document.add_next_tick_callback(V.status_ticker_update)
-        if M.status_ticker_queue[displaystring] == "succeeded":
+        if displaystring not in M.status_ticker_queue:
+            if results:
+                results[idx]=False
+            return
+        elif M.status_ticker_queue[displaystring] == "succeeded":
             if results:
                 results[idx]=True
             return
@@ -1720,6 +1725,11 @@ async def congruence_actuate():
                         lambda l=logfile: contains_two_timestamps(l), \
                         lambda l=V.groundtruth_folder.value, t=currtime,
                                r=regex_files: congruence_succeeded(l, t, r)))
+
+def deletefailures_callback(arg):
+    M.status_ticker_queue = {k:v for k,v in M.status_ticker_queue.items() if v!="failed"}
+    if bokeh_document: 
+        bokeh_document.add_next_tick_callback(V.status_ticker_update)
 
 def waitfor_callback(arg):
     if V.waitfor.active:
