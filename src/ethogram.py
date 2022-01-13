@@ -2,10 +2,10 @@
 
 # apply per-class thresholds to discretize probabilities
  
-# ethogram.py <logdir> <model> <thresholds-file> <tf-file> <wav-tic-rate>
+# ethogram.py <logdir> <model> <thresholds-file> <wav-file> <wav-tic-rate>
 
 # e.g.
-# ethogram.py `pwd`/trained-classifier 1k 50 `pwd`/groundtruth-data/round1/20161207T102314_ch1_p1.tf 5000
+# ethogram.py `pwd`/trained-classifier 1k 50 `pwd`/groundtruth-data/round1/20161207T102314_ch1_p1.wav 5000
 
 import sys
 import os
@@ -30,20 +30,20 @@ print("hostname = "+socket.gethostname())
 
 try:
 
-  _,logdir,model,thresholds_file,tf_file,audio_tic_rate = argv
+  _,logdir,model,thresholds_file,wav_file,audio_tic_rate = argv
   print('logdir: '+logdir)
   print('model: '+model)
   print('thresholds_file: '+thresholds_file)
-  print('tf_file: '+tf_file)
+  print('wav_file: '+wav_file)
   print('audio_tic_rate: '+audio_tic_rate)
   audio_tic_rate=float(audio_tic_rate)
 
-  tfpath, tfname = os.path.split(tf_file)
-  tfname_noext = os.path.splitext(tfname)[0]
-  if os.path.isfile(os.path.join(tfpath,tfname_noext+'.wav')):
-    wavname = tfname_noext+'.wav'
-  elif os.path.isfile(os.path.join(tfpath,tfname_noext+'.WAV')):
-    wavname = tfname_noext+'.WAV'
+  wavpath, wavname = os.path.split(wav_file)
+  wavname_noext = os.path.splitext(wavname)[0]
+  if os.path.isfile(os.path.join(wavpath,wavname_noext+'.wav')):
+    wavname = wavname_noext+'.wav'
+  elif os.path.isfile(os.path.join(wavpath,wavname_noext+'.WAV')):
+    wavname = wavname_noext+'.WAV'
   else:
     print('cannot find corresponding WAV file')
     exit()
@@ -54,7 +54,7 @@ try:
   thresholds = np.array([x[1:] for x in thresholds], dtype=np.float64)
 
   audio_tic_rate_probabilities, half_stride_sec, probability_matrix = \
-        read_probabilities(os.path.join(tfpath, tfname_noext), labels)
+        read_probabilities(os.path.join(wavpath, wavname_noext), labels)
 
   for ithreshold in range(len(precision_recall_ratios)):
     features, start_tics, stop_tics = discretize_probabilites(probability_matrix,
@@ -63,8 +63,8 @@ try:
                                                               audio_tic_rate_probabilities,
                                                               half_stride_sec,
                                                               audio_tic_rate)
-    filename = os.path.join(tfpath,
-                            tfname_noext+'-predicted-'+precision_recall_ratios[ithreshold]+'pr.csv')
+    filename = os.path.join(wavpath,
+                            wavname_noext+'-predicted-'+precision_recall_ratios[ithreshold]+'pr.csv')
     isort = np.argsort(start_tics)
     with open(filename,'w') as fid:
       csvwriter = csv.writer(fid)
