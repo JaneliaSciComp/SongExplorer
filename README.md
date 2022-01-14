@@ -201,11 +201,13 @@ and then specify the full path to that file in the alias definition (e.g.
 
 ## Docker for Windows and Mac ##
 
-Platform-specific installation instructions can be found at
-[Docker](http://www.docker.com).  Once you have it installed, open the Command
-Prompt on Windows, or the Terminal on Mac, and download the [SongExplorer image
-from
-cloud.docker.com](https://hub.docker.com/r/bjarthur/songexplorer):
+Platform-specific installation instructions can be
+found at [Docker](http://www.docker.com).  On Windows
+you'll also need to install the [Windows Subsystem for
+Linux](https://docs.microsoft.com/en-us/windows/wsl/install). Once
+everything is installed, open the Command Prompt on Windows and start WSL
+with `wsl`, or the Terminal on Mac, and download the [SongExplorer image from
+cloud.docker.com](https://hub.docker.com/r/bjarthur/songexplorer) as follows:
 
     $ docker login
 
@@ -219,21 +221,8 @@ cloud.docker.com](https://hub.docker.com/r/bjarthur/songexplorer):
     REPOSITORY        TAG    IMAGE ID     CREATED      SIZE
     bjarthur/songexplorer latest b63784a710bb 20 hours ago 2.27GB
 
-On Windows, use `notepad` to create two ".bat" files:
-    
-    "SONGEXPLORER_BIN.bat":
-    docker run ^
-        [-v <disk-drive>] [-u <userid>] [-w <working-directory] ^
-        bjarthur/songexplorer %*
-
-    "songexplorer.bat":
-    docker run ^
-        [-v <disk-drive>] [-u <userid>] [-w <working-directory] ^
-        -e SONGEXPLORER_BIN -h=`hostname` -p 5006:5006 ^
-        bjarthur/songexplorer gui.sh <path-to-configuration.pysh> 5006
-
-The equivalent on Mac and Linux is to put these definitions in your .bashrc (or
-.zshrc file on Mac OS X Catalina and newer) file:
+Put these definitions in your .bashrc (or .zshrc file on Mac OS X Catalina
+and newer) file:
 
     export SONGEXPLORER_BIN="docker run \
         [-v <disk-drive>] [-u <userid>] [-w <working-directory] \
@@ -244,17 +233,15 @@ The equivalent on Mac and Linux is to put these definitions in your .bashrc (or
         bjarthur/songexplorer gui.sh <path-to-configuration.pysh> 5006"
 
 Add to these definitions any directories you want to access using the `-v`
-flag.  You might also need to use the `-u` flag to specify your username or
-userid.  Optionally specify the current working directory with the `-w` flag.
-All together these options would look something like `docker run -v C:\:/C -w
-/C/Users/%USERNAME% ...` on Windows, and `docker run -v /Users:/Users -w
-$HOME ...` on Mac.
+flag.  You might also need to use the `-u` flag to specify your username
+or userid.  Optionally specify the current working directory with the
+`-w` flag.  All together these options would look something like `docker
+run -v /Users:/Users -w $HOME ...`.
 
 In [System Configuration](#system-configuration) we'll make a copy of the
 default configuration file.  For now, you just need to decide where you're
 going to put it, and then specify the full path to that file in the alias
-definition (e.g.  "%HOMEPATH%/songexplorer/configuration.pysh" on Windows, or
-"$HOME/songexplorer/configuration.pysh" on Mac and Linux).
+definition (e.g. "$HOME/songexplorer/configuration.pysh").
 
 To quit out of SongExplorer you might need to open another terminal window and
 issue the `stop` command:
@@ -275,7 +262,6 @@ configuration can be changed in the Preferences window.  Note that even when
 SongExplorer is idle these resources will *not* be available to other programs,
 including the operating system.
 
-
 ## System Configuration ##
 
 SongExplorer is capable of training a classifier and making predictions on
@@ -286,7 +272,7 @@ a cluster.  You specify how you want this to work by editing
 Copy the exemplar configuration file out of the container and into your home
 directory:
 
-    $ $SONGEXPLORER_BIN cp /opt/songexplorer/configuration.pysh $PWD [%CD% on Windows]
+    $ $SONGEXPLORER_BIN cp /opt/songexplorer/configuration.pysh $PWD
 
 Inside you'll find many variables which control where SongExplorer does its work:
 
@@ -544,7 +530,7 @@ First, let's get some data bundled with SongExplorer into your home directory.
     $ mkdir -p groundtruth-data/round1
 
     $ $SONGEXPLORER_BIN cp /opt/songexplorer/data/PS_20130625111709_ch3.wav \
-          $PWD/groundtruth-data/round1 [%CD%/... on Windows]
+          $PWD/groundtruth-data/round1
 
 ## Detecting Sounds ##
 
@@ -888,7 +874,7 @@ First let's get some more data bundled with SongExplorer into your home director
     $ mkdir groundtruth-data/round2
 
     $ $SONGEXPLORER_BIN cp /opt/songexplorer/data/20161207T102314_ch1.wav \
-            $PWD/groundtruth-data/round2 [%CD%/... on Windows]
+            $PWD/groundtruth-data/round2
 
 Use the `Freeze` button to save the classifier's neural network graph structure
 and weight parameters into the file format that TensorFlow needs for inference.
