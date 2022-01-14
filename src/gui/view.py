@@ -1169,9 +1169,15 @@ def buttons_update():
 
 def file_dialog_update():
     thispath = os.path.join(M.file_dialog_root,M.file_dialog_filter)
-    files = glob.glob(thispath)
-    uniqdirnames = set([os.path.dirname(x) for x in files])
-    files = natsorted(['.', '..', *files])
+    globfiles = glob.glob(thispath)
+    uniqdirnames = set([os.path.dirname(x) for x in globfiles])
+    files = ['.', '..']
+    for thisfile in natsorted(globfiles):
+        try:
+            os.stat(thisfile)
+            files.append(thisfile)
+        except:
+            pass
     if len(uniqdirnames)==1:
         names=[os.path.basename(x) + ('/' if os.path.isdir(x) else '') for x in files]
     else:
