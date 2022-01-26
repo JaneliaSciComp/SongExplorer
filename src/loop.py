@@ -206,7 +206,7 @@ def main():
   # Training loop.
   print('line format is Elapsed %f, Step #%d, Train accuracy %.1f, cross entropy %f')
   for training_step in range(start_step, FLAGS.how_many_training_steps + 1):
-    if training_set_size>0 and FLAGS.save_step_period>0:
+    if training_set_size>0:
       # Pull the sounds we'll use for training.
       train_fingerprints, train_ground_truth, _ = audio_processor.get_data(
           FLAGS.batch_size, 0, model_settings, FLAGS.shiftby_ms, 'training')
@@ -224,13 +224,14 @@ def main():
                        train_accuracy.numpy() * 100, cross_entropy_mean.numpy()))
 
       # Save the model checkpoint periodically.
-      if (training_step % FLAGS.save_step_period == 0 or
+      if ((FLAGS.save_step_period > 0 and training_step % FLAGS.save_step_period == 0) or
           training_step == FLAGS.how_many_training_steps):
         print('Saving to "%s-%d"' % (checkpoint_basepath, training_step))
         checkpoint.write(checkpoint_basepath+'-'+str(training_step))
 
-    if validation_set_size>0 and training_step != FLAGS.how_many_training_steps and \
-                                 (training_step % FLAGS.validate_step_period) == 0:
+    if validation_set_size>0 and \
+       training_step != FLAGS.how_many_training_steps and \
+       (FLAGS.validate_step_period > 0 and training_step % FLAGS.validate_step_period == 0):
       validate_and_test(thismodel, 'validation', validation_set_size, model_settings, \
                         audio_processor, False, training_step, t0, nlabels, \
                         validation_writer)
