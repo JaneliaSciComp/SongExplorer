@@ -12,6 +12,7 @@ import asyncio
 import math
 import json
 import shutil
+import operator
 
 bokehlog = logging.getLogger("songexplorer") 
 #class Object(object):
@@ -243,7 +244,7 @@ def recordings_callback(a,o,n):
 def cluster_tap_callback(event):
     M.xcluster, M.ycluster = event[0], event[1]
     if M.ndcluster==3:
-      M.zcluster = event[2]
+        M.zcluster = event[2]
     V.cluster_circle_fuchsia.data.update(cx=[M.xcluster],
                                          cy=[M.ycluster],
                                          cz=[M.zcluster],
@@ -474,6 +475,48 @@ def allright_callback():
                           M.audio_tic_rate*1000
     M.context_offset_tic = int(np.rint(M.context_offset_ms/1000*M.audio_tic_rate))
     V.zoom_offset.value = str(M.context_offset_ms)
+
+def _label_callback(inequality_fun, idx, button):
+    tapped_start = M.clustered_sounds[M.isnippet]['ticks'][0]
+    snippets = np.nonzero([inequality_fun(x['ticks'][0], tapped_start) and
+                           V.recordings.value == x['file'] and
+                           M.species[M.ispecies] in x['label'] and
+                           M.words[M.iword] in x['label'] and
+                           (M.nohyphens[M.inohyphen]=="" or \
+                            M.nohyphens[M.inohyphen]==x['label']) and
+                           (M.kinds[M.ikind]=="" or \
+                            M.kinds[M.ikind]==x['kind']) for x in M.clustered_sounds])[0]
+    if len(snippets)>0:
+        M.isnippet = snippets[idx]
+        M.xcluster = M.clustered_activations[M.ilayer][M.isnippet,0]
+        M.ycluster = M.clustered_activations[M.ilayer][M.isnippet,1]
+        if M.ndcluster==3:
+            M.zcluster = M.clustered_activations[M.ilayer][M.isnippet,2]
+        V.cluster_circle_fuchsia.data.update(cx=[M.xcluster],
+                                             cy=[M.ycluster],
+                                             cz=[M.zcluster],
+                                             cr=[M.state["circle_radius"]],
+                                             cc=[M.cluster_circle_color])
+        M.xsnippet=M.ysnippet=0
+        V.snippets_update(True)
+        V.context_update()
+    button.button_type="default"
+ 
+def firstlabel_callback():
+    V.firstlabel.button_type="warning"
+    bokeh_document.add_next_tick_callback(lambda: _label_callback(operator.lt, 0, V.firstlabel))
+
+def prevlabel_callback():
+    V.prevlabel.button_type="warning"
+    bokeh_document.add_next_tick_callback(lambda: _label_callback(operator.lt, -1, V.prevlabel))
+
+def nextlabel_callback():
+    V.nextlabel.button_type="warning"
+    bokeh_document.add_next_tick_callback(lambda: _label_callback(operator.gt, 0, V.nextlabel))
+
+def lastlabel_callback():
+    V.lastlabel.button_type="warning"
+    bokeh_document.add_next_tick_callback(lambda: _label_callback(operator.gt, -1, V.lastlabel))
 
 spectrogram_mousewheel_last_change = time.time()
 
