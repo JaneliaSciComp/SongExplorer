@@ -57,12 +57,12 @@ try:
         read_probabilities(os.path.join(wavpath, wavname_noext), labels)
 
   for ithreshold in range(len(precision_recall_ratios)):
-    features, start_tics, stop_tics = discretize_probabilites(probability_matrix,
-                                                              thresholds[:,[ithreshold]],
-                                                              labels,
-                                                              audio_tic_rate_probabilities,
-                                                              half_stride_sec,
-                                                              audio_tic_rate)
+    features, start_tics, stop_tics = discretize_probabilities(probability_matrix,
+                                                               thresholds[:,[ithreshold]],
+                                                               labels,
+                                                               audio_tic_rate_probabilities,
+                                                               half_stride_sec,
+                                                               audio_tic_rate)
     filename = os.path.join(wavpath,
                             wavname_noext+'-predicted-'+precision_recall_ratios[ithreshold]+'pr.csv')
     isort = np.argsort(start_tics)

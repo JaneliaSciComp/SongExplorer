@@ -457,7 +457,7 @@ def read_probabilities(basepath, labels):
     probability_matrix[ilabel,:] = probabilities / np.iinfo(probabilities.dtype).max
   return audio_tic_rate_probabilities, half_stride_sec, probability_matrix
 
-def discretize_probabilites(probability_matrix, thresholds, labels,
+def discretize_probabilities(probability_matrix, thresholds, labels,
                             audio_tic_rate_probabilities, half_stride_sec, audio_tic_rate):
   behavior = probability_matrix > thresholds
   diff_behavior = np.diff(behavior)

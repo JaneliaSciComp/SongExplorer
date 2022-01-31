@@ -90,12 +90,12 @@ try:
       audio_tic_rate_probabilities, half_stride_sec, probability_matrix = \
             read_probabilities(os.path.join(basepath, wavdir, wavfile_noext), labels)
       for threshold in np.linspace(0, 1, num=nprobabilities+2)[1:-1]:
-        features, start_tics, stop_tics = discretize_probabilites(probability_matrix,
-                                                                  threshold,
-                                                                  labels,
-                                                                  audio_tic_rate_probabilities,
-                                                                  half_stride_sec,
-                                                                  audio_tic_rate)
+        features, start_tics, stop_tics = discretize_probabilities(probability_matrix,
+                                                                   threshold,
+                                                                   labels,
+                                                                   audio_tic_rate_probabilities,
+                                                                   half_stride_sec,
+                                                                   audio_tic_rate)
         filename = os.path.join(basepath, wavdir,
                                 wavfile_noext+'-predicted-'+str(threshold)+'th.csv')
         temp_files.append(filename)
@@ -163,13 +163,7 @@ try:
                                     else None for f in timestamps[label].keys()])))
 
   def delete_interval(intervals, idx):
-    mask = interval()
-    if idx < len(intervals)-1:
-      mask |= interval([intervals[idx+1].inf,inf])
-    if idx > 0:
-      mask |= interval([-inf,intervals[idx-1].sup])
-    intervals &= mask
-    return intervals
+    return interval.new(c for c in intervals if c!=intervals[idx])
 
   def _interval_diff(A, B):
     ret_val = interval()
@@ -272,7 +266,7 @@ try:
         
     return everyone, onlyone_tic, notone_tic, onlyone_label, notone_label
 
-  if congruence_parallelize!=1:
+  if congruence_parallelize!=0:
     from multiprocessing import Pool
     nprocs = os.cpu_count() if congruence_parallelize==-1 else congruence_parallelize
     pool = Pool(nprocs)
