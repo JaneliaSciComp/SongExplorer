@@ -496,8 +496,9 @@ cp $repo_path/data/${wav_file_noext}-annotated-person3.csv \
 
 portion=union
 convolve_ms=0.0
+measure=both
 congruence.py \
-      $data_dir ${wav_file_noext}.wav $portion $convolve_ms $nprobabilities $audio_tic_rate $congruence_parallelize \
+      $data_dir ${wav_file_noext}.wav $portion $convolve_ms $measure $nprobabilities $audio_tic_rate $congruence_parallelize \
       &>> $data_dir/congruence.log
 
 check_file_exists $data_dir/congruence.log
@@ -592,7 +593,7 @@ cp $repo_path/data/${wav_file_noext}-annotated-person3.csv \
    $repo_path/test/scratch/tutorial-sh/groundtruth-data/congruence-ensemble
 
 congruence.py \
-      $data_dir ${wav_file_noext}.wav $portion $convolve_ms $nprobabilities $audio_tic_rate $congruence_parallelize \
+      $data_dir ${wav_file_noext}.wav $portion $convolve_ms $measure $nprobabilities $audio_tic_rate $congruence_parallelize \
       &>> $data_dir/congruence.log
 
 check_file_exists $data_dir/congruence.log

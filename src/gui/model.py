@@ -66,6 +66,7 @@ def save_state_callback():
                      'precision_recall_ratios': V.precision_recall_ratios.value,
                      'congruence_portion': V.congruence_portion.value,
                      'congruence_convolve': V.congruence_convolve.value,
+                     'congruence_measure': V.congruence_measure.value,
                      'nreplicates': V.nreplicates.value,
                      'batch_seed': V.batch_seed.value,
                      'weights_seed': V.weights_seed.value,
@@ -393,6 +394,7 @@ def init(_bokeh_document, _configuration_file):
                           'precision_recall_ratios':'1.0', \
                           'congruence_portion':'union', \
                           'congruence_convolve':'0.0', \
+                          'congruence_measure':'label', \
                           'nreplicates':'1', \
                           'batch_seed':'-1', \
                           'weights_seed':'-1', \

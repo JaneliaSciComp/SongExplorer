@@ -2,9 +2,9 @@
 
 # generate figures of false positives and negatives
 
-# congruence.py <path-to-groundtruth> <wavfiles-with-dense-annotations-and-predictions> <portion> <convolve-ms> <nprobabilities> <audio-tic-rate> <congruence-parallelize>
+# congruence.py <path-to-groundtruth> <wavfiles-with-dense-annotations-and-predictions> <portion> <convolve-ms> <measure> <nprobabilities> <audio-tic-rate> <congruence-parallelize>
 
-# congruence.py /groups/stern/sternlab/behavior/arthurb/groundtruth/kyriacou2017 PS_20130625111709_ch3.wav,PS_20130625111709_ch7.wav 1 0 20 2500 1
+# congruence.py /groups/stern/sternlab/behavior/arthurb/groundtruth/kyriacou2017 PS_20130625111709_ch3.wav,PS_20130625111709_ch7.wav union 0 label 20 2500 1
 
 import sys
 import os
@@ -38,11 +38,12 @@ print("hostname = "+socket.gethostname())
 
 try:
 
-  _,basepath,wavfiles,portion,convolve_ms,nprobabilities,audio_tic_rate,congruence_parallelize = sys.argv
+  _,basepath,wavfiles,portion,convolve_ms,measure,nprobabilities,audio_tic_rate,congruence_parallelize = sys.argv
   print('basepath: '+basepath)
   print('wavfiles: '+wavfiles)
   print('portion: '+portion)
   print('convolve_ms: '+convolve_ms)
+  print('measure: '+measure)
   print('nprobabilities: '+nprobabilities)
   print('audio_tic_rate: '+audio_tic_rate)
   print('congruence_parallelize: '+congruence_parallelize)
@@ -51,6 +52,8 @@ try:
   nprobabilities=int(nprobabilities)
   audio_tic_rate=int(audio_tic_rate)
   congruence_parallelize=int(congruence_parallelize)
+  do_tic = measure=="both" or measure=="tic"
+  do_label = measure=="both" or measure=="label"
 
   convolve_tic = int(convolve_ms/2/1000*audio_tic_rate)
 
@@ -219,8 +222,8 @@ try:
     onlyone_label = {}
     for key0 in intervals.keys():
       intervals_copy = intervals.copy()
-      onlyone_tic[key0] = interval()
-      onlyone_label[key0] = interval()
+      onlyone_tic[key0] = interval() if do_tic else None
+      onlyone_label[key0] = interval() if do_label else None
       for interval0 in intervals_copy[key0].components:
         ivalues = {}
         for keyN in set(intervals_copy.keys()) - set([key0]):
@@ -228,12 +231,14 @@ try:
             if len(interval0 & intervalN)>0:
               ivalues[keyN] = i
               break
-        if len(ivalues)==0:
+        if do_label and len(ivalues)==0:
           onlyone_label[key0] |= interval0
         for keyN in ivalues.keys():
-          interval0 = interval_diff(interval0, interval(intervals_copy[keyN][ivalues[keyN]]))
+          if do_tic:
+            interval0 = interval_diff(interval0, interval(intervals_copy[keyN][ivalues[keyN]]))
           intervals_copy[keyN] = delete_interval(intervals_copy[keyN], ivalues[keyN])
-        onlyone_tic[key0] |= interval0
+        if do_tic:
+          onlyone_tic[key0] |= interval0
 
     #to calculate the intervals which only one set does not contain (e.g. "not
     #david"), choose one of the other sets at random.  iteratively test whether
@@ -247,8 +252,8 @@ try:
     notone_label = {}
     for key0 in intervals.keys():
       intervals_copy = intervals.copy()
-      notone_tic[key0] = interval()
-      notone_label[key0] = interval()
+      notone_tic[key0] = interval() if do_tic else None
+      notone_label[key0] = interval() if do_label else None
       key1 = next(iter(set(intervals_copy.keys()) - set([key0])))
       for interval1 in intervals_copy[key1].components:
         ivalues = {}
@@ -258,11 +263,14 @@ try:
               ivalues[keyN] = i
               break
         if len(ivalues)==len(intervals_copy)-2 and key0 not in ivalues.keys():
-          notone_label[key0] |= interval1
+          if do_label:
+            notone_label[key0] |= interval1
           for keyN in ivalues.keys():
-            interval1 &= interval(intervals_copy[keyN][ivalues[keyN]])
+            if do_tic:
+              interval1 &= interval(intervals_copy[keyN][ivalues[keyN]])
             intervals_copy[keyN] = delete_interval(intervals_copy[keyN], ivalues[keyN])
-          notone_tic[key0] |= interval1
+          if do_tic:
+            notone_tic[key0] |= interval1
         
     return everyone, onlyone_tic, notone_tic, onlyone_label, notone_label
 
@@ -399,11 +407,11 @@ try:
         all_files_flag = len(csvbases)>1
         nrows = np.floor(np.sqrt(all_files_flag+len(csvbases))).astype(np.int)
         ncols = np.ceil((all_files_flag+len(csvbases))/nrows).astype(np.int)
-        fig_tic = plt.figure(figsize=(2*ncols,2*nrows))
-        fig_label = plt.figure(figsize=(2*ncols,2*nrows))
+        fig_tic = plt.figure(figsize=(2*ncols,2*nrows)) if do_tic else None
+        fig_label = plt.figure(figsize=(2*ncols,2*nrows)) if do_label else None
         if len(humans)<3:
-          fig_tic_venn = plt.figure(figsize=(2*ncols,2*nrows))
-          fig_label_venn = plt.figure(figsize=(2*ncols,2*nrows))
+          fig_tic_venn = plt.figure(figsize=(2*ncols,2*nrows)) if do_tic else None
+          fig_label_venn = plt.figure(figsize=(2*ncols,2*nrows)) if do_label else None
         else:
           fig_tic_venn = None
           fig_label_venn = None
@@ -425,17 +433,19 @@ try:
 
         sorted_hm = natsorted(onlyone_tic[pr][label][csvbase].keys())
 
-        plot_file(fig_tic, fig_tic_venn,
-                  [sum([x[1]-x[0]+1 for x in everyone[pr][label][csvbase]]), \
-                   *[sum([y[1]-y[0]+1 for y in onlyone_tic[pr][label][csvbase][x]]) \
-                     for x in sorted_hm]],
-                  [sum([y[1]-y[0]+1 for y in notone_tic[pr][label][csvbase][x]]) \
-                   for x in sorted_hm] if len(sorted_hm)>2 else None)
-        plot_file(fig_label, fig_label_venn,
-                  [len(everyone[pr][label][csvbase]), \
-                   *[len(onlyone_label[pr][label][csvbase][x]) for x in sorted_hm]],
-                  [len(notone_label[pr][label][csvbase][x]) for x in sorted_hm]
-                      if len(sorted_hm)>2 else None)
+        if do_tic:
+          plot_file(fig_tic, fig_tic_venn,
+                    [sum([x[1]-x[0]+1 for x in everyone[pr][label][csvbase]]), \
+                     *[sum([y[1]-y[0]+1 for y in onlyone_tic[pr][label][csvbase][x]]) \
+                       for x in sorted_hm]],
+                    [sum([y[1]-y[0]+1 for y in notone_tic[pr][label][csvbase][x]]) \
+                     for x in sorted_hm] if len(sorted_hm)>2 else None)
+        if do_label:
+          plot_file(fig_label, fig_label_venn,
+                    [len(everyone[pr][label][csvbase]), \
+                     *[len(onlyone_label[pr][label][csvbase][x]) for x in sorted_hm]],
+                    [len(notone_label[pr][label][csvbase][x]) for x in sorted_hm]
+                        if len(sorted_hm)>2 else None)
         iplot-=1
 
       if not pr.endswith('pr'):
@@ -443,40 +453,46 @@ try:
 
       if all_files_flag:
         csvbase0 = list(onlyone_tic[pr][label].keys())[0]
-        plot_sumfiles(fig_tic, fig_tic_venn,
-                      [sum([x[1]-x[0]+1 for f in everyone[pr][label].values() for x in f]),
-                       *[sum([sum([y[1]-y[0]+1 for y in f[hm]])
-                              for f in onlyone_tic[pr][label].values()])
-                         for hm in sorted_hm]],
-                      [sum([sum([y[1]-y[0]+1 for y in f[hm]]) \
-                             for f in notone_tic[pr][label].values()])
-                       for hm in onlyone_tic[pr][label][csvbase0].keys()]
-                          if len(sorted_hm)>2 else None)
-        plot_sumfiles(fig_label, fig_label_venn,
-                      [sum([len(f) for f in everyone[pr][label].values()]),
-                       *[sum([len(f[hm]) for f in onlyone_label[pr][label].values()])
-                         for hm in sorted_hm]],
-                      [sum([len(f[hm]) for f in notone_label[pr][label].values()])
-                       for hm in sorted_hm]
-                          if len(sorted_hm)>2 else None)
+        if do_tic:
+          plot_sumfiles(fig_tic, fig_tic_venn,
+                        [sum([x[1]-x[0]+1 for f in everyone[pr][label].values() for x in f]),
+                         *[sum([sum([y[1]-y[0]+1 for y in f[hm]])
+                                for f in onlyone_tic[pr][label].values()])
+                           for hm in sorted_hm]],
+                        [sum([sum([y[1]-y[0]+1 for y in f[hm]]) \
+                               for f in notone_tic[pr][label].values()])
+                         for hm in onlyone_tic[pr][label][csvbase0].keys()]
+                            if len(sorted_hm)>2 else None)
+        if do_label:
+          plot_sumfiles(fig_label, fig_label_venn,
+                        [sum([len(f) for f in everyone[pr][label].values()]),
+                         *[sum([len(f[hm]) for f in onlyone_label[pr][label].values()])
+                           for hm in sorted_hm]],
+                        [sum([len(f[hm]) for f in notone_label[pr][label].values()])
+                         for hm in sorted_hm]
+                            if len(sorted_hm)>2 else None)
 
-      fig_tic.tight_layout()
-      plt.figure(fig_tic.number)
-      plt.savefig(os.path.join(basepath, 'congruence.tic.'+label+'.'+pr+'.pdf'))
-      plt.close()
-      fig_label.tight_layout()
-      plt.figure(fig_label.number)
-      plt.savefig(os.path.join(basepath, 'congruence.label.'+label+'.'+pr+'.pdf'))
-      plt.close()
+      if do_tic:
+        fig_tic.tight_layout()
+        plt.figure(fig_tic.number)
+        plt.savefig(os.path.join(basepath, 'congruence.tic.'+label+'.'+pr+'.pdf'))
+        plt.close()
+      if do_label:
+        fig_label.tight_layout()
+        plt.figure(fig_label.number)
+        plt.savefig(os.path.join(basepath, 'congruence.label.'+label+'.'+pr+'.pdf'))
+        plt.close()
       if len(sorted_hm)<4:
-        fig_tic_venn.tight_layout()
-        plt.figure(fig_tic_venn.number)
-        plt.savefig(os.path.join(basepath, 'congruence.tic.'+label+'.'+pr+'-venn.pdf'))
-        plt.close()
-        fig_label_venn.tight_layout()
-        plt.figure(fig_label_venn.number)
-        plt.savefig(os.path.join(basepath, 'congruence.label.'+label+'.'+pr+'-venn.pdf'))
-        plt.close()
+        if do_tic:
+          fig_tic_venn.tight_layout()
+          plt.figure(fig_tic_venn.number)
+          plt.savefig(os.path.join(basepath, 'congruence.tic.'+label+'.'+pr+'-venn.pdf'))
+          plt.close()
+        if do_label:
+          fig_label_venn.tight_layout()
+          plt.figure(fig_label_venn.number)
+          plt.savefig(os.path.join(basepath, 'congruence.label.'+label+'.'+pr+'-venn.pdf'))
+          plt.close()
 
   if congruence_parallelize!=0:
     pool.close()
@@ -496,17 +512,18 @@ try:
       label0 = next(iter(natsorted(onlyone_tic[pr].keys())))
       sorted_hm = natsorted(onlyone_tic[pr][label][csvbase].keys())
       for hm in sorted_hm:
-        to_csv([onlyone_tic[pr][label][csvbase][hm] for label in timestamps.keys()],
-                csvbase, 'tic-only'+hm)
-        if len(sorted_hm)>2:
-          to_csv([notone_tic[pr][label][csvbase][hm] for label in timestamps.keys()],
-                 csvbase, 'tic-not'+hm)
-      for hm in sorted_hm:
-        to_csv([onlyone_label[pr][label][csvbase][hm] for label in timestamps.keys()],
-               csvbase, 'label-only'+hm)
-        if len(sorted_hm)>2:
-          to_csv([notone_label[pr][label][csvbase][hm] for label in timestamps.keys()],
-                 csvbase, 'label-not'+hm)
+        if do_tic:
+          to_csv([onlyone_tic[pr][label][csvbase][hm] for label in timestamps.keys()],
+                  csvbase, 'tic-only'+hm)
+          if len(sorted_hm)>2:
+            to_csv([notone_tic[pr][label][csvbase][hm] for label in timestamps.keys()],
+                   csvbase, 'tic-not'+hm)
+        if do_label:
+          to_csv([onlyone_label[pr][label][csvbase][hm] for label in timestamps.keys()],
+                 csvbase, 'label-only'+hm)
+          if len(sorted_hm)>2:
+            to_csv([notone_label[pr][label][csvbase][hm] for label in timestamps.keys()],
+                   csvbase, 'label-not'+hm)
 
   roc_table_tic = {}
   roc_table_label = {}
@@ -522,21 +539,25 @@ try:
       sorted_hm = natsorted(onlyone_tic[pr][label][csvbase0].keys())
       for hm in sorted_hm:
         key = 'only '+hm if hm!=pr else 'only SE'
-        roc_table_tic[label][pr][key] = int(sum([sum([y[1]-y[0]+1 for y in f[hm]]) \
-                                                for f in onlyone_tic[pr][label].values()]))
-        roc_table_label[label][pr][key] = sum([len(f[hm]) for f in onlyone_label[pr][label].values()])
+        if do_tic:
+          roc_table_tic[label][pr][key] = int(sum([sum([y[1]-y[0]+1 for y in f[hm]]) \
+                                                   for f in onlyone_tic[pr][label].values()]))
+        if do_label:
+          roc_table_label[label][pr][key] = sum([len(f[hm]) for f in onlyone_label[pr][label].values()])
         if len(sorted_hm)>2:
           key = 'not '+hm if hm!=pr else 'not SE'
-          roc_table_tic[label][pr][key] = int(sum([sum([y[1]-y[0]+1 for y in f[hm]]) \
-                                                  for f in notone_tic[pr][label].values()]))
-          roc_table_label[label][pr][key] = sum([len(f[hm])
-                                               for f in notone_label[pr][label].values()])
+          if do_tic:
+            roc_table_tic[label][pr][key] = int(sum([sum([y[1]-y[0]+1 for y in f[hm]]) \
+                                                     for f in notone_tic[pr][label].values()]))
+          if do_label:
+            roc_table_label[label][pr][key] = sum([len(f[hm])
+                                                   for f in notone_label[pr][label].values()])
       roc_table_tic[label][pr]['Everyone'] = int(sum([x[1]-x[0]+1
-                                                     for f in everyone[pr][label].values()
-                                                     for x in f]))
+                                                      for f in everyone[pr][label].values()
+                                                      for x in f]))
       roc_table_label[label][pr]['Everyone'] = sum([len(f) for f in everyone[pr][label].values()])
 
-  def plot_versus_thresholds(roc_table, kind):
+  def plot_versus_thresholds(roc_table, measure):
     thresholds_touse = {}
     desired_prs = None
     for label in roc_table:
@@ -602,17 +623,17 @@ try:
         ax2.legend(loc=(1.05, 0.0))
         ax1.legend(loc=(1.2, 0.1))
         fig.tight_layout()
-        plt.savefig(os.path.join(basepath,'congruence.'+kind+'.'+label+'.pdf'))
+        plt.savefig(os.path.join(basepath,'congruence.'+measure+'.'+label+'.pdf'))
         plt.close()
 
         inotnan = (~np.isnan(P) & ~np.isnan(R)).nonzero()[0]
         r,p = [R[i] for i in inotnan], [P[i] for i in inotnan]
         if len(np.unique(np.sign(np.diff(r))))==1:
-          print(kind+' '+label+' area = '+str(metrics.auc(r,p)))
+          print(measure+' '+label+' area = '+str(metrics.auc(r,p)))
         else:
-          print(kind+' '+label+' area cannot be computed because recall is not monotonic')
+          print(measure+' '+label+' area cannot be computed because recall is not monotonic')
 
-      with open(os.path.join(basepath,'congruence.'+kind+'.'+label+'.csv'), 'w') as fid:
+      with open(os.path.join(basepath,'congruence.'+measure+'.'+label+'.csv'), 'w') as fid:
         csvwriter = csv.writer(fid)
         rows = roc_table[label].keys()
         cols = roc_table[label][next(iter(rows))].keys()
@@ -625,8 +646,10 @@ try:
 
     return thresholds_touse, desired_prs
 
-  plot_versus_thresholds(roc_table_tic, kind='tic')
-  thresholds_touse, desired_prs = plot_versus_thresholds(roc_table_label, kind='label')
+  if do_tic:
+    plot_versus_thresholds(roc_table_tic, measure='tic')
+  if do_label:
+    thresholds_touse, desired_prs = plot_versus_thresholds(roc_table_label, measure='label')
    
   if len(thresholds_touse)>0:
     save_thresholds(logdir, model, ckpt, thresholds_touse, desired_prs,

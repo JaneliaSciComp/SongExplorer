@@ -52,6 +52,7 @@ V.test_files.value = ""
 V.validation_files.value = "recording1.wav,recording2.wav,recording3.wav,recording4.wav"
 V.congruence_portion.value = "union"
 V.congruence_convolve.value = "0.0"
+V.congruence_measure.value = "both"
 asyncio.run(C.congruence_actuate())
 
 wait_for_job(M.status_ticker_queue)

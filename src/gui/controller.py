@@ -1702,7 +1702,7 @@ async def compare_actuate():
                      lambda l=logfile: contains_two_timestamps(l), \
                      lambda l=V.logs_folder.value, t=currtime: compare_succeeded(l, t)))
 
-def congruence_succeeded(groundtruth_folder, reftime, regex_files):
+def congruence_succeeded(groundtruth_folder, reftime, regex_files, measure):
     logfile = os.path.join(groundtruth_folder,'congruence.log')
     if not logfile_succeeded(logfile, reftime):
         return False
@@ -1716,7 +1716,9 @@ def congruence_succeeded(groundtruth_folder, reftime, regex_files):
         nlabel = len(list(filter(lambda x: x.startswith("congruence.label") and reftime <=
                                           os.path.getmtime(os.path.join(groundtruth_folder,x)),
                                 allfiles)))
-        if ntic != nlabel or ntic==0:
+        if (measure=="tic" and ntic==0) or \
+           (measure=="label" and nlabel==0) or \
+           (measure=="both" and (ntic != nlabel or ntic==0)):
             bokehlog.info("ERROR: missing congruence-{tic,label} "+suffix+" files.")
             return False
     for subdir in filter(lambda x: os.path.isdir(os.path.join(groundtruth_folder,x)), \
@@ -1726,10 +1728,13 @@ def congruence_succeeded(groundtruth_folder, reftime, regex_files):
                                          os.path.getmtime(os.path.join(groundtruth_folder,subdir,x)),
                                listfiles))
         if len(csvfiles)==0:
-          continue
+            continue
         ndisjoint_everyone = len(list(filter(lambda x: "disjoint-everyone" in x, csvfiles)))
         for disjointstr in ["disjoint-tic-only", "disjoint-tic-not", \
                             "disjoint-label-only", "disjoint-label-not"]:
+            if (measure=="tic" and "label" in disjointstr) or \
+               (measure=="label" and "tic" in disjointstr):
+                continue 
             n = len(list(filter(lambda x: disjointstr in x, csvfiles)))
             if n % ndisjoint_everyone != 0:
                 bokehlog.info("ERROR: # of "+k+ \
@@ -1756,6 +1761,7 @@ async def congruence_actuate():
                             ','.join(all_files),
                             V.congruence_portion.value,
                             V.congruence_convolve.value,
+                            V.congruence_measure.value,
                             str(M.nprobabilities),
                             str(M.audio_tic_rate),
                             str(M.congruence_parallelize))
@@ -1766,8 +1772,8 @@ async def congruence_actuate():
     asyncio.create_task(actuate_monitor(displaystring, None, None, \
                         lambda l=logfile, t=currtime: recent_file_exists(l, t, False), \
                         lambda l=logfile: contains_two_timestamps(l), \
-                        lambda l=V.groundtruth_folder.value, t=currtime,
-                               r=regex_files: congruence_succeeded(l, t, r)))
+                        lambda l=V.groundtruth_folder.value, t=currtime, r=regex_files,
+                               m=V.congruence_measure.value: congruence_succeeded(l, t, r, m)))
 
 def deletefailures_callback(arg):
     M.status_ticker_queue = {k:v for k,v in M.status_ticker_queue.items() if v!="failed"}
