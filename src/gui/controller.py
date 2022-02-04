@@ -102,6 +102,9 @@ def layer_callback(new):
     V.cluster_update()
     M.xcluster = M.ycluster = M.zcluster = np.nan
     M.isnippet = -1
+    if V.recordings.value != '':
+        M.user_changed_recording=False
+    V.recordings.value = ''
     V.snippets_update(True)
     V.context_update()
     
@@ -115,6 +118,9 @@ def species_callback(new):
         V.color_picker.disabled=True
     V.cluster_update()
     M.isnippet = -1
+    if V.recordings.value != '':
+        M.user_changed_recording=False
+    V.recordings.value = ''
     V.snippets_update(True)
     V.context_update()
     
@@ -128,6 +134,9 @@ def word_callback(new):
         V.color_picker.disabled=True
     V.cluster_update()
     M.isnippet = -1
+    if V.recordings.value != '':
+        M.user_changed_recording=False
+    V.recordings.value = ''
     V.snippets_update(True)
     V.context_update()
     
@@ -141,6 +150,9 @@ def nohyphen_callback(new):
         V.color_picker.disabled=True
     V.cluster_update()
     M.isnippet = -1
+    if V.recordings.value != '':
+        M.user_changed_recording=False
+    V.recordings.value = ''
     V.snippets_update(True)
     V.context_update()
     
@@ -148,6 +160,9 @@ def kind_callback(new):
     M.ikind=M.kinds.index(new)
     V.cluster_update()
     M.isnippet = -1
+    if V.recordings.value != '':
+        M.user_changed_recording=False
+    V.recordings.value = ''
     V.snippets_update(True)
     V.context_update()
     
@@ -220,25 +235,33 @@ aud.play()
 vid.play()
 """
 
+def _recordings_callback(n):
+    if n=="":
+        isound = -1
+        M.xcluster = M.ycluster = M.zcluster = np.nan
+    else:
+        isound = M.clustered_recording2firstsound[V.recordings.value]
+        coordinates = M.clustered_activations[M.ilayer][isound,:]
+        M.xcluster, M.ycluster = coordinates[0], coordinates[1]
+        if M.ndcluster==3:
+            M.zcluster = coordinates[2]
+    V.cluster_circle_fuchsia.data.update(cx=[M.xcluster],
+                                         cy=[M.ycluster],
+                                         cz=[M.zcluster],
+                                         cr=[M.state["circle_radius"]],
+                                         cc=[M.cluster_circle_color])
+    M.isnippet = isound
+    M.xsnippet=M.ysnippet=0
+    V.snippets_update(True)
+    V.context_update()
+    V.recordings.disabled=False
+    V.recordings.css_classes = []
+
 def recordings_callback(a,o,n):
     if M.user_changed_recording:
-        if n=="":
-            isound = -1
-            M.xcluster = M.ycluster = M.zcluster = np.nan
-        else:
-            isound = M.clustered_recording2firstsound[V.recordings.value]
-            coordinates = M.clustered_activations[M.ilayer][isound,:]
-            M.xcluster, M.ycluster = coordinates[0], coordinates[1]
-            if M.ndcluster==3:
-                M.zcluster = coordinates[2]
-        V.cluster_circle_fuchsia.data.update(cx=[M.xcluster],
-                                             cy=[M.ycluster],
-                                             cz=[M.zcluster],
-                                             cr=[M.state["circle_radius"]],
-                                             cc=[M.cluster_circle_color])
-        M.isnippet = isound
-        V.snippets_update(True)
-        V.context_update()
+        V.recordings.disabled=True
+        V.recordings.css_classes = ['changed']
+        bokeh_document.add_next_tick_callback(lambda: _recordings_callback(n))
     M.user_changed_recording=True
 
 def cluster_tap_callback(event):
@@ -251,6 +274,8 @@ def cluster_tap_callback(event):
                                          cr=[M.state["circle_radius"]],
                                          cc=[M.cluster_circle_color])
     M.isnippet = -1
+    M.user_changed_recording=False
+    V.recordings.value = ''
     V.snippets_update(True)
     V.context_update()
 

@@ -796,7 +796,8 @@ def context_update():
         tapped_ticks = tapped_sound['ticks']
         M.context_midpoint_tic = np.mean(tapped_ticks, dtype=int)
         istart = M.context_midpoint_tic-M.context_width_tic//2 + M.context_offset_tic
-        M.user_changed_recording=False
+        if recordings.value != tapped_sound['file']:
+            M.user_changed_recording=False
         recordings.value = tapped_sound['file']
         _, wavs = spiowav.read(os.path.join(groundtruth_folder.value, tapped_sound['file']),
                                mmap=True)
