@@ -150,7 +150,7 @@ model_parameters = [
   ["mel_dct",            "mel & DCT",      '',                   '7,7',          ["representation",
                                                                                   ["mel-cepstrum"]],     mel_dct_callback,            True],
   ["nconvlayers",        "# conv layers",  '',                   '2',            [],                     nlayers_callback,            True],
-  ["kernel_sizes",       "kernels",        '',                   '5,3',          [],                     None,                        True],
+  ["kernel_sizes",       "kernels",        '',                   '5x5,3',        [],                     None,                        True],
   ["nfeatures",          "# features",     '',                   '64,64',        [],                     None,                        True],
   ["dilate_after_layer", "dilate after",   '',                   '65535',        [],                     None,                        True],
   ["stride_after_layer", "stride after",   '',                   '65535',        [],                     stride_after_layer_callback, True],
@@ -286,7 +286,10 @@ def dilation(iconv, dilate_after_layer):
 def create_model(model_settings):
   audio_tic_rate = model_settings['audio_tic_rate']
   representation = model_settings['representation']
-  kernel_sizes = [int(x) for x in model_settings['kernel_sizes'].split(',')]
+  kernel_sizes = model_settings['kernel_sizes'].split(',')
+  kernel_sizes[0] = [int(x) for x in kernel_sizes[0].split('x')] \
+                    if 'x' in kernel_sizes[0] else int(kernel_sizes[0])
+  kernel_sizes[1] = int(kernel_sizes[1])
   nconvlayers = int(model_settings['nconvlayers'])
   denselayers = [] if model_settings['denselayers']=='' \
                    else [int(x) for x in model_settings['denselayers'].split(',')]
@@ -366,8 +369,9 @@ def create_model(model_settings):
   dilation_rate = dilation(iconv, dilate_after_layer)
 
   # 2D convolutions
-  dilated_kernel_size = (kernel_sizes[0] - 1) * dilation_rate + 1
-  while inputs_shape[2] >= dilated_kernel_size and \
+  dilated_kernel_size = (kernel_sizes[0][0] - 1) * dilation_rate + 1
+  while inputs_shape[1] >= dilated_kernel_size and \
+        inputs_shape[2] >= kernel_sizes[0][1] and \
         noutput_tics >= dilated_kernel_size and \
         iconv<nconvlayers:
     if use_residual and iconv%2!=0:
@@ -396,7 +400,7 @@ def create_model(model_settings):
     noutput_tics = math.ceil((noutput_tics - dilated_kernel_size + 1) / strides[0])
     iconv += 1
     dilation_rate = dilation(iconv,dilate_after_layer)
-    dilated_kernel_size = (kernel_sizes[0] - 1) * dilation_rate + 1
+    dilated_kernel_size = (kernel_sizes[0][0] - 1) * dilation_rate + 1
 
   # 1D convolutions (or actually, pan-freq 2D)
   dilated_kernel_size = (kernel_sizes[1] - 1) * dilation_rate + 1

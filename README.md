@@ -1178,14 +1178,18 @@ frequencies in the original spectrogram, which is one plus half of the
 of hidden units in a sequence of optional dense layers after the convolutions.
 Leave it blank to not add any dense layers.
 
-* `kernels` is a 2-vector of the size of the convolutional kernels.  The first
-value is the size of the square 2D convolutions that are successively used
-for each layer until the tensor height in the frequency axis is smaller
-than the kernel.  Then full-height 1D convolutions are repeatedly applied
-whose width is the second value in `kernels`.  No further convolutional
-layers are added if the first number in `# layers` is reached, or the width
-becomes less than the second number in `kernels`.  Only the second value
-matters when `representation` is "waveform".
+* `kernels` specifies the size of the convolutional kernels in the form
+"T1xF,T2".  When `representation` is "waveform", the values before the comma
+are ignored and 1D convolutions of width T2 are repeatedly applied until
+the remaining unpadded tensor length is less that T2 or `# conv layers`
+has been reached.  For `spectrogram` and `mel-cepstrum`, the string before
+the comma is the size of the 2D convolutions in time (T1) and frequency (F)
+that are repeatedly used for each layer until the remaining unpadded tensor
+size is smaller than this kernel in one or both dimensions.  Then full-height
+(i.e. pan-frequency) 1D convolutions are repeatedly applied whose width in
+time is T2.  No further convolutional layers are added if `# conv layers`
+is reached, or the width in time becomes less than the second number in
+`kernels`.
 
 * `# features` is the number of feature maps to use at each of the
 corresponding stages in `kernels`.  See [LeCun *et al* (1989; Neural
