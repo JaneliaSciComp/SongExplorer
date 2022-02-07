@@ -1344,12 +1344,14 @@ the `Detect`, `Activations`, `Cluster`, and `Visualize` buttons as described
 earlier.  Annotate every occurrence of each word of interest by jumping to the
 beginning of each recording and panning all the way to the end.  Afterwards,
 manually replace the timestamp in each resulting "annotated-<timestamp\>.csv"
-file with the name of the annotator (e.g. "annotated-<name\>.csv").  Take your
-best model to date and make ethograms of these densely annotated recordings
-using the `Classify` and `Ethogram` buttons as before.  Finally, use the
-`Congruence` button to plot the fraction of false positives and negatives,
-specifying which files you've densely annotated with `Ground Truth`
-and either `Validation Files` or `Test Files` (a comma-separated list
+file with the name of the annotator (e.g. "annotated-<name\>.csv").  If you
+have more than one such dense CSV file per WAV file, retain the timestamp by
+positioning it before "annotated" (e.g. "<timestamp\>-annotated-<name\>.csv").
+Take your best model to date and make ethograms of these densely annotated
+recordings using the `Classify` and `Ethogram` buttons as before.  Finally,
+use the `Congruence` button to plot the fraction of false positives and
+negatives, specifying which files you've densely annotated with `Ground
+Truth` and either `Validation Files` or `Test Files` (a comma-separated list
 of .wav files, a text file of .wav filenames, or a folder of .wav files;
 see [Measuring Generalization](#measuring-generalization)).  Optionally,
 specify the temporal resolution within which to consider two predictions a

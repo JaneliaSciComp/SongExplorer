@@ -129,7 +129,7 @@ try:
       print(os.path.join(wavdir, csvfile))
       m = re.search('(-annotated|-predicted)-(.*).csv', csvfile)
       annotator = csvfile[m.span(0)[0]:]
-      csvbase = os.path.join(wavdir, csvfile[:m.span(0)[0]])
+      csvbase = os.path.join(wavdir, os.path.splitext(df[0][0])[0])
       if '-annotated-' in csvfile:
         humans.add(m.groups()[1])
       if '-predicted-' in csvfile:
@@ -141,7 +141,11 @@ try:
           timestamps[label] = {}
         if csvbase not in timestamps[label]:
           timestamps[label][csvbase] = {}
-        timestamps[label][csvbase][annotator] = df.loc[df[4]==label, 1:2]
+        if annotator not in timestamps[label][csvbase]:
+          timestamps[label][csvbase][annotator] = df.loc[df[4]==label, 1:2]
+        else:
+          timestamps[label][csvbase][annotator] = \
+                timestamps[label][csvbase][annotator].append(df.loc[df[4]==label, 1:2])
         timestamps[label][csvbase][annotator].sort_values(by=[1],inplace=True)
         annotator_keys.add(annotator)
 
