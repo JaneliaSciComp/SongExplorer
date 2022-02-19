@@ -43,8 +43,9 @@ def stride_callback(n,M,V,C):
     stride_ms = float(V.model_parameters['stride_ms'].value)
     stride_tics = round(M.audio_tic_rate * stride_ms / 1000)
     stride_ms2 = stride_tics / M.audio_tic_rate * 1000
+    stride_after_layer = parse_after_layer(V.model_parameters['stride_after_layer'].value)
     downsample_by = 2 ** max(0, int(V.model_parameters['nconvlayers'].value) -
-                                int(V.model_parameters['stride_after_layer'].value) + 1)
+                                stride_after_layer[0] + 1)
     output_tic_rate = M.audio_tic_rate / stride_tics / downsample_by
     if output_tic_rate != round(output_tic_rate) or stride_ms2 != stride_ms:
         if output_tic_rate == round(output_tic_rate):
@@ -89,16 +90,20 @@ def mel_dct_callback(n,M,V,C):
 
 def stride_after_layer_callback(n,M,V,C):
     nconvlayers = int(V.model_parameters['nconvlayers'].value)
-    stride_after = int(V.model_parameters['stride_after_layer'].value)
-    downsampled_rate = M.audio_tic_rate / 2 ** max(0, nconvlayers - stride_after + 1)
-    if stride_after<0 or downsampled_rate != round(downsampled_rate):
+    stride_after_layer = parse_after_layer(V.model_parameters['stride_after_layer'].value)[0]
+    downsampled_rate = M.audio_tic_rate / 2 ** max(0, nconvlayers - stride_after_layer + 1)
+    if stride_after_layer<0 or downsampled_rate != round(downsampled_rate):
         bokehlog.info("WARNING:  adjusting `stride after` such that the downsampled rate achieved in conjunction with `# layers` is an integer")
-        for this_stride_after in range(stride_after,nconvlayers):
+        for this_stride_after in range(stride_after_layer,nconvlayers):
             downsampled_rate = M.audio_tic_rate / 2 ** max(0, nconvlayers - this_stride_after + 1)
             if downsampled_rate == round(downsampled_rate):
                 break
         V.model_parameters['stride_after_layer'].css_classes = ['changed']
-        V.model_parameters['stride_after_layer'].value = str(this_stride_after)
+        if ',' in V.model_parameters['stride_after_layer'].value:
+            V.model_parameters['stride_after_layer'].value = str(this_stride_after) + \
+                     ',' + V.model_parameters['stride_after_layer'].value.split(',')[1]
+        else:
+            V.model_parameters['stride_after_layer'].value = str(this_stride_after)
         if V.bokeh_document:
             V.bokeh_document.add_next_tick_callback(lambda: _callback(['stride_after_layer'],M,V,C))
         else:
@@ -106,12 +111,12 @@ def stride_after_layer_callback(n,M,V,C):
 
 def nlayers_callback(n,M,V,C):
     nconvlayers = int(V.model_parameters['nconvlayers'].value)
-    stride_after = int(V.model_parameters['stride_after_layer'].value)
-    downsampled_rate = M.audio_tic_rate / 2 ** max(0, nconvlayers - stride_after + 1)
+    stride_after_layer = parse_after_layer(V.model_parameters['stride_after_layer'].value)[0]
+    downsampled_rate = M.audio_tic_rate / 2 ** max(0, nconvlayers - stride_after_layer + 1)
     if nconvlayers<0 or downsampled_rate != round(downsampled_rate):
         bokehlog.info("WARNING:  adjusting `# conv layers` such that the downsampled rate achieved in conjunction with `stride after` is an integer")
         for this_nconvlayers in range(nconvlayers,0,-1):
-            downsampled_rate = M.audio_tic_rate / 2 ** max(0, this_nconvlayers - stride_after + 1)
+            downsampled_rate = M.audio_tic_rate / 2 ** max(0, this_nconvlayers - stride_after_layer + 1)
             if downsampled_rate == round(downsampled_rate):
                 break
         V.model_parameters['nconvlayers'].css_classes = ['changed']
@@ -152,8 +157,8 @@ model_parameters = [
   ["nconvlayers",        "# conv layers",  '',                   '2',            [],                     nlayers_callback,            True],
   ["kernel_sizes",       "kernels",        '',                   '5x5,3',        [],                     None,                        True],
   ["nfeatures",          "# features",     '',                   '64,64',        [],                     None,                        True],
-  ["dilate_after_layer", "dilate after",   '',                   '65535',        [],                     None,                        True],
-  ["stride_after_layer", "stride after",   '',                   '65535',        [],                     stride_after_layer_callback, True],
+  ["dilate_after_layer", "dilate after",   '',                   '256,256',      [],                     None,                        True],
+  ["stride_after_layer", "stride after",   '',                   '256,256',      [],                     stride_after_layer_callback, True],
   ["connection_type",    "connection",     ['plain',
                                             'residual'],         'plain',        [],                     None,                        True],
   ["denselayers",        "dense layers",   '',                   '',             [],                     None,                        False],
@@ -279,8 +284,14 @@ class Slice(tf.keras.layers.Layer):
     def call(self, inputs):
         return tf.slice(inputs, self.begin, self.size)
 
+def parse_after_layer(varname):
+  if ',' in varname:
+    return [int(x) for x in varname.split(',')]
+  else:
+    return [int(varname), int(varname)]
+
 def dilation(iconv, dilate_after_layer):
-  return 2**max(0,iconv-dilate_after_layer)
+  return [2**max(0,iconv-dilate_after_layer[0]), 2**max(0,iconv-dilate_after_layer[1])]
 
 #`model_settings` is a dictionary of hyperparameters
 def create_model(model_settings):
@@ -294,8 +305,8 @@ def create_model(model_settings):
   denselayers = [] if model_settings['denselayers']=='' \
                    else [int(x) for x in model_settings['denselayers'].split(',')]
   nfeatures = [int(x) for x in model_settings['nfeatures'].split(',')]
-  dilate_after_layer = int(model_settings['dilate_after_layer'])
-  stride_after_layer = int(model_settings['stride_after_layer'])
+  dilate_after_layer = parse_after_layer(model_settings['dilate_after_layer'])
+  stride_after_layer = parse_after_layer(model_settings['stride_after_layer'])
   use_residual = model_settings['connection_type']=='residual'
   dropout_rate = float(model_settings['dropout_rate'])/100
   if model_settings['dropout_kind']=='unit':
@@ -331,7 +342,7 @@ def create_model(model_settings):
                       str(audio_tic_rate)+".  try "+str(next_lower_ms)+" ms (="+str(next_lower)+
                       ") or "+str(next_higher_ms)+"ms (="+str(next_higher)+") instead.")
 
-  downsample_by = 2 ** max(0, nconvlayers - stride_after_layer + 1)
+  downsample_by = 2 ** max(0, nconvlayers - stride_after_layer[0] + 1)
   output_tic_rate = audio_tic_rate / stride_tics / downsample_by
   print('downsample_by = '+str(downsample_by))
   print('output_tic_rate = '+str(output_tic_rate))
@@ -369,17 +380,18 @@ def create_model(model_settings):
   dilation_rate = dilation(iconv, dilate_after_layer)
 
   # 2D convolutions
-  dilated_kernel_size = (kernel_sizes[0][0] - 1) * dilation_rate + 1
-  while inputs_shape[1] >= dilated_kernel_size and \
-        inputs_shape[2] >= kernel_sizes[0][1] and \
-        noutput_tics >= dilated_kernel_size and \
+  dilated_kernel_size = [(kernel_sizes[0][0] - 1) * dilation_rate[0] + 1,
+                         (kernel_sizes[0][1] - 1) * dilation_rate[1] + 1]
+  while inputs_shape[1] >= dilated_kernel_size[0] and \
+        inputs_shape[2] >= dilated_kernel_size[1] and \
+        noutput_tics >= dilated_kernel_size[0] and \
         iconv<nconvlayers:
     if use_residual and iconv%2!=0:
       bypass = inputs
-    strides=[1+(iconv>=stride_after_layer), 1+(iconv>=stride_after_layer)]
+    strides=[1+(iconv>=stride_after_layer[0]), 1+(iconv>=stride_after_layer[1])]
     conv = Conv2D(nfeatures[0], kernel_sizes[0],
-                  strides=strides, dilation_rate=[dilation_rate,dilation_rate])(inputs)
-    receptive_field_tics += (dilated_kernel_size - 1) * last_stride
+                  strides=strides, dilation_rate=dilation_rate)(inputs)
+    receptive_field_tics += (dilated_kernel_size[0] - 1) * last_stride
     last_stride = strides[0]
     if use_residual and iconv%2==0 and iconv>1:
       bypass_shape = bypass.get_shape().as_list()
@@ -397,18 +409,19 @@ def create_model(model_settings):
       relu = normalize_kind(0)(relu)
     inputs = dropout_kind(dropout_rate)(relu)
     inputs_shape = inputs.get_shape().as_list()
-    noutput_tics = math.ceil((noutput_tics - dilated_kernel_size + 1) / strides[0])
+    noutput_tics = math.ceil((noutput_tics - dilated_kernel_size[0] + 1) / strides[0])
     iconv += 1
-    dilation_rate = dilation(iconv,dilate_after_layer)
-    dilated_kernel_size = (kernel_sizes[0][0] - 1) * dilation_rate + 1
+    dilation_rate = dilation(iconv, dilate_after_layer)
+    dilated_kernel_size = [(kernel_sizes[0][0] - 1) * dilation_rate[0] + 1,
+                           (kernel_sizes[0][1] - 1) * dilation_rate[1] + 1]
 
   # 1D convolutions (or actually, pan-freq 2D)
-  dilated_kernel_size = (kernel_sizes[1] - 1) * dilation_rate + 1
+  dilated_kernel_size = (kernel_sizes[1] - 1) * dilation_rate[0] + 1
   while noutput_tics >= dilated_kernel_size and \
         iconv<nconvlayers:
     if use_residual and iconv%2!=0:
       bypass = inputs
-    strides=[1+(iconv>=stride_after_layer), 1]
+    strides=[1+(iconv>=stride_after_layer[0]), 1]
     conv = Conv2D(nfeatures[1], (kernel_sizes[1], inputs_shape[2]),
                   strides=strides, dilation_rate=[dilation_rate, 1])(inputs)
     receptive_field_tics += (dilated_kernel_size - 1) * last_stride
@@ -429,7 +442,7 @@ def create_model(model_settings):
     inputs_shape = inputs.get_shape().as_list()
     noutput_tics = math.ceil((noutput_tics - dilated_kernel_size + 1) / strides[0])
     iconv += 1
-    dilation_rate = dilation(iconv,dilate_after_layer)
+    dilation_rate = dilation(iconv, dilate_after_layer)[0]
     dilated_kernel_size = (kernel_sizes[1] - 1) * dilation_rate + 1
 
   receptive_field_tics *= stride_tics 
@@ -437,7 +450,7 @@ def create_model(model_settings):
 
   # final dense layers (or actually, pan-freq pan-time 2D convs)
   for idense, nunits in enumerate(denselayers+[model_settings['nlabels']]):
-    strides=1+(iconv>=stride_after_layer and idense==0)
+    strides=1+(iconv>=stride_after_layer[0] and idense==0)
     inputs = Conv2D(nunits, (noutput_tics if idense==0 else 1, inputs_shape[2]),
                     strides=strides)(inputs)
     inputs_shape = inputs.get_shape().as_list()

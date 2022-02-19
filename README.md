@@ -1182,7 +1182,7 @@ Leave it blank to not add any dense layers.
 "T1xF,T2".  When `representation` is "waveform", the values before the comma
 are ignored and 1D convolutions of width T2 are repeatedly applied until
 the remaining unpadded tensor length is less that T2 or `# conv layers`
-has been reached.  For `spectrogram` and `mel-cepstrum`, the string before
+has been reached.  For "spectrogram" and "mel-cepstrum", the string before
 the comma is the size of the 2D convolutions in time (T1) and frequency (F)
 that are repeatedly used for each layer until the remaining unpadded tensor
 size is smaller than this kernel in one or both dimensions.  Then full-height
@@ -1195,12 +1195,18 @@ is reached, or the width in time becomes less than the second number in
 corresponding stages in `kernels`.  See [LeCun *et al* (1989; Neural
 Computation)](http://yann.lecun.com/exdb/publis/pdf/lecun-89e.pdf).
 
-* `dilate after` specifies the first layer, starting from zero, at which to
-start dilating the convolutional kernels.  See [Yu and Koltun (2016;
+* `dilate after` specifies the first layer, starting from zero, at which
+to start dilating the convolutional kernels.  When `representation` is
+"waveform", the value after the comma is ignored.  For `spectrogram`
+and `mel-cepstrum`, the value before the comma is the temporal
+dilation and that after is the frequency.  See [Yu and Koltun (2016;
 arXiv)](https://arxiv.org/pdf/1511.07122.pdf).
 
 * `stride after` specifies the first layer, starting from zero, at which to
-start striding the convolutional kernels by two.
+start striding the convolutional kernels by two.  As with `dilate after`,
+when `representation` is "waveform", the value after the comma is ignored,
+and for "spectrogram" and "mel-cepstrum" the value before the comma is the
+temporal dilation and that after is the frequency.
 
 * `connection` specifies whether to use identity bypasses, which can help
 models with many layers converge.  See [He, Zhang, Ren, and Sun (2015;

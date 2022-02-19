@@ -15,7 +15,7 @@ from subprocess import run, PIPE, STDOUT, Popen
 import time
 import math
 import asyncio
-import filecmp
+import scipy.io.wavfile as spiowav
 
 from lib import wait_for_job, check_file_exists
 
@@ -57,7 +57,7 @@ V.model_parameters["kernel_sizes"].value = "3x3,32"
 V.model_parameters["nconvlayers"].value = "2"
 V.model_parameters["denselayers"].value = ""
 V.model_parameters["nfeatures"].value = "16,16"
-V.model_parameters["dilate_after_layer"].value = "65535"
+V.model_parameters["dilate_after_layer"].value = "256,256"
 V.model_parameters["connection_type"].value = "plain"
 V.model_parameters["window_ms"].value = "3.2"
 V.model_parameters["stride_ms"].value = "0.8"
@@ -78,11 +78,12 @@ V.nreplicates.value = "1"
 
 for representation in ["waveform", "spectrogram", "mel-cepstrum"]:
   V.model_parameters["representation"].value = representation
-  for stride_after_layer in ["2", "65535"]:
+  for stride_after_layer in ["2,256", "256,256"]:
     V.model_parameters["stride_after_layer"].value = stride_after_layer
     V.logs_folder.value = os.path.join(repo_path,
-          "test/scratch/freeze-classify",
-          "trained-classifier-r="+representation+"-s="+stride_after_layer)
+                                       "test/scratch/freeze-classify",
+                                       "trained-classifier-r="+representation+
+                                       "-s="+stride_after_layer.replace(',','comma'))
     asyncio.run(C.train_actuate())
 
     wait_for_job(M.status_ticker_queue)
@@ -94,7 +95,7 @@ for representation in ["waveform", "spectrogram", "mel-cepstrum"]:
 
     V.model_file.value = os.path.join(V.logs_folder.value,
                                       "train_"+V.nreplicates.value+"r",
-                                      "ckpt-"+V.nsteps.value+".meta")
+                                      "ckpt-"+V.nsteps.value+".index")
     V.wavcsv_files.value = os.path.join(repo_path,
           "test/scratch/freeze-classify/groundtruth-data/round1/PS_20130625111709_ch3.wav")
     V.prevalences.value = ""
@@ -116,7 +117,8 @@ for representation in ["waveform", "spectrogram", "mel-cepstrum"]:
 
       outpath = os.path.join(repo_path, 
                              "test/scratch/freeze-classify",
-                             "trained-classifier-r="+representation+"-s="+stride_after_layer,
+                             "trained-classifier-r="+representation+
+                             "-s="+stride_after_layer.replace(',','comma'),
                              parallelize)
       os.makedirs(outpath)
 
@@ -129,12 +131,19 @@ for representation in ["waveform", "spectrogram", "mel-cepstrum"]:
 
     outpath = os.path.join(repo_path, 
                            "test/scratch/freeze-classify",
-                           "trained-classifier-r="+representation+"-s="+stride_after_layer)
+                           "trained-classifier-r="+representation+
+                           "-s="+stride_after_layer.replace(',','comma'))
     for label in V.labels_touse.value.split(','):
       wavbase_noext = os.path.basename(wavpath_noext)
       outpath64 = os.path.join(outpath, "64", wavbase_noext+"-"+label+".wav")
       outpath16384 = os.path.join(outpath, "16384", wavbase_noext+"-"+label+".wav")
-      if not filecmp.cmp(outpath64, outpath16384, shallow=False):
-        print("ERROR: "+outpath64+" and "+outpath16384+" are different")
+      _, wavs64 = spiowav.read(outpath64)
+      _, wavs16384 = spiowav.read(outpath16384)
+      if len(wavs64) != len(wavs16384):
+        print("ERROR: "+outpath64+" and "+outpath16384+" are of different lengths")
+      elif any(wavs64 != wavs16384):
+        print("ERROR: "+outpath64+" and "+outpath16384+
+              " differ by at most "+str(max(abs(wavs64-wavs16384)))+" part(s) in 2^16"+
+              " for "+str(sum(wavs64!=wavs16384))+" samples")
 
 run(["hetero", "stop"], stdout=PIPE, stderr=STDOUT)
