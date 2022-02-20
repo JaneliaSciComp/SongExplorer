@@ -602,7 +602,7 @@ def snippets_update(redraw_wavs):
                 for ichannel in range(M.audio_nchannels):
                     wavi = wavs[start_frame : start_frame+nframes_to_get, ichannel]
                     if M.snippets_waveform:
-                        wavi_downsampled = wavi[0::M.snippets_decimate_by]
+                        wavi_downsampled = wavi[0::M.snippets_decimate_by].astype(float)
                         np.pad(wavi_downsampled, ((left_pad, right_pad),),
                                'constant', constant_values=(np.nan,))
                         wavi_trimmed = wavi_downsampled[:M.snippets_pix]
