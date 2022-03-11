@@ -423,7 +423,7 @@ def create_model(model_settings):
       bypass = inputs
     strides=[1+(iconv>=stride_after_layer[0]), 1]
     conv = Conv2D(nfeatures[1], (kernel_sizes[1], inputs_shape[2]),
-                  strides=strides, dilation_rate=[dilation_rate, 1])(inputs)
+                  strides=strides, dilation_rate=[dilation_rate[0], 1])(inputs)
     receptive_field_tics += (dilated_kernel_size - 1) * last_stride
     last_stride = strides[0]
     if use_residual and iconv%2==0 and iconv>1:
@@ -442,8 +442,8 @@ def create_model(model_settings):
     inputs_shape = inputs.get_shape().as_list()
     noutput_tics = math.ceil((noutput_tics - dilated_kernel_size + 1) / strides[0])
     iconv += 1
-    dilation_rate = dilation(iconv, dilate_after_layer)[0]
-    dilated_kernel_size = (kernel_sizes[1] - 1) * dilation_rate + 1
+    dilation_rate = dilation(iconv, dilate_after_layer)
+    dilated_kernel_size = (kernel_sizes[1] - 1) * dilation_rate[0] + 1
 
   receptive_field_tics *= stride_tics 
   print("receptive_field_tics = %d" % receptive_field_tics)
