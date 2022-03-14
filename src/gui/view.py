@@ -662,7 +662,7 @@ def snippets_update(redraw_wavs):
                     snippets_gram_glyphs[isnippet][ichannel].glyph.dw = xdata[-1] - xdata[0] + \
                                                                         xdata[1] - xdata[0]
                     snippets_gram_glyphs[isnippet][ichannel].glyph.dh = 2/M.audio_nchannels
-                    snippets_gram_sources[isnippet][ichannel].data.update(image=[np.log10( \
+                    snippets_gram_sources[isnippet][ichannel].data.update(image=[np.log10(1e-15+ \
                             gram_images[isnippet][ichannel][ilows[isnippet][ichannel]:1+ihighs[isnippet][ichannel],:])])
                 else:
                     snippets_gram_sources[isnippet][ichannel].data.update(image=[])
@@ -1012,7 +1012,7 @@ def context_update():
             spectrogram_glyph[ichannel].glyph.y = M.audio_nchannels-1 - ichannel
             spectrogram_glyph[ichannel].glyph.dw = xdata[-1] - xdata[0]
             spectrogram_glyph[ichannel].glyph.dh = 1
-            spectrogram_source[ichannel].data.update(image=[np.log10( \
+            spectrogram_source[ichannel].data.update(image=[np.log10(1e-15+ \
                     gram_image[ichannel][ilow[ichannel]:1+ihigh[ichannel],:])])
         else:
             spectrogram_source[ichannel].data.update(image=[])

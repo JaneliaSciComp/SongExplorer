@@ -101,7 +101,7 @@ check_file_exists(os.path.join(V.logs_folder.value,
 
 V.model_file.value = os.path.join(repo_path, "test/scratch/tutorial-py/untrained-classifier",
                                   "train_"+V.nreplicates.value+"r",
-                                  "ckpt-"+V.nsteps.value+".meta")
+                                  "ckpt-"+V.nsteps.value+".index")
 V.activations_equalize_ratio.value = "1000"
 V.activations_max_sounds.value = "10000"
 asyncio.run(C.activations_actuate())
@@ -164,7 +164,7 @@ for label in V.labels_touse.value.split(','):
   check_file_exists(os.path.join(V.logs_folder.value, "validation-PvR-"+label+".pdf"))
 
 V.model_file.value = os.path.join(V.logs_folder.value, "train_"+V.nreplicates.value+"r",
-                                  "ckpt-"+V.nsteps.value+".meta")
+                                  "ckpt-"+V.nsteps.value+".index")
 asyncio.run(C.freeze_actuate())
 
 wait_for_job(M.status_ticker_queue)
@@ -230,7 +230,7 @@ for file in glob.glob(os.path.join(V.groundtruth_folder.value, "cluster*")):
 
 V.model_file.value = os.path.join(repo_path, "test/scratch/tutorial-py/trained-classifier1", \
                                   "train_"+V.nreplicates.value+"r", \
-                                  "ckpt-"+V.nsteps.value+".meta")
+                                  "ckpt-"+V.nsteps.value+".index")
 V.kinds_touse.value = "annotated,missed"
 V.activations_equalize_ratio.value = "1000"
 V.activations_max_sounds.value = "10000"
@@ -385,7 +385,7 @@ for label in V.labels_touse.value.split(','):
   check_file_exists(os.path.join(V.logs_folder.value, "validation-PvR-"+label+".pdf"))
 
 V.model_file.value = os.path.join(V.logs_folder.value, "train_"+V.nreplicates.value+"r",
-                                  "ckpt-"+V.nsteps.value+".meta")
+                                  "ckpt-"+V.nsteps.value+".index")
 asyncio.run(C.freeze_actuate())
 
 wait_for_job(M.status_ticker_queue)
@@ -505,7 +505,7 @@ for label in V.labels_touse.value.split(','):
   check_file_exists(wavpath_noext+"-"+label+".wav")
 
 V.model_file.value = os.path.join(V.logs_folder.value, "xvalidate_1k",
-                                  "ckpt-"+V.nsteps.value+".meta")
+                                  "ckpt-"+V.nsteps.value+".index")
 asyncio.run(C.ethogram_actuate())
 
 wait_for_job(M.status_ticker_queue)
