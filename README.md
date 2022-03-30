@@ -34,7 +34,7 @@ Table of Contents
       * [Discovering Novel Sounds](#discovering-novel-sounds)
       * [Unsupervised Methods](#unsupervised-methods)
       * [Scripting Automation](#scripting-automation)
-      * [Customizing the Architecture](#customizing-the-architecture)
+      * [Customizing with Plug-ins](#customizing-with-plug-ins)
    * [Troubleshooting](#troubleshooting)
    * [Frequently Asked Questions](#frequently-asked-questions)
    * [Reporting Problems](#reporting-problems)
@@ -1121,7 +1121,7 @@ depends on choosing the right model architecture.  SongExplorer by default
 uses convolutional neural networks, and there are many free parameters by
 which to tune its architecture.  You configure them by editing the variables
 itemized below, and then use cross-validation to compare different choices.
-[Customizing the Architecture](#customizing-the-architecture) describes how to
+[Customizing with Plug-ins](#customizing-with-plug-ins) describes how to
 use recurrent networks instead, or anything else of your choosing.
 
 * `context` is the temporal duration, in milliseconds, that the classifier
@@ -1636,7 +1636,9 @@ These two files implement, as Bash and Python scripts respectively, the entire
 workflow presented in this [Tutorial](#tutorial), from [Detecting
 Sounds](#detecting-sounds) all the way to [Testing Densely](#testing-densely).
 
-## Customizing the Architecture ##
+## Customizing with Plug-ins ##
+
+### Architecture ###
 
 The default network architecture is a set of layered convolutions, the depth
 and width of which can be configured as shown above.  Should this not prove
@@ -1682,13 +1684,24 @@ In brief, two objects must be supplied in a python file:  (1) a list of
 `model_parameters` which defines the variable names, titles, and default
 values, etc. to appear in the GUI, and (2) a function `create_model` which
 builds and returns the network graph.  Specify as the `architecture` in
-"configuration.pysh" the full path to this file, without the ".py" suffix.
+"configuration.pysh" the full path to this file, without the ".py" extension.
 The buttons immediately above the configuration textbox in the GUI will
 change to reflect the different hyperparameters used by this architecture.
 All the workflows described above (detecting sounds, making predicions, fixing
 mistakes, etc) can be used with this custom network in an identical manner.
 The default convolutional architecture is itself written as a plug-in, and
 can be found in src/convolutional.py.
+
+### Video files ###
+
+By default, SongExplorer expects video files to have the same basename
+as the corresponding audio file, and the extension to be one of AVI,
+MP4, or MOV.  If this is not the case, one can provide a python function
+which inputs a directory and a WAV file and outputs the name of the video
+file to load.  The name and location of the python file containing this
+function is specified, without the ".py" extension, as the "video_findfile"
+parameter in "configuration.pysh".  For examples, see src/same-basename.py
+(the default) and src/maybe-off-by-one-second.py.
 
 
 # Troubleshooting #

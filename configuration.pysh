@@ -9,6 +9,8 @@ state_dir=""
 audio_tic_rate=2500
 audio_nchannels=1
 
+video_findfile="same-basename"  # given a directory and a WAV file, return the corresponding video file
+
 # URL of the 'server' computer
 server_ipaddr=""
 

@@ -727,16 +727,13 @@ def __context_update(wavi, tapped_sound, istart_bounded, ilength):
     if video_toggle.active:
         sound_basename=os.path.basename(tapped_sound)
         sound_dirname=os.path.join(groundtruth_folder.value, os.path.dirname(tapped_sound))
-        vids = list(filter(lambda x: x!=sound_basename and
-                                     os.path.splitext(x)[0] == \
-                                         os.path.splitext(sound_basename)[0] and
-                                     os.path.splitext(x)[1].lower() in \
-                                         ['.avi','.mp4','.mov'],
-                           os.listdir(sound_dirname)))
-        base64vid, height, width = nparray2base64mp4(os.path.join(sound_dirname,vids[0]),
+        vidfile = M.video_findfile(sound_dirname, sound_basename)
+        if not vidfile:
+            bokehlog.info("ERROR: video file corresponding to "+tapped_sound+" not found")
+            return
+        base64vid, height, width = nparray2base64mp4(os.path.join(sound_dirname,vidfile),
                                                      istart_bounded / M.audio_tic_rate,
-                                                     (istart_bounded+ilength) / M.audio_tic_rate) \
-                                                         if len(vids)==1 else ""
+                                                     (istart_bounded+ilength) / M.audio_tic_rate)
         labelcounts.style = {'overflow-y':'hidden', 'overflow-x':'scroll',
                              'width':str(max(100,M.gui_width_pix-450-width))+'px'}
         video_div.style = {'width':str(width)+'px', 'height':str(height)+'px'}
