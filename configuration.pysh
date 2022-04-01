@@ -40,6 +40,7 @@ gui_context_spectrogram=1
 gui_context_spectrogram_height_pix=150
 gui_context_spectrogram_units="kHz" # one of mHz, Hz, kHz, or MHz
 gui_context_probability_height_pix=75
+gui_context_undo_proximity_pix=3
 gui_spectrogram_colormap="Viridis256"
 gui_spectrogram_window="hann"
 gui_spectrogram_length_ms=10

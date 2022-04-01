@@ -306,13 +306,15 @@ def context_doubletap_callback(event, midpoint):
     if event.y<midpoint:
         idouble_tapped_sound=-1
         if len(M.annotated_starts_sorted)>0:
-            idouble_tapped_sound = np.searchsorted(M.annotated_starts_sorted, x_tic,
-                                                      side='right') - 1
+            undo_proximity_tic = M.context_undo_proximity_pix * M.context_width_tic / M.gui_width_pix
+            idouble_tapped_sound = np.searchsorted(M.annotated_starts_sorted,
+                                                   x_tic + undo_proximity_tic,
+                                                   side='right') - 1
             while (idouble_tapped_sound > 0) and \
                   (M.annotated_sounds[idouble_tapped_sound]['file'] != currfile):
                 idouble_tapped_sound -= 1
             if (M.annotated_sounds[idouble_tapped_sound]['file'] != currfile) or \
-               (x_tic > M.annotated_sounds[idouble_tapped_sound]['ticks'][1]):
+               (x_tic - undo_proximity_tic > M.annotated_sounds[idouble_tapped_sound]['ticks'][1]):
                 idouble_tapped_sound = -1
         if idouble_tapped_sound >= 0:
             M.delete_annotation(idouble_tapped_sound)
