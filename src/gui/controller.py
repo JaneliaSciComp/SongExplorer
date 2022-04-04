@@ -209,12 +209,19 @@ def dot_alpha_callback(attr, old, new):
     M.state["dot_alpha"]=new
     V.dot_alpha_cluster.data.update(da=[M.state["dot_alpha"]])
     M.save_state_callback()
-
-play_callback_code="""
+    
+load_multimedia_callback_code="""
 const aud = document.getElementById("context_audio")
 aud.src="data:audio/wav;base64,"+%r
 
-var x0 = waveform_span_red.location;
+const vid = document.getElementById("context_video")
+vid.src="data:video/mp4;base64,"+%r
+"""
+
+play_callback_code="""
+const aud = document.getElementById("context_audio")
+const vid = document.getElementById("context_video")
+var x0 = p.x_range.start
 
 aud.ontimeupdate = function() {
   waveform_span_red.location = x0+aud.currentTime
@@ -228,11 +235,18 @@ aud.onended = function() {
   probability_span_red.location = x0
 };
 
-const vid = document.getElementById("context_video")
-vid.src="data:video/mp4;base64,"+%r
+vid.currentTime = 0
 
-aud.play()
-vid.play()
+aud.play();
+vid.play();
+"""
+
+video_slider_callback_code="""
+const vid = document.getElementById("context_video")
+vid.currentTime = parseFloat(cb_obj.value - cb_obj.start);
+waveform_span_red.location = parseFloat(cb_obj.value)
+spectrogram_span_red.location = parseFloat(cb_obj.value)
+probablity_span_red.location = parseFloat(cb_obj.value)
 """
 
 def _recordings_callback(n):
