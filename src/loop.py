@@ -126,7 +126,19 @@ def main():
     tf.config.experimental.set_memory_growth(physical_device, True)
   tf.config.set_soft_device_placement(True)
 
-  nlabels = len(FLAGS.labels_touse.split(','))
+  if FLAGS.start_checkpoint:
+    labels_touse = tf.io.gfile.GFile(os.path.join(FLAGS.train_dir, 'labels.txt')).readlines()
+    labels_touse = ','.join([x.rstrip() for x in labels_touse])
+    if labels_touse != FLAGS.labels_touse:
+      if set(labels_touse.split(',')) != set(FLAGS.labels_touse.split(',')):
+        print('ERROR: labels_touse does not match model being restored from')
+        return
+      else:
+        print('WARNING: labels_touse is out of order.  continuing with order from restored model')
+  else:
+    labels_touse = FLAGS.labels_touse
+
+  nlabels = len(labels_touse.split(','))
 
   model_settings = models.prepare_model_settings(
       nlabels,
@@ -140,7 +152,7 @@ def main():
   audio_processor = data.AudioProcessor(
       FLAGS.data_dir,
       FLAGS.shiftby_ms,
-      FLAGS.labels_touse.split(','), FLAGS.kinds_touse.split(','),
+      labels_touse.split(','), FLAGS.kinds_touse.split(','),
       FLAGS.validation_percentage, FLAGS.validation_offset_percentage,
       FLAGS.validation_files.split(','),
       0, FLAGS.testing_files.split(','), FLAGS.subsample_skip,
@@ -171,10 +183,9 @@ def main():
   t0 = datetime.now()
   print('Training from time %s, step: %d ' % (t0.isoformat(), start_step))
 
-  # Save list of labels.
-  if FLAGS.start_checkpoint=='':
+  if not FLAGS.start_checkpoint:
     with tf.io.gfile.GFile(os.path.join(FLAGS.train_dir, 'labels.txt'), 'w') as f:
-      f.write(FLAGS.labels_touse.replace(',','\n'))
+      f.write(labels_touse.replace(',','\n'))
 
   train_writer = tf.summary.create_file_writer(FLAGS.summaries_dir + '/train')
   validation_writer = tf.summary.create_file_writer(FLAGS.summaries_dir + '/validation')
