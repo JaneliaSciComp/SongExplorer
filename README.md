@@ -584,6 +584,10 @@ either of these two criteria.  Quiescent intervals are similarly defined as
 those which pass neither the time nor the frequency domain criteria using the
 second number in `time σ` and `freq ρ` text boxes.
 
+[Customizing with Plug-ins](#customizing-with-plug-ins) describes how to
+use arbitrary custom code of your choosing to detect events should this
+default algorithm not suit your data.
+
 Once all the needed parameters are specified, click on the red `DoIt!` button
 to start detecting sounds.  It will turn orange while the job is being
 asynchronously dispatched, and then back to grey.  "DETECT
@@ -1122,7 +1126,8 @@ uses convolutional neural networks, and there are many free parameters by
 which to tune its architecture.  You configure them by editing the variables
 itemized below, and then use cross-validation to compare different choices.
 [Customizing with Plug-ins](#customizing-with-plug-ins) describes how to
-use recurrent networks instead, or anything else of your choosing.
+use arbitrary custom networks of your choosing should convolutions not suit
+your task.
 
 * `context` is the temporal duration, in milliseconds, that the classifier
 inputs
@@ -1638,47 +1643,99 @@ Sounds](#detecting-sounds) all the way to [Testing Densely](#testing-densely).
 
 ## Customizing with Plug-ins ##
 
+### Event detection ###
+
+By default the Detect button thresholds in the time and frequency domains to
+find sounds of interest.  See the source code in "src/time-freq-threshold.py"
+for exactly how this works.  Should that not suit your needs, you can
+supply your own code instead.  Simply put in a python file a list called
+`detect_parameters` that specifies the hyperparameters, a function called
+`detect_labels` which returns the strings used to annotate the sounds, and a
+script which uses those parameters to generate a "detected.csv" given a WAV
+file.  Then change the "detect_plugin" variable in your "configuration.pysh"
+file to point to the full path of this python file, without the ".py"
+extension.  See the minimal example in "src/detect-plugin.py" for a template,
+a pared down version of which is as follows:
+
+    #!/usr/bin/python3
+
+    # a list of lists specifying the detect-specific hyperparameters in the GUI
+    detect_parameters = [
+        ["my-simple-textbox", "h-parameter 1", "", "32", [], None, True],
+        ]
+
+    # a function which returns a vector of strings used to annotate the detected events
+    def detect_labels(audio_nchannels):
+        # kinds = [... ]
+        return kinds
+
+    # a script which inputs a WAV file and outputs a CSV file
+    if __name__ == '__main__':
+
+        import os
+        import scipy.io.wavfile as spiowav
+        import sys
+        import csv
+        import json
+
+
+        _, filename, detect_parameters, audio_tic_rate, audio_nchannels = sys.argv
+
+        detect_parameters = json.loads(detect_parameters)
+        hyperparameter1 = int(detect_parameters["my-simple-textbox"])
+
+        _, song = spiowav.read(filename)
+
+        # add logic here to find events of interest
+        # events = [...]  # e.g. a list of 3-tuples with start, stop, kind
+
+        basename = os.path.basename(filename)
+        with open(os.path.splitext(filename)[0]+'-detected.csv', 'w') as fid:
+            csvwriter = csv.writer(fid)
+            for e in range(events):
+                csvwriter.writerow([basename, e[0], e[1], 'detected', e[2]])
+
 ### Architecture ###
 
 The default network architecture is a set of layered convolutions, the depth
-and width of which can be configured as shown above.  Should this not prove
+and width of which can be configured as described above.  Should this not prove
 flexible enough, SongExplorer is designed with a means to supply your own
 TensorFlow code that implements a whiz bang architecture of any arbitrary
-design.  See the minimal example in "src/plugin.py" for a template of how
-this works, a pared down version of which is as follows:
+design.  See the minimal example in "src/architecture-plugin.py" for a
+template of how this works, a pared down version of which is as follows:
 
-  import tensorflow as tf
+    import tensorflow as tf
 
-  # a list of lists specifying the architecture-specific hyperparameters in the GUI
-  model_parameters = [
-    # each hyperparameter is described by a list with these entries:
-    # [ key in `model_settings`,
-    #   title in GUI,
-    #   "" for textbox or [] for pull-down,
-    #   default value,
-    #   enable logic,
-    #   callback,
-    #   required ]
-    ]
+    # a list of lists specifying the architecture-specific hyperparameters in the GUI
+    model_parameters = [
+      # each hyperparameter is described by a list with these entries:
+      # [ key in `model_settings`,
+      #   title in GUI,
+      #   "" for textbox or [] for pull-down,
+      #   default value,
+      #   enable logic,
+      #   callback,
+      #   required ]
+      ]
 
-  # a function which returns a keras model
-  def create_model(model_settings):
-      # `model_settings` is a superset of the hyperparameters above.  see src/models.py
+    # a function which returns a keras model
+    def create_model(model_settings):
+        # `model_settings` is a superset of the hyperparameters above.  see src/models.py
 
-      # hidden_layers is used to visualize intermediate clusters in the GUI
-      hidden_layers = []
+        # hidden_layers is used to visualize intermediate clusters in the GUI
+        hidden_layers = []
 
-      # 'parallelize' specifies the number of tics to evaluate simultaneously when classifying
-      ninput_tics = model_settings["context_tics"] + model_settings["parallelize"] - 1
-      input_layer = Input(shape=(ninput_tics, model_settings["nchannels"]))
+        # 'parallelize' specifies the number of output tics to classify simultaneously
+        ninput_tics = model_settings["context_tics"] + model_settings["parallelize"] - 1
+        input_layer = Input(shape=(ninput_tics, model_settings["nchannels"]))
 
-      # add custom layers here, e.g. x = Conv1D()(x)
-      # append interesting ones to hidden_layers
+        # add custom layers here, e.g. x = Conv1D()(x)
+        # append interesting ones to hidden_layers
 
-      # last layer must be convolutional with nlabels as the output size
-      output_layer = Conv1D(model_settings['nlabels'], 1)(x)
+        # last layer must be convolutional with nlabels as the output size
+        output_layer = Conv1D(model_settings['nlabels'], 1)(x)
 
-      return tf.keras.Model(inputs=input_layer, outputs=[hidden_layers, output_layer])
+        return tf.keras.Model(inputs=input_layer, outputs=[hidden_layers, output_layer])
 
 In brief, two objects must be supplied in a python file:  (1) a list of
 `model_parameters` which defines the variable names, titles, and default
@@ -1690,7 +1747,7 @@ change to reflect the different hyperparameters used by this architecture.
 All the workflows described above (detecting sounds, making predicions, fixing
 mistakes, etc) can be used with this custom network in an identical manner.
 The default convolutional architecture is itself written as a plug-in, and
-can be found in src/convolutional.py.
+can be found in "src/convolutional.py".
 
 ### Video files ###
 
@@ -1700,8 +1757,8 @@ MP4, or MOV.  If this is not the case, one can provide a python function
 which inputs a directory and a WAV file and outputs the name of the video
 file to load.  The name and location of the python file containing this
 function is specified, without the ".py" extension, as the "video_findfile"
-parameter in "configuration.pysh".  For examples, see src/same-basename.py
-(the default) and src/maybe-off-by-one-second.py.
+parameter in "configuration.pysh".  For examples, see "src/same-basename.py"
+(the default) and "src/maybe-1sec-off.py".
 
 
 # Troubleshooting #

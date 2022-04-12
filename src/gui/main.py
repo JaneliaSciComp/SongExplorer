@@ -30,6 +30,7 @@ M.init(doc, configuration_file)
 V.init(doc)
 C.init(doc)
 
+detect_parameters = list(V.detect_parameters.values())
 model_parameters = list(V.model_parameters.values())
 
 main_content = row(column(row(V.which_layer, V.which_species, V.which_word,
@@ -131,31 +132,26 @@ main_content = row(column(row(V.which_layer, V.which_species, V.which_word,
                            column(V.copy, width=70)),
                        row(
                            column(
-                               row(V.time_sigma,
-                                   V.time_smooth_ms,
-                                   V.nsteps,
+                               row(V.nsteps,
                                    V.restore_from,
                                    V.weights_seed,
                                    V.optimizer,
                                    V.context_ms,
+                                   V.mini_batch,
+                                   V.nreplicates,
                                    V.activations_equalize_ratio,
                                    width=M.gui_width_pix-420),
-                               row(V.frequency_n_ms,
-                                   V.frequency_nw,
-                                   V.save_and_validate_period,
+                               row(V.save_and_validate_period,
                                    V.validate_percentage,
                                    V.batch_seed,
                                    V.learning_rate,
                                    V.shiftby_ms,
+                                   V.kfold,
+                                   V.precision_recall_ratios,
                                    V.activations_max_sounds,
                                    width=M.gui_width_pix-420),
-                               row(V.frequency_p,
-                                   V.frequency_smooth_ms,
-                                   V.mini_batch,
-                                   V.kfold,
-                                   V.nreplicates,
-                                   V.precision_recall_ratios,
-                                   Spacer(width=413),
+                               row(*[row(detect_parameters[i:min(len(detect_parameters)+1,i+6)])
+                                     for i in range(0,len(detect_parameters),6)],
                                    width=M.gui_width_pix-420)),
                            column(V.cluster_these_layers,
                                   width=105),

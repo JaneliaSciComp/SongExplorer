@@ -70,26 +70,6 @@ def generic_actuate(cmd, logfile, where,
         bokehlog.info(jobinfo)
     return jobid
 
-def _frequency_n_callback():
-    time.sleep(0.5)
-    V.frequency_n_ms.css_classes = []
-    V.frequency_smooth_ms.css_classes = []
-    M.save_state_callback()
-    V.buttons_update()
-
-def frequency_n_callback(a,o,n):
-    changed, frequency_n_ms2 = M.next_pow2_ms(float(V.frequency_n_ms.value))
-    if changed:
-        V.frequency_n_ms.css_classes = ['changed']
-        V.frequency_n_ms.value = str(frequency_n_ms2)
-    if float(V.frequency_smooth_ms.value) < float(V.frequency_n_ms.value):
-        V.frequency_smooth_ms.css_classes = ['changed']
-        V.frequency_smooth_ms.value = V.frequency_n_ms.value
-    if bokeh_document:
-        bokeh_document.add_next_tick_callback(_frequency_n_callback)
-    else:
-        _frequency_n_callback()
-
 def generic_parameters_callback(n):
     if ' ' in n:
         bokehlog.info('ERROR: textboxes should not contain spaces')
@@ -868,7 +848,7 @@ async def _detect_actuate(i, wavfiles, threads, results):
     wavfile = wavfiles.pop(0)
     currtime = time.time()
     logfile = os.path.splitext(wavfile)[0]+'-detect.log'
-    jobid = generic_actuate("detect.py", logfile, \
+    jobid = generic_actuate(M.detect_plugin+".py", logfile, \
                             M.detect_where,
                             M.detect_ncpu_cores,
                             M.detect_ngpu_cards,
@@ -876,13 +856,7 @@ async def _detect_actuate(i, wavfiles, threads, results):
                             "",
                             M.detect_cluster_flags,
                             wavfile, \
-                            *V.time_sigma.value.split(','), \
-                            V.time_smooth_ms.value, \
-                            V.frequency_n_ms.value, \
-                            V.frequency_nw.value, \
-                            *V.frequency_p.value.split(','), \
-                            V.frequency_smooth_ms.value,
-                            str(M.detect_time_sigma_robust),
+                            "'"+json.dumps({k:v.value for k,v in V.detect_parameters.items()})+"'", \
                             str(M.audio_tic_rate), str(M.audio_nchannels))
     M.waitfor_job.append(jobid)
     displaystring = "DETECT "+os.path.basename(wavfile)+" ("+jobid+")"
@@ -2011,11 +1985,7 @@ def wizard_callback(wizard):
     M.wizard=None if M.wizard is wizard else wizard
     M.action=None
     if M.wizard==V.labelsounds:
-        labels_touse=[]
-        for i in range(M.audio_nchannels):
-            i_str = str(i) if M.audio_nchannels>1 else ''
-            labels_touse.append("time"+i_str+",frequency"+i_str+",neither"+i_str)
-        V.labels_touse.value=','.join(labels_touse)
+        V.labels_touse.value=','.join(M.detect_labels)
         V.kinds_touse.value="detected"
         V.nsteps.value="0"
         V.save_and_validate_period.value="0"
@@ -2042,12 +2012,9 @@ def wizard_callback(wizard):
         V.kinds_touse.value="annotated"
     elif M.wizard==V.findnovellabels:
         labels_touse = [x.value for x in V.label_texts if x.value!='']
-        for i in range(M.audio_nchannels):
-            i_str = str(i) if M.audio_nchannels>1 else ''
-            if 'time'+i_str not in labels_touse:
-                labels_touse.append('time'+i_str)
-            if 'frequency'+i_str not in labels_touse:
-                labels_touse.append('frequency'+i_str)
+        for detect_label in M.detect_labels:
+            if detect_label not in labels_touse:
+                labels_touse.append(detect_label)
         V.labels_touse.value=str.join(',',labels_touse)
         if M.action==V.train:
             V.kinds_touse.value="annotated"

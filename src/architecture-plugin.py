@@ -18,7 +18,7 @@ def callback(n,M,V,C):
     # access the hyperparameters below with the V.model_parameters dictionary
     # the value is stored in .value, and the appearance can be controlled with .css_classes
     if int(V.model_parameters['a-bounded-value'].value) < 0:
-        bokehlog.info("a-bounded-value = "+str(V.model_parameters['a-bounded-value'].value))  # uncomment to debug
+        #bokehlog.info("a-bounded-value = "+str(V.model_parameters['a-bounded-value'].value))  # uncomment to debug
         V.model_parameters['a-bounded-value'].css_classes = ['changed']
         V.model_parameters['a-bounded-value'].value = "0"
         if V.bokeh_document:  # if interactive
@@ -62,7 +62,10 @@ def create_model(model_settings):
     # hidden_layers is used to visualize intermediate clusters in the GUI
     hidden_layers = []
 
-    # 'parallelize' specifies the number of tics to evaluate simultaneously when classifying
+    # 'parallelize' specifies the number of output tics to evaluate
+    # simultaneously when classifying.  stride (from e.g. spectrograms)
+    # and downsampling (from e.g. conv kernel strides) must be taken into
+    # account to get the corresponding number of input tics
     ninput_tics = model_settings["context_tics"] + model_settings["parallelize"] - 1
     input_layer = Input(shape=(ninput_tics, model_settings["nchannels"]))
 

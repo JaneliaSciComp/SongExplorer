@@ -24,7 +24,7 @@ count_lines() {
   (( "$count" == "$2" )) && return
   echo ERROR: $1 has $count lines when it should have $2; }
 
-repo_path=$(dirname $(dirname $(which detect.py)))
+repo_path=$(dirname $(dirname $(which train.py)))
 
 mkdir -p $repo_path/test/scratch/tutorial-sh
 cp $repo_path/configuration.pysh $repo_path/test/scratch/tutorial-sh
@@ -37,19 +37,11 @@ cp $repo_path/data/PS_20130625111709_ch3.wav \
    $repo_path/test/scratch/tutorial-sh/groundtruth-data/round1
 
 wavpath_noext=$repo_path/test/scratch/tutorial-sh/groundtruth-data/round1/PS_20130625111709_ch3
-time_sigma_signal=9
-time_sigma_noise=4
-time_smooth_ms=6.4
-frequency_n_ms=25.6
-frequency_nw=4
-frequency_p_signal=0.1
-frequency_p_noise=1.0
-frequency_smooth_ms=25.6
-detect.py \
+detect_parameters='{"time_sigma":"9,4", "time_smooth_ms":"6.4", "frequency_n_ms":"25.6", "frequency_nw":"4", "frequency_p":"0.1,1.0", "frequency_smooth_ms":"25.6", "time_sigma_robust":"median"}'
+time-freq-threshold.py \
       ${wavpath_noext}.wav \
-      $time_sigma_signal $time_sigma_noise $time_smooth_ms \
-      $frequency_n_ms $frequency_nw $frequency_p_signal $frequency_p_noise $frequency_smooth_ms \
-      $detect_time_sigma_robust $audio_tic_rate $audio_nchannels \
+      "$detect_parameters" \
+      $audio_tic_rate $audio_nchannels \
       &>> ${wavpath_noext}-detect.log
 
 check_file_exists ${wavpath_noext}-detect.log
@@ -232,11 +224,10 @@ count_lines_with_label ${wavpath_noext}-predicted-1.0pr.csv mel-pulse 510 WARNIN
 count_lines_with_label ${wavpath_noext}-predicted-1.0pr.csv mel-sine 767 WARNING
 count_lines_with_label ${wavpath_noext}-predicted-1.0pr.csv ambient 124 WARNING
 
-detect.py \
+time-freq-threshold.py \
       ${wavpath_noext}.wav \
-      $time_sigma_signal $time_sigma_noise $time_smooth_ms \
-      $frequency_n_ms $frequency_nw $frequency_p_signal $frequency_p_noise $frequency_smooth_ms \
-      $detect_time_sigma_robust $audio_tic_rate $audio_nchannels \
+      "$detect_parameters" \
+      $audio_tic_rate $audio_nchannels \
       &>> ${wavpath_noext}-detect.log
 
 check_file_exists ${wavpath_noext}-detect.log

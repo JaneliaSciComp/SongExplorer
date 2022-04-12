@@ -40,12 +40,13 @@ run(["hetero", "start", "1", "1", "1"])
 wavpath_noext = os.path.join(repo_path,
                              "test/scratch/tutorial-py/groundtruth-data/round1/PS_20130625111709_ch3")
 V.wavcsv_files.value = wavpath_noext+".wav"
-V.time_sigma.value = "9,4"
-V.time_smooth_ms.value = "6.4"
-V.frequency_n_ms.value = "25.6"
-V.frequency_nw.value = "4"
-V.frequency_p.value = "0.1,1.0"
-V.frequency_smooth_ms.value = "25.6"
+V.detect_parameters["time_sigma"].value = "9,4"
+V.detect_parameters["time_smooth_ms"].value = "6.4"
+V.detect_parameters["frequency_n_ms"].value = "25.6"
+V.detect_parameters["frequency_nw"].value = "4"
+V.detect_parameters["frequency_p"].value = "0.1,1.0"
+V.detect_parameters["frequency_smooth_ms"].value = "25.6"
+V.detect_parameters["time_sigma_robust"].value = "median"
 asyncio.run(C.detect_actuate())
 
 wait_for_job(M.status_ticker_queue)

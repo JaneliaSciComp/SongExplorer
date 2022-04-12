@@ -61,6 +61,7 @@ detect_ncpu_cores=-1
 detect_ngpu_cards=-1
 detect_ngigabytes_memory=-1
 detect_cluster_flags=""
+detect_plugin="time-freq-threshold"
 
 misses_where=default_where
 misses_ncpu_cores=-1
@@ -170,9 +171,6 @@ congruence_ncpu_cores=-1
 congruence_ngpu_cards=-1
 congruence_ngigabytes_memory=-1
 congruence_cluster_flags=""
-
-# use mean and stddev for threshold if 0, otherise median and median absolute deviation
-detect_time_sigma_robust=1
 
 # simultaneously train multiple models on one GPU
 models_per_job=1
