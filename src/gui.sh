@@ -129,10 +129,6 @@ isbinary() {
   [[ "${!1}" =~ $binary_re ]] || echo WARNING: $1 is not set or is not 0 or 1
 }
 
-isbinary gui_snippets_waveform
-isbinary gui_snippets_spectrogram
-isbinary gui_context_waveform
-isbinary gui_context_spectrogram
 isbinary activations_gpu
 isbinary classify_gpu
 isbinary generalize_gpu

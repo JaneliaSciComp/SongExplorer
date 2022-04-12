@@ -548,8 +548,7 @@ def snippets_update(redraw_wavs):
                 right=[(M.xsnippet+1)*(M.snippets_gap_pix+M.snippets_pix)-
                        M.snippets_gap_pix],
                 top=[-M.ysnippet*snippets_dy+1],
-                bottom=[-M.ysnippet*snippets_dy-1 \
-                        -2*(M.snippets_waveform and M.snippets_spectrogram)])
+                bottom=[-M.ysnippet*snippets_dy - 1 - snippets_both])
     else:
         snippets_quad_fuchsia.data.update(left=[], right=[], top=[], bottom=[])
 
@@ -592,35 +591,37 @@ def snippets_update(redraw_wavs):
                                      M.snippets_tic+1+(midpoint-M.snippets_tic//2))
                 left_pad = max(0, M.snippets_pix-nframes_to_get if start_frame==0 else 0)
                 right_pad = max(0, M.snippets_pix-nframes_to_get if start_frame>0 else 0)
-                ywav = [[]]*M.audio_nchannels
-                scale = [[]]*M.audio_nchannels
-                gram_freq = [[]]*M.audio_nchannels
-                gram_time = [[]]*M.audio_nchannels
-                gram_image = [[]]*M.audio_nchannels
-                ilow = [[]]*M.audio_nchannels
-                ihigh = [[]]*M.audio_nchannels
+                ywav = [[]]*len(M.snippets_waveform)
+                scale = [[]]*len(M.snippets_waveform)
+                gram_freq = [[]]*len(M.snippets_spectrogram)
+                gram_time = [[]]*len(M.snippets_spectrogram)
+                gram_image = [[]]*len(M.snippets_spectrogram)
+                ilow = [[]]*len(M.snippets_spectrogram)
+                ihigh = [[]]*len(M.snippets_spectrogram)
                 for ichannel in range(M.audio_nchannels):
                     wavi = wavs[start_frame : start_frame+nframes_to_get, ichannel]
-                    if M.snippets_waveform:
+                    if ichannel+1 in M.snippets_waveform:
+                        idx = M.snippets_waveform.index(ichannel+1)
                         wavi_downsampled = wavi[0::M.snippets_decimate_by].astype(float)
                         np.pad(wavi_downsampled, ((left_pad, right_pad),),
                                'constant', constant_values=(np.nan,))
                         wavi_trimmed = wavi_downsampled[:M.snippets_pix]
-                        scale[ichannel]=np.minimum(np.iinfo(np.int16).max-1,
+                        scale[idx]=np.minimum(np.iinfo(np.int16).max-1,
                                                    np.max(np.abs(wavi_trimmed)))
-                        ywav[ichannel]=wavi_trimmed/scale[ichannel]
-                    if M.snippets_spectrogram:
+                        ywav[idx]=wavi_trimmed/scale[idx]
+                    if ichannel+1 in M.snippets_spectrogram:
+                        idx = M.snippets_spectrogram.index(ichannel+1)
                         window_length = int(round(M.spectrogram_length_ms[ichannel]/1000*M.audio_tic_rate))
-                        gram_freq[ichannel], gram_time[ichannel], gram_image[ichannel] = \
+                        gram_freq[idx], gram_time[idx], gram_image[idx] = \
                                 spectrogram(wavi,
                                             fs=M.audio_tic_rate,
                                             window=M.spectrogram_window,
                                             nperseg=window_length,
                                             noverlap=round(window_length*M.spectrogram_overlap))
-                        ilow[ichannel] = np.argmin(np.abs(gram_freq[ichannel] - \
-                                                          M.spectrogram_low_hz[ichannel]))
-                        ihigh[ichannel] = np.argmin(np.abs(gram_freq[ichannel] - \
-                                                           M.spectrogram_high_hz[ichannel]))
+                        ilow[idx] = np.argmin(np.abs(gram_freq[idx] - \
+                                                     M.spectrogram_low_hz[ichannel]))
+                        ihigh[idx] = np.argmin(np.abs(gram_freq[idx] - \
+                                                      M.spectrogram_high_hz[ichannel]))
                 ywavs.append(ywav)
                 scales.append(scale)
                 gram_freqs.append(gram_freq)
@@ -632,8 +633,8 @@ def snippets_update(redraw_wavs):
             M.nearest_sounds[isnippet] = -1
             labels_clustered.append('')
             labels_annotated.append('')
-            scales.append([0]*M.audio_nchannels)
-            ywavs.append([np.full(M.snippets_pix,np.nan)]*M.audio_nchannels)
+            scales.append([0]*len(M.snippets_waveform))
+            ywavs.append([np.full(M.snippets_pix,np.nan)]*len(M.snippets_waveform))
             gram_images.append([])
     snippets_label_sources_clustered.data.update(text=labels_clustered)
     snippets_label_sources_annotated.data.update(text=labels_annotated)
@@ -644,34 +645,35 @@ def snippets_update(redraw_wavs):
             xdata = range(ix*(M.snippets_gap_pix+M.snippets_pix),
                           (ix+1)*(M.snippets_gap_pix+M.snippets_pix)-M.snippets_gap_pix)
             for ichannel in range(M.audio_nchannels):
-                if M.snippets_waveform:
+                if ichannel+1 in M.snippets_waveform:
+                    idx = M.snippets_waveform.index(ichannel+1)
                     ydata = -iy*snippets_dy + \
-                            (M.audio_nchannels-1-2*ichannel)/M.audio_nchannels + \
-                            ywavs[isnippet][ichannel]/M.audio_nchannels
-                    snippets_wave_sources[isnippet][ichannel].data.update(x=xdata, y=ydata)
-                    ipalette = int(np.floor(scales[isnippet][ichannel] /
+                            (len(M.snippets_waveform)-1-2*idx)/len(M.snippets_waveform) + \
+                            ywavs[isnippet][idx]/len(M.snippets_waveform)
+                    snippets_wave_sources[isnippet][idx].data.update(x=xdata, y=ydata)
+                    ipalette = int(np.floor(scales[isnippet][idx] /
                                             np.iinfo(np.int16).max *
                                             len(snippet_palette)))
-                    snippets_wave_glyphs[isnippet][ichannel].glyph.line_color = snippet_palette[ipalette]
-                if M.snippets_spectrogram and gram_images[isnippet]:
-                    snippets_gram_glyphs[isnippet][ichannel].glyph.x = xdata[0]
-                    snippets_gram_glyphs[isnippet][ichannel].glyph.y = \
-                            -iy*snippets_dy -1 \
-                            -2*(M.snippets_waveform and M.snippets_spectrogram) \
-                            +M.audio_nchannels-1 - ichannel
-                    snippets_gram_glyphs[isnippet][ichannel].glyph.dw = xdata[-1] - xdata[0] + \
-                                                                        xdata[1] - xdata[0]
-                    snippets_gram_glyphs[isnippet][ichannel].glyph.dh = 2/M.audio_nchannels
-                    snippets_gram_sources[isnippet][ichannel].data.update(image=[np.log10(1e-15+ \
-                            gram_images[isnippet][ichannel][ilows[isnippet][ichannel]:1+ihighs[isnippet][ichannel],:])])
-                else:
-                    snippets_gram_sources[isnippet][ichannel].data.update(image=[])
+                    snippets_wave_glyphs[isnippet][idx].glyph.line_color = snippet_palette[ipalette]
+                if ichannel+1 in M.snippets_spectrogram:
+                    idx = M.snippets_spectrogram.index(ichannel+1)
+                    if gram_images[isnippet]:
+                        snippets_gram_glyphs[isnippet][idx].glyph.x = xdata[0]
+                        snippets_gram_glyphs[isnippet][idx].glyph.y = \
+                                -iy*snippets_dy - 1 - snippets_both \
+                                +len(M.snippets_spectrogram) - 1 - idx
+                        snippets_gram_glyphs[isnippet][idx].glyph.dw = xdata[-1] - xdata[0] + \
+                                                                       xdata[1] - xdata[0]
+                        snippets_gram_glyphs[isnippet][idx].glyph.dh = 2/len(M.snippets_spectrogram)
+                        snippets_gram_sources[isnippet][idx].data.update(image=[np.log10(1e-15+ \
+                                gram_images[isnippet][idx][ilows[isnippet][idx]:1+ihighs[isnippet][idx],:])])
+                    else:
+                        snippets_gram_sources[isnippet][idx].data.update(image=[])
         if labels_annotated[isnippet]!='':
             left_clustered.append(ix*(M.snippets_gap_pix+M.snippets_pix))
             right_clustered.append((ix+1)*(M.snippets_gap_pix+M.snippets_pix)-M.snippets_gap_pix)
             top_clustered.append(-iy*snippets_dy+1)
-            bottom_clustered.append(-iy*snippets_dy-1 \
-                                    -2*(M.snippets_waveform and M.snippets_spectrogram))
+            bottom_clustered.append(-iy*snippets_dy - 1 - snippets_both)
     snippets_quad_grey.data.update(left=left_clustered, right=right_clustered,
                                    top=top_clustered, bottom=bottom_clustered)
 
@@ -731,6 +733,7 @@ def __context_update(wavi, tapped_sound, istart_bounded, ilength):
         vidfile = M.video_findfile(sound_dirname, sound_basename)
         if not vidfile:
             bokehlog.info("ERROR: video file corresponding to "+tapped_sound+" not found")
+            video_toggle.button_type="default"
             return
         start_sec = istart_bounded / M.audio_tic_rate
         stop_sec = (istart_bounded+ilength) / M.audio_tic_rate
@@ -766,16 +769,16 @@ def _context_update(wavi, tapped_sound, istart_bounded, ilength):
 def context_update():
     tapped_ticks = [np.nan, np.nan]
     istart = np.nan
-    scales = [0]*M.audio_nchannels
-    ywav = [np.full(1,np.nan)]*M.audio_nchannels
-    xwav = [np.full(1,np.nan)]*M.audio_nchannels
-    gram_freq = [np.full(1,np.nan)]*M.audio_nchannels
-    gram_time = [np.full(1,np.nan)]*M.audio_nchannels
-    gram_image = [np.full((1,1),np.nan)]*M.audio_nchannels
+    scales = [0]*len(M.context_waveform)
+    ywav = [np.full(1,np.nan)]*len(M.context_waveform)
+    xwav = [np.full(1,np.nan)]*len(M.context_waveform)
+    gram_freq = [np.full(1,np.nan)]*len(M.context_spectrogram)
+    gram_time = [np.full(1,np.nan)]*len(M.context_spectrogram)
+    gram_image = [np.full((1,1),np.nan)]*len(M.context_spectrogram)
     yprob = [np.full(1,np.nan)]*len(M.clustered_labels)
     xprob = [np.full(1,np.nan)]*len(M.clustered_labels)
-    ilow = [0]*M.audio_nchannels
-    ihigh = [1]*M.audio_nchannels
+    ilow = [0]*len(M.context_spectrogram)
+    ihigh = [1]*len(M.context_spectrogram)
     xlabel_clustered, tlabel_clustered = [], []
     xlabel_annotated, tlabel_annotated = [], []
     left_clustered, right_clustered = [], []
@@ -848,39 +851,40 @@ def context_update():
                                                 istart_bounded,
                                                 ilength))
 
-                if M.context_waveform:
+                xwav0 = [istart/M.audio_tic_rate,
+                         (istart+(context_pix-1)*context_decimate_by)/M.audio_tic_rate]
+                if ichannel+1 in M.context_waveform:
+                    idx = M.context_waveform.index(ichannel+1)
                     wavi_downsampled = wavi[0::context_decimate_by]
                     wavi_trimmed = wavi_downsampled[:context_pix]
 
-                    scales[ichannel]=np.minimum(np.iinfo(np.int16).max-1,
+                    scales[idx]=np.minimum(np.iinfo(np.int16).max-1,
                                                 np.max(np.abs(wavi_trimmed)))
-                    wavi_scaled = wavi_trimmed/scales[ichannel]
+                    wavi_scaled = wavi_trimmed/scales[idx]
                     icliplow = np.where((wavi_scaled < M.context_waveform_low[ichannel]))[0]
                     icliphigh = np.where((wavi_scaled > M.context_waveform_high[ichannel]))[0]
                     wavi_zoomed = np.copy(wavi_scaled)
                     wavi_zoomed[icliplow] = M.context_waveform_low[ichannel]
                     wavi_zoomed[icliphigh] = M.context_waveform_high[ichannel]
-                    ywav[ichannel] = (wavi_zoomed - M.context_waveform_low[ichannel]) / \
-                                      (M.context_waveform_high[ichannel] - M.context_waveform_low[ichannel]) \
-                                      * 2 - 1
-                    xwav[ichannel]=[(istart+i*context_decimate_by)/M.audio_tic_rate \
-                                     for i in range(len(wavi_trimmed))]
-                else:
-                    xwav[ichannel] = [istart/M.audio_tic_rate,
-                                       (istart+(context_pix-1)*context_decimate_by)/M.audio_tic_rate]
+                    ywav[idx] = (wavi_zoomed - M.context_waveform_low[ichannel]) / \
+                                (M.context_waveform_high[ichannel] - M.context_waveform_low[ichannel]) \
+                                * 2 - 1
+                    xwav[idx]=[(istart+i*context_decimate_by)/M.audio_tic_rate \
+                               for i in range(len(wavi_trimmed))]
 
-                if M.context_spectrogram:
+                if ichannel+1 in M.context_spectrogram:
+                    idx = M.context_spectrogram.index(ichannel+1)
                     window_length = int(round(M.spectrogram_length_ms[ichannel]/1000*M.audio_tic_rate))
-                    gram_freq[ichannel], gram_time[ichannel], gram_image[ichannel] = \
+                    gram_freq[idx], gram_time[idx], gram_image[idx] = \
                             spectrogram(wavi,
                                         fs=M.audio_tic_rate,
                                         window=M.spectrogram_window,
                                         nperseg=window_length,
                                         noverlap=round(window_length*M.spectrogram_overlap))
-                    ilow[ichannel] = np.argmin(np.abs(gram_freq[ichannel] - \
-                                                      M.spectrogram_low_hz[ichannel]))
-                    ihigh[ichannel] = np.argmin(np.abs(gram_freq[ichannel] - \
-                                                       M.spectrogram_high_hz[ichannel]))
+                    ilow[idx] = np.argmin(np.abs(gram_freq[idx] - \
+                                                 M.spectrogram_low_hz[ichannel]))
+                    ihigh[idx] = np.argmin(np.abs(gram_freq[idx] - \
+                                                  M.spectrogram_high_hz[ichannel]))
 
             for ilabel in range(len(M.clustered_labels)):
                 if not isinstance(probs[ilabel], np.ndarray):  continue
@@ -941,15 +945,15 @@ def context_update():
                     if M.context_spectrogram:
                         spectrogram_quad_fuchsia.data.update(left=[L/M.audio_tic_rate],
                                                              right=[R/M.audio_tic_rate],
-                                                             top=[M.audio_nchannels],
-                                                             bottom=[M.audio_nchannels/2])
+                                                             top=[len(M.context_spectrogram)],
+                                                             bottom=[len(M.context_spectrogram)/2])
                     tapped_wav_in_view = True
 
             if M.context_waveform:
-                waveform_span_red.location=xwav[0][0]
+                waveform_span_red.location=xwav0[0]
                 waveform_span_red.visible=True
             if M.context_spectrogram:
-                spectrogram_span_red.location=xwav[0][0]
+                spectrogram_span_red.location=xwav0[0]
                 spectrogram_span_red.visible=True
 
             if not tapped_wav_in_view:
@@ -1005,23 +1009,26 @@ def context_update():
         reset_video()
 
     for ichannel in range(M.audio_nchannels):
-        xdata = xwav[ichannel]
-        if M.context_waveform:
-            ydata = (ywav[ichannel] + M.audio_nchannels-1-2*ichannel) / M.audio_nchannels
-            waveform_source[ichannel].data.update(x=xdata, y=ydata)
-            ipalette = int(np.floor(scales[ichannel] /
+        if ichannel+1 in M.context_waveform:
+            idx = M.context_waveform.index(ichannel+1)
+            xdata = xwav[ichannel]
+            ydata = (ywav[idx] + len(M.context_waveform)-1-2*idx) / len(M.context_waveform)
+            waveform_source[idx].data.update(x=xdata, y=ydata)
+            ipalette = int(np.floor(scales[idx] /
                                     np.iinfo(np.int16).max *
                                     len(snippet_palette)))
-            waveform_glyph[ichannel].glyph.line_color = snippet_palette[ipalette]
-        if M.context_spectrogram and not np.isnan(gram_time[ichannel][0]):
-            spectrogram_glyph[ichannel].glyph.x = xdata[0]
-            spectrogram_glyph[ichannel].glyph.y = M.audio_nchannels-1 - ichannel
-            spectrogram_glyph[ichannel].glyph.dw = xdata[-1] - xdata[0]
-            spectrogram_glyph[ichannel].glyph.dh = 1
-            spectrogram_source[ichannel].data.update(image=[np.log10(1e-15+ \
-                    gram_image[ichannel][ilow[ichannel]:1+ihigh[ichannel],:])])
-        else:
-            spectrogram_source[ichannel].data.update(image=[])
+            waveform_glyph[idx].glyph.line_color = snippet_palette[ipalette]
+        if ichannel+1 in M.context_spectrogram:
+            idx = M.context_spectrogram.index(ichannel+1)
+            if not np.isnan(gram_time[idx][0]):
+                spectrogram_glyph[idx].glyph.x = xwav0[0]
+                spectrogram_glyph[idx].glyph.y = len(M.context_spectrogram) - 1 - idx
+                spectrogram_glyph[idx].glyph.dw = xwav0[1] - xwav0[0]
+                spectrogram_glyph[idx].glyph.dh = 1
+                spectrogram_source[idx].data.update(image=[np.log10(1e-15+ \
+                        gram_image[idx][ilow[idx]:1+ihigh[idx],:])])
+            else:
+                spectrogram_source[idx].data.update(image=[])
 
     probability_source.data.update(xs=xprob, ys=yprob,
                                    colors=cluster_dot_palette[:len(M.clustered_labels)],
@@ -1045,14 +1052,14 @@ def context_update():
     if M.context_spectrogram:
         spectrogram_quad_grey_clustered.data.update(left=left_clustered,
                                                     right=right_clustered,
-                                                    top=[M.audio_nchannels]*len(left_clustered),
-                                                    bottom=[M.audio_nchannels/2]*len(left_clustered))
+                                                    top=[len(M.context_spectrogram)]*len(left_clustered),
+                                                    bottom=[len(M.context_spectrogram)/2]*len(left_clustered))
         spectrogram_quad_grey_annotated.data.update(left=left_annotated,
                                                     right=right_annotated,
-                                                    top=[M.audio_nchannels/2]*len(left_annotated),
+                                                    top=[len(M.context_spectrogram)/2]*len(left_annotated),
                                                     bottom=[0]*len(left_annotated))
         spectrogram_label_source_clustered.data.update(x=xlabel_clustered,
-                                                       y=[M.audio_nchannels]*len(xlabel_clustered),
+                                                       y=[len(M.context_spectrogram)]*len(xlabel_clustered),
                                                        text=tlabel_clustered)
         spectrogram_label_source_annotated.data.update(x=xlabel_annotated,
                                                        y=[0]*len(xlabel_annotated),
@@ -1274,7 +1281,7 @@ async def status_ticker_update():
     status_ticker.text = status_ticker_pre+newtext+status_ticker_post
 
 def init(_bokeh_document):
-    global bokeh_document, cluster_dot_palette, snippet_palette, p_cluster, cluster_dots, p_cluster_dots, precomputed_dots, snippets_dy, p_snippets, snippets_label_sources_clustered, snippets_label_sources_annotated, snippets_wave_sources, snippets_wave_glyphs, snippets_gram_sources, snippets_gram_glyphs, snippets_quad_grey, dot_size_cluster, dot_alpha_cluster, cluster_circle_fuchsia, p_waveform, p_spectrogram, p_probability, probability_source, probability_glyph, spectrogram_source, spectrogram_glyph, waveform_span_red, spectrogram_span_red, waveform_quad_grey_clustered, waveform_quad_grey_annotated, waveform_quad_grey_pan, waveform_quad_fuchsia, spectrogram_quad_grey_clustered, spectrogram_quad_grey_annotated, spectrogram_quad_grey_pan, spectrogram_quad_fuchsia, snippets_quad_fuchsia, waveform_source, waveform_glyph, waveform_label_source_clustered, waveform_label_source_annotated, spectrogram_label_source_clustered, spectrogram_label_source_annotated, which_layer, which_species, which_word, which_nohyphen, which_kind, color_picker, circle_radius, dot_size, dot_alpha, spectrogram_length, zoom_context, zoom_offset, zoomin, zoomout, reset, panleft, panright, allleft, allout, allright, firstlabel, nextlabel, prevlabel, lastlabel, save_indicator, nsounds_per_label_buttons, label_texts, load_multimedia, play, video_slider, load_multimedia_callback, play_callback, video_slider_callback, video_toggle, video_div, undo, redo, recordings, detect, misses, configuration_file, train, leaveoneout, leaveallout, xvalidate, mistakes, activations, cluster, visualize, accuracy, freeze, ensemble, classify, ethogram, compare, congruence, status_ticker, waitfor, deletefailures, file_dialog_source, configuration_contents, logs_folder_button, logs_folder, model_file_button, model_file, wavcsv_files_button, wavcsv_files, groundtruth_folder_button, groundtruth_folder, validation_files_button, test_files_button, validation_files, test_files, labels_touse_button, labels_touse, kinds_touse_button, kinds_touse, prevalences_button, prevalences, copy, labelsounds, makepredictions, fixfalsepositives, fixfalsenegatives, generalize, tunehyperparameters, findnovellabels, examineerrors, testdensely, doit, time_sigma, time_smooth_ms, frequency_n_ms, frequency_nw, frequency_p, frequency_smooth_ms, nsteps, restore_from, save_and_validate_period, validate_percentage, mini_batch, kfold, activations_equalize_ratio, activations_max_sounds, pca_fraction_variance_to_retain, tsne_perplexity, tsne_exaggeration, umap_neighbors, umap_distance, cluster_algorithm, cluster_these_layers, precision_recall_ratios, congruence_portion, congruence_convolve, congruence_measure, context_ms, shiftby_ms, optimizer, learning_rate, nreplicates, batch_seed, weights_seed, file_dialog_string, file_dialog_table, readme_contents, labelcounts, wizard_buttons, action_buttons, parameter_buttons, parameter_textinputs, wizard2actions, action2parameterbuttons, action2parametertextinputs, status_ticker_update, status_ticker_pre, status_ticker_post, model_parameters, model_parameters_enable_logic, model_parameters_required
+    global bokeh_document, cluster_dot_palette, snippet_palette, p_cluster, cluster_dots, p_cluster_dots, precomputed_dots, snippets_dy, snippets_both, p_snippets, snippets_label_sources_clustered, snippets_label_sources_annotated, snippets_wave_sources, snippets_wave_glyphs, snippets_gram_sources, snippets_gram_glyphs, snippets_quad_grey, dot_size_cluster, dot_alpha_cluster, cluster_circle_fuchsia, p_waveform, p_spectrogram, p_probability, probability_source, probability_glyph, spectrogram_source, spectrogram_glyph, waveform_span_red, spectrogram_span_red, waveform_quad_grey_clustered, waveform_quad_grey_annotated, waveform_quad_grey_pan, waveform_quad_fuchsia, spectrogram_quad_grey_clustered, spectrogram_quad_grey_annotated, spectrogram_quad_grey_pan, spectrogram_quad_fuchsia, snippets_quad_fuchsia, waveform_source, waveform_glyph, waveform_label_source_clustered, waveform_label_source_annotated, spectrogram_label_source_clustered, spectrogram_label_source_annotated, which_layer, which_species, which_word, which_nohyphen, which_kind, color_picker, circle_radius, dot_size, dot_alpha, spectrogram_length, zoom_context, zoom_offset, zoomin, zoomout, reset, panleft, panright, allleft, allout, allright, firstlabel, nextlabel, prevlabel, lastlabel, save_indicator, nsounds_per_label_buttons, label_texts, load_multimedia, play, video_slider, load_multimedia_callback, play_callback, video_slider_callback, video_toggle, video_div, undo, redo, recordings, detect, misses, configuration_file, train, leaveoneout, leaveallout, xvalidate, mistakes, activations, cluster, visualize, accuracy, freeze, ensemble, classify, ethogram, compare, congruence, status_ticker, waitfor, deletefailures, file_dialog_source, configuration_contents, logs_folder_button, logs_folder, model_file_button, model_file, wavcsv_files_button, wavcsv_files, groundtruth_folder_button, groundtruth_folder, validation_files_button, test_files_button, validation_files, test_files, labels_touse_button, labels_touse, kinds_touse_button, kinds_touse, prevalences_button, prevalences, copy, labelsounds, makepredictions, fixfalsepositives, fixfalsenegatives, generalize, tunehyperparameters, findnovellabels, examineerrors, testdensely, doit, time_sigma, time_smooth_ms, frequency_n_ms, frequency_nw, frequency_p, frequency_smooth_ms, nsteps, restore_from, save_and_validate_period, validate_percentage, mini_batch, kfold, activations_equalize_ratio, activations_max_sounds, pca_fraction_variance_to_retain, tsne_perplexity, tsne_exaggeration, umap_neighbors, umap_distance, cluster_algorithm, cluster_these_layers, precision_recall_ratios, congruence_portion, congruence_convolve, congruence_measure, context_ms, shiftby_ms, optimizer, learning_rate, nreplicates, batch_seed, weights_seed, file_dialog_string, file_dialog_table, readme_contents, labelcounts, wizard_buttons, action_buttons, parameter_buttons, parameter_textinputs, wizard2actions, action2parameterbuttons, action2parametertextinputs, status_ticker_update, status_ticker_pre, status_ticker_post, model_parameters, model_parameters_enable_logic, model_parameters_required
 
     bokeh_document = _bokeh_document
 
@@ -1305,7 +1312,8 @@ def init(_bokeh_document):
 
     precomputed_dots = None
 
-    snippets_dy = 2*M.snippets_waveform + 2*M.snippets_spectrogram
+    snippets_dy = 2*((len(M.snippets_waveform)>0) + (len(M.snippets_spectrogram)>0))
+    snippets_both = 2*((len(M.snippets_waveform)>0) and (len(M.snippets_spectrogram)>0))
 
     p_snippets = figure(plot_width=M.gui_width_pix//2, \
                         background_fill_color='#FFFFFF', toolbar_location=None)
@@ -1317,12 +1325,12 @@ def init(_bokeh_document):
     snippets_gram_sources=[None]*(M.snippets_nx*M.snippets_ny)
     snippets_gram_glyphs=[None]*(M.snippets_nx*M.snippets_ny)
     for ixy in range(M.snippets_nx*M.snippets_ny):
-        snippets_gram_sources[ixy]=[None]*M.audio_nchannels
-        snippets_gram_glyphs[ixy]=[None]*M.audio_nchannels
-        for ichannel in range(M.audio_nchannels):
-            snippets_gram_sources[ixy][ichannel] = ColumnDataSource(data=dict(image=[]))
-            snippets_gram_glyphs[ixy][ichannel] = p_snippets.image('image',
-                    source=snippets_gram_sources[ixy][ichannel],
+        snippets_gram_sources[ixy]=[None]*len(M.snippets_spectrogram)
+        snippets_gram_glyphs[ixy]=[None]*len(M.snippets_spectrogram)
+        for idx in range(len(M.snippets_spectrogram)):
+            snippets_gram_sources[ixy][idx] = ColumnDataSource(data=dict(image=[]))
+            snippets_gram_glyphs[ixy][idx] = p_snippets.image('image',
+                    source=snippets_gram_sources[ixy][idx],
                     palette=M.spectrogram_colormap)
 
     snippets_quad_grey = ColumnDataSource(data=dict(left=[], right=[], top=[], bottom=[]))
@@ -1332,12 +1340,12 @@ def init(_bokeh_document):
     snippets_wave_sources=[None]*(M.snippets_nx*M.snippets_ny)
     snippets_wave_glyphs=[None]*(M.snippets_nx*M.snippets_ny)
     for ixy in range(M.snippets_nx*M.snippets_ny):
-        snippets_wave_sources[ixy]=[None]*M.audio_nchannels
-        snippets_wave_glyphs[ixy]=[None]*M.audio_nchannels
-        for ichannel in range(M.audio_nchannels):
-            snippets_wave_sources[ixy][ichannel]=ColumnDataSource(data=dict(x=[], y=[]))
-            snippets_wave_glyphs[ixy][ichannel]=p_snippets.line(
-                    'x', 'y', source=snippets_wave_sources[ixy][ichannel])
+        snippets_wave_sources[ixy]=[None]*len(M.snippets_waveform)
+        snippets_wave_glyphs[ixy]=[None]*len(M.snippets_waveform)
+        for idx in range(len(M.snippets_waveform)):
+            snippets_wave_sources[ixy][idx]=ColumnDataSource(data=dict(x=[], y=[]))
+            snippets_wave_glyphs[ixy][idx]=p_snippets.line(
+                    'x', 'y', source=snippets_wave_sources[ixy][idx])
 
     xdata = [(i%M.snippets_nx)*(M.snippets_gap_pix+M.snippets_pix)
              for i in range(M.snippets_nx*M.snippets_ny)]
@@ -1351,7 +1359,7 @@ def init(_bokeh_document):
 
     xdata = [(i%M.snippets_nx)*(M.snippets_gap_pix+M.snippets_pix)
              for i in range(M.snippets_nx*M.snippets_ny)]
-    ydata = [-(i//M.snippets_nx*snippets_dy+1+2*(M.snippets_waveform and M.snippets_spectrogram))
+    ydata = [-(i//M.snippets_nx*snippets_dy+1+snippets_both)
              for i in range(M.snippets_nx*M.snippets_ny)]
     text_annotated = ['' for i in range(M.snippets_nx*M.snippets_ny)]
     snippets_label_sources_annotated = ColumnDataSource(data=dict(x=xdata, y=ydata,
@@ -1402,11 +1410,11 @@ def init(_bokeh_document):
     p_waveform.quad('left','right','top','bottom',source=waveform_quad_fuchsia,
                 fill_color=None, line_color="fuchsia", level='underlay')
 
-    waveform_source=[None]*M.audio_nchannels
-    waveform_glyph=[None]*M.audio_nchannels
-    for ichannel in range(M.audio_nchannels):
-        waveform_source[ichannel] = ColumnDataSource(data=dict(x=[], y=[]))
-        waveform_glyph[ichannel] = p_waveform.line('x', 'y', source=waveform_source[ichannel])
+    waveform_source=[None]*len(M.context_waveform)
+    waveform_glyph=[None]*len(M.context_waveform)
+    for idx in range(len(M.context_waveform)):
+        waveform_source[idx] = ColumnDataSource(data=dict(x=[], y=[]))
+        waveform_glyph[idx] = p_waveform.line('x', 'y', source=waveform_source[idx])
 
     waveform_label_source_clustered = ColumnDataSource(data=dict(x=[], y=[], text=[]))
     p_waveform.text('x', 'y', source=waveform_label_source_clustered,
@@ -1433,21 +1441,21 @@ def init(_bokeh_document):
     p_spectrogram.ygrid.visible = True
     p_spectrogram.xaxis.axis_label = 'Time (sec)'
     p_spectrogram.yaxis.axis_label = 'Frequency (' + M.context_spectrogram_units + ')'
-    p_spectrogram.yaxis.ticker = list(range(1+M.audio_nchannels))
+    p_spectrogram.yaxis.ticker = list(range(1+len(M.context_spectrogram)))
 
-    spectrogram_source = [None]*M.audio_nchannels
-    spectrogram_glyph = [None]*M.audio_nchannels
-    for ichannel in range(M.audio_nchannels):
-        spectrogram_source[ichannel] = ColumnDataSource(data=dict(image=[]))
-        spectrogram_glyph[ichannel] = p_spectrogram.image('image',
-                                                          source=spectrogram_source[ichannel],
-                                                          palette=M.spectrogram_colormap,
-                                                          level="image")
+    spectrogram_source = [None]*len(M.context_spectrogram)
+    spectrogram_glyph = [None]*len(M.context_spectrogram)
+    for idx in range(len(M.context_spectrogram)):
+        spectrogram_source[idx] = ColumnDataSource(data=dict(image=[]))
+        spectrogram_glyph[idx] = p_spectrogram.image('image',
+                                                     source=spectrogram_source[idx],
+                                                     palette=M.spectrogram_colormap,
+                                                     level="image")
 
     p_spectrogram.on_event(MouseWheel, C.spectrogram_mousewheel_callback)
 
     p_spectrogram.on_event(DoubleTap,
-                           lambda e: C.context_doubletap_callback(e, M.audio_nchannels/2))
+                           lambda e: C.context_doubletap_callback(e, len(M.context_spectrogram)/2))
 
     p_spectrogram.on_event(PanStart, C.spectrogram_pan_start_callback)
     p_spectrogram.on_event(Pan, C.spectrogram_pan_callback)
@@ -1627,7 +1635,6 @@ def init(_bokeh_document):
                              code=C.play_callback_code)
     play.js_on_event(ButtonClick, play_callback)
     play.on_change('disabled', lambda a,o,n: reset_video())
-    play.js_on_change('disabled', play_callback)
 
     video_toggle = Toggle(label='video', active=False, disabled=True)
     video_toggle.on_click(lambda x: context_update())

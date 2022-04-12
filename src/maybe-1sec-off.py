@@ -7,7 +7,11 @@ def within_X_seconds(wavdate, vidfile, X):
   return abs(viddate-wavdate) <= dt.timedelta(seconds=X)
 
 def video_findfile(directory, wavfile):
-  wavdate = dt.datetime.strptime(wavfile[:15], "%Y%m%d_%H%M%S")
+  try:
+      wavdate = dt.datetime.strptime(wavfile[:15], "%Y%m%d_%H%M%S")
+  except ValueError:
+      print("ERROR: "+wavfile+" does not have a timestamp in the filename of the form %Y%m%d_%H%M%S")
+      return ""
   vids = list(filter(lambda x: x!=wavfile and
                                x[15:-4] == wavfile[15:-4] and
                                within_X_seconds(wavdate, x, 1) and

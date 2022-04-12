@@ -360,8 +360,8 @@ def waveform_pan_callback(event):
     if x_tic < left_limit_tic or x_tic > right_limit_tic:
         return
     if abs(event.sx - pan_start_sx) < abs(event.sy - pan_start_sy):
-        ichannel_start = round((pan_start_y * M.audio_nchannels - M.audio_nchannels + 1) / -2)
-        ichannel_end = round((event.y * M.audio_nchannels - M.audio_nchannels + 1) / -2)
+        ichannel_start = round(((pan_start_y-1) * len(M.context_waveform) + 1) / -2)
+        ichannel_end = round(((event.y-1) * len(M.context_waveform) + 1) / -2)
         if ichannel_start != ichannel_end:
             return
         V.waveform_quad_grey_pan.data.update(left=[V.p_waveform.x_range.start],
@@ -382,9 +382,9 @@ def _waveform_scale(low_y, high_y, ichannel):
 
 def waveform_pan_end_callback(event):
     if abs(event.sx - pan_start_sx) < abs(event.sy - pan_start_sy):
-        ichannel = round((pan_start_y * M.audio_nchannels - M.audio_nchannels + 1) / -2)
-        event_wy_start = pan_start_y * M.audio_nchannels - M.audio_nchannels + 1 + 2*ichannel
-        event_wy_end = event.y * M.audio_nchannels - M.audio_nchannels + 1 + 2*ichannel
+        ichannel = round(((pan_start_y-1) * len(M.context_waveform) + 1) / -2)
+        event_wy_start = (pan_start_y-1) * len(M.context_waveform) + 1 + 2*ichannel
+        event_wy_end = (event.y-1) * len(M.context_waveform) + 1 + 2*ichannel
         if event.y > pan_start_y:
             M.context_waveform_low[ichannel], M.context_waveform_high[ichannel] = \
                     _waveform_scale(event_wy_start, min(event_wy_end, 1), ichannel)
@@ -568,8 +568,8 @@ def spectrogram_mousewheel_callback(event):
         return
     if not event.y:
         return
-    ichannel = M.audio_nchannels-1 - int(np.floor(event.y))
-    if ichannel < 0 or ichannel >= M.audio_nchannels:
+    ichannel = len(M.context_spectrogram) - 1 - int(np.floor(event.y))
+    if ichannel < 0 or ichannel >= len(M.context_spectrogram):
         return
     spectrogram_mousewheel_last_change = this_change
     if event.delta<0:
@@ -609,11 +609,12 @@ def spectrogram_pan_callback(event):
         V.spectrogram_quad_grey_pan.data.update(left=[pan_start_x],
                                                 right=[event.x],
                                                 bottom=[V.p_spectrogram.y_range.start],
-                                                top=[M.audio_nchannels/2])
+                                                top=[len(M.context_spectrogram)/2])
     
 def spectrogram_pan_end_callback(event):
     if abs(event.sx - pan_start_sx) < abs(event.sy - pan_start_sy):
-        ichannel = M.audio_nchannels-1 - int(np.floor(pan_start_y))
+        idx = len(M.context_spectrogram) - 1 - int(np.floor(pan_start_y))
+        ichannel = M.context_spectrogram[idx] - 1
         freq_range = M.spectrogram_high_hz[ichannel] - M.spectrogram_low_hz[ichannel]
         old_low_hz = M.spectrogram_low_hz[ichannel]
         if event.y > pan_start_y:
@@ -640,7 +641,8 @@ def spectrogram_tap_callback(event):
     currfile = M.clustered_sounds[M.isnippet]['file']
     isounds_shortest = get_shortest_tapped_sound(x_tic, currfile)
     if event.sy<0 or len(isounds_shortest)==0:
-        ichannel = M.audio_nchannels-1 - int(np.floor(event.y))
+        idx = len(M.context_spectrogram) - 1 - int(np.floor(event.y))
+        ichannel = M.context_spectrogram[idx] - 1
         M.spectrogram_low_hz[ichannel] = 0
         M.spectrogram_high_hz[ichannel] = M.audio_tic_rate/2
     else:

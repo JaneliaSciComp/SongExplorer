@@ -256,8 +256,18 @@ def init(_bokeh_document, _configuration_file):
     snippets_width_ms=float(gui_snippets_width_ms)
     snippets_nx=int(gui_snippets_nx)
     snippets_ny=int(gui_snippets_ny)
-    snippets_waveform=gui_snippets_waveform
-    snippets_spectrogram=gui_snippets_spectrogram
+
+    snippets_waveform=gui_snippets_waveform if type(gui_snippets_waveform) is tuple \
+                      else [gui_snippets_waveform]
+    snippets_spectrogram=gui_snippets_spectrogram if type(gui_snippets_spectrogram) is tuple \
+                         else [gui_snippets_spectrogram]
+    if snippets_waveform and audio_nchannels < max(snippets_waveform):
+        print("ERROR: max(snippets_waveform) exceeds audio_nchannels ")
+        exit()
+    if snippets_spectrogram and audio_nchannels < max(snippets_spectrogram):
+        print("ERROR: max(snippets_waveform) exceeds audio_nchannels ")
+        exit()
+
     nlabels=int(gui_nlabels)
     gui_width_pix=int(gui_gui_width_pix)
     context_width_ms0=float(gui_context_width_ms)
@@ -265,18 +275,33 @@ def init(_bokeh_document, _configuration_file):
     context_width_ms=float(gui_context_width_ms)
     context_offset_ms=float(gui_context_offset_ms)
 
-    context_waveform=gui_context_waveform
     context_waveform_height_pix=int(gui_context_waveform_height_pix)
 
-    context_spectrogram=gui_context_spectrogram
+    context_waveform=gui_context_waveform if type(gui_context_waveform) is tuple \
+                      else [gui_context_waveform]
+    context_spectrogram=gui_context_spectrogram if type(gui_context_spectrogram) is tuple \
+                      else [gui_context_spectrogram]
     context_spectrogram_height_pix=int(gui_context_spectrogram_height_pix)
+    if context_waveform and audio_nchannels < max(context_waveform):
+        print("ERROR: max(snippets_waveform) exceeds audio_nchannels ")
+        exit()
+    if context_spectrogram and audio_nchannels < max(context_spectrogram):
+        print("ERROR: max(snippets_waveform) exceeds audio_nchannels ")
+        exit()
+
     context_spectrogram_units=gui_context_spectrogram_units
     spectrogram_colormap=gui_spectrogram_colormap
     spectrogram_window=gui_spectrogram_window
     spectrogram_length_ms=[next_pow2_ms(float(gui_spectrogram_length_ms))[1]]*audio_nchannels
     spectrogram_overlap=float(gui_spectrogram_overlap)
-    spectrogram_low_hz=[float(gui_spectrogram_low_hz)]*audio_nchannels
-    spectrogram_high_hz=[float(gui_spectrogram_high_hz)]*audio_nchannels
+    tmp = max(0, min(audio_tic_rate/2, gui_spectrogram_low_hz))
+    if tmp != gui_spectrogram_low_hz:
+        print('WARNING: gui_spectrogram_low_hz should be between 0 and audio_tic_rate/2')
+    spectrogram_low_hz=[float(tmp)]*audio_nchannels
+    tmp = max(0, min(audio_tic_rate/2, gui_spectrogram_high_hz))
+    if tmp != gui_spectrogram_high_hz:
+        print('WARNING: gui_spectrogram_high_hz should be between 0 and audio_tic_rate/2')
+    spectrogram_high_hz=[float(tmp)]*audio_nchannels
     context_spectrogram_freq_scale = 0.001 if context_spectrogram_units=='mHz' else \
                                      1 if context_spectrogram_units=='Hz' else \
                                   1000 if context_spectrogram_units=='kHz' else \
