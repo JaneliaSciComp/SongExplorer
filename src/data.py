@@ -32,6 +32,9 @@ import scipy.io.wavfile as spiowav
 import numpy as np
 import tensorflow as tf
 
+from multiprocessing import Process, Queue
+import time
+
 MAX_NUM_WAVS_PER_CLASS = 2**27 - 1  # ~134M
 
 
@@ -84,7 +87,6 @@ def which_set(filename, validation_percentage, validation_offset_percentage, tes
     result = 'training'
   return result
 
-
 class AudioProcessor(object):
   """Handles loading, partitioning, and preparing audio training data."""
 
@@ -95,7 +97,8 @@ class AudioProcessor(object):
                testing_percentage, testing_files, subsample_skip, subsample_label,
                partition_label, partition_n, partition_training_files, partition_validation_files,
                random_seed_batch,
-               testing_equalize_ratio, testing_max_sounds, model_settings):
+               testing_equalize_ratio, testing_max_sounds, model_settings,
+               queue_size, max_procs):
     self.data_dir = data_dir
     random.seed(None if random_seed_batch==-1 else random_seed_batch)
     np.random.seed(None if random_seed_batch==-1 else random_seed_batch)
@@ -106,6 +109,10 @@ class AudioProcessor(object):
                             partition_label, partition_n, partition_training_files, partition_validation_files,
                             testing_equalize_ratio, testing_max_sounds,
                             model_settings)
+    self.queue_size = queue_size
+    self.max_procs = max_procs
+    self.queues = {}
+    self.processes = {}
 
 
   def prepare_data_index(self,
@@ -283,8 +290,50 @@ class AudioProcessor(object):
     """
     return len(self.data_index[mode])
 
-  def get_data(self, how_many, offset, model_settings, 
-               shiftby_ms, mode):
+  def _get_data(self, q, how_many, offset, model_settings, shiftby_ms, mode):
+    while True:
+      # Pick one of the partitions to choose sounds from.
+      candidates = self.data_index[mode]
+      ncandidates = len(candidates)
+      nsounds = max(0, min(how_many, ncandidates - offset))
+      if nsounds==0: return
+      sounds = []
+      context_tics = model_settings['context_tics']
+      audio_tic_rate  = model_settings['audio_tic_rate']
+      nchannels = model_settings['nchannels']
+      shiftby_tics = int((shiftby_ms * audio_tic_rate) / 1000)
+      pick_deterministically = (mode != 'training')
+      audio_slice = np.zeros((nsounds, context_tics, nchannels), dtype=np.float32)
+      labels = np.zeros(nsounds, dtype=np.int)
+      # repeatedly to generate the final output sound data we'll use in training.
+      for i in range(offset, offset + nsounds):
+        # Pick which sound to use.
+        if pick_deterministically:
+          isound = i
+        else:
+          isound = np.random.randint(ncandidates)
+        sound = candidates[isound]
+
+        offset_tic = (np.random.randint(sound['ticks'][0], 1+sound['ticks'][1]) \
+                  if sound['ticks'][0] < sound['ticks'][1] \
+                  else sound['ticks'][0])
+        start_tic = offset_tic - math.floor(context_tics/2) - shiftby_tics
+        stop_tic  = offset_tic + math.ceil(context_tics/2) - shiftby_tics
+        wavpath = os.path.join(self.data_dir, sound['file'])
+        _, audio_data = spiowav.read(wavpath, mmap=True)
+        if np.ndim(audio_data)==1:
+          audio_data = np.expand_dims(audio_data, axis=1)
+        audio_clipped = audio_data[start_tic : stop_tic, :]
+        audio_float32 = audio_clipped.astype(np.float32)
+        audio_slice[i-offset,:,:] = audio_float32 / abs(np.iinfo(np.int16).min)
+        label_index = self.label_to_index[sound['label']]
+        labels[i - offset] = label_index
+        sounds.append(sound)
+      q.put([audio_slice, labels, sounds])
+      if pick_deterministically:
+        offset += how_many
+
+  def get_data(self, how_many, offset, model_settings, shiftby_ms, mode):
     """Gather sounds from the data set, applying transformations as needed.
 
     When the mode is 'training', a random selection of sounds will be returned,
@@ -304,43 +353,30 @@ class AudioProcessor(object):
     Returns:
       List of sound data for the transformed sounds, and list of label indexes
     """
-    shiftby_tics = int((shiftby_ms * model_settings["audio_tic_rate"]) / 1000)
-    # Pick one of the partitions to choose sounds from.
-    candidates = self.data_index[mode]
-    ncandidates = len(candidates)
-    if how_many == -1:
-      nsounds = ncandidates
-    else:
-      nsounds = max(0, min(how_many, ncandidates - offset))
-    sounds = []
-    context_tics = model_settings['context_tics']
-    nchannels = model_settings['nchannels']
-    pick_deterministically = (mode != 'training')
-    foreground_indexed = np.zeros((nsounds, context_tics, nchannels),
-                                  dtype=np.float32)
-    labels = np.zeros(nsounds, dtype=np.int)
-    # repeatedly to generate the final output sound data we'll use in training.
-    for i in range(offset, offset + nsounds):
-      # Pick which sound to use.
-      if how_many == -1 or pick_deterministically:
-        isound = i
-      else:
-        isound = np.random.randint(ncandidates)
-      sound = candidates[isound]
 
-      foreground_offset = (np.random.randint(sound['ticks'][0], 1+sound['ticks'][1]) if
-            sound['ticks'][0] < sound['ticks'][1] else sound['ticks'][0])
-      wavpath = os.path.join(self.data_dir, sound['file'])
-      audio_tic_rate, song = spiowav.read(wavpath, mmap=True)
-      if np.ndim(song)==1:
-        song = np.expand_dims(song, axis=1)
-      foreground_clipped = song[foreground_offset-math.floor(context_tics/2) - shiftby_tics :
-                                foreground_offset+math.ceil(context_tics/2) - shiftby_tics,
-                                :]
-      foreground_float32 = foreground_clipped.astype(np.float32)
-      foreground_indexed[i - offset,:,:] = foreground_float32 / abs(np.iinfo(np.int16).min)
-      label_index = self.label_to_index[sound['label']]
-      labels[i - offset] = label_index
-      sounds.append(sound)
-    # Run the graph to produce the output audio.
-    return foreground_indexed, labels, sounds
+    qkey = str(how_many) + str(sorted(model_settings.items())) + str(shiftby_ms) + mode
+    if mode=='training':
+      if qkey not in self.queues:
+        self.queues[qkey] = Queue(self.queue_size)
+        self.processes[qkey] = []
+      if self.queues[qkey].empty() and \
+         (self.max_procs==0 or len(self.processes[qkey])<self.max_procs):
+        p = Process(target=self._get_data,
+                    args=(self.queues[qkey], how_many, offset, model_settings, shiftby_ms, mode),
+                    daemon=True)
+        p.start()
+        self.processes[qkey].append(p)
+
+      return self.queues[qkey].get()
+
+    else:
+      if qkey not in self.queues:
+        self.queues[qkey] = Queue(self.queue_size)
+      if offset==0:
+        # HACK: only one extra process for validating, testing, and activations
+        p = Process(target=self._get_data,
+                    args=(self.queues[qkey], how_many, offset, model_settings, shiftby_ms, mode),
+                    daemon=True)
+        p.start()
+
+      return self.queues[qkey].get()

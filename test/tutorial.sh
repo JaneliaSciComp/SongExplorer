@@ -73,6 +73,7 @@ mkdir $logdir
 train.py \
       $context_ms $shiftby_ms \
       $optimizer $learning_rate \
+      $data_loader_queuesize $data_loader_maxprocs \
       $architecture "$model_parameters" \
       $logdir $data_dir $labels_touse $kinds_touse \
       $nsteps "$restore_from" $save_and_test_period $validation_percentage \
@@ -92,6 +93,8 @@ max_sounds=10000
 activations.py \
       --context_ms=$context_ms \
       --shiftby_ms=$shiftby_ms \
+      --data_loader_queuesize=$data_loader_queuesize \
+      --data_loader_maxprocs=$data_loader_maxprocs \
       --model_architecture=$architecture \
       --model_parameters="$model_parameters" \
       --start_checkpoint=$logdir/train_${ireplicates}r/ckpt-$check_point \
@@ -142,6 +145,7 @@ mkdir $logdir
 train.py \
       $context_ms $shiftby_ms \
       $optimizer $learning_rate  \
+      $data_loader_queuesize $data_loader_maxprocs \
       $architecture "$model_parameters" \
       $logdir $data_dir $labels_touse $kinds_touse \
       $nsteps "$restore_from" $save_and_test_period $validation_percentage \
@@ -252,6 +256,8 @@ max_sounds=10000
 activations.py \
       --context_ms=$context_ms \
       --shiftby_ms=$shiftby_ms \
+      --data_loader_queuesize=$data_loader_queuesize \
+      --data_loader_maxprocs=$data_loader_maxprocs \
       --model_architecture=$architecture \
       --model_parameters="$model_parameters" \
       --start_checkpoint=$logdir/$model/ckpt-$check_point \
@@ -300,6 +306,7 @@ for ioffset in $ioffsets ; do
   generalize.py \
         $context_ms $shiftby_ms \
         $optimizer $learning_rate \
+        $data_loader_queuesize $data_loader_maxprocs \
         $architecture "$model_parameters" \
         $logdir $data_dir $labels_touse $kinds_touse \
         $nsteps "$restore_from" $save_and_test_period $mini_batch \
@@ -347,6 +354,7 @@ for nfeatures in ${nfeaturess[@]} ; do
     xvalidate.py \
           $context_ms $shiftby_ms \
           $optimizer $learning_rate  \
+          $data_loader_queuesize $data_loader_maxprocs \
           $architecture "$model_parameters" \
           $logdir $data_dir $labels_touse $kinds_touse \
           $nsteps "$restore_from" $save_and_test_period $mini_batch \
@@ -402,6 +410,7 @@ mkdir $logdir
 train.py \
       $context_ms $shiftby_ms \
       $optimizer $learning_rate  \
+      $data_loader_queuesize $data_loader_maxprocs \
       $architecture "$model_parameters" \
       $logdir $data_dir $labels_touse $kinds_touse \
       $nsteps "$restore_from" $save_and_test_period $validation_percentage \

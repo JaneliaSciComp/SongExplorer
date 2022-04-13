@@ -161,7 +161,8 @@ def main():
       FLAGS.partition_validation_files.split(','),
       FLAGS.random_seed_batch,
       FLAGS.testing_equalize_ratio, FLAGS.testing_max_sounds,
-      model_settings)
+      model_settings,
+      FLAGS.data_loader_queuesize, FLAGS.data_loader_maxprocs)
 
   thismodel = model.create_model(model_settings)
   thismodel.summary()
@@ -500,8 +501,18 @@ if __name__ == '__main__':
   parser.add_argument(
       '--model_architecture',
       type=str,
-      default='conv',
+      default='convolutional',
       help='What model architecture to use')
+  parser.add_argument(
+      '--data_loader_queuesize',
+      type=int,
+      default=0,
+      help='How many mini-batches to load in advance')
+  parser.add_argument(
+      '--data_loader_maxprocs',
+      type=int,
+      default=0,
+      help='The limit of how many extra processes to use to load mini-batches')
   parser.add_argument(
       '--model_parameters',
       type=str,

@@ -1063,6 +1063,7 @@ async def train_actuate():
         logfile = os.path.join(V.logs_folder.value, "train"+str(ireplicate)+".log")
         args = [V.context_ms.value, V.shiftby_ms.value, \
                 V.optimizer.value, V.learning_rate.value, \
+                str(M.data_loader_queuesize), str(M.data_loader_maxprocs), \
                 M.architecture, \
                 "'"+json.dumps({k:v.value for k,v in V.model_parameters.items()})+"'", \
                 V.logs_folder.value, \
@@ -1135,6 +1136,7 @@ async def leaveout_actuate(comma):
                 V.shiftby_ms.value, \
                 V.optimizer.value, \
                 V.learning_rate.value, \
+                str(M.data_loader_queuesize), str(M.data_loader_maxprocs), \
                 M.architecture, \
                 "'"+json.dumps({k:v.value for k,v in V.model_parameters.items()})+"'", \
                 V.logs_folder.value, V.groundtruth_folder.value, \
@@ -1188,6 +1190,7 @@ async def xvalidate_actuate():
                 V.shiftby_ms.value, \
                 V.optimizer.value, \
                 V.learning_rate.value, \
+                str(M.data_loader_queuesize), str(M.data_loader_maxprocs), \
                 M.architecture, \
                 "'"+json.dumps({k:v.value for k,v in V.model_parameters.items()})+"'", \
                 V.logs_folder.value, V.groundtruth_folder.value, \
@@ -1274,6 +1277,8 @@ async def activations_actuate():
     logfile = os.path.join(V.groundtruth_folder.value, "activations.log")
     args = ["--context_ms="+V.context_ms.value, \
             "--shiftby_ms="+V.shiftby_ms.value, \
+            "--data_loader_queuesize="+str(M.data_loader_queuesize), \
+            "--data_loader_maxprocs="+str(M.data_loader_maxprocs), \
             "--model_architecture="+M.architecture, \
             "--model_parameters='"+json.dumps({k:v.value for k,v in V.model_parameters.items()})+"'", \
             "--start_checkpoint="+os.path.join(logdir,model,"ckpt-"+check_point),

@@ -41,6 +41,7 @@ mkdir $logdir
 train.py \
       $context_ms $shiftby_ms \
       $optimizer $learning_rate \
+      $data_loader_queuesize $data_loader_maxprocs \
       $architecture "$model_parameters" \
       $logdir $data_dir $labels_touse $kinds_touse \
       $nsteps "$restore_from" $save_and_test_period $validation_percentage \
@@ -57,6 +58,7 @@ mkdir $logdir
 train.py \
       $context_ms $shiftby_ms \
       $optimizer $learning_rate \
+      $data_loader_queuesize $data_loader_maxprocs \
       $architecture "$model_parameters" \
       $logdir $data_dir $labels_touse $kinds_touse \
       $nsteps "$restore_from" $save_and_test_period $validation_percentage \

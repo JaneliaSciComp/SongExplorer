@@ -192,6 +192,10 @@ nprobabilities=20
 # must be greater than one.
 classify_parallelize=64
 
+# used by train, generalize, xvalidate, and activations
+data_loader_queuesize=0  # 0=infinite
+data_loader_maxprocs=0  # 0=infinite
+
 
 # what follows is for developers only
 
