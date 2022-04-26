@@ -568,6 +568,7 @@ def snippets_update(redraw_wavs):
     ywavs, scales = [], []
     gram_freqs, gram_times, gram_images, ilows, ihighs  = [], [], [], [], []
     labels_clustered, labels_annotated = [], []
+    warned_already=False
     for isnippet in range(M.snippets_nx*M.snippets_ny):
         if isnippet<len(distance) and \
                     distance[isort[isnippet]] < float(M.state["circle_radius"]):
@@ -612,6 +613,11 @@ def snippets_update(redraw_wavs):
                     if ichannel+1 in M.snippets_spectrogram:
                         idx = M.snippets_spectrogram.index(ichannel+1)
                         window_length = int(round(M.spectrogram_length_ms[ichannel]/1000*M.audio_tic_rate))
+                        if window_length > len(wavi):
+                            window_length = len(wavi)
+                            if not warned_already:
+                                bokehlog.info("WARNING: spectrogram window length is greater than snippet duration")
+                                warned_already=True
                         gram_freq[idx], gram_time[idx], gram_image[idx] = \
                                 spectrogram(wavi,
                                             fs=M.audio_tic_rate,
