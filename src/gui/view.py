@@ -1027,9 +1027,9 @@ def context_update():
         if ichannel+1 in M.context_spectrogram:
             idx = M.context_spectrogram.index(ichannel+1)
             if not np.isnan(gram_time[idx][0]):
-                spectrogram_glyph[idx].glyph.x = xwav0[0]
+                spectrogram_glyph[idx].glyph.x = xwav0[0] + gram_time[idx][0]
                 spectrogram_glyph[idx].glyph.y = len(M.context_spectrogram) - 1 - idx
-                spectrogram_glyph[idx].glyph.dw = xwav0[1] - xwav0[0]
+                spectrogram_glyph[idx].glyph.dw = gram_time[idx][-1] - gram_time[idx][0]
                 spectrogram_glyph[idx].glyph.dh = 1
                 spectrogram_source[idx].data.update(image=[np.log10(1e-15+ \
                         gram_image[idx][ilow[idx]:1+ihigh[idx],:])])
