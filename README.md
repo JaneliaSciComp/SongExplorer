@@ -424,7 +424,7 @@ panel and configure file sharing to bind "/groups".
 your workstation and the server to point to this same image.
 
 * You might need an RSA key pair.  If so, you'll need to add `-[v|B]
-~/.ssh:/ssh` to `SONGEXPLORER_BIN`.
+~/.ssh:/root/.ssh` to `SONGEXPLORER_BIN`.
 
 * You might need to use ssh flags `-i /ssh/id_rsa -o "StrictHostKeyChecking
 no"` in "configuration.pysh".
@@ -433,14 +433,16 @@ If you do not have a shared file system, the SongExplorer image and
 configuration file must be separately installed on both computers, and
 you'll need to do all of the compute jobs remotely.
 
-Lastly, update "configuration.pysh" with the IP address of the server.  As when
-doing compute locally, SongExplorer uses a job scheduler on the server to manage
-resources.  The per-task resources used are the same as specified for the local
-machine in `<task>_{gpu,cpu}_{ncpu_cores,ngpu_cards,ngigabytes_memory}`.
+Lastly, update "configuration.pysh" with the name of the user and IP
+address of the server.  As when doing compute locally, SongExplorer
+uses a job scheduler on the server to manage resources.  The per-task
+resources used are the same as specified for the local machine in
+`<task>_{gpu,cpu}_{ncpu_cores,ngpu_cards,ngigabytes_memory}`.
 
-    $ grep -A1 \'server configuration.pysh
+    $ grep -A2 \'server configuration.pysh
     # URL of the 'server' computer
-    server_ipaddr="c03u14"
+    server_username="arthurb"
+    server_ipaddr="c03u14.int.janelia.org"
 
 ### An On-Premise Cluster ###
 

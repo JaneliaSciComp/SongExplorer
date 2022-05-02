@@ -28,15 +28,15 @@ echo INFO: detected $local_ncpu_cores local_ncpu_cores, \
                     $local_ngigabytes_memory local_ngigabytes_memory
 
 if [[ -n "$server_ipaddr" ]] ; then
-    server_ncpu_cores=$(ssh $server_ipaddr nproc)
-    ssh $server_ipaddr which nvidia-smi &> /dev/null
+    server_ncpu_cores=$(ssh -l $server_username $server_ipaddr nproc)
+    ssh -l $server_username $server_ipaddr which nvidia-smi &> /dev/null
     if [[ "$?" == 0 ]] ; then
-      nvidia_output=$(ssh $server_ipaddr nvidia-smi -L)
+      nvidia_output=$(ssh -l $server_username $server_ipaddr nvidia-smi -L)
       server_ngpu_cards=$(echo "$nvidia_output" | wc -l)
     else
       server_ngpu_cards=0
     fi
-    nbytes=$(ssh $server_ipaddr free -b | tail -2 | head -1 | tr -s ' ' | cut -d' ' -f2)
+    nbytes=$(ssh -l $server_username $server_ipaddr free -b | tail -2 | head -1 | tr -s ' ' | cut -d' ' -f2)
     server_ngigabytes_memory=$(dc -e "$nbytes 1024 / 1024 / 512 + 1024 / p")
     echo INFO: detected $server_ncpu_cores server_ncpu_cores, \
                         $server_ngpu_cards server_ngpu_cards, \
@@ -193,13 +193,13 @@ trap "local_njobs=\`hetero njobs\`; \
           hetero stop; \
       fi; \
       if [[ -n \"$server_ipaddr\" ]] ; then \
-        server_njobs=\`ssh $server_ipaddr \"export SINGULARITYENV_PREPEND_PATH=$source_path; $SONGEXPLORER_BIN hetero njobs\"\`; \
+        server_njobs=\`ssh -l $server_username $server_ipaddr \"export SINGULARITYENV_PREPEND_PATH=$source_path; $SONGEXPLORER_BIN hetero njobs\"\`; \
         if [[ \\\$\? && (( \"\$server_njobs\" > 0 )) ]] ; then \
             echo WARNING: jobs are still queued on the server; \
-            echo to kill them execute \\\`ssh $server_ipaddr \\\$SONGEXPLORER_BIN hetero stop force\\\`; \
-            echo to stop SongExplorer\'s scheduler, wait until they are done and execute \\\`ssh $server_ipaddr \\\$SONGEXPLORER_BIN hetero stop\\\`; \
+            echo to kill them execute \\\`ssh -l $server_username $server_ipaddr \\\$SONGEXPLORER_BIN hetero stop force\\\`; \
+            echo to stop SongExplorer\'s scheduler, wait until they are done and execute \\\`ssh -l $server_username $server_ipaddr \\\$SONGEXPLORER_BIN hetero stop\\\`; \
         else \
-            ssh $server_ipaddr \"export SINGULARITYENV_PREPEND_PATH=$source_path; $SONGEXPLORER_BIN hetero stop\"; \
+            ssh -l $server_username $server_ipaddr \"export SINGULARITYENV_PREPEND_PATH=$source_path; $SONGEXPLORER_BIN hetero stop\"; \
         fi; \
       fi" INT TERM KILL STOP HUP
 
@@ -217,10 +217,10 @@ elif [[ "$hetero_nslots" != "$local_ncpu_cores $local_ngpu_cards $local_ngigabyt
 fi
 
 if [[ -n "$server_ipaddr" ]] ; then
-    hetero_nslots=`ssh $server_ipaddr "export SINGULARITYENV_PREPEND_PATH=$source_path; $SONGEXPLORER_BIN hetero nslots"`
+    hetero_nslots=`ssh -l $server_username $server_ipaddr "export SINGULARITYENV_PREPEND_PATH=$source_path; $SONGEXPLORER_BIN hetero nslots"`
     hetero_isrunning=$?
     if [[ "$hetero_isrunning" != 0 ]] ; then
-        ssh $server_ipaddr "export SINGULARITYENV_PREPEND_PATH=$source_path; $SONGEXPLORER_BIN hetero start \
+        ssh -l $server_username $server_ipaddr "export SINGULARITYENV_PREPEND_PATH=$source_path; $SONGEXPLORER_BIN hetero start \
                             $server_ncpu_cores $server_ngpu_cards $server_ngigabytes_memory" &
     elif [[ "$hetero_nslots" != "$server_ncpu_cores $server_ngpu_cards $server_ngigabytes_memory" ]] ; then
 
@@ -228,8 +228,8 @@ if [[ -n "$server_ipaddr" ]] ; then
         echo $server_ipaddr with server_ncpu_cores, server_ngpu_cards, and
         echo server_ngigabytes_memory set to $hetero_nslots, respectively, which
         echo is different than specified in the configuration file.  To use
-        echo the latter instead, quit SongExplorer, execute \`ssh $server_ipaddr
-        echo \$SONGEXPLORER_BIN hetero stop\`, and restart SongExplorer.
+        echo the latter instead, quit SongExplorer, execute \`ssh -l $server_username
+        echo $server_ipaddr \$SONGEXPLORER_BIN hetero stop\`, and restart SongExplorer.
 
     fi
 fi

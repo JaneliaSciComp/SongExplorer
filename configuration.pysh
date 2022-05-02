@@ -12,9 +12,11 @@ audio_nchannels=1
 video_findfile="same-basename"  # given a directory and a WAV file, return the corresponding video file
 
 # URL of the 'server' computer
+server_username=""
 server_ipaddr=""
 
 # how to dispatch jobs to the 'cluster'
+cluster_username=""
 cluster_ipaddr=""
 cluster_cmd=""
 cluster_logfile_flag=""

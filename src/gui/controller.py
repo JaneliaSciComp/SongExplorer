@@ -47,7 +47,7 @@ def generic_actuate(cmd, logfile, where,
         jobid = p.stdout.decode('ascii').rstrip()
         bokehlog.info(jobid)
     elif where == "server":
-        p = run(["ssh", M.server_ipaddr, "export SINGULARITYENV_PREPEND_PATH="+M.source_path+";",
+        p = run(["ssh", "-l", M.server_username, M.server_ipaddr, "export SINGULARITYENV_PREPEND_PATH="+M.source_path+";",
                  "$SONGEXPLORER_BIN", "hetero", "submit",
                  "\"{ export CUDA_VISIBLE_DEVICES=\$QUEUE1; "+cmd+" "+' '.join(args).replace('"','\\"')+"; } &>> "+logfile+"\"",
                  str(ncpu_cores), str(ngpu_cards), str(ngigabyes_memory), "'"+localdeps+"'"],
@@ -59,7 +59,7 @@ def generic_actuate(cmd, logfile, where,
                     "export SINGULARITYENV_PREPEND_PATH="+M.source_path+";",
                     os.environ["SONGEXPLORER_BIN"]+" "+cmd+" "+' '.join(args)],
                    stdout=PIPE)
-        ps = Popen(["ssh", M.cluster_ipaddr, M.cluster_cmd,
+        ps = Popen(["ssh", "-l", M.cluster_username, M.cluster_ipaddr, M.cluster_cmd,
                     #"-J ${logfile//,/}.job",
                     clusterflags,
                     M.cluster_logfile_flag+" "+logfile],
