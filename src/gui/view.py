@@ -1036,7 +1036,7 @@ def context_update():
                 spectrogram_source[idx].data.update(image=[])
 
     probability_source.data.update(xs=xprob, ys=yprob,
-                                   colors=cluster_dot_palette[:len(M.clustered_labels)],
+                                   colors=[M.cluster_dot_colors[x] for x in M.clustered_labels],
                                    labels=list(M.clustered_labels))
 
     if M.context_waveform:
