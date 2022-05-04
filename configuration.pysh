@@ -9,7 +9,7 @@ state_dir=""
 audio_tic_rate=2500
 audio_nchannels=1
 
-video_findfile="same-basename"  # given a directory and a WAV file, return the corresponding video file
+video_findfile_plugin="same-basename"  # given a directory and a WAV file, return the corresponding video file
 
 # URL of the 'server' computer
 server_username=""
@@ -43,6 +43,7 @@ gui_context_spectrogram_height_pix=150
 gui_context_spectrogram_units="kHz" # one of mHz, Hz, kHz, or MHz
 gui_context_probability_height_pix=75
 gui_context_undo_proximity_pix=3
+gui_context_doubleclick_plugin="point"
 gui_spectrogram_colormap="Viridis256"
 gui_spectrogram_window="hann"
 gui_spectrogram_length_ms=10
@@ -51,7 +52,7 @@ gui_spectrogram_low_hz=0
 gui_spectrogram_high_hz=1250
 
 # neural network architecture to use
-architecture="convolutional"
+architecture_plugin="convolutional"
 
 # on what computer to do the computation
 default_where="local"

@@ -27,8 +27,8 @@ def frequency_n_callback(n,M,V,C):
     else:
         _frequency_n_callback(M,V,C)
 
+# a list of lists specifying the detect-specific hyperparameters in the GUI
 detect_parameters = [
-    # key in `detect_parameters`, title in GUI, '' for textbox or [] for pull-down, default value, enable logic, callback, required
     ["time_sigma",          "time σ",        '',        '9,4',     [], None,                 True],
     ["time_smooth_ms",      "time smooth",   '',        '6.4',     [], None,                 True],
     ["frequency_n_ms",      "freq N (msec)", '',        '25.6',    [], frequency_n_callback, True],

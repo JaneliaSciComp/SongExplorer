@@ -313,9 +313,9 @@ def context_doubletap_callback(event, midpoint):
         if idouble_tapped_sound >= 0:
             M.delete_annotation(idouble_tapped_sound)
         elif M.state['labels'][M.ilabel] != '':
-            thissound = {'file':currfile,
-                          'ticks':[x_tic,x_tic],
-                          'label':M.state['labels'][M.ilabel]}
+            ticks = M.doubleclick_annotation(M.context_data, M.context_data_istart,
+                                             M.audio_tic_rate, V.doubleclick_parameters, x_tic)
+            thissound = {'file':currfile, 'ticks':ticks, 'label':M.state['labels'][M.ilabel]}
             M.add_annotation(thissound)
     else:
         if M.state['labels'][M.ilabel]=='':
@@ -1064,7 +1064,7 @@ async def train_actuate():
         args = [V.context_ms.value, V.shiftby_ms.value, \
                 V.optimizer.value, V.learning_rate.value, \
                 str(M.data_loader_queuesize), str(M.data_loader_maxprocs), \
-                M.architecture, \
+                M.architecture_plugin, \
                 "'"+json.dumps({k:v.value for k,v in V.model_parameters.items()})+"'", \
                 V.logs_folder.value, \
                 V.groundtruth_folder.value, V.labels_touse.value, \
@@ -1137,7 +1137,7 @@ async def leaveout_actuate(comma):
                 V.optimizer.value, \
                 V.learning_rate.value, \
                 str(M.data_loader_queuesize), str(M.data_loader_maxprocs), \
-                M.architecture, \
+                M.architecture_plugin, \
                 "'"+json.dumps({k:v.value for k,v in V.model_parameters.items()})+"'", \
                 V.logs_folder.value, V.groundtruth_folder.value, \
                 V.labels_touse.value, V.kinds_touse.value, \
@@ -1191,7 +1191,7 @@ async def xvalidate_actuate():
                 V.optimizer.value, \
                 V.learning_rate.value, \
                 str(M.data_loader_queuesize), str(M.data_loader_maxprocs), \
-                M.architecture, \
+                M.architecture_plugin, \
                 "'"+json.dumps({k:v.value for k,v in V.model_parameters.items()})+"'", \
                 V.logs_folder.value, V.groundtruth_folder.value, \
                 V.labels_touse.value, V.kinds_touse.value, \
@@ -1279,7 +1279,7 @@ async def activations_actuate():
             "--shiftby_ms="+V.shiftby_ms.value, \
             "--data_loader_queuesize="+str(M.data_loader_queuesize), \
             "--data_loader_maxprocs="+str(M.data_loader_maxprocs), \
-            "--model_architecture="+M.architecture, \
+            "--model_architecture="+M.architecture_plugin, \
             "--model_parameters='"+json.dumps({k:v.value for k,v in V.model_parameters.items()})+"'", \
             "--start_checkpoint="+os.path.join(logdir,model,"ckpt-"+check_point),
             "--data_dir="+V.groundtruth_folder.value, \
@@ -1478,7 +1478,7 @@ async def _freeze_actuate(ckpts):
                             "--output_file="+os.path.join(logdir,model,"frozen-graph.ckpt-"+check_point+".pb"), \
                             "--labels_touse="+','.join(labels),
                             "--context_ms="+V.context_ms.value,
-                            "--model_architecture="+M.architecture,
+                            "--model_architecture="+M.architecture_plugin,
                             "--model_parameters='"+json.dumps({k:v.value for k,v in V.model_parameters.items()})+"'",
                             "--parallelize="+str(M.classify_parallelize),
                             "--audio_tic_rate="+str(M.audio_tic_rate),
@@ -1556,7 +1556,7 @@ async def ensemble_actuate():
                                                           "frozen-graph.ckpt-"+','.join(ckpts)+".pb"), \
                             "--labels_touse="+','.join(labels),
                             "--context_ms="+V.context_ms.value,
-                            "--model_architecture="+M.architecture,
+                            "--model_architecture="+M.architecture_plugin,
                             "--model_parameters='"+json.dumps({k:v.value for k,v in V.model_parameters.items()})+"'",
                             "--parallelize="+str(M.classify_parallelize),
                             "--audio_tic_rate="+str(M.audio_tic_rate),

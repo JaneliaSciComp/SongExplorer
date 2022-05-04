@@ -35,6 +35,10 @@ Table of Contents
       * [Unsupervised Methods](#unsupervised-methods)
       * [Scripting Automation](#scripting-automation)
       * [Customizing with Plug-ins](#customizing-with-plug-ins)
+         * [Event Detection](#event-detection)
+         * [Double-Click Annotations](#double-click-annotations)
+         * [Network Architecture](#network-architecture)
+         * [Video Filenames](#video-filenames)
    * [Troubleshooting](#troubleshooting)
    * [Frequently Asked Questions](#frequently-asked-questions)
    * [Reporting Problems](#reporting-problems)
@@ -1645,7 +1649,7 @@ Sounds](#detecting-sounds) all the way to [Testing Densely](#testing-densely).
 
 ## Customizing with Plug-ins ##
 
-### Event detection ###
+### Event Detection ###
 
 By default the Detect button thresholds in the time and frequency domains to
 find sounds of interest.  See the source code in "src/time-freq-threshold.py"
@@ -1697,7 +1701,33 @@ a pared down version of which is as follows:
             for e in range(events):
                 csvwriter.writerow([basename, e[0], e[1], 'detected', e[2]])
 
-### Architecture ###
+### Double-Click Annotations ###
+
+New annotations can be layed down by double-clicking a snippet,
+double-clicking on a clustered event in the upper half of the context window,
+clicking and horizontally dragging in the lower half of the context window,
+or double-clicking in a blank portion of the lower half of context window.
+The default behavior for the latter method results in a point annotation
+at just a single sample tic.
+
+While it is best to be as temporally precise as possible when annotating,
+it can be quite slow to position the cursor exactly at an event.  Moreover,
+unless the event really has no temporal extent, it is better to use a range
+annotation, as SongExplorer will automatically augment these annotations
+by randomly choosing a specific point in time within them each time they
+are chosen for a batch of training examples.
+
+To facilitate range annotations with a double-click gesture, SongExplorer
+has a hook in the callback which you can supply with python code to
+customize the behavior.  The python file must contain a list called
+`doubleclick_parameters` which defines the required hyperparameters, and
+a function called `doubleclick_annotation` which inputs a point in time
+and outputs a range.  See "src/snap-to.py" for a plugin which searches
+for a nearby peak in the waveform and lays down a range annotation of a
+specified width.  The default double-click plugin is "src/point.py" and a
+template is in "src/doubleclick-plugin.py".
+
+### Network Architecture ###
 
 The default network architecture is a set of layered convolutions, the depth
 and width of which can be configured as described above.  Should this not prove
@@ -1742,7 +1772,7 @@ template of how this works, a pared down version of which is as follows:
 In brief, two objects must be supplied in a python file:  (1) a list of
 `model_parameters` which defines the variable names, titles, and default
 values, etc. to appear in the GUI, and (2) a function `create_model` which
-builds and returns the network graph.  Specify as the `architecture` in
+builds and returns the network graph.  Specify as the `architecture_plugin` in
 "configuration.pysh" the full path to this file, without the ".py" extension.
 The buttons immediately above the configuration textbox in the GUI will
 change to reflect the different hyperparameters used by this architecture.
@@ -1751,14 +1781,14 @@ mistakes, etc) can be used with this custom network in an identical manner.
 The default convolutional architecture is itself written as a plug-in, and
 can be found in "src/convolutional.py".
 
-### Video files ###
+### Video Filenames ###
 
 By default, SongExplorer expects video files to have the same basename
-as the corresponding audio file, and the extension to be one of AVI,
-MP4, or MOV.  If this is not the case, one can provide a python function
-which inputs a directory and a WAV file and outputs the name of the video
-file to load.  The name and location of the python file containing this
-function is specified, without the ".py" extension, as the "video_findfile"
+as the corresponding audio file, and the extension to be one of AVI, MP4,
+or MOV.  If this is not the case, one can provide a python function which
+inputs a directory and a WAV file and outputs the name of the video file
+to load.  The name and location of the python file containing this function
+is specified, without the ".py" extension, as the "video_findfile_plugin"
 parameter in "configuration.pysh".  For examples, see "src/same-basename.py"
 (the default) and "src/maybe-1sec-off.py".
 

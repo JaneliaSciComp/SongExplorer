@@ -31,8 +31,10 @@ V.init(doc)
 C.init(doc)
 
 detect_parameters = list(V.detect_parameters.values())
+doubleclick_parameters = list(V.doubleclick_parameters.values())
 model_parameters = list(V.model_parameters.values())
 
+spacer_width = 790 + 100*(len(M.gui_snippets_spectrogram)>0) + 103*len(doubleclick_parameters)
 main_content = row(column(row(V.which_layer, V.which_species, V.which_word,
                               V.which_nohyphen, V.which_kind,
                               column(V.color_picker, width=75),
@@ -41,17 +43,19 @@ main_content = row(column(row(V.which_layer, V.which_species, V.which_word,
                           row(column(V.dot_size, width=100),
                               column(V.dot_alpha, width=100),
                               column(V.circle_radius, width=100),
-                              Spacer(width=(M.gui_width_pix-950)//3),
-                              column(V.play, width=75, align='end'),
-                              column(V.video_toggle, width=75, align='end'),
-                              Spacer(width=(M.gui_width_pix-950)//3),
+                              Spacer(width=(M.gui_width_pix-spacer_width)//4),
+                              column(V.play, width=60, align='end'),
+                              column(V.video_toggle, width=60, align='end'),
+                              Spacer(width=(M.gui_width_pix-spacer_width)//4),
+                              *doubleclick_parameters,
+                              Spacer(width=(M.gui_width_pix-spacer_width)//4),
                               column(V.save_indicator, width=50, align='end'),
-                              column(V.undo, width=75, align='end'),
-                              column(V.redo, width=75, align='end'),
-                              Spacer(width=(M.gui_width_pix-950)//3),
+                              column(V.undo, width=60, align='end'),
+                              column(V.redo, width=60, align='end'),
+                              Spacer(width=(M.gui_width_pix-spacer_width)//4),
                               column(V.spectrogram_length, width=100) \
                                       if M.gui_snippets_spectrogram or \
-                                         M.gui_context_spectrogram else Spacer(width=100),
+                                         M.gui_context_spectrogram else Spacer(),
                               column(V.zoom_context, width=100),
                               column(V.zoom_offset, width=100)),
                           V.recordings,

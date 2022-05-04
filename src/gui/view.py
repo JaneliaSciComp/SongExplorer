@@ -41,7 +41,7 @@ bokehlog = logging.getLogger("songexplorer")
 import model as M
 import controller as C
 
-bokeh_document, cluster_dot_palette, snippet_palette, p_cluster, cluster_dots, p_snippets, snippets_label_sources_clustered, snippets_label_sources_annotated, snippets_wave_sources, snippets_wave_glyphs, snippets_gram_sources, snippets_gram_glyphs, snippets_quad_grey, dot_size_cluster, dot_alpha_cluster, cluster_circle_fuchsia, p_waveform, p_spectrogram, p_probability, probability_source, probability_glyph, spectrogram_source, spectrogram_glyph, waveform_span_red, spectrogram_span_red, waveform_quad_grey_clustered, waveform_quad_grey_annotated, waveform_quad_grey_pan, waveform_quad_fuchsia, spectrogram_quad_grey_clustered, spectrogram_quad_grey_annotated, spectrogram_quad_grey_pan, spectrogram_quad_fuchsia, snippets_quad_fuchsia, waveform_source, waveform_glyph, waveform_label_source_clustered, waveform_label_source_annotated, spectrogram_label_source_clustered, spectrogram_label_source_annotated, which_layer, which_species, which_word, which_nohyphen, which_kind, color_picker, circle_radius, dot_size, dot_alpha, spectrogram_length, zoom_context, zoom_offset, zoomin, zoomout, reset, panleft, panright, allleft, allout, allright, firstlabel, nextlabel, prevlabel, lastlabel, save_indicator, nsounds_per_label_buttons, label_texts, load_multimedia, play, video_slider, load_multimedia_callback, play_callback, video_slider_callback, video_toggle, video_div, undo, redo, recordings, detect, misses, configuration_file, train, leaveoneout, leaveallout, xvalidate, mistakes, activations, cluster, visualize, accuracy, freeze, ensemble, classify, ethogram, compare, congruence, status_ticker, deletefailures, waitfor, file_dialog_source, configuration_contents, logs_folder_button, logs_folder, model_file_button, model_file, wavcsv_files_button, wavcsv_files, groundtruth_folder_button, groundtruth_folder, validation_files_button, test_files_button, validation_files, test_files, labels_touse_button, labels_touse, kinds_touse_button, kinds_touse, prevalences_button, prevalences, copy, labelsounds, makepredictions, fixfalsepositives, fixfalsenegatives, generalize, tunehyperparameters, findnovellabels, examineerrors, testdensely, doit, nsteps, restore_from, save_and_validate_period, validate_percentage, mini_batch, kfold, activations_equalize_ratio, activations_max_sounds, pca_fraction_variance_to_retain, tsne_perplexity, tsne_exaggeration, umap_neighbors, umap_distance, cluster_algorithm, cluster_these_layers, precision_recall_ratios, congruence_portion, congruence_convolve, congruence_measure, context_ms, shiftby_ms, optimizer, learning_rate, nreplicates, batch_seed, weights_seed, file_dialog_string, file_dialog_table, readme_contents, labelcounts, wizard_buttons, action_buttons, parameter_buttons, parameter_textinputs, wizard2actions, action2parameterbuttons, action2parametertextinputs, detect_parameters, detect_parameters_enable_logic, detect_parameters_required, model_parameters, model_parameters_enable_logic, model_parameters_required = [None]*173
+bokeh_document, cluster_dot_palette, snippet_palette, p_cluster, cluster_dots, p_snippets, snippets_label_sources_clustered, snippets_label_sources_annotated, snippets_wave_sources, snippets_wave_glyphs, snippets_gram_sources, snippets_gram_glyphs, snippets_quad_grey, dot_size_cluster, dot_alpha_cluster, cluster_circle_fuchsia, p_waveform, p_spectrogram, p_probability, probability_source, probability_glyph, spectrogram_source, spectrogram_glyph, waveform_span_red, spectrogram_span_red, waveform_quad_grey_clustered, waveform_quad_grey_annotated, waveform_quad_grey_pan, waveform_quad_fuchsia, spectrogram_quad_grey_clustered, spectrogram_quad_grey_annotated, spectrogram_quad_grey_pan, spectrogram_quad_fuchsia, snippets_quad_fuchsia, waveform_source, waveform_glyph, waveform_label_source_clustered, waveform_label_source_annotated, spectrogram_label_source_clustered, spectrogram_label_source_annotated, which_layer, which_species, which_word, which_nohyphen, which_kind, color_picker, circle_radius, dot_size, dot_alpha, spectrogram_length, zoom_context, zoom_offset, zoomin, zoomout, reset, panleft, panright, allleft, allout, allright, firstlabel, nextlabel, prevlabel, lastlabel, save_indicator, nsounds_per_label_buttons, label_texts, load_multimedia, play, video_slider, load_multimedia_callback, play_callback, video_slider_callback, video_toggle, video_div, undo, redo, recordings, detect, misses, configuration_file, train, leaveoneout, leaveallout, xvalidate, mistakes, activations, cluster, visualize, accuracy, freeze, ensemble, classify, ethogram, compare, congruence, status_ticker, deletefailures, waitfor, file_dialog_source, configuration_contents, logs_folder_button, logs_folder, model_file_button, model_file, wavcsv_files_button, wavcsv_files, groundtruth_folder_button, groundtruth_folder, validation_files_button, test_files_button, validation_files, test_files, labels_touse_button, labels_touse, kinds_touse_button, kinds_touse, prevalences_button, prevalences, copy, labelsounds, makepredictions, fixfalsepositives, fixfalsenegatives, generalize, tunehyperparameters, findnovellabels, examineerrors, testdensely, doit, nsteps, restore_from, save_and_validate_period, validate_percentage, mini_batch, kfold, activations_equalize_ratio, activations_max_sounds, pca_fraction_variance_to_retain, tsne_perplexity, tsne_exaggeration, umap_neighbors, umap_distance, cluster_algorithm, cluster_these_layers, precision_recall_ratios, congruence_portion, congruence_convolve, congruence_measure, context_ms, shiftby_ms, optimizer, learning_rate, nreplicates, batch_seed, weights_seed, file_dialog_string, file_dialog_table, readme_contents, labelcounts, wizard_buttons, action_buttons, parameter_buttons, parameter_textinputs, wizard2actions, action2parameterbuttons, action2parametertextinputs, detect_parameters, detect_parameters_enable_logic, detect_parameters_required, doubleclick_parameters, doubleclick_parameters_enable_logic, doubleclick_parameters_required, model_parameters, model_parameters_enable_logic, model_parameters_required = [None]*176
 
 class ScatterNd(LayoutDOM):
 
@@ -848,6 +848,8 @@ def context_update():
                         wavi = np.concatenate((np.full((npad,),0), wavi))
                     if istart+M.context_width_tic>M.file_nframes:
                         wavi = np.concatenate((wavi, np.full((npad,),0)))
+                M.context_data[ichannel] = wavi
+                M.context_data_istart = istart_bounded
 
                 if ichannel==0:
                     if bokeh_document: 
@@ -857,8 +859,7 @@ def context_update():
                                                 istart_bounded,
                                                 ilength))
 
-                xwav0 = [istart/M.audio_tic_rate,
-                         (istart+(context_pix-1)*context_decimate_by)/M.audio_tic_rate]
+                xwav0 = istart_bounded/M.audio_tic_rate
                 if ichannel+1 in M.context_waveform:
                     idx = M.context_waveform.index(ichannel+1)
                     wavi_downsampled = wavi[0::context_decimate_by]
@@ -956,10 +957,10 @@ def context_update():
                     tapped_wav_in_view = True
 
             if M.context_waveform:
-                waveform_span_red.location=xwav0[0]
+                waveform_span_red.location=xwav0
                 waveform_span_red.visible=True
             if M.context_spectrogram:
-                spectrogram_span_red.location=xwav0[0]
+                spectrogram_span_red.location=xwav0
                 spectrogram_span_red.visible=True
 
             if not tapped_wav_in_view:
@@ -1027,7 +1028,7 @@ def context_update():
         if ichannel+1 in M.context_spectrogram:
             idx = M.context_spectrogram.index(ichannel+1)
             if not np.isnan(gram_time[idx][0]):
-                spectrogram_glyph[idx].glyph.x = xwav0[0] + gram_time[idx][0]
+                spectrogram_glyph[idx].glyph.x = xwav0 + gram_time[idx][0]
                 spectrogram_glyph[idx].glyph.y = len(M.context_spectrogram) - 1 - idx
                 spectrogram_glyph[idx].glyph.dw = gram_time[idx][-1] - gram_time[idx][0]
                 spectrogram_glyph[idx].glyph.dh = 1
@@ -1296,7 +1297,7 @@ async def status_ticker_update():
     status_ticker.text = status_ticker_pre+newtext+status_ticker_post
 
 def init(_bokeh_document):
-    global bokeh_document, cluster_dot_palette, snippet_palette, p_cluster, cluster_dots, p_cluster_dots, precomputed_dots, snippets_dy, snippets_both, p_snippets, snippets_label_sources_clustered, snippets_label_sources_annotated, snippets_wave_sources, snippets_wave_glyphs, snippets_gram_sources, snippets_gram_glyphs, snippets_quad_grey, dot_size_cluster, dot_alpha_cluster, cluster_circle_fuchsia, p_waveform, p_spectrogram, p_probability, probability_source, probability_glyph, spectrogram_source, spectrogram_glyph, waveform_span_red, spectrogram_span_red, waveform_quad_grey_clustered, waveform_quad_grey_annotated, waveform_quad_grey_pan, waveform_quad_fuchsia, spectrogram_quad_grey_clustered, spectrogram_quad_grey_annotated, spectrogram_quad_grey_pan, spectrogram_quad_fuchsia, snippets_quad_fuchsia, waveform_source, waveform_glyph, waveform_label_source_clustered, waveform_label_source_annotated, spectrogram_label_source_clustered, spectrogram_label_source_annotated, which_layer, which_species, which_word, which_nohyphen, which_kind, color_picker, circle_radius, dot_size, dot_alpha, spectrogram_length, zoom_context, zoom_offset, zoomin, zoomout, reset, panleft, panright, allleft, allout, allright, firstlabel, nextlabel, prevlabel, lastlabel, save_indicator, nsounds_per_label_buttons, label_texts, load_multimedia, play, video_slider, load_multimedia_callback, play_callback, video_slider_callback, video_toggle, video_div, undo, redo, recordings, detect, misses, configuration_file, train, leaveoneout, leaveallout, xvalidate, mistakes, activations, cluster, visualize, accuracy, freeze, ensemble, classify, ethogram, compare, congruence, status_ticker, waitfor, deletefailures, file_dialog_source, configuration_contents, logs_folder_button, logs_folder, model_file_button, model_file, wavcsv_files_button, wavcsv_files, groundtruth_folder_button, groundtruth_folder, validation_files_button, test_files_button, validation_files, test_files, labels_touse_button, labels_touse, kinds_touse_button, kinds_touse, prevalences_button, prevalences, copy, labelsounds, makepredictions, fixfalsepositives, fixfalsenegatives, generalize, tunehyperparameters, findnovellabels, examineerrors, testdensely, doit, nsteps, restore_from, save_and_validate_period, validate_percentage, mini_batch, kfold, activations_equalize_ratio, activations_max_sounds, pca_fraction_variance_to_retain, tsne_perplexity, tsne_exaggeration, umap_neighbors, umap_distance, cluster_algorithm, cluster_these_layers, precision_recall_ratios, congruence_portion, congruence_convolve, congruence_measure, context_ms, shiftby_ms, optimizer, learning_rate, nreplicates, batch_seed, weights_seed, file_dialog_string, file_dialog_table, readme_contents, labelcounts, wizard_buttons, action_buttons, parameter_buttons, parameter_textinputs, wizard2actions, action2parameterbuttons, action2parametertextinputs, status_ticker_update, status_ticker_pre, status_ticker_post, detect_parameters, detect_parameters_enable_logic, detect_parameters_required, model_parameters, model_parameters_enable_logic, model_parameters_required
+    global bokeh_document, cluster_dot_palette, snippet_palette, p_cluster, cluster_dots, p_cluster_dots, precomputed_dots, snippets_dy, snippets_both, p_snippets, snippets_label_sources_clustered, snippets_label_sources_annotated, snippets_wave_sources, snippets_wave_glyphs, snippets_gram_sources, snippets_gram_glyphs, snippets_quad_grey, dot_size_cluster, dot_alpha_cluster, cluster_circle_fuchsia, p_waveform, p_spectrogram, p_probability, probability_source, probability_glyph, spectrogram_source, spectrogram_glyph, waveform_span_red, spectrogram_span_red, waveform_quad_grey_clustered, waveform_quad_grey_annotated, waveform_quad_grey_pan, waveform_quad_fuchsia, spectrogram_quad_grey_clustered, spectrogram_quad_grey_annotated, spectrogram_quad_grey_pan, spectrogram_quad_fuchsia, snippets_quad_fuchsia, waveform_source, waveform_glyph, waveform_label_source_clustered, waveform_label_source_annotated, spectrogram_label_source_clustered, spectrogram_label_source_annotated, which_layer, which_species, which_word, which_nohyphen, which_kind, color_picker, circle_radius, dot_size, dot_alpha, spectrogram_length, zoom_context, zoom_offset, zoomin, zoomout, reset, panleft, panright, allleft, allout, allright, firstlabel, nextlabel, prevlabel, lastlabel, save_indicator, nsounds_per_label_buttons, label_texts, load_multimedia, play, video_slider, load_multimedia_callback, play_callback, video_slider_callback, video_toggle, video_div, undo, redo, recordings, detect, misses, configuration_file, train, leaveoneout, leaveallout, xvalidate, mistakes, activations, cluster, visualize, accuracy, freeze, ensemble, classify, ethogram, compare, congruence, status_ticker, waitfor, deletefailures, file_dialog_source, configuration_contents, logs_folder_button, logs_folder, model_file_button, model_file, wavcsv_files_button, wavcsv_files, groundtruth_folder_button, groundtruth_folder, validation_files_button, test_files_button, validation_files, test_files, labels_touse_button, labels_touse, kinds_touse_button, kinds_touse, prevalences_button, prevalences, copy, labelsounds, makepredictions, fixfalsepositives, fixfalsenegatives, generalize, tunehyperparameters, findnovellabels, examineerrors, testdensely, doit, nsteps, restore_from, save_and_validate_period, validate_percentage, mini_batch, kfold, activations_equalize_ratio, activations_max_sounds, pca_fraction_variance_to_retain, tsne_perplexity, tsne_exaggeration, umap_neighbors, umap_distance, cluster_algorithm, cluster_these_layers, precision_recall_ratios, congruence_portion, congruence_convolve, congruence_measure, context_ms, shiftby_ms, optimizer, learning_rate, nreplicates, batch_seed, weights_seed, file_dialog_string, file_dialog_table, readme_contents, labelcounts, wizard_buttons, action_buttons, parameter_buttons, parameter_textinputs, wizard2actions, action2parameterbuttons, action2parametertextinputs, status_ticker_update, status_ticker_pre, status_ticker_post, detect_parameters, detect_parameters_enable_logic, detect_parameters_required, doubleclick_parameters, doubleclick_parameters_enable_logic, doubleclick_parameters_required, model_parameters, model_parameters_enable_logic, model_parameters_required
 
     bokeh_document = _bokeh_document
 
@@ -1930,46 +1931,35 @@ def init(_bokeh_document):
     learning_rate.on_change('value', lambda a,o,n: C.generic_parameters_callback(n))
 
     V = sys.modules[__name__]
+
     def get_callback(f):
         def callback(a,o,n):
             f(n,M,V,C) if f else C.generic_parameters_callback(n)
         return callback
 
-    detect_parameters = OrderedDict()
-    detect_parameters_enable_logic = {}
-    detect_parameters_required = {}
-    for parameter in M.detect_parameters:
-        if parameter[2]=='':
-            thisparameter = TextInput(value=M.state[parameter[0]], \
-                                      title=parameter[1], \
-                                      disabled=False, width=94)
-        else:
-            thisparameter = Select(value=M.state[parameter[0]], \
-                                   title=parameter[1], \
-                                   options=parameter[2], \
-                                   height=50, width=94)
-        thisparameter.on_change('value', get_callback(parameter[5]))
-        detect_parameters[parameter[0]] = thisparameter
-        detect_parameters_enable_logic[thisparameter] = parameter[4]
-        detect_parameters_required[thisparameter] = parameter[6]
+    def parse_plugin_parameters(Mparameters):
+        parameters = OrderedDict()
+        parameters_enable_logic = {}
+        parameters_required = {}
+        for parameter in Mparameters:
+            if parameter[2]=='':
+                thisparameter = TextInput(value=M.state[parameter[0]], \
+                                          title=parameter[1], \
+                                          disabled=False, width=94)
+            else:
+                thisparameter = Select(value=M.state[parameter[0]], \
+                                       title=parameter[1], \
+                                       options=parameter[2], \
+                                       height=50, width=94)
+            thisparameter.on_change('value', get_callback(parameter[5]))
+            parameters[parameter[0]] = thisparameter
+            parameters_enable_logic[thisparameter] = parameter[4]
+            parameters_required[thisparameter] = parameter[6]
+        return parameters, parameters_enable_logic, parameters_required
 
-    model_parameters = OrderedDict()
-    model_parameters_enable_logic = {}
-    model_parameters_required = {}
-    for parameter in M.model_parameters:
-        if parameter[2]=='':
-            thisparameter = TextInput(value=M.state[parameter[0]], \
-                                      title=parameter[1], \
-                                      disabled=False, width=94)
-        else:
-            thisparameter = Select(value=M.state[parameter[0]], \
-                                   title=parameter[1], \
-                                   options=parameter[2], \
-                                   height=50, width=94)
-        thisparameter.on_change('value', get_callback(parameter[5]))
-        model_parameters[parameter[0]] = thisparameter
-        model_parameters_enable_logic[thisparameter] = parameter[4]
-        model_parameters_required[thisparameter] = parameter[6]
+    detect_parameters, detect_parameters_enable_logic, detect_parameters_required = parse_plugin_parameters(M.detect_parameters)
+    doubleclick_parameters, doubleclick_parameters_enable_logic, doubleclick_parameters_required = parse_plugin_parameters(M.doubleclick_parameters)
+    model_parameters, model_parameters_enable_logic, model_parameters_required = parse_plugin_parameters(M.model_parameters)
 
     configuration_contents = TextAreaInput(rows=49-3*np.ceil(len(model_parameters)/6).astype(np.int),
                                            max_length=50000, \
