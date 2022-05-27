@@ -278,8 +278,9 @@ def cluster_tap_callback(event):
 def snippets_tap_callback(event):
     if np.isnan(M.xcluster) or np.isnan(M.ycluster):
         return
-    M.xsnippet = int(np.rint(event.x/(M.snippets_gap_pix+M.snippets_pix)-0.5))
-    M.ysnippet = int(np.floor(-(event.y-1)/V.snippets_dy))
+    M.xsnippet = min(M.snippets_nx-1,
+                     max(0, int(np.rint(event.x/(M.snippets_gap_pix+M.snippets_pix)-0.5))))
+    M.ysnippet = min(M.snippets_ny-1, max(0, int(np.floor(-(event.y-1)/V.snippets_dy))))
     M.isnippet = M.nearest_sounds[M.ysnippet*M.snippets_nx + M.xsnippet]
     V.snippets_update(False)
     V.context_update()
@@ -297,6 +298,7 @@ def get_shortest_tapped_sound(x_tic, currfile):
                   M.clustered_sounds[x]['ticks'][1]-M.clustered_sounds[x]['ticks'][0])
 
 def context_doubletap_callback(event, midpoint):
+    if not event.x:  return
     x_tic = int(np.rint(event.x*M.audio_tic_rate))
     currfile = M.clustered_sounds[M.isnippet]['file']
     if event.y<midpoint:
@@ -329,6 +331,7 @@ def context_doubletap_callback(event, midpoint):
 pan_start_x = pan_start_y = pan_start_sx = pan_start_sy = None
 
 def waveform_pan_start_callback(event):
+    if not event.x:  return
     global pan_start_x, pan_start_y, pan_start_sx, pan_start_sy
     pan_start_x, pan_start_y = event.x, event.y
     pan_start_sx, pan_start_sy = event.sx, event.sy
@@ -336,6 +339,7 @@ def waveform_pan_start_callback(event):
                                             top=[event.y], bottom=[event.y])
 
 def waveform_pan_callback(event):
+    if not event.x:  return
     x_tic = int(np.rint(event.x*M.audio_tic_rate))
     left_limit_tic = M.context_midpoint_tic-M.context_width_tic//2 + M.context_offset_tic
     right_limit_tic = left_limit_tic + M.context_width_tic
@@ -363,6 +367,7 @@ def _waveform_scale(low_y, high_y, ichannel):
     return [(x+1)/2 * delta + M.context_waveform_low[ichannel] for x in [low_y, high_y]]
 
 def waveform_pan_end_callback(event):
+    if not event.x:  return
     if abs(event.sx - pan_start_sx) < abs(event.sy - pan_start_sy):
         ichannel = round(((pan_start_y-1) * len(M.context_waveform) + 1) / -2)
         event_wy_start = (pan_start_y-1) * len(M.context_waveform) + 1 + 2*ichannel
@@ -383,6 +388,7 @@ def waveform_pan_end_callback(event):
     V.context_update()
 
 def waveform_tap_callback(event):
+    if not event.x:  return
     x_tic = int(np.rint(event.x*M.audio_tic_rate))
     currfile = M.clustered_sounds[M.isnippet]['file']
     isounds_shortest = get_shortest_tapped_sound(x_tic, currfile)
@@ -682,7 +688,8 @@ def snippets_doubletap_callback(event):
     x_tic = int(np.rint(event.x/(M.snippets_gap_pix+M.snippets_pix)-0.5))
     y_tic = int(np.floor(-(event.y-1)/V.snippets_dy))
     idouble_tapped_sound = M.nearest_sounds[y_tic*M.snippets_nx + x_tic]
-    toggle_annotation(idouble_tapped_sound)
+    if idouble_tapped_sound!=-1:
+        toggle_annotation(idouble_tapped_sound)
 
 def _find_nearest_clustered_sound(history_idx):
     M.isnippet = np.searchsorted(M.clustered_starts_sorted, \
@@ -1634,7 +1641,6 @@ async def _classify_actuate(wavfiles):
                  "--prevalences="+V.prevalences.value]
     else:
         args += ["--labels=", "--prevalences="]
-    p = run(["date", "+%s"], stdout=PIPE, stderr=STDOUT)
     if M.classify_gpu:
         jobid = generic_actuate("classify.py", logfile, M.classify_where,
                                   M.classify_gpu_ncpu_cores,

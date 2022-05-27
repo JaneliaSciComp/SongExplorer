@@ -1179,6 +1179,9 @@ def _groundtruth_update():
     M.user_copied_parameters=0
 
 def groundtruth_update():
+    if groundtruth_folder.value!="" and not os.path.isdir(groundtruth_folder.value):
+        bokehlog.info("ERROR: "+groundtruth_folder.value+" does not exist")
+        return
     if M.user_copied_parameters<2:
         M.user_copied_parameters += 1
         recordings.disabled=True

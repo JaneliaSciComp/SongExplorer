@@ -111,11 +111,14 @@ def main():
   thismodel.summary()
 
   checkpoint = tf.train.Checkpoint(thismodel=thismodel)
-  checkpoint.read(FLAGS.start_checkpoint)
+  checkpoint.read(FLAGS.start_checkpoint).expect_partial()
 
   time_shift_tics = int((FLAGS.shiftby_ms * FLAGS.audio_tic_rate) / 1000)
 
   testing_set_size = audio_processor.set_size('testing')
+  if testing_set_size==0:
+    print('ERROR: no annotations to process')
+    exit()
 
   def infer_step(isound):
     fingerprints, _, sounds = audio_processor.get_data(
