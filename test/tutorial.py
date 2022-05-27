@@ -57,6 +57,9 @@ count_lines_with_label(wavpath_noext+"-detected.csv", "time", 536, "ERROR")
 count_lines_with_label(wavpath_noext+"-detected.csv", "frequency", 45, "ERROR")
 count_lines_with_label(wavpath_noext+"-detected.csv", "neither", 1635, "ERROR")
 
+shutil.copy(os.path.join(repo_path, "data/PS_20130625111709_ch3-annotated-person1.csv"),
+            os.path.join(repo_path, "test/scratch/tutorial-py/groundtruth-data/round1"))
+
 V.context_ms.value = "204.8"
 V.shiftby_ms.value = "0.0"
 V.optimizer.value = "Adam"
@@ -78,63 +81,20 @@ V.model_parameters["representation"].value = "mel-cepstrum"
 V.model_parameters["window_ms"].value = "6.4"
 V.model_parameters["stride_ms"].value = "1.6"
 V.model_parameters["mel_dct"].value = "7,7"
-V.logs_folder.value = os.path.join(repo_path, "test/scratch/tutorial-py/untrained-classifier")
+V.logs_folder.value = os.path.join(repo_path, "test/scratch/tutorial-py/trained-classifier1")
 V.groundtruth_folder.value = os.path.join(repo_path, "test/scratch/tutorial-py/groundtruth-data")
-V.labels_touse.value = "time,frequency"
-V.kinds_touse.value = "detected"
-V.nsteps.value = "0"
+V.labels_touse.value = "mel-pulse,mel-sine,ambient"
+V.kinds_touse.value = "annotated"
+V.nsteps.value = "300"
 V.restore_from.value = ""
-V.save_and_validate_period.value = "0"
-V.validate_percentage.value = "0"
+V.save_and_validate_period.value = "30"
+V.validate_percentage.value = "40"
 V.mini_batch.value = "32"
 V.test_files.value = ""
 V.batch_seed.value = "1"
 V.weights_seed.value = "1"
 V.nreplicates.value = "1"
-asyncio.run(C.train_actuate())
 
-wait_for_job(M.status_ticker_queue)
-
-check_file_exists(os.path.join(V.logs_folder.value, "train1.log"))
-check_file_exists(os.path.join(V.logs_folder.value, "train_1r.log"))
-check_file_exists(os.path.join(V.logs_folder.value,
-                               "train_1r","ckpt-"+V.nsteps.value+".index"))
-
-V.model_file.value = os.path.join(repo_path, "test/scratch/tutorial-py/untrained-classifier",
-                                  "train_"+V.nreplicates.value+"r",
-                                  "ckpt-"+V.nsteps.value+".index")
-V.activations_equalize_ratio.value = "1000"
-V.activations_max_sounds.value = "10000"
-asyncio.run(C.activations_actuate())
-
-wait_for_job(M.status_ticker_queue)
-
-check_file_exists(os.path.join(V.groundtruth_folder.value, "activations.log"))
-check_file_exists(os.path.join(V.groundtruth_folder.value, "activations.npz"))
-
-V.cluster_these_layers.value = ["0"]
-V.pca_fraction_variance_to_retain.value = "0.99"
-M.pca_batch_size = "0"
-V.cluster_algorithm.value = "tSNE 2D"
-V.tsne_perplexity.value = "30"
-V.tsne_exaggeration.value = "12"
-asyncio.run(C.cluster_actuate())
-
-wait_for_job(M.status_ticker_queue)
-
-check_file_exists(os.path.join(V.groundtruth_folder.value, "cluster.log"))
-check_file_exists(os.path.join(V.groundtruth_folder.value, "cluster.npz"))
-check_file_exists(os.path.join(V.groundtruth_folder.value, "cluster-pca.pdf"))
-
-shutil.copy(os.path.join(repo_path, "data/PS_20130625111709_ch3-annotated-person1.csv"),
-            os.path.join(repo_path, "test/scratch/tutorial-py/groundtruth-data/round1"))
-
-V.logs_folder.value = os.path.join(repo_path, "test/scratch/tutorial-py/trained-classifier1")
-V.labels_touse.value = "mel-pulse,mel-sine,ambient"
-V.kinds_touse.value = "annotated"
-V.nsteps.value = "300"
-V.save_and_validate_period.value = "30"
-V.validate_percentage.value = "40"
 asyncio.run(C.train_actuate())
 
 wait_for_job(M.status_ticker_queue)
@@ -221,13 +181,6 @@ wait_for_job(M.status_ticker_queue)
 check_file_exists(wavpath_noext+"-misses.log")
 check_file_exists(wavpath_noext+"-missed.csv")
 count_lines_with_label(wavpath_noext+"-missed.csv", "other", 1569, "WARNING")
-
-os.mkdir(os.path.join(V.groundtruth_folder.value, "round1", "cluster"))
-for file in glob.glob(os.path.join(V.groundtruth_folder.value, "activations*")):
-    shutil.move(file, os.path.join(V.groundtruth_folder.value, "round1", "cluster"))
-
-for file in glob.glob(os.path.join(V.groundtruth_folder.value, "cluster*")):
-    shutil.move(file, os.path.join(V.groundtruth_folder.value, "round1", "cluster"))
 
 V.model_file.value = os.path.join(repo_path, "test/scratch/tutorial-py/trained-classifier1", \
                                   "train_"+V.nreplicates.value+"r", \

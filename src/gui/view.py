@@ -476,10 +476,7 @@ def cluster_initialize(newcolors=True):
     dot_size.disabled=False
     dot_alpha.disabled=False
 
-    M.ispecies=0
-    M.iword=0
-    M.inohyphen=0
-    M.ikind=0
+    M.ispecies = M.iword = M.inohyphen = M.ikind = 0
 
     return True
 
@@ -559,7 +556,7 @@ def snippets_update(redraw_wavs):
     origin = [M.xcluster,M.ycluster]
     if M.ndcluster==3:
         origin.append(M.zcluster)
-    distance = [] if M.clustered_activations[M.ilayer] is None else \
+    distance = [] if M.clustered_activations is None or M.clustered_activations[M.ilayer] is None else \
                np.linalg.norm(M.clustered_activations[M.ilayer][isubset,:] - origin, \
                               axis=1)
     isort = np.argsort(distance)
@@ -1095,19 +1092,100 @@ def cluster_these_layers_update():
     else:
         cluster_these_layers.options = []
 
+def recordings_update():
+    M.clustered_activations = None
+    if M.dfs:
+        kinds = kinds_touse.value.split(',')
+        labels = labels_touse.value.split(',')
+        wavfiles = set()
+        M.clustered_sounds = []
+        M.clustered_recording2firstsound = {}
+        for df,subdir in zip(M.dfs,M.subdirs):
+            bidx = np.logical_and(np.array(df[3].apply(lambda x: x in kinds)),
+                                  np.array(df[4].apply(lambda x: x in labels)))
+            if any(bidx):
+                M.clustered_sounds.extend(list(df[bidx].apply(lambda x:
+                                                              {"file": os.path.join(subdir,x[0]),
+                                                               "ticks": [x[1],x[2]],
+                                                               "kind": x[3],
+                                                               "label": x[4]},
+                                                              1)))
+                wavfiles |= set(df[bidx].apply(lambda x: os.path.join(subdir,x[0]), 1))
+
+        M.clustered_starts_sorted = [x['ticks'][0] for x in M.clustered_sounds]
+        isort = np.argsort(M.clustered_starts_sorted)
+        M.clustered_sounds = [M.clustered_sounds[x] for x in isort]
+        M.clustered_starts_sorted = [M.clustered_starts_sorted[x] for x in isort]
+        M.clustered_stops = [x['ticks'][1] for x in M.clustered_sounds]
+        M.iclustered_stops_sorted = np.argsort(M.clustered_stops)
+        M.clustered_labels = set([x['label'] for x in M.clustered_sounds])
+        M.cluster_dot_colors = { l:c for l,c in zip(M.clustered_labels,
+                                                    cycle(cluster_dot_palette)) }
+
+        M.species = M.words = M.nohyphens = M.kinds = [""]
+        M.ispecies = M.iwords = M.inohyphens = M.ikinds = 0
+
+        recordings.options = sorted(list(wavfiles))
+        for recording in recordings.options:
+            M.clustered_recording2firstsound[recording] = \
+                  next(filter(lambda x: x[1]['file']==recording, enumerate(M.clustered_sounds)))[0]
+        recordings.options = [""] + recordings.options
+        if recordings.value != "":
+            M.user_changed_recording=False
+        recordings.value = ""
+    else:
+        M.clustered_sounds = None
+        M.clustered_starts_sorted = M.clustered_stops = M.iclustered_stops_sorted = None
+        M.clustered_recording2firstsound = {}
+        recordings.options = []
+
+    M.isnippet = -1
+    M.xcluster = M.ycluster = M.zcluster = np.nan
+    M.xsnippet=M.ysnippet=0
+    snippets_update(True)
+
+    M.layers, M.species, M.words, M.nohyphens, M.kinds = [], [], [], [], []
+    M.ilayer = M.ispecies = M.iword = M.inohyphen = M.ikind = M.nlayers = 0
+
+    which_layer.options = M.layers
+    which_species.options = M.species
+    which_word.options = M.words
+    which_nohyphen.options = M.nohyphens
+    which_kind.options = M.kinds
+
+    circle_radius.disabled=False
+    dot_size.disabled=False
+    dot_alpha.disabled=False
+
+    kwargs = dict(dx=[0,0,0,0,0,0,0,0],
+                  dy=[0,0,0,0,0,0,0,0],
+                  dz=[0,0,0,0,0,0,0,0],
+                  dl=['', '', '', '', '', '', '', ''],
+                  dc=['#ffffff00', '#ffffff00', '#ffffff00', '#ffffff00',
+                      '#ffffff00', '#ffffff00', '#ffffff00', '#ffffff00'])
+    cluster_dots.data.update(**kwargs)
+
+    context_update()
+
 def _groundtruth_update():
-    labelcounts_update()
+    M.dfs, M.subdirs = labelcounts_update()
     cluster_these_layers_update()
+    recordings_update()
     M.save_state_callback()
-    groundtruth_folder_button.button_type="default"
+    recordings.disabled=False
+    recordings.css_classes = []
     groundtruth_folder_button.disabled=True
     buttons_update()
+    M.user_copied_parameters=0
 
 def groundtruth_update():
-    groundtruth_folder_button.button_type="warning"
-    groundtruth_folder_button.disabled=True
-    if bokeh_document: 
-        bokeh_document.add_next_tick_callback(_groundtruth_update)
+    if M.user_copied_parameters<2:
+        M.user_copied_parameters += 1
+        recordings.disabled=True
+        recordings.css_classes = ['changed']
+        groundtruth_folder_button.disabled=True
+        if bokeh_document: 
+            bokeh_document.add_next_tick_callback(_groundtruth_update)
 
 def labels_touse_update_other():
     theselabels_touse = [x.value for x in label_texts if x.value!='']
@@ -1226,9 +1304,10 @@ def file_dialog_update():
     file_dialog_source.data = file_dialog
 
 def labelcounts_update():
+    dfs, subdirs = [], []
     if not os.path.isdir(groundtruth_folder.value):
-        return
-    dfs = []
+        labelcounts.text = ""
+        return dfs, subdirs
     for subdir in filter(lambda x: os.path.isdir(os.path.join(groundtruth_folder.value,x)), \
                          os.listdir(groundtruth_folder.value)):
         for csvfile in filter(lambda x: x.endswith('.csv'), \
@@ -1238,6 +1317,7 @@ def labelcounts_update():
                 df = pd.read_csv(filepath, header=None, index_col=False)
                 if 5<=len(df.columns)<=6:
                     dfs.append(df)
+                    subdirs.append(subdir)
                 else:
                     bokehlog.info("WARNING: "+csvfile+" is not in the correct format")
     if dfs:
@@ -1273,6 +1353,7 @@ def labelcounts_update():
         labelcounts.text = table_str
     else:
         labelcounts.text = ""
+    return dfs, subdirs
 
 async def status_ticker_update():
     deletefailures.disabled=True
@@ -1804,11 +1885,11 @@ def init(_bokeh_document):
     labels_touse_button = Button(label='labels to use:', width=110)
     labels_touse_button.on_click(C.labels_touse_callback)
     labels_touse = TextInput(value=M.state['labels_touse'], title="", disabled=False)
-    labels_touse.on_change('value', lambda a,o,n: C.generic_parameters_callback(n))
+    labels_touse.on_change('value', lambda a,o,n: C.touse_callback(n,labels_touse_button))
 
     kinds_touse_button = Button(label='kinds to use:', width=110)
     kinds_touse = TextInput(value=M.state['kinds_touse'], title="", disabled=False)
-    kinds_touse.on_change('value', lambda a,o,n: C.generic_parameters_callback(n))
+    kinds_touse.on_change('value', lambda a,o,n: C.touse_callback(n,kinds_touse_button))
 
     prevalences_button = Button(label='prevalences:', width=110)
     prevalences_button.on_click(C.prevalences_callback)
@@ -2027,7 +2108,7 @@ def init(_bokeh_document):
     labelcounts = Div(text="",
                       style={'overflow-y':'hidden', 'overflow-x':'scroll',
                              'width':str(M.gui_width_pix-450-1)+'px'})
-    labelcounts_update()
+    groundtruth_update()
 
     wizard_buttons = set([
         labelsounds,

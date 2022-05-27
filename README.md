@@ -17,7 +17,6 @@ Table of Contents
          * [An On-Premise Cluster](#an-on-premise-cluster)
    * [Tutorial](#tutorial)
       * [Detecting Sounds](#detecting-sounds)
-      * [Visualizing Clusters](#visualizing-clusters)
       * [Manually Annotating](#manually-annotating)
       * [Training a Classifier](#training-a-classifier)
       * [Quantifying Accuracy](#quantifying-accuracy)
@@ -546,6 +545,8 @@ one of these as-of-yet unannotated audio recordings.
 First, start SongExplorer's GUI:
 
     $ songexplorer
+    INFO: detected 12 local_ncpu_cores, 1 local_ngpu_cards, 31 local_ngigabytes_memory
+    SongExplorer version: 27 May 2022 b0c7d5b5452c
     arthurb-ws2:5006
     2020-08-09 09:30:02,377 Starting Bokeh server version 2.0.2 (running on Tornado 6.0.4)
     2020-08-09 09:30:02,381 User authentication hooks NOT provided (default user enabled)
@@ -555,10 +556,10 @@ First, start SongExplorer's GUI:
     2020-08-09 09:30:15,054 WebSocket connection opened
     2020-08-09 09:30:15,055 ServerConnection created
 
-Then in your favorite internet browser navigate to the URL on the first line
-printed to the terminal.  In the output above this is "arthurb-ws2:5006", which
-is my computer's name, but for you it will be different.  If that doesn't work,
-try "http://localhost:5006/gui".
+Then in your favorite internet browser navigate to the URL on the line printed
+to the terminal immediately below the version information.  In the output
+above this is "arthurb-ws2:5006", which is my computer's name, but for you
+it will be different.  If that doesn't work, try "http://localhost:5006/gui".
 
 On the left you'll see three empty panels (two large squares side by side and
 three wide rectangles underneath) in which the sound recordings are displayed and
@@ -600,7 +601,9 @@ asynchronously dispatched, and then back to grey.  "DETECT
 PS_20130625111709_ch3.wav (<jobid>)" will appear in the status bar.  It's font
 will initially be grey to indicate that it is pending, then turn black when it
 is running, and finally either blue if it successfully finished or red if it
-failed.
+failed.  Upon success you'll also see the wide pull-down menu to the left
+labelled "recording" briefly turn orange, and below that will appear a table
+showing how many sounds met each criterion.
 
 The result is a file of comma-separated values with the start and stop times
 (in tics) of sounds which exceeded a threshold in either the time or frequency
@@ -622,100 +625,29 @@ domain, plus intervals which did not exceed either.
   PS_20130625111709_ch3.wav,868,2201,detected,neither
 
 
-## Visualizing Clusters ##
-
-To cluster these detected sounds we're going to use the same workflow that we'll
-later use to cluster the hidden state activations of a trained classifier.
-
-Click on the `Train` button to create a randomly initialized network.  Then use
-the `File Browser` to choose directories in which to put the log files (e.g.
-"untrained-classifier") and to find the ground-truth data.  The latter should
-point to a folder one level up in the file hierarchy from the WAV and CSV
-files (i.e. "groundtruth-data" in this case).  Check to make sure that the
-`Label Types` button automatically sets `# steps`, `validate period`, and
-`validation %` to 0, `restore from` to blank, `labels to use` to
-"time,frequency,neither", and `kinds to use` to "detected".  The rest of the
-fields, most of which specify the network architecture, are filled in with
-default values the first time you ever use SongExplorer, and any changes you make
-to them, along with all of the other text fields, are saved to a file named
-"songexplorer.state.yml" in the directory specified by "state_dir" in
-"configuration.pysh".  Now press `DoIt!`.  Output into the log directory are
-"train1.log", "train_1r.log", and "train_1r/".  The former two files contain
-error transcripts should any problems arise, and the latter folder contains
-checkpoint files prefixed with "vgg.ckpt-" which save the weights of the neural
-network at regular intervals.
-
-Use the `Activations` button to save the input to the neural network as well as
-its hidden state activations and output logits by mock-classifying these
-detected sounds with this untrained network.  You'll need to tell it which
-model to use by selecting the last checkpoint file in the untrained
-classifier's log files with the `File Browser` (i.e. one of
-"untrained-classifier/train_1r/vgg.ckpt-0.{index,data\*}" in this case).
-The time and amount of memory this takes depends directly on the number and
-dimensionality of detected sounds.  To limit the problem to a manageable size
-one can use `max samples` to randomly choose a subset of samples to cluster.
-(The `time σ` and `freq ρ` variables can also be used limit how many sound
-events were detected in the first place.)  The `Activations` button also limits
-the relative proportion of each `wanted word` to `equalize ratio`.  In the case
-of "detected" `kinds to use` you'll want to set this to a large number, as it
-does not matter if the number of samples which pass the "time" threshold far
-exceeds the "frequency" threshold, or vice versa.  Output are three files in
-the `Ground Truth` directory: "activations.log", "activations-samples.log", and
-"activations.npz".  The two ending in ".log" report any errors, and the ".npz"
-file contains the actual data in binary format.
-
-Now reduce the dimensionality of the hidden state activations to either two or
-three dimensions with the `Cluster` button.  Choose to do so using either UMAP
-([McInnes, Healy, and Melville (2018)](https://arxiv.org/abs/1802.03426)),
-t-SNE ([van der Maaten and Hinton
-(2008)](http://www.jmlr.org/papers/v9/vandermaaten08a.html)), or PCA.  UMAP and
-t-SNE are each controlled by separate parameters (`neighbors` and `distance`,
-and `perplexity` and `exaggeration` respectively), a description of which can
-be found in the aforementioned articles.  UMAP and t-SNE can also be optionally
-preceded by PCA, in which case you'll need to specify the fraction of
-coefficients to retain using `PCA fraction`.  You'll also need to choose which
-network layer to cluster.  At this point, choose just the input layer.  Output
-are two or three files in the `Ground Truth` directory: "cluster.log" contains
-any errors, "cluster.npz" contains binary data, and "cluster-pca.pdf" shows the
-results of the principal components analysis (PCA) if one was performed.
-
-Finally, click on the `Visualize` button to render the clusters in the
-left-most panel.  Adjust the size and transparency of the markers using the
-`Dot Size` and `Dot Alpha` sliders respectively.  There should be
-some structure to the clusters based on just the raw data alone.  This
-structure will become much more pronounced after a model is trained with
-annotated data.
-
-To browse through your recordings, click on one of the more dense areas and a
-fuchsia circle (or sphere if the clustering was done in 3D) will appear.  In
-the right panel are now displayed snippets of detected waveforms which are
-within that circle.  The size of the circle can be adjusted with the `Circle
-Radius` slider and the number of snippets displayed with `gui_snippet_n{x,y}`
-in "configuration.pysh".  The snippets should exhibit some similarity to one another
-since they are neighbors in the clustered space.  They will each be labeled
-"detected time", "detected frequency", or "detected neither" to indicate which
-threshold criterion they passed and that they were detected (as opposed to
-annotated, predicted, or missed; see below).  The color is the scale bar--
-yellow is loud and purple is quiet.  Clicking on a snippet will show it in
-greater temporal context in the wide panel below.  Pan and zoom with the
-buttons labeled with arrows.  The `Play` button can be used to listen to the
-sound, and if the `Video` button is selected and a movie with the same root
-basename exists alongside the corresponding WAV file, it will be displayed as
-well.
-
 ## Manually Annotating ##
 
-To record a manual annotation, first pick a snippet that contains an
-unambiguous example of a particular word.  Type the word's name into one of the
-text boxes to the right of the pan and zoom controls and hit return to activate
-the corresponding counter to its left.  Hopefully the gray box in the upper
-half of the wide context window nicely demarcates the temporal extent of the
-word.  If so, all you have to do is to double click either the grey box itself,
-or the corresponding snippet above, and it will be extended to the bottom half
-and your chosen label will be applied.  If not, either double-click or
-click-and-drag in the bottom half of the wide context window to create a custom
-time span for a new annotation.  In all cases, annotations can be deleted by
-double clicking any of the gray boxes.
+Now we need to manually curate these heuristically detected sounds into a
+ground truth data set on which to train a classifier.  Pull down on the
+"recording" menu on the far left and select the WAV file in which you
+just detected sounds.  In the panel below, the waveform will be plotted
+along with grey rectangles in the upper half indicating the locations
+of detected sounds.  Pan and zoom through the recording with the buttons
+labeled with arrows below and to the left.  The `Play` button can be used
+to listen to the sound, and if the `Video` button is selected and a movie
+with the same root basename exists alongside the corresponding WAV file,
+it will be displayed as well.  To record a manual annotation, first pick a
+sound that is an unambiguous example of a particular word.  Type the word's
+name into one of the text boxes to the right of the pan and zoom controls and
+hit return to activate the corresponding counter to its left.  Hopefully the
+chosen sounds was detected and the corresponding gray box in the upper half
+of the context window nicely demarcates the temporal extent of the word.
+If so, all you have to do is to double click the grey box itself and it
+will be extended to the bottom half and your chosen label will be applied.
+If not, either double-click or click-and-drag in the bottom half of the
+context window to create a custom time span for a new annotation.  In all
+cases, annotations can be deleted by double clicking any of the gray boxes,
+or clicking on the "undo" button above.
 
 For this tutorial, choose the words "mel-pulse", "mel-sine", "ambient", and
 "other".  We use the syntax "A-B" here, where A is the species (mel
@@ -728,7 +660,7 @@ groups of words that share a common prefix or suffix.
 
 Once you have a few tens of examples for each word, it's time to train a
 classifier and make some predictions.  First, confirm that the annotations you
-just made were saved into an "-annotated.csv" file in the `Ground Truth` folder.
+just made were saved into an "-annotated.csv" file in the "groundtruth/" folder.
 
     $ tree groundtruth-data
     groundtruth-data
@@ -750,35 +682,48 @@ just made were saved into an "-annotated.csv" file in the `Ground Truth` folder.
     PS_20130625111709_ch3.wav,471839,471839,annotated,mel-pulse
     PS_20130625111709_ch3.wav,492342,498579,annotated,ambient
 
-Click on the `Make Predictions` button to disable the irrelevant actions and
-fields.  Now train a classifier on your annotations using the `Train` button.
-Choose a `Logs Folder` as before (e.g. "trained-classifier1").  One hundred
-steps suffices for this amount of ground truth.  So we can accurately monitor
-the progress, withhold 40% of the annotations to validate on, and do so every
-10 steps.  Enter these values into the `# steps`, `validate %`, and `validate
-period` variables.  You'll also need to change the `labels to use` variable to
-"mel-pulse,mel-sine,ambient,other", and `kinds to use` to "annotated" so that it
-will ignore the detected annotations in the `Ground Truth` directory.  Note that
-the total number of annotations must exceed the size of the mini-batches,
-which is specified by the `mini-batch` variable.
+Click on the `Make Predictions` button to disable the irrelevant actions
+and fields, and then the `Train` button.  Using the `File Browser`, set
+`Logs Folder` to a directory in which to put the trained model (e.g.
+"trained-classifier1") and `Ground Truth` to the folder one level up in
+the file hierarchy from the WAV and CSV files (i.e. "groundtruth-data" in
+this case).  One hundred steps suffices for this amount of ground truth.
+So we can accurately monitor the progress, withhold 40% of the annotations
+to validate on, and do so every 10 steps.  Enter these values into the
+`# steps`, `validate %`, and `validate period` variables.  Check that the
+`labels to use` variable is set to "mel-pulse,mel-sine,ambient,other", and
+`kinds to use` is "annotated" so that SongExplorer will ignore the detected
+annotations in the `Ground Truth` directory.  Note that the total number of
+annotations must exceed the size of the mini-batches, which is specified by
+the `mini-batch` variable.  The rest of the fields, most of which specify
+the network architecture, are filled in with default values the first time
+you ever use SongExplorer, and any changes you make to them, along with all
+of the other text fields, are saved to a file named "songexplorer.state.yml"
+in the directory specified by "state_dir" in "configuration.pysh".
+
+Now press `DoIt!`.  Output into the log directory are "train1.log",
+"train_1r.log", and "train_1r/".  The former two files contain error
+transcripts should any problems arise, and the latter folder contains
+checkpoint files prefixed with "ckpt-" which save the weights of the neural
+network at regular intervals.
 
 With small data sets the network should just take a minute or so to train.
 As your example set grows, you might want to monitor the training progress
 as it goes:
 
     $ watch tail trained-classifier1/train_1r.log
-    Every 2.0s: tail trained-classifier1/train_1.log      Mon Apr 22 14:37:31 2019
+    Every 2.0s: tail trained-classifier1/train_1.log      Fri Jun 3 14:37:31 2022
 
-    INFO:tensorflow:Elapsed 39.697532, Step #9: accuracy 75.8%, cross entropy 0.947476
-    INFO:tensorflow:Elapsed 43.414184, Step #10: accuracy 84.4%, cross entropy 0.871244
-    INFO:tensorflow:Saving to "/home/arthurb/songexplorer/trained-classifier1/train_1k/vgg.ckpt-10"
-    INFO:tensorflow:Confusion Matrix:
+    39.697532,9,75.8,0.947476
+    43.414184,10,84.4,0.871244
+    Saving to "/home/arthurb/songexplorer/trained-classifier1/train_1k/ckpt-10"
+    Confusion Matrix:
      ['mel-pulse', 'mel-sine', 'ambient']
      [[26  9  9]
      [ 0  4  0]
      [ 0  0  4]]
-    INFO:tensorflow:Elapsed 45.067488, Step 10: Validation accuracy = 65.4% (N=52)
-    INFO:tensorflow:Elapsed 48.786851, Step #11: accuracy 79.7%, cross entropy 0.811077
+    45.067488,10,65.4 Validation 
+    48.786851,11,79.7,0.811077
 
 It is common for the accuracy, as measured on the withheld data and reported as
 "Validation accuracy" in the log file above, to be worse than the training
@@ -886,15 +831,16 @@ First let's get some more data bundled with SongExplorer into your home director
     $ $SONGEXPLORER_BIN cp /opt/songexplorer/data/20161207T102314_ch1.wav \
             $PWD/groundtruth-data/round2
 
-Use the `Freeze` button to save the classifier's neural network graph structure
-and weight parameters into the file format that TensorFlow needs for inference.
-You'll need to choose a checkpoint to use with the File Browser as you did
-before when saving the activations (i.e. one of
-"trained-classifier1/train_1r/vgg.ckpt-100.{index,data\*}" in this case).
-Output into the log files directory are "freeze.ckpt-\*.log" and
-"frozen-graph.ckpt-\*.log" files for errors, and a "frozen-graph.ckpt-\*.pb/" folder
-containing the binary data.  This latter PB folder, or the "saved_model.pb" file
-therein, can in future be chosen as the model instead of a checkpoint file.
+Use the `Freeze` button to save the classifier's neural network graph
+structure and weight parameters into the file format that TensorFlow needs
+for inference.  You'll need to tell it which model to use by selecting the
+last checkpoint file in the classifier's log files with the `File Browser`
+(i.e. one of "trained-classifier1/train_1r/ckpt-100.{index,data\*}" in
+this case).  Output into the log files directory are "freeze.ckpt-\*.log" and
+"frozen-graph.ckpt-\*.log" files for errors, and a "frozen-graph.ckpt-\*.pb/"
+folder containing the binary data.  This latter PB folder, or the
+"saved_model.pb" file therein, can in future be chosen as the model instead
+of a checkpoint file.
 
 Now use the `Classify` button to generate probabilities over time for each
 annotated label.  Specify which recordings using the `File Browser` and the `WAV
@@ -951,25 +897,66 @@ Higher thresholds result in fewer false positives and more false negatives.
 A precision-recall ratio of one means these two types of errors occur at
 equal rates.  Your experimental design drives this choice.
 
-Let's manually check whether our classifier in hand accurately calls sounds
-using these thresholds.  First, click on the `Fix False Positives` button.
-Double check that the `kinds to use` variable was auto-populated with
-"annotated,predicted".  Not having "detected" in this field ensures that
-"detected.csv" files in the `Ground Truth` folder are ignored.  Finally, cluster
-and visualize the neural network's hidden state activations as we did before
-using the `Activations`, `Cluster`, and `Visualize` buttons.  This time though
-choose to cluster just the last hidden layer.  So that words with few samples
-are not obscured by those with many, randomly subsample the latter by setting
-`equalize ratio` to a small integer when saving the hidden state activations.
+Let's manually check whether our classifier in hand accurately
+calls sounds using these thresholds.  First, click on the `Fix False
+Positives` button.  Double check that the `kinds to use` variable
+was auto-populated with "annotated,predicted".
+
+Use the `Activations` button to save the input to the neural network as
+well as its hidden state activations and output logits by classifying the
+predicted sounds with the trained network.  The time and amount of memory
+this takes depends directly on the number and dimensionality of detected
+sounds.  To limit the problem to a manageable size one can use `max samples`
+to randomly choose a subset of samples to cluster.  So that words with few
+samples are not obscured by those with many, one can randomly subsample the
+latter by setting `equalize ratio` to a small integer.  Output are three files
+in the `Ground Truth` directory: "activations.log", "activations-samples.log",
+and "activations.npz".  The two ending in ".log" report any errors, and the
+".npz" file contains the actual data in binary format.
+
+Now reduce the dimensionality of the hidden state activations
+to either two or three dimensions with the `Cluster` button.
+Choose to do so using either UMAP ([McInnes, Healy, and Melville
+(2018)](https://arxiv.org/abs/1802.03426)), t-SNE ([van der Maaten and
+Hinton (2008)](http://www.jmlr.org/papers/v9/vandermaaten08a.html)), or PCA.
+UMAP and t-SNE are each controlled by separate parameters (`neighbors` and
+`distance`, and `perplexity` and `exaggeration` respectively), a description
+of which can be found in the aforementioned articles.  UMAP and t-SNE can
+also be optionally preceded by PCA, in which case you'll need to specify
+the fraction of coefficients to retain using `PCA fraction`.  You'll also
+need to choose to cluster just the last hidden layer using the "layers"
+multi-select box.  Output are two or three files in the `Ground Truth`
+directory: "cluster.log" contains any errors, "cluster.npz" contains binary
+data, and "cluster-pca.pdf" shows the results of the principal components
+analysis (PCA) if one was performed.
+
+Finally, click on the `Visualize` button to render the clusters in the
+left-most panel.  Adjust the size and transparency of the markers using
+the `Dot Size` and `Dot Alpha` sliders respectively.  There should be some
+structure to the clusters even at this early stage of annotation.
+
+To browse through your recordings, click on one of the more dense areas and
+a fuchsia circle (or sphere if the clustering was done in 3D) will appear.
+In the right panel are now displayed snippets of detected waveforms which are
+within that circle.  The size of the circle can be adjusted with the `Circle
+Radius` slider and the number of snippets displayed with `gui_snippet_n{x,y}`
+in "configuration.pysh".  The snippets should exhibit some similarity to one
+another since they are neighbors in the clustered space.  They will each be
+labeled "predicted mel-pulse", "predicted mel-sine", or "predicted ambient"
+to indicate which threshold criterion they passed and that they were detected
+(as opposed to annotated, detected, or missed; see below).  The color is
+the scale bar-- yellow is loud and purple is quiet.  Clicking on a snippet
+will show it in greater temporal context in the wide context panel below.
 
 Now let's correct the mistakes!  Select `predicted` and `ambient` from the
-`kind` and `no hyphen` pull-down menus, respectively, and then click on a dense
-part of the density map.  Optionally adjust the `dot size`, `dot alpha`, and
-`circle radius` sliders.  Were the classifier perfect, all the snippets now
-displayed would look like background noise.  Click on the ones that don't and
-manually annotate them appropriately.  Similarly select `mel-` and `-pulse`
-from the `species` and `word` pull-down menus and correct any mistakes, and
-then `mel-` and `-sine`.
+`kind` and `no hyphen` pull-down menus, respectively, and then click on
+a dense part of the cluster plot.  Were the classifier perfect, all the
+snippets now displayed would look like background noise.  Click on the ones
+that don't and manually annotate them appropriately as before.  One can
+also simply double click on the snippet to create a new annotation, and
+double-click it again to change your mind.  Similarly select `mel-` and
+`-pulse` from the `species` and `word` pull-down menus and correct any
+mistakes, and then `mel-` and `-sine`.
 
 Keep in mind that the only words which show up in the clusters are those that
 exceed the chosen threshold.  Any mistakes you find in the snippets are hence

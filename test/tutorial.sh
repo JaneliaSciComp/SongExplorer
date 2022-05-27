@@ -50,97 +50,28 @@ count_lines_with_label ${wavpath_noext}-detected.csv time 536 ERROR
 count_lines_with_label ${wavpath_noext}-detected.csv frequency 45 ERROR
 count_lines_with_label ${wavpath_noext}-detected.csv neither 1635 ERROR
 
+cp $repo_path/data/PS_20130625111709_ch3-annotated-person1.csv \
+   $repo_path/test/scratch/tutorial-sh/groundtruth-data/round1
+
 context_ms=204.8
 shiftby_ms=0.0
 optimizer=Adam
 learning_rate=0.0002
 architecture=convolutional
 model_parameters='{"representation":"mel-cepstrum", "window_ms":"6.4", "stride_ms":"1.6", "mel_dct":"7,7", "dropout_kind": "unit", "dropout_rate": "50", "augment_volume": "1,1", "augment_noise": "0,0", "normalization": "none", "ngroups": "1,1", "kernel_sizes": "5x5,3", "nconvlayers": "2", "denselayers":"", "nfeatures": "64,64", "dilate_after_layer": "256,256", "stride_after_layer": "256,256", "connection_type": "plain"}'
-logdir=$repo_path/test/scratch/tutorial-sh/untrained-classifier
+logdir=$repo_path/test/scratch/tutorial-sh/trained-classifier1
 data_dir=$repo_path/test/scratch/tutorial-sh/groundtruth-data
-labels_touse=time,frequency
-kinds_touse=detected
-nsteps=0
+labels_touse=mel-pulse,mel-sine,ambient
+kinds_touse=annotated
+nsteps=300
 restore_from=''
-save_and_test_period=0
-validation_percentage=0
+save_and_test_period=30
+validation_percentage=40
 mini_batch=32
 testing_files=''
 batch_seed=1
 weights_seed=1
 ireplicates=1
-mkdir $logdir
-train.py \
-      $context_ms $shiftby_ms \
-      $optimizer $learning_rate \
-      $data_loader_queuesize $data_loader_maxprocs \
-      $architecture "$model_parameters" \
-      $logdir $data_dir $labels_touse $kinds_touse \
-      $nsteps "$restore_from" $save_and_test_period $validation_percentage \
-      $mini_batch "$testing_files" \
-      $audio_tic_rate $audio_nchannels \
-      $batch_seed $weights_seed $deterministic \
-      $ireplicates \
-      &>> $logdir/train1.log
-
-check_file_exists $logdir/train1.log
-check_file_exists $logdir/train_1r.log
-check_file_exists $logdir/train_1r/ckpt-$nsteps.index
-
-check_point=$nsteps
-equalize_ratio=1000
-max_sounds=10000
-activations.py \
-      --context_ms=$context_ms \
-      --shiftby_ms=$shiftby_ms \
-      --data_loader_queuesize=$data_loader_queuesize \
-      --data_loader_maxprocs=$data_loader_maxprocs \
-      --model_architecture=$architecture \
-      --model_parameters="$model_parameters" \
-      --start_checkpoint=$logdir/train_${ireplicates}r/ckpt-$check_point \
-      --data_dir=$data_dir \
-      --labels_touse=$labels_touse \
-      --kinds_touse=$kinds_touse \
-      --testing_equalize_ratio=$equalize_ratio \
-      --testing_max_sounds=$max_sounds \
-      --batch_size=$mini_batch \
-      --audio_tic_rate=$audio_tic_rate \
-      --nchannels=$audio_nchannels \
-      --validation_percentage=0.0 \
-      --validation_offset_percentage=0.0 \
-      --deterministic=$deterministic \
-      --save_activations=True \
-      &>> $data_dir/activations.log
-
-check_file_exists $data_dir/activations.log
-check_file_exists $data_dir/activations.npz
-
-groundtruth_directory=$data_dir
-these_layers=0
-pca_fraction_variance_to_retain=0.99
-pca_batch_size=0
-cluster_algorithm=tSNE
-cluster_ndims=2
-cluster_args=(30 12)
-cluster.py \
-      $groundtruth_directory $these_layers \
-      $pca_fraction_variance_to_retain $pca_batch_size \
-      $cluster_algorithm $cluster_ndims $cluster_parallelize ${cluster_args[@]} \
-      &>> $data_dir/cluster.log
-
-check_file_exists $data_dir/cluster.log
-check_file_exists $data_dir/cluster.npz
-check_file_exists $data_dir/cluster-pca.pdf
-
-cp $repo_path/data/PS_20130625111709_ch3-annotated-person1.csv \
-   $repo_path/test/scratch/tutorial-sh/groundtruth-data/round1
-
-logdir=$repo_path/test/scratch/tutorial-sh/trained-classifier1
-labels_touse=mel-pulse,mel-sine,ambient
-kinds_touse=annotated
-nsteps=300
-save_and_test_period=30
-validation_percentage=40
 mkdir $logdir
 train.py \
       $context_ms $shiftby_ms \
@@ -246,10 +177,8 @@ check_file_exists ${wavpath_noext}-misses.log
 check_file_exists ${wavpath_noext}-missed.csv
 count_lines_with_label ${wavpath_noext}-missed.csv other 1569 WARNING
 
-mkdir $data_dir/round1/cluster
-mv $data_dir/{activations,cluster}* $data_dir/round1/cluster
-
 model=train_${ireplicates}r
+check_point=$nsteps
 kinds_touse=annotated,missed
 equalize_ratio=1000
 max_sounds=10000

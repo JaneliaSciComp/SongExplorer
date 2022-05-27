@@ -230,23 +230,25 @@ probablity_span_red.location = parseFloat(cb_obj.value)
 """
 
 def _recordings_callback(n):
-    if n=="":
-        isound = -1
-        M.xcluster = M.ycluster = M.zcluster = np.nan
+    if M.clustered_activations is None:
+        M.isnippet = -1 if n=="" else M.clustered_recording2firstsound[V.recordings.value]
     else:
-        isound = M.clustered_recording2firstsound[V.recordings.value]
-        coordinates = M.clustered_activations[M.ilayer][isound,:]
-        M.xcluster, M.ycluster = coordinates[0], coordinates[1]
-        if M.ndcluster==3:
-            M.zcluster = coordinates[2]
-    V.cluster_circle_fuchsia.data.update(cx=[M.xcluster],
-                                         cy=[M.ycluster],
-                                         cz=[M.zcluster],
-                                         cr=[M.state["circle_radius"]],
-                                         cc=[M.cluster_circle_color])
-    M.isnippet = isound
-    M.xsnippet=M.ysnippet=0
-    V.snippets_update(True)
+        if n=="":
+            M.isnippet = -1
+            M.xcluster = M.ycluster = M.zcluster = np.nan
+        else:
+            M.isnippet = M.clustered_recording2firstsound[V.recordings.value]
+            coordinates = M.clustered_activations[M.ilayer][M.isnippet,:]
+            M.xcluster, M.ycluster = coordinates[0], coordinates[1]
+            if M.ndcluster==3:
+                M.zcluster = coordinates[2]
+        V.cluster_circle_fuchsia.data.update(cx=[M.xcluster],
+                                             cy=[M.ycluster],
+                                             cz=[M.zcluster],
+                                             cr=[M.state["circle_radius"]],
+                                             cc=[M.cluster_circle_color])
+        M.xsnippet = M.ysnippet = 0
+        V.snippets_update(True)
     V.context_update()
     V.recordings.disabled=False
     V.recordings.css_classes = []
@@ -387,7 +389,7 @@ def waveform_tap_callback(event):
     if event.sy<0 or len(isounds_shortest)==0:
         M.context_waveform_low = [-1]*M.audio_nchannels
         M.context_waveform_high = [1]*M.audio_nchannels
-    else:
+    elif M.clustered_activations is not None:
         coordinates = M.clustered_activations[M.ilayer][isounds_shortest[0],:]
         M.xcluster, M.ycluster = coordinates[0], coordinates[1]
         if M.ndcluster==3:
@@ -397,6 +399,7 @@ def waveform_tap_callback(event):
                                              cz=[M.zcluster],
                                              cr=[M.state["circle_radius"]],
                                              cc=[M.cluster_circle_color])
+        M.xsnippet = M.ysnippet = 0
         M.isnippet = isounds_shortest[0]
         V.snippets_update(True)
     V.context_update()
@@ -499,27 +502,32 @@ def allright_callback():
 
 def _label_callback(inequality_fun, idx, button):
     tapped_start = M.clustered_sounds[M.isnippet]['ticks'][0]
-    snippets = np.nonzero([inequality_fun(x['ticks'][0], tapped_start) and
-                           V.recordings.value == x['file'] and
-                           M.species[M.ispecies] in x['label'] and
-                           M.words[M.iword] in x['label'] and
-                           (M.nohyphens[M.inohyphen]=="" or \
-                            M.nohyphens[M.inohyphen]==x['label']) and
-                           (M.kinds[M.ikind]=="" or \
-                            M.kinds[M.ikind]==x['kind']) for x in M.clustered_sounds])[0]
+    if M.clustered_activations is not None:
+        snippets = np.nonzero([inequality_fun(x['ticks'][0], tapped_start) and
+                               V.recordings.value == x['file'] and
+                               M.species[M.ispecies] in x['label'] and
+                               M.words[M.iword] in x['label'] and
+                               (M.nohyphens[M.inohyphen]=="" or \
+                                M.nohyphens[M.inohyphen]==x['label']) and
+                               (M.kinds[M.ikind]=="" or \
+                                M.kinds[M.ikind]==x['kind']) for x in M.clustered_sounds])[0]
+    else:
+        snippets = np.nonzero([inequality_fun(x['ticks'][0], tapped_start) and
+                               V.recordings.value == x['file'] for x in M.clustered_sounds])[0]
     if len(snippets)>0:
         M.isnippet = snippets[idx]
-        M.xcluster = M.clustered_activations[M.ilayer][M.isnippet,0]
-        M.ycluster = M.clustered_activations[M.ilayer][M.isnippet,1]
-        if M.ndcluster==3:
-            M.zcluster = M.clustered_activations[M.ilayer][M.isnippet,2]
-        V.cluster_circle_fuchsia.data.update(cx=[M.xcluster],
-                                             cy=[M.ycluster],
-                                             cz=[M.zcluster],
-                                             cr=[M.state["circle_radius"]],
-                                             cc=[M.cluster_circle_color])
-        M.xsnippet=M.ysnippet=0
-        V.snippets_update(True)
+        if M.clustered_activations is not None:
+            M.xcluster = M.clustered_activations[M.ilayer][M.isnippet,0]
+            M.ycluster = M.clustered_activations[M.ilayer][M.isnippet,1]
+            if M.ndcluster==3:
+                M.zcluster = M.clustered_activations[M.ilayer][M.isnippet,2]
+            V.cluster_circle_fuchsia.data.update(cx=[M.xcluster],
+                                                 cy=[M.ycluster],
+                                                 cz=[M.zcluster],
+                                                 cr=[M.state["circle_radius"]],
+                                                 cc=[M.cluster_circle_color])
+            M.xsnippet = M.ysnippet = 0
+            V.snippets_update(True)
         V.context_update()
     button.button_type="default"
  
@@ -538,6 +546,27 @@ def nextlabel_callback():
 def lastlabel_callback():
     V.lastlabel.button_type="warning"
     bokeh_document.add_next_tick_callback(lambda: _label_callback(operator.gt, -1, V.lastlabel))
+
+def _touse_callback(n,button):
+    if ' ' in n:
+        bokehlog.info('ERROR: textboxes should not contain spaces')
+    V.recordings_update()
+    M.save_state_callback()
+    V.recordings.disabled=False
+    V.recordings.css_classes = []
+    button.disabled=False
+    M.user_copied_parameters=0
+
+def touse_callback(n,button):
+    if M.user_copied_parameters<2:
+        M.user_copied_parameters += 1
+        V.recordings.disabled=True
+        V.recordings.css_classes = ['changed']
+        button.disabled=True
+        if bokeh_document:
+            bokeh_document.add_next_tick_callback(lambda: _touse_callback(n,button))
+        else:
+            _touse_callback(n,button)
 
 spectrogram_mousewheel_last_change = time.time()
 
@@ -1984,6 +2013,7 @@ def _copy_callback():
 def copy_callback():
     V.copy.button_type="warning"
     V.copy.disabled=True
+    M.user_copied_parameters=1
     bokeh_document.add_next_tick_callback(_copy_callback)
 
 def wizard_callback(wizard):
