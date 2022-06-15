@@ -927,12 +927,16 @@ def context_update():
                     range(iright, len(M.iclustered_stops_sorted))])
 
             tapped_wav_in_view = False
+            M.remaining_isounds = []
             for isound in sounds_to_plot:
                 if tapped_sound['file']!=M.clustered_sounds[isound]['file']:
                     continue
                 L = np.max([istart, M.clustered_sounds[isound]['ticks'][0]])
                 R = np.min([istart+M.context_width_tic,
                             M.clustered_sounds[isound]['ticks'][1]])
+                if L>istart and R<istart+M.context_width_tic and \
+                        M.clustered_sounds[isound]['label'] in M.state['labels']:
+                    M.remaining_isounds.append(isound)
                 xlabel_clustered.append((L+R)/2/M.audio_tic_rate)
                 tlabel_clustered.append(M.clustered_sounds[isound]['kind']+'\n'+\
                               M.clustered_sounds[isound]['label'])
@@ -950,6 +954,12 @@ def context_update():
                                                              top=[len(M.context_spectrogram)],
                                                              bottom=[len(M.context_spectrogram)/2])
                     tapped_wav_in_view = True
+
+            M.remaining_isounds = [i for i in M.remaining_isounds \
+                                   if all([i==j or \
+                                           M.clustered_sounds[i]['ticks'][0] > M.clustered_sounds[j]['ticks'][1] or \
+                                           M.clustered_sounds[i]['ticks'][1] < M.clustered_sounds[j]['ticks'][0] \
+                                           for j in M.remaining_isounds])]
 
             if M.context_waveform:
                 waveform_span_red.location=xwav0
@@ -976,6 +986,11 @@ def context_update():
                 for isound in sounds_to_plot:
                     if tapped_sound['file']!=M.annotated_sounds[isound]['file']:
                         continue
+
+                    M.remaining_isounds = [i for i in M.remaining_isounds \
+                                           if M.annotated_sounds[isound]['ticks'][0] > M.clustered_sounds[i]['ticks'][1] or \
+                                              M.annotated_sounds[isound]['ticks'][1] < M.clustered_sounds[i]['ticks'][0]]
+                        
                     L = np.max([istart, M.annotated_sounds[isound]['ticks'][0]])
                     R = np.min([istart+M.context_width_tic,
                                 M.annotated_sounds[isound]['ticks'][1]])
@@ -1066,6 +1081,9 @@ def context_update():
         spectrogram_label_source_annotated.data.update(x=xlabel_annotated,
                                                        y=[0]*len(xlabel_annotated),
                                                        text=tlabel_annotated)
+
+    if M.remaining_isounds:
+        remaining.disabled=False
 
 def save_update(n):
     save_indicator.label=str(n)
@@ -1212,7 +1230,7 @@ def buttons_update():
         model_file_button.label='pb folder:'
     elif M.action == ethogram:
         model_file_button.label='threshold file:'
-    elif M.action == ensemble:
+    elif M.action == ensemble or M.action == freeze:
         model_file_button.label='checkpoint file(s):'
     else:
         model_file_button.label='checkpoint file:'
@@ -1390,7 +1408,7 @@ def init(_bokeh_document):
     global zoom_context, zoom_offset, zoomin, zoomout, reset, panleft, panright, allleft, allout, allright, firstlabel, nextlabel, prevlabel, lastlabel
     global save_indicator, nsounds_per_label_buttons, label_texts
     global load_multimedia, play, video_slider, load_multimedia_callback, play_callback, video_slider_callback, video_toggle, video_div
-    global undo, redo
+    global undo, redo, remaining
     global recordings
     global detect, misses, train, leaveoneout, leaveallout, xvalidate, mistakes, activations, cluster, visualize, accuracy, freeze, ensemble, classify, ethogram, compare, congruence
     global status_ticker, waitfor, deletefailures
@@ -1772,6 +1790,9 @@ def init(_bokeh_document):
 
     redo = Button(label='redo', disabled=True)
     redo.on_click(C.redo_callback)
+
+    remaining = Button(label='add remaining', disabled=True)
+    remaining.on_click(C.remaining_callback)
 
     recordings = Select(title="recording:", height=50)
     recordings.on_change('value', C.recordings_callback)

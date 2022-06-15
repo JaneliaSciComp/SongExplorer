@@ -771,6 +771,24 @@ def redo_callback():
         else:
             _redo_callback()
 
+def remaining_callback():
+    for isound in M.remaining_isounds:
+        thissound = M.clustered_sounds[isound].copy()
+        thissound.pop('kind', None)
+        idx = np.searchsorted(M.annotated_starts_sorted, thissound['ticks'][0])
+        M.annotated_sounds.insert(idx, thissound.copy())
+        M.annotated_starts_sorted = [x['ticks'][0] for x in M.annotated_sounds]
+        if thissound['label'] in M.state['labels']:
+            thislabel = M.state['labels'].index(thissound['label'])
+            count = int(V.nsounds_per_label_buttons[thislabel].label)
+            V.nsounds_per_label_buttons[thislabel].label = str(count+1)
+
+    M.annotated_stops = [x['ticks'][1] for x in M.annotated_sounds]
+    M.iannotated_stops_sorted = np.argsort(M.annotated_stops)
+    M.nrecent_annotations+=1
+    V.save_update(M.nrecent_annotations)
+    V.context_update()
+
 def action_callback(thisaction, thisactuate):
     M.action=None if M.action is thisaction else thisaction
     M.function=thisactuate
