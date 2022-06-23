@@ -24,7 +24,7 @@ count_lines() {
   (( "$count" == "$2" )) && return
   echo ERROR: $1 has $count lines when it should have $2; }
 
-repo_path=$(dirname $(dirname $(which train.py)))
+repo_path=$(dirname $(dirname $(which songexplorer)))
 
 mkdir -p $repo_path/test/scratch/tutorial-sh
 cp $repo_path/configuration.pysh $repo_path/test/scratch/tutorial-sh

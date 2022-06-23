@@ -65,7 +65,7 @@ if __name__ == '__main__':
     import json
     import shutil
 
-    repodir = os.path.dirname(os.path.dirname(os.path.realpath(shutil.which("gui.sh"))))
+    repodir = os.path.dirname(os.path.dirname(os.path.realpath(shutil.which("songexplorer"))))
 
     sys.path.append(os.path.join(repodir, "src"))
     from lib import *

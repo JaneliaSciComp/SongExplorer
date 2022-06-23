@@ -185,7 +185,7 @@ Put these definitions in your .bashrc (or .zshrc file on Mac OS Catalina and new
 
     export SONGEXPLORER_BIN="singularity exec [--nv] [-B <disk-drive>] \
         [--vm-cpu] [--vm-ram] <path-to-songexplorer_latest.sif>"
-    alias songexplorer="$SONGEXPLORER_BIN gui.sh <path-to-configuration.pysh> 5006"
+    alias songexplorer="$SONGEXPLORER_BIN songexplorer <path-to-configuration.pysh> 5006"
 
 Add to the SONGEXPLORER_BIN export any directories you want to access using the
 `-B` flag (e.g. `singularity exec -B /my/home/directory ...`).
@@ -233,7 +233,7 @@ and newer) file:
     alias songexplorer="docker run \
         [-v <disk-drive>] [-u <userid>] [-w <working-directory] \
         -e SONGEXPLORER_BIN -h=`hostname` -p 5006:5006 \
-        bjarthur/songexplorer gui.sh <path-to-configuration.pysh> 5006"
+        bjarthur/songexplorer songexplorer <path-to-configuration.pysh> 5006"
 
 Add to these definitions any directories you want to access using the `-v`
 flag.  You might also need to use the `-u` flag to specify your username
@@ -1783,7 +1783,7 @@ parameter in "configuration.pysh".  For examples, see "src/same-basename.py"
 # Troubleshooting #
 
 * Sometimes using control-C to quit out of SongExplorer does not work.  In this
-case, kill it with `ps auxc | grep -E '(gui.sh|bokeh)'` and then `kill -9
+case, kill it with `ps auxc | grep -E '(songexplorer|bokeh)'` and then `kill -9
 <pid>`.  Errant jobs can be killed similarly.
 
 

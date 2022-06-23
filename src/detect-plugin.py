@@ -50,7 +50,7 @@ if __name__ == '__main__':
     from datetime import datetime
     import shutil
 
-    repodir = os.path.dirname(os.path.dirname(os.path.realpath(shutil.which("gui.sh"))))
+    repodir = os.path.dirname(os.path.dirname(os.path.realpath(shutil.which("songexplorer"))))
 
     print(str(datetime.now())+": start time")
     with open(os.path.join(repodir, "VERSION.txt"), 'r') as fid:

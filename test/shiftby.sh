@@ -4,7 +4,7 @@
 
 #${SONGEXPLORER_BIN/-B/-B /tmp:/opt/songexplorer/test/scratch -B} bash -c "test/shiftby.sh"
 
-repo_path=$(dirname $(dirname $(which train.py)))
+repo_path=$(dirname $(dirname $(which songexplorer)))
 
 mkdir -p $repo_path/test/scratch/shiftby
 cp $repo_path/configuration.pysh $repo_path/test/scratch/shiftby
