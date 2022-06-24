@@ -191,7 +191,22 @@ class AudioProcessor(object):
           continue
         wav_path=os.path.join(os.path.dirname(csv_path),wavfile)
         wav_base2=os.path.join(os.path.basename(os.path.dirname(csv_path)), wavfile)
-        if label in subsample and iannotation % subsample[label] != 0:
+        if wavfile in validation_files:
+          set_index = 'validation'
+        elif wavfile in testing_files:
+          set_index = 'testing'
+        elif label in partition_labels:
+          if wavfile in partition_validation_files:
+            set_index = 'validation'
+          elif wavfile in partition_training_files:
+            set_index = 'training'
+          else:
+            continue
+        else:
+          set_index = which_set(annotation[0]+annotation[1]+annotation[2],
+                                validation_percentage, validation_offset_percentage, \
+                                testing_percentage)
+        if label in subsample and iannotation % subsample[label] != 0 and set_index=='training':
           continue
         if label in partition_labels:
           if wavfile not in partition_training_files and \
@@ -246,21 +261,6 @@ class AudioProcessor(object):
              ticks[1] > video_nframes[wav_path] / video_frame_rate * model_settings['audio_tic_rate'] - context_tics//2 + shiftby_tics:
             continue
         all_labels[label] = True
-        if wavfile in validation_files:
-          set_index = 'validation'
-        elif wavfile in testing_files:
-          set_index = 'testing'
-        elif label in partition_labels:
-          if wavfile in partition_validation_files:
-            set_index = 'validation'
-          elif wavfile in partition_training_files:
-            set_index = 'training'
-          else:
-            continue
-        else:
-          set_index = which_set(annotation[0]+annotation[1]+annotation[2],
-                                validation_percentage, validation_offset_percentage, \
-                                testing_percentage)
         # If it's a known class, store its detail
         if label in labels_touse_index:
           self.data_index[set_index].append({'label': label,
