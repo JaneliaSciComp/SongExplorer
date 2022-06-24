@@ -76,12 +76,14 @@ mkdir $logdir
 train.py \
       $context_ms $shiftby_ms \
       $optimizer $learning_rate  \
+      $video_findfile_plugin $video_bkg_frames \
       $data_loader_queuesize $data_loader_maxprocs \
       $architecture "$model_parameters" \
       $logdir $data_dir $labels_touse $kinds_touse \
       $nsteps "$restore_from" $save_and_test_period $validation_percentage \
       $mini_batch "$testing_files" \
       $audio_tic_rate $audio_nchannels \
+      $video_frame_rate $video_frame_width $video_frame_height $video_channels \
       $batch_seed $weights_seed $deterministic \
       $ireplicates \
       &>> $logdir/train1.log
@@ -117,7 +119,11 @@ freeze.py \
       --labels_touse=$labels_touse \
       --parallelize=$classify_parallelize \
       --audio_tic_rate=$audio_tic_rate \
-      --nchannels=$audio_nchannels \
+      --audio_nchannels=$audio_nchannels \
+      --video_frame_rate=$video_frame_rate \
+      --video_frame_height=$video_frame_height \
+      --video_frame_width=$video_frame_width \
+      --video_channels=$video_channels \
       &>> $logdir/train_${ireplicates}r/freeze.ckpt-${check_point}.log
 
 check_file_exists $logdir/train_${ireplicates}r/freeze.ckpt-${check_point}.log
@@ -135,6 +141,12 @@ classify.py \
       --model_labels=$logdir/train_${ireplicates}r/labels.txt \
       --wav=${wavpath_noext}.wav \
       --parallelize=$classify_parallelize \
+      --audio_tic_rate=$audio_tic_rate \
+      --audio_nchannels=$audio_nchannels \
+      --video_frame_rate=$video_frame_rate \
+      --video_frame_height=$video_frame_height \
+      --video_frame_width=$video_frame_width \
+      --video_channels=$video_channels \
       --deterministic=$deterministic \
       --labels= \
       --prevalences= \
@@ -185,6 +197,8 @@ max_sounds=10000
 activations.py \
       --context_ms=$context_ms \
       --shiftby_ms=$shiftby_ms \
+      --video_findfile=$video_findfile_plugin \
+      --video_bkg_frames=$video_bkg_frames \
       --data_loader_queuesize=$data_loader_queuesize \
       --data_loader_maxprocs=$data_loader_maxprocs \
       --model_architecture=$architecture \
@@ -235,11 +249,13 @@ for ioffset in $ioffsets ; do
   generalize.py \
         $context_ms $shiftby_ms \
         $optimizer $learning_rate \
+        $video_findfile_plugin $video_bkg_frames \
         $data_loader_queuesize $data_loader_maxprocs \
         $architecture "$model_parameters" \
         $logdir $data_dir $labels_touse $kinds_touse \
         $nsteps "$restore_from" $save_and_test_period $mini_batch \
         "$testing_files" $audio_tic_rate $audio_nchannels \
+        $video_frame_rate $video_frame_width $video_frame_height $video_channels \
         $batch_seed $weights_seed $deterministic \
         $ioffset ${wavfiles[ioffset]} \
         &>> $logdir/generalize$(dc -e "${ioffset} 1 + p").log
@@ -283,11 +299,13 @@ for nfeatures in ${nfeaturess[@]} ; do
     xvalidate.py \
           $context_ms $shiftby_ms \
           $optimizer $learning_rate  \
+          $video_findfile_plugin $video_bkg_frames \
           $data_loader_queuesize $data_loader_maxprocs \
           $architecture "$model_parameters" \
           $logdir $data_dir $labels_touse $kinds_touse \
           $nsteps "$restore_from" $save_and_test_period $mini_batch \
           "$testing_files" $audio_tic_rate $audio_nchannels \
+          $video_frame_rate $video_frame_width $video_frame_height $video_channels \
           $batch_seed $weights_seed $deterministic \
           $kfold $ifold \
           &>> $logdir/xvalidate${ifold}.log
@@ -339,12 +357,14 @@ mkdir $logdir
 train.py \
       $context_ms $shiftby_ms \
       $optimizer $learning_rate  \
+      $video_findfile_plugin $video_bkg_frames \
       $data_loader_queuesize $data_loader_maxprocs \
       $architecture "$model_parameters" \
       $logdir $data_dir $labels_touse $kinds_touse \
       $nsteps "$restore_from" $save_and_test_period $validation_percentage \
       $mini_batch "$testing_files" \
       $audio_tic_rate $audio_nchannels \
+      $video_frame_rate $video_frame_width $video_frame_height $video_channels \
       $batch_seed $weights_seed $deterministic \
       $ireplicates \
       &>> $logdir/train1.log
@@ -378,7 +398,11 @@ freeze.py \
       --labels_touse=$labels_touse \
       --parallelize=$classify_parallelize \
       --audio_tic_rate=$audio_tic_rate \
-      --nchannels=$audio_nchannels \
+      --audio_nchannels=$audio_nchannels \
+      --video_frame_rate=$video_frame_rate \
+      --video_frame_height=$video_frame_height \
+      --video_frame_width=$video_frame_width \
+      --video_channels=$video_channels \
       &>> $logdir/train_${ireplicates}r/freeze.ckpt-${check_point}.log
 
 check_file_exists $logdir/train_${ireplicates}r/freeze.ckpt-${check_point}.log
@@ -396,6 +420,12 @@ classify.py \
       --model_labels=$logdir/train_${ireplicates}r/labels.txt \
       --wav=${wavpath_noext}.wav \
       --parallelize=$classify_parallelize \
+      --audio_tic_rate=$audio_tic_rate \
+      --audio_nchannels=$audio_nchannels \
+      --video_frame_rate=$video_frame_rate \
+      --video_frame_height=$video_frame_height \
+      --video_frame_width=$video_frame_width \
+      --video_channels=$video_channels \
       --deterministic=$deterministic \
       --labels= \
       --prevalences= \
@@ -491,6 +521,12 @@ classify.py \
       --model_labels=${logdir}/xvalidate_1k,2k/labels.txt \
       --wav=${wavpath_noext}.wav \
       --parallelize=$classify_parallelize \
+      --audio_tic_rate=$audio_tic_rate \
+      --audio_nchannels=$audio_nchannels \
+      --video_frame_rate=$video_frame_rate \
+      --video_frame_height=$video_frame_height \
+      --video_frame_width=$video_frame_width \
+      --video_channels=$video_channels \
       --deterministic=$deterministic \
       --labels= \
       --prevalences= \
@@ -559,6 +595,12 @@ classify.py \
       --model_labels=${logdir}/xvalidate_1k,2k/labels.txt \
       --wav=${wavpath_noext}.wav \
       --parallelize=$classify_parallelize \
+      --audio_tic_rate=$audio_tic_rate \
+      --audio_nchannels=$audio_nchannels \
+      --video_frame_rate=$video_frame_rate \
+      --video_frame_height=$video_frame_height \
+      --video_frame_width=$video_frame_width \
+      --video_channels=$video_channels \
       --deterministic=$deterministic \
       --labels= \
       --prevalences= \

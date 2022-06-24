@@ -2,10 +2,10 @@
 
 # train a neural network with the annotations
 
-# train.py <context-ms> <shiftby-ms> <optimizer> <learning_rate> <data-loader-queuesize> <data-loader-maxprocs> <model-architecture> <model-parameters-json> <logdir> <path-to-groundtruth> <label1>,<label2>,...,<labelN> <kinds-to-use> <nsteps> <restore-from> <save-and-validate-period> <validation-percentage> <mini-batch> <testing-files> <audio-tic-rate> <audio-nchannels> <batch-seed> <weights-seed> <deterministic> <ireplicates>
+# train.py <context-ms> <shiftby-ms> <optimizer> <learning_rate> <video-findfile> <video-bkg-frames> <data-loader-queuesize> <data-loader-maxprocs> <model-architecture> <model-parameters-json> <logdir> <path-to-groundtruth> <label1>,<label2>,...,<labelN> <kinds-to-use> <nsteps> <restore-from> <save-and-validate-period> <validation-percentage> <mini-batch> <testing-files> <audio-tic-rate> <audio-nchannels> <video-frame-rate> <video-frame-width> <video-frame-height> <video-channels> <batch-seed> <weights-seed> <deterministic> <ireplicates>
 
 # e.g.
-# $SONGEXPLORER_BIN train.py 204.8 0.0 Adam 0.0002 0 1 convolutional '{"representation":"waveform", "window_ms":6.4, "stride_ms":1.6, "mel_dct":"7,7", "dropout":0.5, "kernel_sizes":5,128", last_conv_width":130, "nfeatures":"256,256", "dilate_after_layer":65535, "stride_after_layer":65535, "connection_type":"plain"}' `pwd`/trained-classifier `pwd`/groundtruth-data mel-sine,mel-pulse,ambient,other annotated 50 '' 10 40 32 "" 5000 1 -1 -1 0 1,2,3,4
+# $SONGEXPLORER_BIN train.py 204.8 0.0 Adam 0.0002 same-basename 1000 0 1 convolutional '{"representation":"waveform", "window_ms":6.4, "stride_ms":1.6, "mel_dct":"7,7", "dropout":0.5, "kernel_sizes":5,128", last_conv_width":130, "nfeatures":"256,256", "dilate_after_layer":65535, "stride_after_layer":65535, "connection_type":"plain"}' `pwd`/trained-classifier `pwd`/groundtruth-data mel-sine,mel-pulse,ambient,other annotated 50 '' 10 40 32 "" 5000 1 0 0 0 0 -1 -1 0 1,2,3,4
 
 import os
 import sys
@@ -26,12 +26,14 @@ print(p.stdout.decode('ascii').rstrip())
 
 try:
 
-  _, context_ms, shiftby_ms, optimizer, learning_rate, data_loader_queuesize, data_loader_maxprocs, architecture, model_parameters, logdir, data_dir, labels_touse, kinds_touse, nsteps, restore_from, save_and_validate_period, validation_percentage, mini_batch, testing_files, audio_tic_rate, audio_nchannels, batch_seed, weights_seed, deterministic, ireplicates = sys.argv[:25]
+  _, context_ms, shiftby_ms, optimizer, learning_rate, video_findfile, video_bkg_frames, data_loader_queuesize, data_loader_maxprocs, architecture, model_parameters, logdir, data_dir, labels_touse, kinds_touse, nsteps, restore_from, save_and_validate_period, validation_percentage, mini_batch, testing_files, audio_tic_rate, audio_nchannels, video_frame_rate, video_frame_width, video_frame_height, video_channels, batch_seed, weights_seed, deterministic, ireplicates = sys.argv[:31]
 
   print('context_ms: '+context_ms)
   print('shiftby_ms: '+shiftby_ms)
   print('optimizer: '+optimizer)
   print('learning_rate: '+learning_rate)
+  print('video_findfile: '+video_findfile)
+  print('video_bkg_frames: '+video_bkg_frames)
   print('data_loader_queuesize: '+data_loader_queuesize)
   print('data_loader_maxprocs: '+data_loader_maxprocs)
   print('architecture: '+architecture)
@@ -48,12 +50,16 @@ try:
   print('testing_files: '+testing_files)
   print('audio_tic_rate: '+audio_tic_rate)
   print('audio_nchannels: '+audio_nchannels)
+  print('video_frame_rate: '+video_frame_rate)
+  print('video_frame_width: '+video_frame_width)
+  print('video_frame_height: '+video_frame_height)
+  print('video_channels: '+video_channels)
   print('batch_seed: '+batch_seed)
   print('weights_seed: '+weights_seed)
   print('deterministic: '+deterministic)
   print('ireplicates: '+ireplicates)
 
-  save_fingerprints="False" if len(sys.argv)==25 else sys.argv[25]
+  save_fingerprints="False" if len(sys.argv)==31 else sys.argv[31]
 
   if restore_from:
     mode='a'
@@ -78,6 +84,8 @@ try:
             "--shiftby_ms="+shiftby_ms,
             "--optimizer="+optimizer,
             "--learning_rate="+learning_rate,
+            "--video_findfile="+video_findfile,
+            "--video_bkg_frames="+video_bkg_frames,
             "--data_loader_queuesize="+data_loader_queuesize,
             "--data_loader_maxprocs="+data_loader_maxprocs,
             "--model_architecture="+architecture,
@@ -95,7 +103,11 @@ try:
             "--testing_percentage=0.0",
             "--testing_files="+testing_files,
             "--audio_tic_rate="+audio_tic_rate,
-            "--nchannels="+audio_nchannels,
+            "--audio_nchannels="+audio_nchannels,
+            "--video_frame_rate="+video_frame_rate,
+            "--video_frame_width="+video_frame_width,
+            "--video_frame_height="+video_frame_height,
+            "--video_channels="+video_channels,
             "--random_seed_batch="+batch_seed,
             "--random_seed_weights="+weights_seed,
             "--deterministic="+deterministic,

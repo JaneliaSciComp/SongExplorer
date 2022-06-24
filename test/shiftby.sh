@@ -41,12 +41,14 @@ mkdir $logdir
 train.py \
       $context_ms $shiftby_ms \
       $optimizer $learning_rate \
+      $video_findfile_plugin $video_bkg_frames \
       $data_loader_queuesize $data_loader_maxprocs \
       $architecture "$model_parameters" \
       $logdir $data_dir $labels_touse $kinds_touse \
       $nsteps "$restore_from" $save_and_test_period $validation_percentage \
       $mini_batch "$testing_files" \
       $audio_tic_rate $audio_nchannels \
+      $video_frame_rate $video_frame_width $video_frame_height $video_channels \
       $batch_seed $weights_seed $deterministic $ireplicates \
       True \
       &> $logdir/train1.log
@@ -58,12 +60,14 @@ mkdir $logdir
 train.py \
       $context_ms $shiftby_ms \
       $optimizer $learning_rate \
+      $video_findfile_plugin $video_bkg_frames \
       $data_loader_queuesize $data_loader_maxprocs \
       $architecture "$model_parameters" \
       $logdir $data_dir $labels_touse $kinds_touse \
       $nsteps "$restore_from" $save_and_test_period $validation_percentage \
       $mini_batch "$testing_files" \
       $audio_tic_rate $audio_nchannels \
+      $video_frame_rate $video_frame_width $video_frame_height $video_channels \
       $batch_seed $weights_seed $deterministic $ireplicates \
       True \
       &> $logdir/train1.log

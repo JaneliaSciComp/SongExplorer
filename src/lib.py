@@ -214,7 +214,7 @@ def read_log(frompath, logfile):
       elif "Trainable params" in line:
         m=re.search('Trainable params: ([,\d]+)',line)
         nparameters_total = int(m.group(1).replace(',',''))
-      elif 'Conv1D' in line or 'Conv2D' in line:
+      elif 'Conv1D' in line or 'Conv2D' in line or 'Conv3D' in line:
         if validation_restart_correction==0.0:
           nlayers += 1
         m=re.search('[^,] (\d+)',line)

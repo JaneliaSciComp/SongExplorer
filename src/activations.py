@@ -26,6 +26,8 @@
 # $SONGEXPLORER_BIN activations.py \
 #      --context_ms=204.8 \
 #      --shiftby_ms=0.0 \
+#      --video_findfile=same-basename \
+#      --video_bkg_frames=1000 \
 #      --model_architecture=convolutional \
 #      --model_parameters='{"representation":"waveform", "window_ms":6.4, "stride_ms":1.6, "mel_dct":"7,7", "dropout":0.5, "kernel_sizes":5,3,3", last_conv_width":130, "nfeatures":"256,256,256", "dilate_after_layer":65535, "stride_after_layer":65535, "connection_type":"plain"}' \
 #      --start_checkpoint=`pwd`/trained-classifier/train_1k/ckpt-50 \
@@ -36,7 +38,7 @@
 #      --testing_max_sounds=10000 \
 #      --batch_size=32 \
 #      --audio_tic_rate=5000 \
-#      --nchannels=1
+#      --audio_nchannels=1
 
 
 import argparse
@@ -68,6 +70,9 @@ def main():
   sys.path.append(os.path.dirname(FLAGS.model_architecture))
   model = importlib.import_module(os.path.basename(FLAGS.model_architecture))
 
+  sys.path.append(os.path.dirname(FLAGS.video_findfile))
+  video_findfile = importlib.import_module(os.path.basename(FLAGS.video_findfile)).video_findfile
+
   flags = vars(FLAGS)
   for key in sorted(flags.keys()):
     print('%s = %s' % (key, flags[key]))
@@ -86,7 +91,11 @@ def main():
   model_settings = models.prepare_model_settings(
       nlabels,
       FLAGS.audio_tic_rate,
-      FLAGS.nchannels,
+      FLAGS.audio_nchannels,
+      FLAGS.video_frame_rate,
+      FLAGS.video_frame_width,
+      FLAGS.video_frame_height,
+      FLAGS.video_channels,
       1,
       FLAGS.batch_size,
       FLAGS.context_ms,
@@ -105,7 +114,8 @@ def main():
       -1,
       FLAGS.testing_equalize_ratio, FLAGS.testing_max_sounds,
       model_settings,
-      FLAGS.data_loader_queuesize, FLAGS.data_loader_maxprocs)
+      FLAGS.data_loader_queuesize, FLAGS.data_loader_maxprocs,
+      model.use_audio, model.use_video, video_findfile, FLAGS.video_bkg_frames)
 
   thismodel = model.create_model(model_settings)
   thismodel.summary()
@@ -123,7 +133,8 @@ def main():
   def infer_step(isound):
     fingerprints, _, sounds = audio_processor.get_data(
                                  FLAGS.batch_size, isound, model_settings,
-                                 time_shift_tics, 'testing')
+                                 time_shift_tics, 'testing',
+                                 model.use_audio, model.use_video, video_findfile)
     needed = FLAGS.batch_size - fingerprints.shape[0]
     hidden_activations, logits = thismodel(fingerprints, training=False)
     return fingerprints, sounds, needed, logits, hidden_activations
@@ -236,10 +247,30 @@ if __name__ == '__main__':
       default=16000,
       help='Expected tic rate of the wavs',)
   parser.add_argument(
-      '--nchannels',
+      '--audio_nchannels',
       type=int,
       default=1,
       help='Expected number of channels in the wavs',)
+  parser.add_argument(
+      '--video_frame_rate',
+      type=int,
+      default=0,
+      help='Expected frame rate in Hz of the video',)
+  parser.add_argument(
+      '--video_frame_width',
+      type=int,
+      default=0,
+      help='Expected frame width in pixels of the video',)
+  parser.add_argument(
+      '--video_frame_height',
+      type=int,
+      default=0,
+      help='Expected frame height in pixels of the video',)
+  parser.add_argument(
+      '--video_channels',
+      type=str,
+      default='1',
+      help='Comma-separated list of which color channels in the video to use',)
   parser.add_argument(
       '--context_ms',
       type=float,
@@ -280,6 +311,16 @@ if __name__ == '__main__':
       type=str,
       default='convolutional',
       help='What model architecture to use')
+  parser.add_argument(
+      '--video_findfile',
+      type=str,
+      default='same-basename',
+      help='What function to use to match WAV files to corresponding video files')
+  parser.add_argument(
+      '--video_bkg_frames',
+      type=int,
+      default=1000,
+      help='How many frames to use to calculate the median background image')
   parser.add_argument(
       '--data_loader_queuesize',
       type=int,

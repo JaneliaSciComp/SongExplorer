@@ -139,6 +139,9 @@ def ngroups_callback(n,M,V,C):
         else:
             _callback(['ngroups'],M,V,C)
 
+use_audio=1
+use_video=0
+
 model_parameters = [
   # key in `model_settings`, title in GUI, '' for textbox or [] for pull-down, default value, enable logic, callback, required
   ["augment_volume",     "augment volume", '',                   '1,1',          [],                     None,                        True],
@@ -351,11 +354,11 @@ def create_model(model_settings):
 
   hidden_layers = []
 
-  ninput_tics = model_settings['context_tics'] + \
-           (model_settings['parallelize']-1) * stride_tics * downsample_by
-  noutput_tics = (model_settings['context_tics']-window_tics) // stride_tics + 1
+  context_tics = int(model_settings['audio_tic_rate'] * model_settings['context_ms'] / 1000)
+  ninput_tics = context_tics + (model_settings['parallelize']-1) * stride_tics * downsample_by
+  noutput_tics = (context_tics-window_tics) // stride_tics + 1
 
-  inputs0 = Input(shape=(ninput_tics, model_settings['nchannels']))
+  inputs0 = Input(shape=(ninput_tics, model_settings['audio_nchannels']))
   hidden_layers.append(inputs0)
   
   volume_range = [float(x) for x in model_settings['augment_volume'].split(',')]
@@ -366,7 +369,7 @@ def create_model(model_settings):
     inputs = inputs0
 
   if representation == "waveform":
-    inputs = Reshape((ninput_tics,1,model_settings['nchannels']))(inputs)
+    inputs = Reshape((ninput_tics,1,model_settings['audio_nchannels']))(inputs)
   elif representation == "spectrogram":
     inputs = Spectrogram(window_tics, stride_tics)(inputs)
   elif representation == "mel-cepstrum":
@@ -445,7 +448,7 @@ def create_model(model_settings):
     dilation_rate = dilation(iconv, dilate_after_layer)
     dilated_kernel_size = (kernel_sizes[1] - 1) * dilation_rate[0] + 1
 
-  receptive_field_tics *= stride_tics 
+  receptive_field_tics *= stride_tics
   print("receptive_field_tics = %d" % receptive_field_tics)
 
   # final dense layers (or actually, pan-freq pan-time 2D convs)

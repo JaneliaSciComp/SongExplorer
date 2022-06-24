@@ -39,9 +39,10 @@ def generic_actuate(cmd, logfile, where,
             for job in M.waitfor_job:
                clusterflags += "\"done("+job+")\"&&"
             clusterflags = clusterflags[:-2]
+    filter_warnings="|& sed -r '/\(deprecated|more times\)/d'"  # pims.open(video)
     if where == "local":
         p = run(["hetero", "submit",
-                 "{ export CUDA_VISIBLE_DEVICES=$QUEUE1; "+cmd+" "+' '.join(args)+"; } &>> "+logfile,
+                 "{ export CUDA_VISIBLE_DEVICES=$QUEUE1; "+cmd+" "+' '.join(args)+" "+filter_warnings+" ; } &>> "+logfile,
                  str(ncpu_cores), str(ngpu_cards), str(ngigabyes_memory), localdeps],
                 stdout=PIPE, stderr=STDOUT)
         jobid = p.stdout.decode('ascii').rstrip()
@@ -49,7 +50,7 @@ def generic_actuate(cmd, logfile, where,
     elif where == "server":
         p = run(["ssh", "-l", M.server_username, M.server_ipaddr, "export SINGULARITYENV_PREPEND_PATH="+M.source_path+";",
                  "$SONGEXPLORER_BIN", "hetero", "submit",
-                 "\"{ export CUDA_VISIBLE_DEVICES=\$QUEUE1; "+cmd+" "+' '.join(args).replace('"','\\"')+"; } &>> "+logfile+"\"",
+                 "\"{ export CUDA_VISIBLE_DEVICES=\$QUEUE1; "+cmd+" "+' '.join(args).replace('"','\\"')+" "+filter_warnings+" ; } &>> "+logfile+"\"",
                  str(ncpu_cores), str(ngpu_cards), str(ngigabyes_memory), "'"+localdeps+"'"],
                 stdout=PIPE, stderr=STDOUT)
         jobid = p.stdout.decode('ascii').rstrip()
@@ -57,7 +58,7 @@ def generic_actuate(cmd, logfile, where,
     elif where == "cluster":
         pe = Popen(["echo",
                     "export SINGULARITYENV_PREPEND_PATH="+M.source_path+";",
-                    os.environ["SONGEXPLORER_BIN"]+" "+cmd+" "+' '.join(args)],
+                    os.environ["SONGEXPLORER_BIN"]+" "+cmd+" "+' '.join(args)+" "+filter_warnings],
                    stdout=PIPE)
         ps = Popen(["ssh", "-l", M.cluster_username, M.cluster_ipaddr, M.cluster_cmd,
                     #"-J ${logfile//,/}.job",
@@ -1117,6 +1118,8 @@ async def train_actuate():
         logfile = os.path.join(V.logs_folder.value, "train"+str(ireplicate)+".log")
         args = [V.context_ms.value, V.shiftby_ms.value, \
                 V.optimizer.value, V.learning_rate.value, \
+                M.video_findfile_plugin, \
+                str(M.video_bkg_frames), \
                 str(M.data_loader_queuesize), str(M.data_loader_maxprocs), \
                 M.architecture_plugin, \
                 "'"+json.dumps({k:v.value for k,v in V.model_parameters.items()})+"'", \
@@ -1126,6 +1129,10 @@ async def train_actuate():
                 V.save_and_validate_period.value, \
                 V.validate_percentage.value, V.mini_batch.value, test_files, \
                 str(M.audio_tic_rate), str(M.audio_nchannels), \
+                str(M.video_frame_rate), \
+                str(M.video_frame_width), \
+                str(M.video_frame_height), \
+                str(M.video_channels), \
                 V.batch_seed.value, V.weights_seed.value, M.deterministic, \
                 ','.join([str(x) for x in range(ireplicate, min(1+nreplicates, \
                                                                 ireplicate+M.models_per_job))])]
@@ -1190,6 +1197,8 @@ async def leaveout_actuate(comma):
                 V.shiftby_ms.value, \
                 V.optimizer.value, \
                 V.learning_rate.value, \
+                M.video_findfile_plugin, \
+                str(M.video_bkg_frames), \
                 str(M.data_loader_queuesize), str(M.data_loader_maxprocs), \
                 M.architecture_plugin, \
                 "'"+json.dumps({k:v.value for k,v in V.model_parameters.items()})+"'", \
@@ -1199,6 +1208,10 @@ async def leaveout_actuate(comma):
                 V.save_and_validate_period.value, \
                 V.mini_batch.value, test_files, \
                 str(M.audio_tic_rate), str(M.audio_nchannels), \
+                str(M.video_frame_rate), \
+                str(M.video_frame_width), \
+                str(M.video_frame_height), \
+                str(M.video_channels), \
                 V.batch_seed.value, V.weights_seed.value, M.deterministic, \
                 str(ivalidation_file),
                 *validation_files[ivalidation_file:ivalidation_file+M.models_per_job]]
@@ -1244,6 +1257,8 @@ async def xvalidate_actuate():
                 V.shiftby_ms.value, \
                 V.optimizer.value, \
                 V.learning_rate.value, \
+                M.video_findfile_plugin, \
+                str(M.video_bkg_frames), \
                 str(M.data_loader_queuesize), str(M.data_loader_maxprocs), \
                 M.architecture_plugin, \
                 "'"+json.dumps({k:v.value for k,v in V.model_parameters.items()})+"'", \
@@ -1253,6 +1268,10 @@ async def xvalidate_actuate():
                 V.save_and_validate_period.value, \
                 V.mini_batch.value, test_files, \
                 str(M.audio_tic_rate), str(M.audio_nchannels), \
+                str(M.video_frame_rate), \
+                str(M.video_frame_width), \
+                str(M.video_frame_height), \
+                str(M.video_channels), \
                 V.batch_seed.value, V.weights_seed.value, M.deterministic, \
                 V.kfold.value, \
                 ','.join([str(x) for x in range(ifold, min(1+kfolds, ifold+M.models_per_job))])]
@@ -1331,6 +1350,8 @@ async def activations_actuate():
     logfile = os.path.join(V.groundtruth_folder.value, "activations.log")
     args = ["--context_ms="+V.context_ms.value, \
             "--shiftby_ms="+V.shiftby_ms.value, \
+            "--video_findfile="+M.video_findfile_plugin, \
+            "--video_bkg_frames="+str(M.video_bkg_frames), \
             "--data_loader_queuesize="+str(M.data_loader_queuesize), \
             "--data_loader_maxprocs="+str(M.data_loader_maxprocs), \
             "--model_architecture="+M.architecture_plugin, \
@@ -1343,7 +1364,11 @@ async def activations_actuate():
             "--testing_max_sounds="+V.activations_max_sounds.value, \
             "--batch_size="+V.mini_batch.value, \
             "--audio_tic_rate="+str(M.audio_tic_rate),
-            "--nchannels="+str(M.audio_nchannels),
+            "--audio_nchannels="+str(M.audio_nchannels),
+            "--video_frame_rate="+str(M.video_frame_rate),
+            "--video_frame_height="+str(M.video_frame_height),
+            "--video_frame_width="+str(M.video_frame_width),
+            "--video_channels="+str(M.video_channels),
             "--validation_percentage=0.0",
             "--validation_offset_percentage=0.0",
             "--deterministic="+str(M.deterministic),
@@ -1536,7 +1561,11 @@ async def _freeze_actuate(ckpts):
                             "--model_parameters='"+json.dumps({k:v.value for k,v in V.model_parameters.items()})+"'",
                             "--parallelize="+str(M.classify_parallelize),
                             "--audio_tic_rate="+str(M.audio_tic_rate),
-                            "--nchannels="+str(M.audio_nchannels))
+                            "--audio_nchannels="+str(M.audio_nchannels),
+                            "--video_frame_rate="+str(M.video_frame_rate),
+                            "--video_frame_height="+str(M.video_frame_height),
+                            "--video_frame_width="+str(M.video_frame_width),
+                            "--video_channels="+str(M.video_channels))
     displaystring = "FREEZE " + \
                     os.path.join(os.path.basename(logdir), model, "ckpt-"+check_point) + \
                     " ("+jobid+")"
@@ -1614,7 +1643,11 @@ async def ensemble_actuate():
                             "--model_parameters='"+json.dumps({k:v.value for k,v in V.model_parameters.items()})+"'",
                             "--parallelize="+str(M.classify_parallelize),
                             "--audio_tic_rate="+str(M.audio_tic_rate),
-                            "--nchannels="+str(M.audio_nchannels))
+                            "--audio_nchannels="+str(M.audio_nchannels),
+                            "--video_frame_rate="+str(M.video_frame_rate),
+                            "--video_frame_height="+str(M.video_frame_height),
+                            "--video_frame_width="+str(M.video_frame_width),
+                            "--video_channels="+str(M.video_channels))
     displaystring = "ENSEMBLE " + \
                     os.path.join(os.path.basename(logdir), model) + \
                     " ("+jobid+")"
@@ -1653,6 +1686,13 @@ async def _classify_actuate(wavfiles):
             "--model_labels="+os.path.join(logdir,model,"labels.txt"),
             "--wav="+wavfile,
             "--parallelize="+str(M.classify_parallelize),
+            "--audio_tic_rate="+str(M.audio_tic_rate),
+            "--audio_nchannels="+str(M.audio_nchannels),
+            "--video_findfile="+str(M.video_findfile_plugin),
+            "--video_frame_rate="+str(M.video_frame_rate),
+            "--video_frame_height="+str(M.video_frame_height),
+            "--video_frame_width="+str(M.video_frame_width),
+            "--video_channels="+str(M.video_channels),
             "--deterministic="+str(M.deterministic)]
     if V.prevalences.value!='':
         args += ["--labels="+V.labels_touse.value,

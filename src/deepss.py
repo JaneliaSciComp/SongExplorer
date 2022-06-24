@@ -50,6 +50,9 @@ def stride_callback(n,M,V,C):
         else:
             _callback(['stride_ms'],M,V,C)
 
+use_audio=1
+use_video=0
+
 model_parameters = [
   # key in `model_settings`, title in GUI, '' for textbox or [] for pull-down, default value, enable logic, callback, required
   ["representation",     "representation", ['waveform',
@@ -89,7 +92,7 @@ class Slice(tf.keras.layers.Layer):
 def create_model(model_settings):
     nchannels = model_settings['nchannels']
     parallelize = model_settings['parallelize']
-    context_tics = model_settings['context_tics']
+    context_tics = int(model_settings['audio_tic_rate'] * model_settings['context_ms'] / 1000)
     audio_tic_rate = model_settings['audio_tic_rate']
     representation = model_settings['representation']
     kernel_size = int(model_settings['kernel_size'])

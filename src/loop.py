@@ -113,6 +113,9 @@ def main():
   sys.path.append(os.path.dirname(FLAGS.model_architecture))
   model = importlib.import_module(os.path.basename(FLAGS.model_architecture))
 
+  sys.path.append(os.path.dirname(FLAGS.video_findfile))
+  video_findfile = importlib.import_module(os.path.basename(FLAGS.video_findfile)).video_findfile
+
   flags = vars(FLAGS)
   for key in sorted(flags.keys()):
     print('%s = %s' % (key, flags[key]))
@@ -143,7 +146,11 @@ def main():
   model_settings = models.prepare_model_settings(
       nlabels,
       FLAGS.audio_tic_rate,
-      FLAGS.nchannels,
+      FLAGS.audio_nchannels,
+      FLAGS.video_frame_rate,
+      FLAGS.video_frame_width,
+      FLAGS.video_frame_height,
+      FLAGS.video_channels,
       1,
       FLAGS.batch_size,
       FLAGS.context_ms,
@@ -162,7 +169,8 @@ def main():
       FLAGS.random_seed_batch,
       FLAGS.testing_equalize_ratio, FLAGS.testing_max_sounds,
       model_settings,
-      FLAGS.data_loader_queuesize, FLAGS.data_loader_maxprocs)
+      FLAGS.data_loader_queuesize, FLAGS.data_loader_maxprocs,
+      model.use_audio, model.use_video, video_findfile, FLAGS.video_bkg_frames)
 
   thismodel = model.create_model(model_settings)
   thismodel.summary()
@@ -195,7 +203,8 @@ def main():
   if FLAGS.how_many_training_steps==0:
       # pre-process a batch of data to make sure settings are valid
       train_fingerprints, train_ground_truth, _ = audio_processor.get_data(
-          FLAGS.batch_size, 0, model_settings, FLAGS.shiftby_ms, 'training')
+          FLAGS.batch_size, 0, model_settings, FLAGS.shiftby_ms, 'training',
+          model.use_audio, model.use_video, video_findfile)
       evaluate_fn(thismodel, train_fingerprints, train_ground_truth, False)
       return
 
@@ -221,7 +230,8 @@ def main():
     if training_set_size>0:
       # Pull the sounds we'll use for training.
       train_fingerprints, train_ground_truth, _ = audio_processor.get_data(
-          FLAGS.batch_size, 0, model_settings, FLAGS.shiftby_ms, 'training')
+          FLAGS.batch_size, 0, model_settings, FLAGS.shiftby_ms, 'training',
+          model.use_audio, model.use_video, video_findfile)
 
       cross_entropy_mean, train_accuracy = train_step(tf.constant(train_fingerprints),
                                                       tf.constant(train_ground_truth))
@@ -246,16 +256,16 @@ def main():
        (FLAGS.validate_step_period > 0 and training_step % FLAGS.validate_step_period == 0):
       validate_and_test(thismodel, 'validation', validation_set_size, model_settings, \
                         audio_processor, False, training_step, t0, nlabels, \
-                        validation_writer)
+                        validation_writer, model.use_audio, model.use_video, video_findfile)
 
   if validation_set_size>0:
     validate_and_test(thismodel, 'validation', validation_set_size, model_settings, \
                       audio_processor, True, FLAGS.how_many_training_steps, t0, nlabels, \
-                      validation_writer)
+                      validation_writer, model.use_audio, model.use_video, video_findfile)
   if testing_set_size>0:
     validate_and_test(thismodel, 'testing', testing_set_size, model_settings, \
                       audio_processor, True, FLAGS.how_many_training_steps, t0, nlabels, \
-                      validation_writer)
+                      validation_writer, model.use_audio, model.use_video, video_findfile)
 
 @tf.function
 def validate_test_step(model, nlabels, fingerprints, ground_truth):
@@ -272,13 +282,14 @@ def validate_test_step(model, nlabels, fingerprints, ground_truth):
 
 def validate_and_test(model, set_kind, set_size, model_settings, \
                       audio_processor, is_last_step, training_step, t0, nlabels, \
-                      validation_writer):
+                      validation_writer, use_audio, use_video, video_findfile):
   total_accuracy = 0
   total_conf_matrix = None
   for isound in range(0, set_size, FLAGS.batch_size):
     fingerprints, ground_truth, sounds = (
         audio_processor.get_data(FLAGS.batch_size, isound, model_settings,
-                                 FLAGS.shiftby_ms, set_kind))
+                                 FLAGS.shiftby_ms, set_kind,
+                                 use_audio, use_video, video_findfile))
     needed, logits, accuracy, hidden_activations, cross_entropy_mean, confusion_matrix = \
             validate_test_step(model, tf.constant(nlabels),
                                tf.constant(fingerprints), tf.constant(ground_truth))
@@ -414,10 +425,30 @@ if __name__ == '__main__':
       default=16000,
       help='Expected tic rate of the wavs',)
   parser.add_argument(
-      '--nchannels',
+      '--audio_nchannels',
       type=int,
       default=1,
       help='Expected number of channels in the wavs',)
+  parser.add_argument(
+      '--video_frame_rate',
+      type=int,
+      default=0,
+      help='Expected frame rate in Hz of the video',)
+  parser.add_argument(
+      '--video_frame_width',
+      type=int,
+      default=0,
+      help='Expected frame width in pixels of the video',)
+  parser.add_argument(
+      '--video_frame_height',
+      type=int,
+      default=0,
+      help='Expected frame height in pixels of the video',)
+  parser.add_argument(
+      '--video_channels',
+      type=str,
+      default='1',
+      help='Comma-separated list of which channels in the video to use',)
   parser.add_argument(
       '--context_ms',
       type=float,
@@ -503,6 +534,16 @@ if __name__ == '__main__':
       type=str,
       default='convolutional',
       help='What model architecture to use')
+  parser.add_argument(
+      '--video_findfile',
+      type=str,
+      default='same-basename',
+      help='What function to use to match WAV files to corresponding video files')
+  parser.add_argument(
+      '--video_bkg_frames',
+      type=int,
+      default=1000,
+      help='How many frames to use to calculate the median background image')
   parser.add_argument(
       '--data_loader_queuesize',
       type=int,

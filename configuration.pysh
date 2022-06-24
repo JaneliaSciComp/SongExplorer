@@ -9,6 +9,12 @@ state_dir=""
 audio_tic_rate=2500
 audio_nchannels=1
 
+# sampling rate and frame size of the AVI, MP4, or MOV files (if any)
+video_frame_rate=0
+video_frame_width=0
+video_frame_height=0
+video_channels=0  # comma-separated list of which colors to use
+video_bkg_frames=0  # how many frames to use when computing median background image to subtract
 video_findfile_plugin="same-basename"  # given a directory and a WAV file, return the corresponding video file
 
 # URL of the 'server' computer

@@ -2,10 +2,10 @@
 
 # train several networks withholding different subsets of the recordings to test upon
 
-# generalize.sh <context-ms> <shiftby-ms> <optimizer> <learning-rate> <data-loader-queuesize> <data-loader-maxprocs> <model-architecture> <model-parameters-json> <logdir> <path-to-groundtruth> <label1>,<label2>,...,<labelN> <kinds-to-use> <nsteps> <restore-from> <save-and-validate-period> <mini-batch> <testing-files> <audio-tic-rate> <audio-nchannels> <batch-seed> <weights-seed> <deterministic> <ioffset> <subset1> [<subset2> [<subset3>]...]
+# generalize.sh <context-ms> <shiftby-ms> <optimizer> <learning-rate> <video-findfile> <video-bkg-frames> <data-loader-queuesize> <data-loader-maxprocs> <model-architecture> <model-parameters-json> <logdir> <path-to-groundtruth> <label1>,<label2>,...,<labelN> <kinds-to-use> <nsteps> <restore-from> <save-and-validate-period> <mini-batch> <testing-files> <audio-tic-rate> <audio-nchannels> <video-frame-rate> <video-frame-width> <video-frame-height> <video_channels> <batch-seed> <weights-seed> <deterministic> <ioffset> <subset1> [<subset2> [<subset3>]...]
 
 # e.g.
-# $SONGEXPLORER_BIN generalize.sh 204.8 0.0 Adam 0.0002 0 1 convolutional '{"representation":"waveform", "window_ms":6.4, "stride_ms":1.6, "mel_dct":"7,7", "dropout":0.5, "kernel_sizes":5,128", last_conv_width":130, "nfeatures":"256,256", "dilate_after_layer":65535, "stride_after_layer":65535, "connection_type":"plain"}' `pwd`/leave-one-out `pwd`/groundtruth-data mel-pulse,mel-sine,ambient,other annotated 50 '' 10 32 "" 5000 1 -1 -1 0 3 20161207T102314_ch1_p1.wav,20161207T102314_ch1_p2.wav,20161207T102314_ch1_p3.wav PS_20130625111709_ch3_p1.wav,PS_20130625111709_ch3_p2.wav,PS_20130625111709_ch3_p3.wav
+# $SONGEXPLORER_BIN generalize.py 204.8 0.0 Adam 0.0002 same-basename 1000 0 1 convolutional '{"representation":"waveform", "window_ms":6.4, "stride_ms":1.6, "mel_dct":"7,7", "dropout":0.5, "kernel_sizes":5,128", last_conv_width":130, "nfeatures":"256,256", "dilate_after_layer":65535, "stride_after_layer":65535, "connection_type":"plain"}' `pwd`/leave-one-out `pwd`/groundtruth-data mel-pulse,mel-sine,ambient,other annotated 50 '' 10 32 "" 5000 1 0 0 0 0 -1 -1 0 3 20161207T102314_ch1_p1.wav,20161207T102314_ch1_p2.wav,20161207T102314_ch1_p3.wav PS_20130625111709_ch3_p1.wav,PS_20130625111709_ch3_p2.wav,PS_20130625111709_ch3_p3.wav
 
 import os
 import sys
@@ -26,14 +26,16 @@ print(p.stdout.decode('ascii').rstrip())
 
 try:
 
-  _, context_ms, shiftby_ms, optimizer, learning_rate, data_loader_queuesize, data_loader_maxprocs, architecture, model_parameters, logdir, data_dir, labels_touse, kinds_touse, nsteps, restore_from, save_and_validate_period, mini_batch, testing_files, audio_tic_rate, audio_nchannels, batch_seed, weights_seed, deterministic, ioffset = sys.argv[:24]
+  _, context_ms, shiftby_ms, optimizer, learning_rate, video_findfile, video_bkg_frames, data_loader_queuesize, data_loader_maxprocs, architecture, model_parameters, logdir, data_dir, labels_touse, kinds_touse, nsteps, restore_from, save_and_validate_period, mini_batch, testing_files, audio_tic_rate, audio_nchannels, video_frame_rate, video_frame_width, video_frame_height, video_channels, batch_seed, weights_seed, deterministic, ioffset = sys.argv[:30]
 
-  subsets = sys.argv[24:]
+  subsets = sys.argv[30:]
 
   print('context_ms: '+context_ms)
   print('shiftby_ms: '+shiftby_ms)
   print('optimizer: '+optimizer)
   print('learning_rate: '+learning_rate)
+  print('video_findfile: '+video_findfile)
+  print('video_bkg_frames: '+video_bkg_frames)
   print('data_loader_queuesize: '+data_loader_queuesize)
   print('data_loader_maxprocs: '+data_loader_maxprocs)
   print('architecture: '+architecture)
@@ -49,6 +51,10 @@ try:
   print('testing_files: '+testing_files)
   print('audio_tic_rate: '+audio_tic_rate)
   print('audio_nchannels: '+audio_nchannels)
+  print('video_frame_rate: '+video_frame_rate)
+  print('video_frame_width: '+video_frame_width)
+  print('video_frame_height: '+video_frame_height)
+  print('video_channels: '+video_channels)
   print('batch_seed: '+batch_seed)
   print('weights_seed: '+weights_seed)
   print('deterministic: '+deterministic)
@@ -78,6 +84,8 @@ try:
             "--shiftby_ms="+shiftby_ms,
             "--optimizer="+optimizer,
             "--learning_rate="+learning_rate,
+            "--video_findfile="+video_findfile,
+            "--video_bkg_frames="+video_bkg_frames,
             "--data_loader_queuesize="+data_loader_queuesize,
             "--data_loader_maxprocs="+data_loader_maxprocs,
             "--model_architecture="+architecture,
@@ -92,7 +100,11 @@ try:
             "--batch_size="+mini_batch,
             "--testing_files="+testing_files,
             "--audio_tic_rate="+audio_tic_rate,
-            "--nchannels="+audio_nchannels,
+            "--audio_nchannels="+audio_nchannels,
+            "--video_frame_rate="+video_frame_rate,
+            "--video_frame_width="+video_frame_width,
+            "--video_frame_height="+video_frame_height,
+            "--video_channels="+video_channels,
             "--random_seed_batch="+batch_seed,
             "--random_seed_weights="+weights_seed,
             "--deterministic="+deterministic,

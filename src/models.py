@@ -19,7 +19,8 @@
 """Model definitions for simple speech recognition.
 
 """
-def prepare_model_settings(nlabels, audio_tic_rate, nchannels, 
+def prepare_model_settings(nlabels, audio_tic_rate, audio_nchannels, 
+                           video_frame_rate, video_frame_width, video_frame_height, video_channels,
                            parallelize, batch_size,
                            context_ms,
                            model_parameters):
@@ -33,14 +34,15 @@ def prepare_model_settings(nlabels, audio_tic_rate, nchannels,
   Returns:
     Dictionary containing common settings.
   """
-  context_tics = int(audio_tic_rate * context_ms / 1000)
-  print('context_tics = %d' % (context_tics))
-  print('nchannels = %d' % (nchannels))
-  return {**{'context_tics': context_tics,
-             'nchannels': nchannels,
-             'parallelize': parallelize,
-             'nlabels': nlabels,
+  return {**{'nlabels': nlabels,
              'audio_tic_rate': audio_tic_rate,
+             'audio_nchannels': audio_nchannels,
+             'video_frame_rate': video_frame_rate,
+             'video_frame_width': video_frame_width,
+             'video_frame_height': video_frame_height,
+             'video_channels': [int(x)-1 for x in video_channels.split(',')],
+             'parallelize': parallelize,
              'batch_size': batch_size,
+             'context_ms': context_ms,
             },
           **model_parameters}

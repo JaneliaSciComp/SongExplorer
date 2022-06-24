@@ -32,11 +32,18 @@ import scipy.io.wavfile as spiowav
 import numpy as np
 import tensorflow as tf
 
+# use agg here as otherwise pims tries to open gtk
+# see https://github.com/soft-matter/pims/issues/351
+import matplotlib as mpl
+mpl.use('Agg')
+import pims
+
+import tifffile
+
 from multiprocessing import Process, Queue
 import time
 
 MAX_NUM_WAVS_PER_CLASS = 2**27 - 1  # ~134M
-
 
 def which_set(filename, validation_percentage, validation_offset_percentage, testing_percentage):
   """Determines which data partition the file should belong to.
@@ -98,7 +105,8 @@ class AudioProcessor(object):
                partition_label, partition_n, partition_training_files, partition_validation_files,
                random_seed_batch,
                testing_equalize_ratio, testing_max_sounds, model_settings,
-               queue_size, max_procs):
+               queue_size, max_procs,
+               use_audio, use_video, video_findfile, video_bkg_frames):
     self.data_dir = data_dir
     random.seed(None if random_seed_batch==-1 else random_seed_batch)
     np.random.seed(None if random_seed_batch==-1 else random_seed_batch)
@@ -108,7 +116,8 @@ class AudioProcessor(object):
                             testing_percentage, testing_files, subsample_skip, subsample_label,
                             partition_label, partition_n, partition_training_files, partition_validation_files,
                             testing_equalize_ratio, testing_max_sounds,
-                            model_settings)
+                            model_settings, use_audio, use_video,
+                            video_findfile, video_bkg_frames)
     self.queue_size = queue_size
     self.max_procs = max_procs
     self.queues = {}
@@ -122,7 +131,8 @@ class AudioProcessor(object):
                          testing_percentage, testing_files, subsample_skip, subsample_label,
                          partition_label, partition_n, partition_training_files, partition_validation_files,
                          testing_equalize_ratio, testing_max_sounds,
-                         model_settings):
+                         model_settings, use_audio, use_video,
+                         video_findfile, video_bkg_frames):
     """Prepares a list of the sounds organized by set and label.
 
     The training loop needs a list of all the available data, organized by
@@ -145,7 +155,6 @@ class AudioProcessor(object):
     Raises:
       Exception: If expected files are not found.
     """
-    shiftby_tics = int((shiftby_ms * model_settings["audio_tic_rate"]) / 1000)
     # Make sure the shuffling is deterministic.
     labels_touse_index = {}
     for index, label_touse in enumerate(labels_touse):
@@ -153,9 +162,15 @@ class AudioProcessor(object):
     self.data_index = {'validation': [], 'testing': [], 'training': []}
     all_labels = {}
     # Look through all the subfolders to find sounds
-    context_tics = model_settings['context_tics']
+    context_tics = int(model_settings['audio_tic_rate'] * model_settings['context_ms'] / 1000)
+    video_frame_rate = model_settings['video_frame_rate']
+    video_frame_width = model_settings['video_frame_width']
+    video_frame_height = model_settings['video_frame_height']
+    video_channels = model_settings['video_channels']
+    shiftby_tics = int((shiftby_ms * model_settings["audio_tic_rate"]) / 1000)
     search_path = os.path.join(self.data_dir, '*', '*.csv')
-    wav_ntics = {}
+    audio_ntics = {}
+    video_nframes = {}
     subsample = {x:int(y) for x,y in zip(subsample_label.split(','),subsample_skip.split(','))
                           if x != ''}
     partition_labels = partition_label.split(',')
@@ -185,19 +200,50 @@ class AudioProcessor(object):
              sum([x['label']==label and x['file']==wav_base2 \
                   for x in self.data_index['training']]) >= partition_n:
             continue
-        if wav_path not in wav_ntics:
-          audio_tic_rate, song = spiowav.read(wav_path, mmap=True)
+        if use_audio and wav_path not in audio_ntics:
+          audio_tic_rate, audio_data = spiowav.read(wav_path, mmap=True)
           if audio_tic_rate != model_settings['audio_tic_rate']:
-            print('ERROR: audio_tic_rate is set to %d in configuration.sh but is actually %d in %s' % (model_settings['audio_tic_rate'], audio_tic_rate, wav_path))
-          if np.ndim(song)==1:
-            song = np.expand_dims(song, axis=1)
-          if np.shape(song)[1] != model_settings['nchannels']:
-            print('ERROR: nchannels is set to %d in configuration.sh but is actually %d in %s' % (model_settings['nchannels'], np.shape(song)[1], wav_path))
-          wav_ntics[wav_path] = len(song)
-        ntics = wav_ntics[wav_path]
-        if ticks[0] < context_tics//2 + shiftby_tics or \
-           ticks[1] > (ntics - context_tics//2 + shiftby_tics):
-          continue
+            print('ERROR: audio_tic_rate is set to %d in configuration.pysh but is actually %d in %s' % (model_settings['audio_tic_rate'], audio_tic_rate, wav_path))
+          if np.ndim(audio_data)==1:
+            audio_data = np.expand_dims(audio_data, axis=1)
+          if np.shape(audio_data)[1] != model_settings['audio_nchannels']:
+            print('ERROR: audio_nchannels is set to %d in configuration.pysh but is actually %d in %s' % (model_settings['audio_nchannels'], np.shape(audio_data)[1], wav_path))
+          audio_ntics[wav_path] = len(audio_data)
+        if use_audio:
+          if ticks[0] < context_tics//2 + shiftby_tics or \
+             ticks[1] > (audio_ntics[wav_path] - context_tics//2 + shiftby_tics):
+            continue
+        if use_video and wav_path not in video_nframes:
+          sound_dirname = os.path.join(self.data_dir, os.path.dirname(wav_base2))
+          vidfile = video_findfile(sound_dirname, wavfile)
+          if not vidfile:
+            print("ERROR: video file corresponding to "+wavfile+" not found")
+          video_data = pims.open(os.path.join(sound_dirname,vidfile))
+          if video_frame_rate != video_data.frame_rate:
+            print('ERROR: video_frame_rate is set to %d in configuration.pysh but is actually %d in %s' % (video_frame_rate, video_data.frame_rate, vidfile))
+          if video_frame_width != video_data.frame_shape[0]:
+            print('ERROR: video_frame_width is set to %d in configuration.pysh but is actually %d in %s' % (video_frame_width, video_data.frame_shape[1], vidfile))
+          if video_frame_height != video_data.frame_shape[1]:
+            print('ERROR: video_frame_height is set to %d in configuration.pysh but is actually %d in %s' % (video_frame_height, video_data.frame_shape[1], vidfile))
+          if max(video_channels) > video_data.frame_shape[2]:
+            print('ERROR: video_channels is set to %d in configuration.pysh but %s has only %d channels' % (video_channels, vidfile, video_data.frame_shape[2]))
+          video_nframes[wav_path] = len(video_data)
+
+          tiffile = os.path.join(sound_dirname, os.path.splitext(vidfile)[0]+".tif")
+          if not os.path.exists(tiffile):
+            print("INFO: calculating median background for "+vidfile)
+            nframes = min(video_bkg_frames, len(video_data))
+            iframes = np.linspace(0, len(video_data)-1, num=nframes, dtype=np.int)
+            full = np.empty((nframes, *video_data[1].shape))
+            for (i,iframe) in enumerate(iframes):
+              full[i] = video_data[iframe]
+            bkg = np.median(full, axis=0)
+            tifffile.imwrite(tiffile, bkg, photometric='rgb')
+
+        if use_video:
+          if ticks[0] < context_tics//2 + shiftby_tics or \
+             ticks[1] > video_nframes[wav_path] / video_frame_rate * model_settings['audio_tic_rate'] - context_tics//2 + shiftby_tics:
+            continue
         all_labels[label] = True
         if wavfile in validation_files:
           set_index = 'validation'
@@ -290,7 +336,8 @@ class AudioProcessor(object):
     """
     return len(self.data_index[mode])
 
-  def _get_data(self, q, how_many, offset, model_settings, shiftby_ms, mode):
+  def _get_data(self, q, how_many, offset, model_settings, 
+                shiftby_ms, mode, use_audio, use_video, video_findfile):
     while True:
       # Pick one of the partitions to choose sounds from.
       candidates = self.data_index[mode]
@@ -298,12 +345,24 @@ class AudioProcessor(object):
       nsounds = max(0, min(how_many, ncandidates - offset))
       if nsounds==0: return
       sounds = []
-      context_tics = model_settings['context_tics']
+      context_tics = int(model_settings['audio_tic_rate'] * model_settings['context_ms'] / 1000)
       audio_tic_rate  = model_settings['audio_tic_rate']
-      nchannels = model_settings['nchannels']
+      audio_nchannels = model_settings['audio_nchannels']
+      video_frame_rate = model_settings['video_frame_rate']
+      video_channels = model_settings['video_channels']
       shiftby_tics = int((shiftby_ms * audio_tic_rate) / 1000)
       pick_deterministically = (mode != 'training')
-      audio_slice = np.zeros((nsounds, context_tics, nchannels), dtype=np.float32)
+      if use_audio:
+        audio_slice = np.zeros((nsounds, context_tics, audio_nchannels), dtype=np.float32)
+      if use_video:
+        nframes = round(model_settings['context_ms'] / 1000 * video_frame_rate)
+        video_slice = np.zeros((nsounds,
+                                nframes,
+                                model_settings['video_frame_height'],
+                                model_settings['video_frame_width'],
+                                len(video_channels)),
+                               dtype=np.float32)
+        bkg = {}
       labels = np.zeros(nsounds, dtype=np.int)
       # repeatedly to generate the final output sound data we'll use in training.
       for i in range(offset, offset + nsounds):
@@ -319,21 +378,37 @@ class AudioProcessor(object):
                   else sound['ticks'][0])
         start_tic = offset_tic - math.floor(context_tics/2) - shiftby_tics
         stop_tic  = offset_tic + math.ceil(context_tics/2) - shiftby_tics
-        wavpath = os.path.join(self.data_dir, sound['file'])
-        _, audio_data = spiowav.read(wavpath, mmap=True)
-        if np.ndim(audio_data)==1:
-          audio_data = np.expand_dims(audio_data, axis=1)
-        audio_clipped = audio_data[start_tic : stop_tic, :]
-        audio_float32 = audio_clipped.astype(np.float32)
-        audio_slice[i-offset,:,:] = audio_float32 / abs(np.iinfo(np.int16).min)
+        if use_audio:
+          wavpath = os.path.join(self.data_dir, sound['file'])
+          _, audio_data = spiowav.read(wavpath, mmap=True)
+          if np.ndim(audio_data)==1:
+            audio_data = np.expand_dims(audio_data, axis=1)
+          audio_clipped = audio_data[start_tic : stop_tic, :]
+          audio_float32 = audio_clipped.astype(np.float32)
+          audio_slice[i-offset,:,:] = audio_float32 / abs(np.iinfo(np.int16).min)
+        if use_video:
+          sound_basename = os.path.basename(sound['file'])
+          sound_dirname = os.path.join(self.data_dir, os.path.dirname(sound['file']))
+          vidfile = video_findfile(sound_dirname, sound_basename)
+          tiffile = os.path.join(sound_dirname, os.path.splitext(vidfile)[0]+".tif")
+          if vidfile not in bkg:
+            bkg[vidfile] = tifffile.imread(tiffile)
+          video_data = pims.open(os.path.join(sound_dirname, vidfile))
+          start_frame = round(start_tic / audio_tic_rate * video_frame_rate)
+          for iframe, frame in enumerate(video_data[start_frame:start_frame+nframes]):
+            video_slice[i-offset,iframe,:,:,:] = frame[:,:,video_channels] - bkg[vidfile][:,:,video_channels]
         label_index = self.label_to_index[sound['label']]
         labels[i - offset] = label_index
         sounds.append(sound)
-      q.put([audio_slice, labels, sounds])
+      if use_audio:
+        q.put([audio_slice, labels, sounds])
+      elif use_video:
+        q.put([video_slice, labels, sounds])
       if pick_deterministically:
         offset += how_many
 
-  def get_data(self, how_many, offset, model_settings, shiftby_ms, mode):
+  def get_data(self, how_many, offset, model_settings, 
+               shiftby_ms, mode, use_audio, use_video, video_findfile):
     """Gather sounds from the data set, applying transformations as needed.
 
     When the mode is 'training', a random selection of sounds will be returned,
@@ -362,7 +437,9 @@ class AudioProcessor(object):
       if self.queues[qkey].empty() and \
          (self.max_procs==0 or len(self.processes[qkey])<self.max_procs):
         p = Process(target=self._get_data,
-                    args=(self.queues[qkey], how_many, offset, model_settings, shiftby_ms, mode),
+                    args=(self.queues[qkey],
+                          how_many, offset, model_settings, shiftby_ms,
+                          mode, use_audio, use_video, video_findfile),
                     daemon=True)
         p.start()
         self.processes[qkey].append(p)
@@ -375,7 +452,9 @@ class AudioProcessor(object):
       if offset==0:
         # HACK: only one extra process for validating, testing, and activations
         p = Process(target=self._get_data,
-                    args=(self.queues[qkey], how_many, offset, model_settings, shiftby_ms, mode),
+                    args=(self.queues[qkey],
+                          how_many, offset, model_settings, shiftby_ms,
+                          mode, use_audio, use_video, video_findfile),
                     daemon=True)
         p.start()
 

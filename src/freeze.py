@@ -32,7 +32,7 @@
 #      --labels_touse=pulse,sine,ambient \
 #      --parallelize=16384 \
 #      --audio_tic_rate=5000 \
-#      --nchannels=1
+#      --audio_nchannels=1
 
 
 import argparse
@@ -67,7 +67,8 @@ def create_inference_graph():
 
   labels_list = FLAGS.labels_touse.split(',')
   model_settings = models.prepare_model_settings(
-      len(labels_list), FLAGS.audio_tic_rate, FLAGS.nchannels,
+      len(labels_list), FLAGS.audio_tic_rate, FLAGS.audio_nchannels,
+      FLAGS.video_frame_rate, FLAGS.video_frame_width, FLAGS.video_frame_height, FLAGS.video_channels,
       FLAGS.parallelize, 1, FLAGS.context_ms,
       FLAGS.model_parameters)
 
@@ -78,20 +79,30 @@ def create_inference_graph():
   checkpoint.read(FLAGS.start_checkpoint).expect_partial()
 
   class InferenceStep(tf.Module):
-      def __init__(self, thismodel):
+      def __init__(self, model, thismodel):
           self.thismodel = thismodel
           self.input_shape = thismodel.input_shape
+          self.use_audio = model.use_audio
+          self.use_video = model.use_video
 
       @tf.function(input_signature=[])
       def get_input_shape(self):
           return self.input_shape
+
+      @tf.function(input_signature=[])
+      def get_use_audio(self):
+          return self.use_audio
+
+      @tf.function(input_signature=[])
+      def get_use_video(self):
+          return self.use_video
 
       @tf.function(input_signature=[tf.TensorSpec(shape=None, dtype=tf.float32)])
       def inference_step(self, waveform):
           hidden, output = self.thismodel(waveform, training=False)
           return hidden, tf.nn.softmax(output)
 
-  return InferenceStep(thismodel)
+  return InferenceStep(model, thismodel)
 
 
 def main():
@@ -114,10 +125,30 @@ if __name__ == '__main__':
       default=16000,
       help='Expected tic rate of the wavs',)
   parser.add_argument(
-      '--nchannels',
+      '--audio_nchannels',
       type=int,
       default=1,
       help='Expected number of channels in the wavs',)
+  parser.add_argument(
+      '--video_frame_rate',
+      type=int,
+      default=0,
+      help='Expected frame rate in Hz of the video',)
+  parser.add_argument(
+      '--video_frame_width',
+      type=int,
+      default=0,
+      help='Expected frame width in pixels of the video',)
+  parser.add_argument(
+      '--video_frame_height',
+      type=int,
+      default=0,
+      help='Expected frame height in pixels of the video',)
+  parser.add_argument(
+      '--video_channels',
+      type=str,
+      default='1',
+      help='Comma-separated list of which channels in the video to use',)
   parser.add_argument(
       '--context_ms',
       type=float,

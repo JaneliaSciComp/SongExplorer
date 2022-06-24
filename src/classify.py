@@ -26,6 +26,7 @@
 # $SONGEXPLORER_BIN classify.sh \
 #      --context_ms=204.8 \
 #      --shiftby_ms=0.0 \
+#      --video_findfile=same-basename \
 #      --model=`pwd`/trained-classifier/train_1k/frozen-graph.ckpt-50.pb \
 #      --model_labels=`pwd`/trained-classifier/train_1k/labels.txt \
 #      --wav=`pwd`/groundtruth-data/round1/20161207T102314_ch1_p1.wav \
@@ -47,16 +48,27 @@ import tensorflow as tf
 
 from scipy.io import wavfile
 
+# use agg here as otherwise pims tries to open gtk
+# see https://github.com/soft-matter/pims/issues/351
+import matplotlib as mpl
+mpl.use('Agg')
+import pims
+
+import importlib
+
+import tifffile
+
 FLAGS = None
 
 def main():
   os.environ['TF_DETERMINISTIC_OPS']=FLAGS.deterministic
   os.environ['TF_DISABLE_SPARSE_SOFTMAX_XENT_WITH_LOGITS_OP_DETERMINISM_EXCEPTIONS']=FLAGS.deterministic
 
-  #Load a wav file and return audio_tic_rate and numpy data of float64 type.
-  data, audio_tic_rate = tf.audio.decode_wav(tf.io.read_file(FLAGS.wav))
-  audio_tic_rate = audio_tic_rate.numpy()
-  print('audio_tic_rate = '+str(audio_tic_rate))
+  sys.path.append(os.path.dirname(FLAGS.video_findfile))
+  video_findfile = importlib.import_module(os.path.basename(FLAGS.video_findfile)).video_findfile
+
+  print('model = '+str(FLAGS.model))
+  print('audio_tic_rate = '+str(FLAGS.audio_tic_rate))
 
   with open(FLAGS.model_labels, 'r') as fid:
     model_labels = fid.read().splitlines()
@@ -87,37 +99,98 @@ def main():
   # Load model and create a tf session to process audio pieces
   thismodel = tf.saved_model.load(FLAGS.model)
   recognize_graph = thismodel.inference_step
+  use_audio = thismodel.get_use_audio()
+  use_video = thismodel.get_use_video()
 
-  clip_window_tics = thismodel.get_input_shape()[1].numpy()
-  context_tics = int(FLAGS.context_ms * audio_tic_rate / 1000)
-  assert FLAGS.parallelize>1
-  stride_x_downsample_tics = (clip_window_tics - context_tics) // (FLAGS.parallelize-1)
-  clip_stride_tics = stride_x_downsample_tics * FLAGS.parallelize
+  #Load a wav file and return audio_tic_rate and numpy data of float64 type.
+  if use_audio:
+    audio_data, fs = tf.audio.decode_wav(tf.io.read_file(FLAGS.wav))
+    if fs.numpy() != FLAGS.audio_tic_rate:
+      print("ERROR: audio_tic_rate of WAV file is %d while %d was expected" %
+            (fs.numpy(), FLAGS.audio_tic_rate))
+      exit()
+    if audio_data.shape[1] != FLAGS.audio_nchannels:
+      print("ERROR: audio_nchannels of WAV file is %d while %d was expected" %
+            (audio_data.shape[1], FLAGS.audio_nchannels))
+      exit()
 
-  stride_x_downsample_ms = stride_x_downsample_tics/audio_tic_rate*1000
-  npadding = int(round((FLAGS.context_ms/2+FLAGS.shiftby_ms)/stride_x_downsample_ms))
+  if use_video:
+    sound_basename = os.path.basename(FLAGS.wav)
+    sound_dirname =  os.path.dirname(FLAGS.wav)
+    vidfile = video_findfile(sound_dirname, sound_basename)
+    tiffile = os.path.join(sound_dirname, os.path.splitext(vidfile)[0]+".tif")
+    bkg = tifffile.imread(tiffile)
+    video_data = pims.open(os.path.join(sound_dirname, vidfile))
+    video_channels = tf.cast([int(x) for x in FLAGS.video_channels.split(',')], tf.int32)
+    if video_data.frame_rate != FLAGS.video_frame_rate:
+      print('ERROR: frame_rate of video file is %d when %d is expected' % (video_data.frame_rate, FLAGS.video_frame_rate))
+      exit()
+    if video_data.frame_shape[0] != FLAGS.video_frame_width:
+      print('ERROR: frame_width of video file is %d when %d is expected' % (video_data.frame_shape[1], FLAGS.video_frame_width))
+      exit()
+    if video_data.frame_shape[1] != FLAGS.video_frame_height:
+      print('ERROR: frame_height of video file is %d when %d is expected' % (video_data.frame_shape[1], FLAGS.video_frame_height))
+      exit()
+    if video_data.frame_shape[2] < max(video_channels):
+      print('ERROR: nchannels of video file is %d when channel(s) %s is/are expected' % (video_data.frame_shape[2], FLAGS.video_channels))
+      exit()
+
+  if FLAGS.parallelize==1:
+    print("WARNING: classify_parallelize in configuration.pysh is set to 1.  making predictions is faster if it is > 1")
+
+  if use_audio:
+    clip_window_samples = thismodel.get_input_shape()[1].numpy()
+    data_len_samples = audio_data.shape[0]
+    data_sample_rate = FLAGS.audio_tic_rate
+  elif use_video:
+    clip_window_samples = thismodel.get_input_shape()[1].numpy()
+    data_len_samples = len(video_data)
+    data_sample_rate = FLAGS.video_frame_rate
+    video_slice = np.zeros((clip_window_samples,
+                            FLAGS.video_frame_height,
+                            FLAGS.video_frame_width,
+                            len(video_channels)),
+                           dtype=np.float32)
+
+  context_samples = int(FLAGS.context_ms * data_sample_rate / 1000)
+  stride_x_downsample_samples = (clip_window_samples - context_samples) // (FLAGS.parallelize-1)
+  clip_stride_samples = stride_x_downsample_samples * FLAGS.parallelize
+
+  stride_x_downsample_ms = stride_x_downsample_samples / data_sample_rate*1000
+  npadding = round((FLAGS.context_ms/2+FLAGS.shiftby_ms)/stride_x_downsample_ms)
   probability_list = [np.zeros((npadding, len(labels)), dtype=np.float32)]
 
   # Inference along audio stream.
-  for audio_data_offset in range(0, 1+data.shape[0], clip_stride_tics):
-    input_start = audio_data_offset
-    input_end = audio_data_offset + clip_window_tics
-    pad_len = input_end - data.shape[0]
+  for data_offset_samples in range(0, 1+data_len_samples, clip_stride_samples):
+    start_sample = data_offset_samples
+    stop_sample = data_offset_samples + clip_window_samples
+    pad_len = stop_sample - data_len_samples
     
-    data_slice = tf.transpose(data[input_start:input_end,:] if pad_len<=0 else \
-                              np.pad(data[input_start:input_end,:],
-                                     ((0,pad_len),(0,0)), mode='median'))
-    _,outputs = recognize_graph(tf.expand_dims(tf.transpose(data_slice), 0))
-    current_time_ms = np.round(audio_data_offset * 1000 / audio_tic_rate).astype(np.int)
+    if use_audio:
+      audio_slice = audio_data[start_sample:stop_sample,:] if pad_len<=0 else \
+                    np.pad(audio_data[start_sample:stop_sample,:],
+                           ((0,pad_len),(0,0)), mode='median')
+    if use_video:
+      if start_sample+clip_window_samples > len(video_data): break
+      for iframe, frame in enumerate(video_data[start_sample:stop_sample]):
+        video_slice[iframe,:,:,:] = frame[:,:,video_channels] - bkg[:,:,video_channels]
+
+    if use_audio:
+      inputs = tf.expand_dims(audio_slice, 0)
+    elif use_video:
+      inputs = tf.expand_dims(video_slice, 0)
+    _,outputs = recognize_graph(inputs)
+
+    current_time_ms = np.round(data_offset_samples * 1000 / data_sample_rate).astype(int)
     if pad_len>0:
-      discard_len = np.ceil(pad_len/stride_x_downsample_tics).astype(np.int)
+      discard_len = np.ceil(pad_len/stride_x_downsample_samples).astype(int)
       probability_list.append(np.array(outputs.numpy()[0,:-discard_len,:]))
       break
     else:
       probability_list.append(np.array(outputs.numpy()[0,:,:]))
 
-  tic_rate = round(1000/stride_x_downsample_ms)
-  if tic_rate != 1000/stride_x_downsample_ms:
+  sample_rate = round(1000/stride_x_downsample_ms)
+  if sample_rate != 1000/stride_x_downsample_ms:
     print('WARNING: .wav files do not support fractional sampling rates!')
 
   probability_matrix = np.concatenate(probability_list)
@@ -128,7 +201,7 @@ def main():
     #inotnan = ~isnan(probability_matrix(:,ch));
     waveform = adjusted_probability*np.iinfo(np.int16).max  # colon was inotnan
     filename = os.path.splitext(FLAGS.wav)[0]+'-'+labels[ch]+'.wav'
-    wavfile.write(filename, int(tic_rate), waveform.astype('int16'))
+    wavfile.write(filename, int(sample_rate), waveform.astype('int16'))
 
 if __name__ == '__main__':
   parser = argparse.ArgumentParser(description='test_streaming_accuracy')
@@ -163,6 +236,41 @@ if __name__ == '__main__':
       help="""\
       Range to shift the training audio by in time.
       """)
+  parser.add_argument(
+      '--audio_tic_rate',
+      type=int,
+      default=16000,
+      help='Expected tic rate of the wavs',)
+  parser.add_argument(
+      '--audio_nchannels',
+      type=int,
+      default=1,
+      help='Expected number of channels in the wavs',)
+  parser.add_argument(
+      '--video_findfile',
+      type=str,
+      default='same-basename',
+      help='What function to use to match WAV files to corresponding video files')
+  parser.add_argument(
+      '--video_frame_rate',
+      type=int,
+      default=0,
+      help='Expected frame rate in Hz of the video',)
+  parser.add_argument(
+      '--video_frame_width',
+      type=int,
+      default=0,
+      help='Expected frame width in pixels of the video',)
+  parser.add_argument(
+      '--video_frame_height',
+      type=int,
+      default=0,
+      help='Expected frame height in pixels of the video',)
+  parser.add_argument(
+      '--video_channels',
+      type=str,
+      default='1',
+      help='Comma-separated list of which channels in the video to use',)
   parser.add_argument(
       '--parallelize',
       type=int,
