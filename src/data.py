@@ -28,9 +28,9 @@ import sys
 import tarfile
 import csv
 import scipy.io.wavfile as spiowav
+from glob import glob
 
 import numpy as np
-import tensorflow as tf
 
 # use agg here as otherwise pims tries to open gtk
 # see https://github.com/soft-matter/pims/issues/351
@@ -44,6 +44,9 @@ from multiprocessing import Process, Queue
 import time
 
 MAX_NUM_WAVS_PER_CLASS = 2**27 - 1  # ~134M
+
+queues = {}
+processes = {}
 
 def which_set(filename, validation_percentage, validation_offset_percentage, testing_percentage):
   """Determines which data partition the file should belong to.
@@ -81,7 +84,7 @@ def which_set(filename, validation_percentage, validation_offset_percentage, tes
   # To do that, we need a stable way of deciding based on just the file name
   # itself, so we do a hash of that and then use that to generate a
   # probability value that we use to assign it.
-  hash_name_hashed = hashlib.sha1(tf.compat.as_bytes(hash_name)).hexdigest()
+  hash_name_hashed = hashlib.sha1(bytes(hash_name,"utf-8")).hexdigest()
   percentage_hash = ((int(hash_name_hashed, 16) %
                       (MAX_NUM_WAVS_PER_CLASS + 1)) *
                      (100.0 / MAX_NUM_WAVS_PER_CLASS))
@@ -109,7 +112,7 @@ class AudioProcessor(object):
                use_audio, use_video, video_findfile, video_bkg_frames):
     self.data_dir = data_dir
     random.seed(None if random_seed_batch==-1 else random_seed_batch)
-    np.random.seed(None if random_seed_batch==-1 else random_seed_batch)
+    self.np_rng = np.random.default_rng(None if random_seed_batch==-1 else random_seed_batch)
     self.prepare_data_index(shiftby_ms,
                             labels_touse, kinds_touse,
                             validation_percentage, validation_offset_percentage, validation_files,
@@ -120,8 +123,6 @@ class AudioProcessor(object):
                             video_findfile, video_bkg_frames)
     self.queue_size = queue_size
     self.max_procs = max_procs
-    self.queues = {}
-    self.processes = {}
 
 
   def prepare_data_index(self,
@@ -167,7 +168,7 @@ class AudioProcessor(object):
     video_frame_width = model_settings['video_frame_width']
     video_frame_height = model_settings['video_frame_height']
     video_channels = model_settings['video_channels']
-    shiftby_tics = int((shiftby_ms * model_settings["audio_tic_rate"]) / 1000)
+    shiftby_tics = int(shiftby_ms * model_settings["audio_tic_rate"] / 1000)
     search_path = os.path.join(self.data_dir, '*', '*.csv')
     audio_ntics = {}
     video_nframes = {}
@@ -176,7 +177,7 @@ class AudioProcessor(object):
     partition_labels = partition_label.split(',')
     if '' in partition_labels:
       partition_labels.remove('')
-    for csv_path in tf.io.gfile.glob(search_path):
+    for csv_path in glob(search_path):
       annotation_reader = csv.reader(open(csv_path))
       annotation_list = list(annotation_reader)
       if len(partition_labels)>0:
@@ -350,7 +351,7 @@ class AudioProcessor(object):
       audio_nchannels = model_settings['audio_nchannels']
       video_frame_rate = model_settings['video_frame_rate']
       video_channels = model_settings['video_channels']
-      shiftby_tics = int((shiftby_ms * audio_tic_rate) / 1000)
+      shiftby_tics = int(shiftby_ms * audio_tic_rate / 1000)
       pick_deterministically = (mode != 'training')
       if use_audio:
         audio_slice = np.zeros((nsounds, context_tics, audio_nchannels), dtype=np.float32)
@@ -370,10 +371,10 @@ class AudioProcessor(object):
         if pick_deterministically:
           isound = i
         else:
-          isound = np.random.randint(ncandidates)
+          isound = self.np_rng.integers(ncandidates)
         sound = candidates[isound]
 
-        offset_tic = (np.random.randint(sound['ticks'][0], 1+sound['ticks'][1]) \
+        offset_tic = (self.np_rng.integers(sound['ticks'][0], high=1+sound['ticks'][1]) \
                   if sound['ticks'][0] < sound['ticks'][1] \
                   else sound['ticks'][0])
         start_tic = offset_tic - math.floor(context_tics/2) - shiftby_tics
@@ -431,31 +432,31 @@ class AudioProcessor(object):
 
     qkey = str(how_many) + str(sorted(model_settings.items())) + str(shiftby_ms) + mode
     if mode=='training':
-      if qkey not in self.queues:
-        self.queues[qkey] = Queue(self.queue_size)
-        self.processes[qkey] = []
-      if self.queues[qkey].empty() and \
-         (self.max_procs==0 or len(self.processes[qkey])<self.max_procs):
+      if qkey not in queues:
+        queues[qkey] = Queue(self.queue_size)
+        processes[qkey] = []
+      if queues[qkey].empty() and \
+         (self.max_procs==0 or len(processes[qkey])<self.max_procs):
         p = Process(target=self._get_data,
-                    args=(self.queues[qkey],
+                    args=(queues[qkey],
                           how_many, offset, model_settings, shiftby_ms,
                           mode, use_audio, use_video, video_findfile),
                     daemon=True)
         p.start()
-        self.processes[qkey].append(p)
+        processes[qkey].append(p)
 
-      return self.queues[qkey].get()
+      return queues[qkey].get()
 
     else:
-      if qkey not in self.queues:
-        self.queues[qkey] = Queue(self.queue_size)
+      if qkey not in queues:
+        queues[qkey] = Queue(self.queue_size)
       if offset==0:
         # HACK: only one extra process for validating, testing, and activations
         p = Process(target=self._get_data,
-                    args=(self.queues[qkey],
+                    args=(queues[qkey],
                           how_many, offset, model_settings, shiftby_ms,
                           mode, use_audio, use_video, video_findfile),
                     daemon=True)
         p.start()
 
-      return self.queues[qkey].get()
+      return queues[qkey].get()
