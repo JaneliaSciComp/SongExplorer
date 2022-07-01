@@ -1,10 +1,10 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 # test that the shiftby hyperparameter works
 
 #${SONGEXPLORER_BIN/-B/-B /tmp:/opt/songexplorer/test/scratch -B} bash -c "test/shiftby.sh"
 
-repo_path=$(dirname $(dirname $(which songexplorer)))
+repo_path=$(dirname $(dirname $(readlink -f $(which songexplorer))))
 
 mkdir -p $repo_path/test/scratch/shiftby
 cp $repo_path/configuration.pysh $repo_path/test/scratch/shiftby

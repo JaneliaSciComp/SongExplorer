@@ -1,10 +1,10 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 # run all of the tests
 
 # ${SONGEXPLORER_BIN/-B/-B /tmp:/opt/songexplorer/test/scratch -B} bash -c "test/runtests.sh"
 
-repo_path=$(dirname $(dirname $(which songexplorer)))
+repo_path=$(dirname $(dirname $(readlink -f $(which songexplorer))))
 
 $repo_path/test/tutorial.sh
 $repo_path/test/tutorial.py

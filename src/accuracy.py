@@ -1,4 +1,4 @@
-#!/usr/bin/python3
+#!/usr/bin/env python3
 # generate confusion matrices, precision-recall curves, thresholds, etc.
  
 # accuracy.py <logdir> <error-ratios> <nprobabilities> <parallelize>

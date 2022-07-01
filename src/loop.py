@@ -1,4 +1,4 @@
-#!/usr/bin/python3
+#!/usr/bin/env python3
 
 #This file, originally from the TensorFlow speech recognition tutorial,
 #has been heavily modified for use by SongExplorer.

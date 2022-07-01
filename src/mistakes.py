@@ -1,4 +1,4 @@
-#!/usr/bin/python3
+#!/usr/bin/env python3
 
 # record whether annotations where correctly or mistakenly classified
  

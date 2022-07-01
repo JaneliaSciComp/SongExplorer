@@ -1,4 +1,4 @@
-#!/usr/bin/python3
+#!/usr/bin/env python3
 
 # threshold an audio recording in both the time and frequency spaces
 

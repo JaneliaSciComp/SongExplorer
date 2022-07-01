@@ -1,4 +1,4 @@
-#!/usr/bin/python3
+#!/usr/bin/env python3
 
 # test congruence
 
@@ -44,7 +44,7 @@ M.init(None, os.path.join(repo_path, "test/scratch/congruence/configuration.pysh
 V.init(None)
 C.init(None)
 
-run(["hetero", "start", "1", "1", "1"])
+run(["hetero", "start", "1", "0", "1"])
 
 V.groundtruth_folder.value = os.path.join(repo_path, "test/scratch/congruence/groundtruth-data")
 

@@ -1,4 +1,4 @@
-#!/usr/bin/python3
+#!/usr/bin/env python3
 
 # test that weights_seed works
 
@@ -35,7 +35,7 @@ os.makedirs(os.path.join(repo_path, "test/scratch/seeds/groundtruth-data/round1"
 shutil.copy(os.path.join(repo_path, "data/PS_20130625111709_ch3.wav"),
             os.path.join(repo_path, "test/scratch/seeds/groundtruth-data/round1"))
 
-run(["hetero", "start", "1", "1", "1"])
+run(["hetero", "start", "1", "0", "1"])
 
 shutil.copy(os.path.join(repo_path, "data/PS_20130625111709_ch3-annotated-person1.csv"),
             os.path.join(repo_path, "test/scratch/seeds/groundtruth-data/round1"))

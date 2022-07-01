@@ -1,4 +1,4 @@
-#!/usr/bin/python3
+#!/usr/bin/env python3
 
 # train several networks withholding different subsets of the recordings to test upon
 

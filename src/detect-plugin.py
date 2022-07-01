@@ -1,4 +1,4 @@
-#!/usr/bin/python3
+#!/usr/bin/env python3
 
 # use bokehlog.info() to print debugging messages
 import logging 

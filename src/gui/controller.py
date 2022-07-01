@@ -39,10 +39,10 @@ def generic_actuate(cmd, logfile, where,
             for job in M.waitfor_job:
                clusterflags += "\"done("+job+")\"&&"
             clusterflags = clusterflags[:-2]
-    filter_warnings="|& sed -r '/\(deprecated|more times\)/d'"  # pims.open(video)
+    filter_warnings=" 2>&1 | sed -r '/\(deprecated\|more times\)/d'"  # pims.open(video)
     if where == "local":
         p = run(["hetero", "submit",
-                 "{ export CUDA_VISIBLE_DEVICES=$QUEUE1; "+cmd+" "+' '.join(args)+" "+filter_warnings+" ; } &>> "+logfile,
+                 "{ export CUDA_VISIBLE_DEVICES=$QUEUE1; "+cmd+" "+' '.join(args)+filter_warnings+" ; } >> "+logfile+" 2>&1",
                  str(ncpu_cores), str(ngpu_cards), str(ngigabyes_memory), localdeps],
                 stdout=PIPE, stderr=STDOUT)
         jobid = p.stdout.decode('ascii').rstrip()
@@ -50,7 +50,7 @@ def generic_actuate(cmd, logfile, where,
     elif where == "server":
         p = run(["ssh", "-l", M.server_username, M.server_ipaddr, "export SINGULARITYENV_PREPEND_PATH="+M.source_path+";",
                  "$SONGEXPLORER_BIN", "hetero", "submit",
-                 "\"{ export CUDA_VISIBLE_DEVICES=\$QUEUE1; "+cmd+" "+' '.join(args).replace('"','\\"')+" "+filter_warnings+" ; } &>> "+logfile+"\"",
+                 "\"{ export CUDA_VISIBLE_DEVICES=\$QUEUE1; "+cmd+" "+' '.join(args).replace('"','\\"')+filter_warnings+" ; } >> "+logfile+" 2>&1\"",
                  str(ncpu_cores), str(ngpu_cards), str(ngigabyes_memory), "'"+localdeps+"'"],
                 stdout=PIPE, stderr=STDOUT)
         jobid = p.stdout.decode('ascii').rstrip()
@@ -58,7 +58,7 @@ def generic_actuate(cmd, logfile, where,
     elif where == "cluster":
         pe = Popen(["echo",
                     "export SINGULARITYENV_PREPEND_PATH="+M.source_path+";",
-                    os.environ["SONGEXPLORER_BIN"]+" "+cmd+" "+' '.join(args)+" "+filter_warnings],
+                    os.environ["SONGEXPLORER_BIN"]+" "+cmd+" "+' '.join(args)+filter_warnings],
                    stdout=PIPE)
         ps = Popen(["ssh", "-l", M.cluster_username, M.cluster_ipaddr, M.cluster_cmd,
                     #"-J ${logfile//,/}.job",

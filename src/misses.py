@@ -1,4 +1,4 @@
-#!/usr/bin/python3
+#!/usr/bin/env python3
 
 # find events that are detected but not predicted, a.k.a. false negatives
  
