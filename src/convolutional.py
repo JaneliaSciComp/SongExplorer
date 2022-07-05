@@ -2,7 +2,6 @@ import math
 
 import tensorflow as tf
 from tensorflow.keras.layers import *
-from tensorflow_addons.layers import *
 
 import numpy as np
 from itertools import chain, zip_longest
@@ -173,12 +172,7 @@ model_parameters = [
                                                                                    "map"]],              None,                        True],
   ["normalization",      "normalization",  ['none',
                                             'batch before ReLU',
-                                            'batch after ReLU',
-                                            'group before ReLU',
-                                            'group after ReLU'], 'none',         [],                     None,                        True],
-  ["ngroups",            "# groups",       '',                   '1,1',          ["normalization",
-                                                                                  ["group before ReLU",
-                                                                                   "group after ReLU"]], ngroups_callback,            True],
+                                            'batch after ReLU'], 'none',         [],                     None,                        True],
   ]
 
 class Augment(tf.keras.layers.Layer):
