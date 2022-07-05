@@ -347,6 +347,11 @@ if __name__ == '__main__':
       default=False,
       help='Whether to save fingerprint input layer during processing')
   parser.add_argument(
+      '--random_seed_batch',
+      type=int,
+      default=59185,
+      help='Randomize mini-batch selection if -1; otherwise use supplied number as seed.')
+  parser.add_argument(
       '--deterministic',
       type=str,
       default='0',

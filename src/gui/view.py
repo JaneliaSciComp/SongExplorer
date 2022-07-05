@@ -2256,7 +2256,7 @@ def init(_bokeh_document):
             leaveallout: [context_ms, shiftby_ms, optimizer, learning_rate, batch_seed, weights_seed, logs_folder, groundtruth_folder, validation_files, test_files, labels_touse, kinds_touse, nsteps, restore_from, save_and_validate_period, mini_batch] + list(model_parameters.values()),
             xvalidate: [context_ms, shiftby_ms, optimizer, learning_rate, batch_seed, weights_seed, logs_folder, groundtruth_folder, test_files, labels_touse, kinds_touse, nsteps, restore_from, save_and_validate_period, mini_batch, kfold] + list(model_parameters.values()),
             mistakes: [groundtruth_folder],
-            activations: [context_ms, shiftby_ms, logs_folder, model_file, groundtruth_folder, labels_touse, kinds_touse, activations_equalize_ratio, activations_max_sounds, mini_batch] + list(model_parameters.values()),
+            activations: [context_ms, shiftby_ms, logs_folder, model_file, groundtruth_folder, labels_touse, kinds_touse, activations_equalize_ratio, activations_max_sounds, mini_batch, batch_seed] + list(model_parameters.values()),
             cluster: [groundtruth_folder, cluster_algorithm, cluster_these_layers, pca_fraction_variance_to_retain, tsne_perplexity, tsne_exaggeration, umap_neighbors, umap_distance],
             visualize: [groundtruth_folder],
             accuracy: [logs_folder, precision_recall_ratios],

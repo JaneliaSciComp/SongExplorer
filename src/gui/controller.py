@@ -1371,6 +1371,7 @@ async def activations_actuate():
             "--video_channels="+str(M.video_channels),
             "--validation_percentage=0.0",
             "--validation_offset_percentage=0.0",
+            "--random_seed_batch="+V.batch_seed.value,
             "--deterministic="+str(M.deterministic),
             "--save_activations=True"]
     if M.activations_gpu:
