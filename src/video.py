@@ -46,6 +46,9 @@ model_parameters = [
                                         'truncated_normal'],       'he_normal',   [], None, True],
   ["dropout_rate",   "dropout %",      '',                         '50',          [], None, True],
   ["depth",          "# layers",       ['13', '26', '50', '101', '152'], '26',          [], None, True],
+  ["nfilters",       "# filters",      '',                         '256',         [], None, True],
+  ["pool_size",      "pool size",      '',                         '11',          [], None, True],
+  ["kernel_size",    "kernel size",    '',                         '3',           [], None, True],
   ["bn_momentum",    "BN momentum",    '',                         '0.9',         [], None, True],
   ["epsilon",        "BN epsilon",     '',                         '0.0001',      [], None, True],
   ["arch",           "architecture",   ['ip-csn',
@@ -69,7 +72,6 @@ NUM_BLOCKS = {
     101: (3, 4, 23, 3),
     152: (3, 8, 36, 3),
 }
-FILTERS = [256, 512, 1024, 2048]
 STRIDES = [
     (1, 1, 1),
     (1, 2, 2),
@@ -102,7 +104,8 @@ def update_noutput_tics(PARAMS, kernel_size, stride):
 
 def block(PARAMS, inputs, stride_idx):
     FILTER_DIM = 1 if PARAMS['data_format'] == 'channels_first' else -1
-    kernel_size_touse=[3,3,3] if PARAMS["noutput_tics"]>=3 else [1,3,3]
+    kernel_size_touse = [int(PARAMS["kernel_size"])]*3
+    if PARAMS["noutput_tics"]<3:  kernel_size_touse[0]=1
     if PARAMS['arch'] in ['ir-csn', 'ir']:
         x = inputs
         x = layers.Conv3D(
@@ -115,7 +118,7 @@ def block(PARAMS, inputs, stride_idx):
             data_format=PARAMS['data_format'],
             groups=x.shape[FILTER_DIM],
             )(x)
-        kernels.append(3)
+        kernels.append(kernel_size_touse[1])
         strides.append(STRIDES[stride_idx][1])
         update_noutput_tics(PARAMS, kernel_size_touse[0], STRIDES[stride_idx][0])
     elif PARAMS['arch'] in ['ip-csn', 'ip']:
@@ -150,7 +153,7 @@ def block(PARAMS, inputs, stride_idx):
             data_format=PARAMS['data_format'],
             groups=x.shape[FILTER_DIM],
             )(x)
-        kernels.append(3)
+        kernels.append(kernel_size_touse[1])
         strides.append(STRIDES[stride_idx][1])
         update_noutput_tics(PARAMS, kernel_size_touse[0], STRIDES[stride_idx][0])
     return x
@@ -161,12 +164,11 @@ def bottleneck(PARAMS,
         stride_idx
     ):
     FILTER_DIM = 1 if PARAMS['data_format'] == 'channels_first' else -1
-    num_filters = FILTERS[filter_idx] \
-                        if PARAMS['depth'] >= 50 else FILTERS[filter_idx] / 4
+    num_filters = int(PARAMS['nfilters']) * 2**filter_idx
     skip = inputs
 
     x = layers.Conv3D(
-        filters=int(num_filters / 4) if PARAMS['depth'] >= 50 else num_filters,
+        filters=num_filters,
         kernel_size=[1,1,1],
         strides=[1,1,1],
         use_bias=PARAMS['use_bias'],
@@ -332,13 +334,12 @@ def network(PARAMS, inputs):
     # https://distill.pub/2019/computing-receptive-fields/
     print("receptive_field = %d" % int(1+np.sum((np.array(kernels)-1)*np.cumprod(strides[:-1]))))
 
+    pool_size = int(PARAMS['pool_size'])
     x = layers.AveragePooling3D(
         pool_size=[
-            #PARAMS['context_frames'] // 8 \
-            #    if PARAMS['context_frames'] >= 8 else 1, 
             1, 
-            11, 
-            11,
+            pool_size, 
+            pool_size,
         ], 
         strides=[1, 1, 1],
         data_format=PARAMS['data_format'],
