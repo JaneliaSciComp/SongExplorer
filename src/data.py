@@ -40,7 +40,7 @@ import pims
 
 import tifffile
 
-from multiprocessing import Process, Queue
+from multiprocessing import Process, Queue, cpu_count
 import time
 
 MAX_NUM_WAVS_PER_CLASS = 2**27 - 1  # ~134M
@@ -441,7 +441,9 @@ class AudioProcessor(object):
       _offsets.reverse()
       for _offset in _offsets:
         offsets[mode].put(_offset)
-    if queues[mode].empty() and (self.max_procs==0 or len(processes[mode])<self.max_procs):
+    if queues[mode].empty() and \
+       ((self.max_procs==0 and len(processes[mode])<=cpu_count()) or \
+        len(processes[mode])<self.max_procs):
       p = Process(target=self._get_data,
                   args=(queues[mode], offsets[mode] if mode!='training' else None,
                         how_many, offset, model_settings, shiftby_ms,

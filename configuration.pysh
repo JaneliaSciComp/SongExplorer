@@ -202,8 +202,8 @@ nprobabilities=20
 classify_parallelize=64
 
 # used by train, generalize, xvalidate, and activations
-data_loader_queuesize=0  # 0=infinite
-data_loader_maxprocs=0  # 0=infinite
+data_loader_maxprocs=0  # 0 = num CPU cores
+data_loader_queuesize=1  # 0 = infinite
 
 
 # what follows is for developers only
