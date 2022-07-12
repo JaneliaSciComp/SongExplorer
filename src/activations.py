@@ -133,20 +133,21 @@ def main():
     exit()
 
   def infer_step(isound):
+    # HACK: get_data not guaranteed to return isounds in order
     fingerprints, _, sounds = audio_processor.get_data(
                                  FLAGS.batch_size, isound, model_settings,
                                  time_shift_tics, 'testing',
                                  model.use_audio, model.use_video, video_findfile)
-    needed = FLAGS.batch_size - fingerprints.shape[0]
     hidden_activations, logits = thismodel(fingerprints, training=False)
-    return fingerprints, sounds, needed, logits, hidden_activations
+    return fingerprints, sounds, logits, hidden_activations
 
-  for isound in range(0, testing_set_size, FLAGS.batch_size):
-    fingerprints, sounds, needed, logits, hidden_activations = infer_step(isound)
-    obtained = FLAGS.batch_size - needed
+  isound = 0
+  for _ in range(0, testing_set_size, FLAGS.batch_size):
+    fingerprints, sounds, logits, hidden_activations = infer_step(isound)
+    this_batch_size = fingerprints.shape[0]
     if isound==0:
       sounds_data = [None]*testing_set_size
-    sounds_data[isound:isound+obtained] = sounds
+    sounds_data[isound:isound+this_batch_size] = sounds
     if FLAGS.save_activations:
       if isound==0:
         activations = []
@@ -155,14 +156,15 @@ def main():
           activations.append(np.empty((testing_set_size, *nHWC)))
         activations.append(np.empty((testing_set_size, np.shape(logits)[2])))
       for ihidden in range(len(hidden_activations)):
-        activations[ihidden][isound:isound+obtained,...] = \
+        activations[ihidden][isound:isound+this_batch_size,...] = \
               hidden_activations[ihidden]
-      activations[-1][isound:isound+obtained,...] = logits[:,0,:]
+      activations[-1][isound:isound+this_batch_size,...] = logits[:,0,:]
     if FLAGS.save_fingerprints:
       if isound==0:
         nHWC = np.shape(fingerprints)[1:]
         input_layer = np.empty((testing_set_size, *nHWC))
-      input_layer[isound:isound+obtained,...] = fingerprints
+      input_layer[isound:isound+this_batch_size,...] = fingerprints
+    isound += this_batch_size
   if FLAGS.save_activations:
     np.savez(os.path.join(FLAGS.data_dir,'activations.npz'), \
              *activations, sounds=sounds_data, labels=labels)

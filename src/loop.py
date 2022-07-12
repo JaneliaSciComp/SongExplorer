@@ -269,7 +269,6 @@ def main():
 
 @tf.function
 def validate_test_step(model, nlabels, fingerprints, ground_truth):
-  needed = FLAGS.batch_size - fingerprints.shape[0]
   logits, accuracy, predicted_indices, hidden_activations = evaluate_fn(model, fingerprints,
                                                                         ground_truth, False)
   loss_value = loss_fn(logits, ground_truth)
@@ -278,19 +277,21 @@ def validate_test_step(model, nlabels, fingerprints, ground_truth):
                                               predicted_indices,
                                               num_classes=nlabels)
 
-  return needed, logits, accuracy, hidden_activations, cross_entropy_mean, confusion_matrix
+  return logits, accuracy, hidden_activations, cross_entropy_mean, confusion_matrix
 
 def validate_and_test(model, set_kind, set_size, model_settings, \
                       audio_processor, is_last_step, training_step, t0, nlabels, \
                       validation_writer, use_audio, use_video, video_findfile):
   total_accuracy = 0
   total_conf_matrix = None
-  for isound in range(0, set_size, FLAGS.batch_size):
+  isound = 0
+  for _ in range(0, set_size, FLAGS.batch_size):
+    # HACK: get_data not guaranteed to return isounds in order
     fingerprints, ground_truth, sounds = (
         audio_processor.get_data(FLAGS.batch_size, isound, model_settings,
                                  FLAGS.shiftby_ms, set_kind,
                                  use_audio, use_video, video_findfile))
-    needed, logits, accuracy, hidden_activations, cross_entropy_mean, confusion_matrix = \
+    logits, accuracy, hidden_activations, cross_entropy_mean, confusion_matrix = \
             validate_test_step(model, tf.constant(nlabels),
                                tf.constant(fingerprints), tf.constant(ground_truth))
 
@@ -298,20 +299,19 @@ def validate_and_test(model, set_kind, set_size, model_settings, \
       tf.summary.scalar('cross_entropy', cross_entropy_mean, step=training_step)
       tf.summary.scalar('accuracy', accuracy, step=training_step)
 
-    batch_size = min(FLAGS.batch_size, set_size - isound)
-    total_accuracy += (accuracy * batch_size) / set_size
+    this_batch_size = fingerprints.shape[0]
+    total_accuracy += (accuracy * this_batch_size) / set_size
     if total_conf_matrix is None:
       total_conf_matrix = confusion_matrix
     else:
       total_conf_matrix += confusion_matrix
-    obtained = FLAGS.batch_size - needed
     if isound==0:
       sounds_data = [None]*set_size
       groundtruth_data = np.empty((set_size,))
       logit_data = np.empty((set_size,np.shape(logits)[2]))
-    sounds_data[isound:isound+obtained] = sounds
-    groundtruth_data[isound:isound+obtained] = ground_truth
-    logit_data[isound:isound+obtained,:] = logits[:,0,:]
+    sounds_data[isound:isound+this_batch_size] = sounds
+    groundtruth_data[isound:isound+this_batch_size] = ground_truth
+    logit_data[isound:isound+this_batch_size,:] = logits[:,0,:]
     if is_last_step:
       if FLAGS.save_hidden:
         if isound==0:
@@ -320,12 +320,13 @@ def validate_and_test(model, set_kind, set_size, model_settings, \
             nHWC = np.shape(hidden_activations[ihidden])[1:]
             hidden_layers.append(np.empty((set_size, *nHWC)))
         for ihidden in range(len(hidden_activations)):
-          hidden_layers[ihidden][isound:isound+obtained,...] = hidden_activations[ihidden]
+          hidden_layers[ihidden][isound:isound+this_batch_size,...] = hidden_activations[ihidden]
       if FLAGS.save_fingerprints:
         if isound==0:
           nHWC = np.shape(fingerprints)[1:]
           input_layer = np.empty((set_size ,*nHWC))
-        input_layer[isound:isound+obtained,...] = fingerprints
+        input_layer[isound:isound+this_batch_size,...] = fingerprints
+    isound += this_batch_size
   print('Confusion Matrix:\n %s\n %s' % \
                   (audio_processor.labels_list, total_conf_matrix.numpy()))
   t1=datetime.now()-t0

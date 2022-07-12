@@ -47,6 +47,7 @@ MAX_NUM_WAVS_PER_CLASS = 2**27 - 1  # ~134M
 
 queues = {}
 processes = {}
+offsets = {}
 
 def which_set(filename, validation_percentage, validation_offset_percentage, testing_percentage):
   """Determines which data partition the file should belong to.
@@ -337,14 +338,16 @@ class AudioProcessor(object):
     """
     return len(self.data_index[mode])
 
-  def _get_data(self, q, how_many, offset, model_settings, 
+  def _get_data(self, q, o, how_many, offset, model_settings,
                 shiftby_ms, mode, use_audio, use_video, video_findfile):
     while True:
       # Pick one of the partitions to choose sounds from.
+      pick_deterministically = (mode != 'training')
+      if pick_deterministically:
+        offset = o.get()
       candidates = self.data_index[mode]
       ncandidates = len(candidates)
-      nsounds = max(0, min(how_many, ncandidates - offset))
-      if nsounds==0: return
+      nsounds = min(how_many, ncandidates - offset)
       sounds = []
       context_tics = int(model_settings['audio_tic_rate'] * model_settings['context_ms'] / 1000)
       audio_tic_rate  = model_settings['audio_tic_rate']
@@ -352,7 +355,6 @@ class AudioProcessor(object):
       video_frame_rate = model_settings['video_frame_rate']
       video_channels = model_settings['video_channels']
       shiftby_tics = int(shiftby_ms * audio_tic_rate / 1000)
-      pick_deterministically = (mode != 'training')
       if use_audio:
         audio_slice = np.zeros((nsounds, context_tics, audio_nchannels), dtype=np.float32)
       if use_video:
@@ -405,8 +407,6 @@ class AudioProcessor(object):
         q.put([audio_slice, labels, sounds])
       elif use_video:
         q.put([video_slice, labels, sounds])
-      if pick_deterministically:
-        offset += how_many
 
   def get_data(self, how_many, offset, model_settings, 
                shiftby_ms, mode, use_audio, use_video, video_findfile):
@@ -430,33 +430,24 @@ class AudioProcessor(object):
       List of sound data for the transformed sounds, and list of label indexes
     """
 
-    qkey = str(how_many) + str(sorted(model_settings.items())) + str(shiftby_ms) + mode
-    if mode=='training':
-      if qkey not in queues:
-        queues[qkey] = Queue(self.queue_size)
-        processes[qkey] = []
-      if queues[qkey].empty() and \
-         (self.max_procs==0 or len(processes[qkey])<self.max_procs):
-        p = Process(target=self._get_data,
-                    args=(queues[qkey],
-                          how_many, offset, model_settings, shiftby_ms,
-                          mode, use_audio, use_video, video_findfile),
-                    daemon=True)
-        p.start()
-        processes[qkey].append(p)
+    if mode not in queues:
+      queues[mode] = Queue(self.queue_size)
+      processes[mode] = []
+      if mode!='training':
+        offsets[mode] = Queue(len(range(0, len(self.data_index[mode]), how_many)))
+    if mode!='training' and offset==0:
+      # HACK: not guaranteed to be in order
+      _offsets = list(range(0, len(self.data_index[mode]), how_many))
+      _offsets.reverse()
+      for _offset in _offsets:
+        offsets[mode].put(_offset)
+    if queues[mode].empty() and (self.max_procs==0 or len(processes[mode])<self.max_procs):
+      p = Process(target=self._get_data,
+                  args=(queues[mode], offsets[mode] if mode!='training' else None,
+                        how_many, offset, model_settings, shiftby_ms,
+                        mode, use_audio, use_video, video_findfile),
+                  daemon=True)
+      p.start()
+      processes[mode].append(p)
 
-      return queues[qkey].get()
-
-    else:
-      if qkey not in queues:
-        queues[qkey] = Queue(self.queue_size)
-      if offset==0:
-        # HACK: only one extra process for validating, testing, and activations
-        p = Process(target=self._get_data,
-                    args=(queues[qkey],
-                          how_many, offset, model_settings, shiftby_ms,
-                          mode, use_audio, use_video, video_findfile),
-                    daemon=True)
-        p.start()
-
-      return queues[qkey].get()
+    return queues[mode].get()
