@@ -108,7 +108,8 @@ class AudioProcessor(object):
                testing_percentage, testing_files, subsample_skip, subsample_label,
                partition_label, partition_n, partition_training_files, partition_validation_files,
                random_seed_batch,
-               testing_equalize_ratio, testing_max_sounds, model_settings,
+               testing_equalize_ratio, testing_max_sounds,
+               model_settings, model_parameters,
                queue_size, max_procs,
                use_audio, use_video, video_findfile, video_bkg_frames):
     self.data_dir = data_dir

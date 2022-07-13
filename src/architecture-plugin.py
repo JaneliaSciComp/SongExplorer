@@ -28,7 +28,7 @@ def callback(n,M,V,C):
 
 # a list of lists specifying the architecture-specific hyperparameters in the GUI
 model_parameters = [
-  # [key in `model_settings`, title in GUI, "" for textbox or [] for pull-down, default value, enable logic, callback, required]
+  # [key, title in GUI, "" for textbox or [] for pull-down, default value, enable logic, callback, required]
   ["my-simple-textbox",    "h-parameter 1",    "",              "32",   [],                  None,     True],
   ["a-bounded-value",      "can't be < 0",     "",              "3",    [],                  callback, True],
   ["a-menu",               "choose one",       ["this","that"], "this", [],                  None,     True],
@@ -54,10 +54,10 @@ model_parameters = [
 #         return tf.some_tensorflow_function(inputs, self.arg1, self.arg2)
 
 # a function which returns a keras model
-def create_model(model_settings):
-    # `model_settings` is a superset of the hyperparameters above.  see src/models.py
-    hyperparameter1 = int(model_settings["my-simple-textbox"])
-    nonnegative = int(model_settings["a-bounded-value"])
+def create_model(model_settings, model_parameters):
+    # `model_settings` is a dictionary of additional hyperparameters
+    hyperparameter1 = int(model_parameters["my-simple-textbox"])
+    nonnegative = int(model_parameters["a-bounded-value"])
 
     # hidden_layers is used to visualize intermediate clusters in the GUI
     hidden_layers = []
@@ -67,16 +67,16 @@ def create_model(model_settings):
     # and downsampling (from e.g. conv kernel strides) must be taken into
     # account to get the corresponding number of input tics
     ninput_tics = model_settings["context_tics"] + model_settings["parallelize"] - 1
-    input_layer = Input(shape=(ninput_tics, model_settings["nchannels"]))
+    input_layer = Input(shape=(ninput_tics, model_settings["audio_nchannels"]))
 
     x = Conv1D(hyperparameter1, nonnegative)(input_layer);
     hidden_layers.append(x)
-    if model_settings["an-optional-param"]!="":
-        x = Dropout(float(model_settings["an-optional-param"]))(x)
-    if model_settings["a-menu"]=="this":
+    if model_parameters["an-optional-param"]!="":
+        x = Dropout(float(model_parameters["an-optional-param"]))(x)
+    if model_parameters["a-menu"]=="this":
         x = BatchNormalization()(x)
-    elif model_settings["a-menu"]=="that":
-        x = GroupNormalization(float(model_settings["a-conditional-param"]))(x)
+    elif model_parameters["a-menu"]=="that":
+        x = GroupNormalization(float(model_parameters["a-conditional-param"]))(x)
 
     # add more layers, e.g. x = ReLU(x)
     # append interesting ones to hidden_layers

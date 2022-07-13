@@ -33,7 +33,7 @@ use_audio=0
 use_video=1
 
 model_parameters = [
-  # key in `model_settings`, title in GUI, '' for textbox or [] for pull-down, default value, enable logic, callback, required
+  # key, title in GUI, '' for textbox or [] for pull-down, default value, enable logic, callback, required
   ["use_bias",       "use bias",       ["yes", "no"],              "yes",         [], None, True],
   ["augmentation",   "augmentation",   ['none',
                                         'flip',
@@ -401,9 +401,9 @@ def get_model(PARAMS):
 
     return tf.keras.Model(inputs, outputs = [hidden_layers, outputs])
 
-def create_model(model_settings):
+def create_model(model_settings, model_parameters):
   downsample_by = 1
-  params = model_settings.copy()
+  params = { **model_settings.copy(), **model_parameters.copy() }
   params['context_frames'] = round(params['context_ms'] / 1000 * params['video_frame_rate'])
   params['clip_frames'] = params['context_frames']+(params["parallelize"]-1)*downsample_by
   params['spatial_height'] = int(params['video_frame_height'])

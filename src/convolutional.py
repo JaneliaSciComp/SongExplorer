@@ -142,7 +142,7 @@ use_audio=1
 use_video=0
 
 model_parameters = [
-  # key in `model_settings`, title in GUI, '' for textbox or [] for pull-down, default value, enable logic, callback, required
+  # key, title in GUI, '' for textbox or [] for pull-down, default value, enable logic, callback, required
   ["augment_volume",     "augment volume", '',                   '1,1',          [],                     None,                        True],
   ["augment_noise",      "augment noise",  '',                   '0,0',          [],                     None,                        True],
   ["representation",     "representation", ['waveform',
@@ -290,43 +290,42 @@ def parse_after_layer(varname):
 def dilation(iconv, dilate_after_layer):
   return [2**max(0,iconv-dilate_after_layer[0]), 2**max(0,iconv-dilate_after_layer[1])]
 
-#`model_settings` is a dictionary of hyperparameters
-def create_model(model_settings):
+def create_model(model_settings, model_parameters):
   audio_tic_rate = model_settings['audio_tic_rate']
-  representation = model_settings['representation']
-  kernel_sizes = model_settings['kernel_sizes'].split(',')
+  representation = model_parameters['representation']
+  kernel_sizes = model_parameters['kernel_sizes'].split(',')
   kernel_sizes[0] = [int(x) for x in kernel_sizes[0].split('x')] \
                     if 'x' in kernel_sizes[0] else int(kernel_sizes[0])
   kernel_sizes[1] = int(kernel_sizes[1])
-  nconvlayers = int(model_settings['nconvlayers'])
-  denselayers = [] if model_settings['denselayers']=='' \
-                   else [int(x) for x in model_settings['denselayers'].split(',')]
-  nfeatures = [int(x) for x in model_settings['nfeatures'].split(',')]
-  dilate_after_layer = parse_after_layer(model_settings['dilate_after_layer'])
-  stride_after_layer = parse_after_layer(model_settings['stride_after_layer'])
-  use_residual = model_settings['connection_type']=='residual'
-  dropout_rate = float(model_settings['dropout_rate'])/100
-  if model_settings['dropout_kind']=='unit':
+  nconvlayers = int(model_parameters['nconvlayers'])
+  denselayers = [] if model_parameters['denselayers']=='' \
+                   else [int(x) for x in model_parameters['denselayers'].split(',')]
+  nfeatures = [int(x) for x in model_parameters['nfeatures'].split(',')]
+  dilate_after_layer = parse_after_layer(model_parameters['dilate_after_layer'])
+  stride_after_layer = parse_after_layer(model_parameters['stride_after_layer'])
+  use_residual = model_parameters['connection_type']=='residual'
+  dropout_rate = float(model_parameters['dropout_rate'])/100
+  if model_parameters['dropout_kind']=='unit':
     dropout_kind = Dropout
-  elif model_settings['dropout_kind']=='map':
+  elif model_parameters['dropout_kind']=='map':
     dropout_kind = SpatialDropout2D
   else:
     def Identity(x): return lambda x: x
     dropout_kind = Identity
-  normalize_before = 'before' in model_settings['normalization']
-  normalize_after = 'after' in model_settings['normalization']
-  if model_settings['normalization'].startswith('batch'):
+  normalize_before = 'before' in model_parameters['normalization']
+  normalize_after = 'after' in model_parameters['normalization']
+  if model_parameters['normalization'].startswith('batch'):
     normalize_kind = lambda i: BatchNormalization()
-  elif model_settings['normalization'].startswith('group'):
-    normalize_kind = lambda i: GroupNormalization(int(model_settings['ngroups'].split(',')[i]))
+  elif model_parameters['normalization'].startswith('group'):
+    normalize_kind = lambda i: GroupNormalization(int(model_parameters['ngroups'].split(',')[i]))
   else:
     normalize_kind = None
 
   if representation == "waveform":
     window_tics = stride_tics = 1
   else:
-    window_tics = round(audio_tic_rate * float(model_settings['window_ms']) / 1000)
-    stride_tics = round(audio_tic_rate * float(model_settings['stride_ms']) / 1000)
+    window_tics = round(audio_tic_rate * float(model_parameters['window_ms']) / 1000)
+    stride_tics = round(audio_tic_rate * float(model_parameters['stride_ms']) / 1000)
 
     if not (window_tics & (window_tics-1) == 0) or window_tics == 0:
       next_higher = np.power(2, np.ceil(np.log2(window_tics))).astype(np.int)
@@ -335,7 +334,7 @@ def create_model(model_settings):
       next_higher_ms = np.around(next_higher/audio_tic_rate*1000, decimals=sigdigs)
       next_lower_ms = np.around(next_lower/audio_tic_rate*1000, decimals=sigdigs)
       raise Exception("ERROR: 'window (msec)' should be a power of two when converted to tics.  "+
-                      model_settings['window_ms']+" ms is "+str(window_tics)+" tics for Fs="+
+                      model_parameters['window_ms']+" ms is "+str(window_tics)+" tics for Fs="+
                       str(audio_tic_rate)+".  try "+str(next_lower_ms)+" ms (="+str(next_lower)+
                       ") or "+str(next_higher_ms)+"ms (="+str(next_higher)+") instead.")
 
@@ -355,8 +354,8 @@ def create_model(model_settings):
   inputs0 = Input(shape=(ninput_tics, model_settings['audio_nchannels']))
   hidden_layers.append(inputs0)
   
-  volume_range = [float(x) for x in model_settings['augment_volume'].split(',')]
-  noise_range = [float(x) for x in model_settings['augment_noise'].split(',')]
+  volume_range = [float(x) for x in model_parameters['augment_volume'].split(',')]
+  noise_range = [float(x) for x in model_parameters['augment_noise'].split(',')]
   if volume_range != [1,1] or noise_range != [0,0]:
     inputs = Augment(volume_range, noise_range)(inputs0)
   else:
@@ -367,7 +366,7 @@ def create_model(model_settings):
   elif representation == "spectrogram":
     inputs = Spectrogram(window_tics, stride_tics)(inputs)
   elif representation == "mel-cepstrum":
-    filterbank_nchannels, dct_ncoefficients = model_settings['mel_dct'].split(',')
+    filterbank_nchannels, dct_ncoefficients = model_parameters['mel_dct'].split(',')
     inputs = MelCepstrum(window_tics, stride_tics, audio_tic_rate,
                          int(filterbank_nchannels), int(dct_ncoefficients))(inputs)
   inputs_shape = inputs.get_shape().as_list()

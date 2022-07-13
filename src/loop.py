@@ -81,7 +81,6 @@ import tensorflow as tf
 from tensorflow.keras.optimizers import *
 
 import data
-import models
 
 from subprocess import run, PIPE, STDOUT
 from datetime import datetime
@@ -142,19 +141,16 @@ def main():
     labels_touse = FLAGS.labels_touse
 
   nlabels = len(labels_touse.split(','))
-
-  model_settings = models.prepare_model_settings(
-      nlabels,
-      FLAGS.audio_tic_rate,
-      FLAGS.audio_nchannels,
-      FLAGS.video_frame_rate,
-      FLAGS.video_frame_width,
-      FLAGS.video_frame_height,
-      FLAGS.video_channels,
-      1,
-      FLAGS.batch_size,
-      FLAGS.context_ms,
-      FLAGS.model_parameters)
+  model_settings = {'nlabels': nlabels,
+                    'audio_tic_rate': FLAGS.audio_tic_rate,
+                    'audio_nchannels': FLAGS.audio_nchannels,
+                    'video_frame_rate': FLAGS.video_frame_rate,
+                    'video_frame_width': FLAGS.video_frame_width,
+                    'video_frame_height': FLAGS.video_frame_height,
+                    'video_channels': [int(x)-1 for x in FLAGS.video_channels.split(',')],
+                    'parallelize': 1,
+                    'batch_size': FLAGS.batch_size,
+                    'context_ms': FLAGS.context_ms }
 
   audio_processor = data.AudioProcessor(
       FLAGS.data_dir,
@@ -168,11 +164,11 @@ def main():
       FLAGS.partition_validation_files.split(','),
       FLAGS.random_seed_batch,
       FLAGS.testing_equalize_ratio, FLAGS.testing_max_sounds,
-      model_settings,
+      model_settings, FLAGS.model_parameters,
       FLAGS.data_loader_queuesize, FLAGS.data_loader_maxprocs,
       model.use_audio, model.use_video, video_findfile, FLAGS.video_bkg_frames)
 
-  thismodel = model.create_model(model_settings)
+  thismodel = model.create_model(model_settings, FLAGS.model_parameters)
   thismodel.summary()
 
   thisoptimizer = getattr(tf.keras.optimizers, FLAGS.optimizer)(learning_rate=FLAGS.learning_rate)

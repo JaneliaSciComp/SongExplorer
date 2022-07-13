@@ -25,7 +25,6 @@ import socket
 
 import tensorflow as tf
 import numpy as np
-import models
 import json
 import importlib
 
@@ -47,17 +46,21 @@ def create_inference_graph():
   sys.path.append(os.path.dirname(FLAGS.model_architecture))
   model = importlib.import_module(os.path.basename(FLAGS.model_architecture))
 
-  labels_list = FLAGS.labels_touse.split(',')
-  model_settings = models.prepare_model_settings(
-      len(labels_list), FLAGS.audio_tic_rate, FLAGS.audio_nchannels,
-      FLAGS.video_frame_rate, FLAGS.video_frame_width, FLAGS.video_frame_height, FLAGS.video_channels,
-      FLAGS.parallelize, 1, FLAGS.context_ms,
-      FLAGS.model_parameters)
+  model_settings = {'nlabels': len(FLAGS.labels_touse.split(',')),
+                    'audio_tic_rate': FLAGS.audio_tic_rate,
+                    'audio_nchannels': FLAGS.audio_nchannels,
+                    'video_frame_rate': FLAGS.video_frame_rate,
+                    'video_frame_width': FLAGS.video_frame_width,
+                    'video_frame_height': FLAGS.video_frame_height,
+                    'video_channels': [int(x)-1 for x in FLAGS.video_channels.split(',')],
+                    'parallelize': FLAGS.parallelize,
+                    'batch_size': 1,
+                    'context_ms': FLAGS.context_ms }
 
   thesemodels=[]
   for thischeckpoint in FLAGS.start_checkpoints.split(','):
     print(thischeckpoint)
-    thesemodels.append(model.create_model(model_settings))
+    thesemodels.append(model.create_model(model_settings, FLAGS.model_parameters))
     thesemodels[-1].summary()
 
     checkpoint = tf.train.Checkpoint(thismodel=thesemodels[-1])

@@ -54,7 +54,7 @@ use_audio=1
 use_video=0
 
 model_parameters = [
-  # key in `model_settings`, title in GUI, '' for textbox or [] for pull-down, default value, enable logic, callback, required
+  # key, title in GUI, '' for textbox or [] for pull-down, default value, enable logic, callback, required
   ["representation",     "representation", ['waveform',
                                             'leaf'],         'leaf',       [],                None,            True],
   ["window_ms",          "window (msec)",  '',               '6.4',        ["representation",
@@ -88,22 +88,21 @@ class Slice(tf.keras.layers.Layer):
     def call(self, inputs):
         return tf.slice(inputs, self.begin, self.size)
 
-#`model_settings` is a dictionary of hyperparameters
-def create_model(model_settings):
+def create_model(model_settings, model_parameters):
     nchannels = model_settings['nchannels']
     parallelize = model_settings['parallelize']
     context_tics = int(model_settings['audio_tic_rate'] * model_settings['context_ms'] / 1000)
     audio_tic_rate = model_settings['audio_tic_rate']
-    representation = model_settings['representation']
-    kernel_size = int(model_settings['kernel_size'])
-    nstacks = int(model_settings['nstacks'])
-    dilations = [int(x) for x in model_settings['dilations'].split(',')]
+    representation = model_parameters['representation']
+    kernel_size = int(model_parameters['kernel_size'])
+    nstacks = int(model_parameters['nstacks'])
+    dilations = [int(x) for x in model_parameters['dilations'].split(',')]
 
     if representation == "waveform":
         window_tics = stride_tics = 1
     else:
-        window_tics = round(audio_tic_rate * float(model_settings['window_ms']) / 1000)
-        stride_tics = round(audio_tic_rate * float(model_settings['stride_ms']) / 1000)
+        window_tics = round(audio_tic_rate * float(model_parameters['window_ms']) / 1000)
+        stride_tics = round(audio_tic_rate * float(model_parameters['stride_ms']) / 1000)
 
         if not (window_tics & (window_tics-1) == 0) or window_tics == 0:
             next_higher = np.power(2, np.ceil(np.log2(window_tics))).astype(np.int)
@@ -112,7 +111,7 @@ def create_model(model_settings):
             next_higher_ms = np.around(next_higher/audio_tic_rate*1000, decimals=sigdigs)
             next_lower_ms = np.around(next_lower/audio_tic_rate*1000, decimals=sigdigs)
             raise Exception("ERROR: 'window (msec)' should be a power of two when converted to tics.  "+
-                             model_settings['window_ms']+" ms is "+str(window_tics)+
+                             model_parameters['window_ms']+" ms is "+str(window_tics)+
                              " tics for Fs="+str(audio_tic_rate)+".  try "+str(next_lower_ms)+
                              " ms (="+str(next_lower)+") or "+str(next_higher_ms)+"ms (="+
                              str(next_higher)+") instead.")
@@ -120,7 +119,7 @@ def create_model(model_settings):
     receptive_field_tics = stride_tics * (1 + 2 * (kernel_size - 1) * nstacks * sum(dilations))
     print("receptive_field_tics = %d" % receptive_field_tics)
 
-    output_tic_rate = 1000 / float(model_settings['stride_ms'])
+    output_tic_rate = 1000 / float(model_parameters['stride_ms'])
     if output_tic_rate != round(output_tic_rate):
         raise Exception("ERROR: 1000 / 'stride (msec)' should be an integer")
     else:
@@ -138,7 +137,7 @@ def create_model(model_settings):
         spectrograms = []
         for ichan in range(nchannels):
             chan = Slice([0, 0, ichan], [-1,-1,1])(x)
-            spectrograms.append(Leaf(n_filters=int(model_settings['nfilters']),
+            spectrograms.append(Leaf(n_filters=int(model_parameters['nfilters']),
                                      window_len=window_tics,
                                      window_stride=stride_tics,
                                      sample_rate=audio_tic_rate,
@@ -146,13 +145,13 @@ def create_model(model_settings):
         x = Concatenate()(spectrograms) if nchannels>1 else spectrograms[0]
         hidden_layers.append(x)
 
-    tcn = TCN(nb_filters=int(model_settings['nfeatures']),
+    tcn = TCN(nb_filters=int(model_parameters['nfeatures']),
               kernel_size=kernel_size,
               nb_stacks=nstacks,
               dilations=dilations,
               return_sequences=True,
-              use_skip_connections=model_settings['connection_type']=='skip',
-              dropout_rate=float(model_settings['dropout']))
+              use_skip_connections=model_parameters['connection_type']=='skip',
+              dropout_rate=float(model_parameters['dropout']))
     tcn.build(x.shape)
 
     # recapitulate tcn.call() to capture hidden layers
@@ -170,7 +169,7 @@ def create_model(model_settings):
     hidden_layers.append(x)
 
     x = Conv1D(model_settings['nlabels'], 1)(x)
-    if representation == "leaf" and model_settings['upsample']=='yes':
+    if representation == "leaf" and model_parameters['upsample']=='yes':
         x = UpSampling1D(size=stride_tics)(x)
     output_layer = x
 
