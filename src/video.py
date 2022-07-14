@@ -254,7 +254,7 @@ def bottleneck(PARAMS,
 def network(PARAMS, inputs):
     x = inputs
     x = layers.Conv3D(
-        filters=64, 
+        filters=int(PARAMS['nfilters']),
         kernel_size=(1,7,7), 
         strides=(1,2,2), 
         use_bias=PARAMS['use_bias'],
