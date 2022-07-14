@@ -243,7 +243,7 @@ def bottleneck(PARAMS,
             beta_regularizer=regularizer(PARAMS),
             )(skip)
     if skip.shape != x.shape:
-        skip = Slice([0,skip.shape[1]//4,1,1,0], [-1,x.shape[1],x.shape[2],x.shape[3],-1])(skip)
+        skip = Slice([0,0,0,0,0], [-1,x.shape[1],x.shape[2],x.shape[3],-1])(skip)
     x = layers.Add()([
         skip, 
         x
