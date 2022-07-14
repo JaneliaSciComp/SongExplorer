@@ -26,12 +26,12 @@ def callback(n,M,V,C):
 
 # a list of lists specifying the detect-specific hyperparameters in the GUI
 detect_parameters = [
-  # [key in `detect_parameters`, title in GUI, "" for textbox or [] for pull-down, default value, enable logic, callback, required]
-  ["my-simple-textbox",    "h-parameter 1",    "",              "32",   [],                  None,     True],
-  ["a-bounded-value",      "can't be < 0",     "",              "3",    [],                  callback, True],
-  ["a-menu",               "choose one",       ["this","that"], "this", [],                  None,     True],
-  ["a-conditional-param",  "that's parameter", "",              "8",    ["a-menu",["that"]], None,     True],
-  ["an-optional-param",    "can be blank",     "",              "0.5",  [],                  None,     False],
+  # [key in `detect_parameters`, title in GUI, "" for textbox or [] for pull-down, default value, width, enable logic, callback, required]
+  ["my-simple-textbox",    "h-parameter 1",    "",              "32",   1, [],                  None,     True],
+  ["a-bounded-value",      "can't be < 0",     "",              "3",    1, [],                  callback, True],
+  ["a-menu",               "choose one",       ["this","that"], "this", 1, [],                  None,     True],
+  ["a-conditional-param",  "that's parameter", "",              "8",    1, ["a-menu",["that"]], None,     True],
+  ["an-optional-param",    "can be blank",     "",              "0.5",  1, [],                  None,     False],
   ]
 
 # a function which returns a vector of strings used to annotate the detected events

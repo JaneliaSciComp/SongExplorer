@@ -155,9 +155,9 @@ main_content = row(column(row(V.which_layer, V.which_species, V.which_word,
                                    V.precision_recall_ratios,
                                    V.activations_max_sounds,
                                    width=M.gui_width_pix-420),
-                               row(*[row(detect_parameters[i:min(len(detect_parameters)+1,i+6)])
-                                     for i in range(0,len(detect_parameters),6)],
-                                   width=M.gui_width_pix-420)),
+                               *[row([detect_parameters[x] for x in p],
+                                     width=M.gui_width_pix-420)
+                                 for p in V.detect_parameters_partitioned]),
                            column(V.cluster_these_layers,
                                   width=105),
                            column(
@@ -175,8 +175,8 @@ main_content = row(column(row(V.which_layer, V.which_species, V.which_word,
                                    width=315))),
                        row(column(V.file_dialog_string,
                                   V.file_dialog_table),
-                           column(*[row(model_parameters[i:min(len(model_parameters)+1,i+6)])
-                                    for i in range(0,len(model_parameters),6)],
+                           column(*[row([model_parameters[x] for x in p])
+                                    for p in V.model_parameters_partitioned],
                                   V.configuration_contents,
                                   width=M.gui_width_pix//2))),
                    V.readme_contents)

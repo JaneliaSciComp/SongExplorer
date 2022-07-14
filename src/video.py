@@ -33,29 +33,29 @@ use_audio=0
 use_video=1
 
 model_parameters = [
-  # key, title in GUI, '' for textbox or [] for pull-down, default value, enable logic, callback, required
-  ["use_bias",       "use bias",       ["yes", "no"],              "yes",         [], None, True],
+  # key, title in GUI, '' for textbox or [] for pull-down, default value, width, enable logic, callback, required
+  ["use_bias",       "use bias",       ["yes", "no"],              "yes",         1, [], None, True],
   ["augmentation",   "augmentation",   ['none',
                                         'flip',
                                         'rotate',
-                                        'both'],                   'both',        [], None, True],
+                                        'both'],                   'both',        1, [], None, True],
   ["initializer",    "initializer",    ['he_normal',
                                         'glorot_normal',
                                         'lecun_normal',
                                         'random_normal',
-                                        'truncated_normal'],       'he_normal',   [], None, True],
-  ["dropout_rate",   "dropout %",      '',                         '50',          [], None, True],
-  ["depth",          "# layers",       ['13', '26', '50', '101', '152'], '26',          [], None, True],
-  ["nfilters",       "# filters",      '',                         '256',         [], None, True],
-  ["pool_size",      "pool size",      '',                         '11',          [], None, True],
-  ["kernel_size",    "kernel size",    '',                         '3',           [], None, True],
-  ["bn_momentum",    "BN momentum",    '',                         '0.9',         [], None, True],
-  ["epsilon",        "BN epsilon",     '',                         '0.0001',      [], None, True],
+                                        'truncated_normal'],       'he_normal',   1, [], None, True],
+  ["dropout_rate",   "dropout %",      '',                         '50',          1, [], None, True],
+  ["depth",          "# layers",       ['13', '26', '50', '101'],  '26',          1, [], None, True],
+  ["nfilters",       "# filters",      '',                         '256',         1, [], None, True],
+  ["pool_size",      "pool size",      '',                         '11',          1, [], None, True],
+  ["kernel_size",    "kernel size",    '',                         '3',           1, [], None, True],
+  ["bn_momentum",    "BN momentum",    '',                         '0.9',         1, [], None, True],
+  ["epsilon",        "BN epsilon",     '',                         '0.0001',      1, [], None, True],
   ["arch",           "architecture",   ['ip-csn',
                                        'ir-csn',
-                                       'ip'],                      'ip-csn',       [], None, True],
+                                       'ip'],                      'ip-csn',       1, [], None, True],
   ["regularization", "regularization", ['weight_decay',
-                                        'l2'],                     'weight_decay', [], None, True],
+                                        'l2'],                     'weight_decay', 1, [], None, True],
   ]
 
 import math

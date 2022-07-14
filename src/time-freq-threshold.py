@@ -29,14 +29,14 @@ def frequency_n_callback(n,M,V,C):
 
 # a list of lists specifying the detect-specific hyperparameters in the GUI
 detect_parameters = [
-    ["time_sigma",          "time σ",        '',        '9,4',     [], None,                 True],
-    ["time_smooth_ms",      "time smooth",   '',        '6.4',     [], None,                 True],
-    ["frequency_n_ms",      "freq N (msec)", '',        '25.6',    [], frequency_n_callback, True],
-    ["frequency_nw",        "freq NW",       '',        '4',       [], None,                 True],
-    ["frequency_p",         "freq ρ",        '',        '0.1,1.0', [], None,                 True],
-    ["frequency_smooth_ms", "freq smooth",   '',        '25.6',    [], None,                 True],
+    ["time_sigma",          "time σ",        '',        '9,4',     1, [], None,                 True],
+    ["time_smooth_ms",      "time smooth",   '',        '6.4',     1, [], None,                 True],
+    ["frequency_n_ms",      "freq N (msec)", '',        '25.6',    1, [], frequency_n_callback, True],
+    ["frequency_nw",        "freq NW",       '',        '4',       1, [], None,                 True],
+    ["frequency_p",         "freq ρ",        '',        '0.1,1.0', 1, [], None,                 True],
+    ["frequency_smooth_ms", "freq smooth",   '',        '25.6',    1, [], None,                 True],
     ["time_sigma_robust",   "robust",        ['median',
-                                              'mean'],  'median',  [], None,                 True],
+                                              'mean'],  'median',  1, [], None,                 True],
     ]
 
 # a function which returns a vector of strings used to annotate the detected events

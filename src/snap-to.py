@@ -2,8 +2,8 @@ import numpy as np
 
 # a list of lists specifying the doubleclick-specific hyperparameters in the GUI
 doubleclick_parameters = [
-    ["search", "search (msec)", "", "10", [], None, True],
-    ["width",  "width (msec)",  "", "1",  [], None, True],
+    ["search", "search (msec)", "", "10", 1, [], None, True],
+    ["width",  "width (msec)",  "", "1",  1, [], None, True],
     ]
 
 # a function which returns the start and stop times of the annotation given the location the user double clicked.

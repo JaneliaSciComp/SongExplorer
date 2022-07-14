@@ -1414,9 +1414,9 @@ def init(_bokeh_document):
     global status_ticker, waitfor, deletefailures
     global file_dialog_source, configuration_contents
     global logs_folder_button, logs_folder, model_file_button, model_file, wavcsv_files_button, wavcsv_files, groundtruth_folder_button, groundtruth_folder, validation_files_button, test_files_button, validation_files, test_files, labels_touse_button, labels_touse, kinds_touse_button, kinds_touse, prevalences_button, prevalences, copy, labelsounds, makepredictions, fixfalsepositives, fixfalsenegatives, generalize, tunehyperparameters, findnovellabels, examineerrors, testdensely, doit, nsteps, restore_from, save_and_validate_period, validate_percentage, mini_batch, kfold, activations_equalize_ratio, activations_max_sounds, pca_fraction_variance_to_retain, tsne_perplexity, tsne_exaggeration, umap_neighbors, umap_distance, cluster_algorithm, cluster_these_layers, precision_recall_ratios, congruence_portion, congruence_convolve, congruence_measure, context_ms, shiftby_ms, optimizer, learning_rate, nreplicates, batch_seed, weights_seed, file_dialog_string, file_dialog_table, readme_contents, labelcounts, wizard_buttons, action_buttons, parameter_buttons, parameter_textinputs, wizard2actions, action2parameterbuttons, action2parametertextinputs, status_ticker_update, status_ticker_pre, status_ticker_post
-    global detect_parameters, detect_parameters_enable_logic, detect_parameters_required
+    global detect_parameters, detect_parameters_enable_logic, detect_parameters_required, detect_parameters_partitioned
     global doubleclick_parameters, doubleclick_parameters_enable_logic, doubleclick_parameters_required
-    global model_parameters, model_parameters_enable_logic, model_parameters_required
+    global model_parameters, model_parameters_enable_logic, model_parameters_required, model_parameters_partitioned
 
     bokeh_document = _bokeh_document
 
@@ -2059,7 +2059,7 @@ def init(_bokeh_document):
             f(n,M,V,C) if f else C.generic_parameters_callback(n)
         return callback
 
-    def parse_plugin_parameters(Mparameters):
+    def parse_plugin_parameters(Mparameters, width):
         parameters = OrderedDict()
         parameters_enable_logic = {}
         parameters_required = {}
@@ -2067,23 +2067,34 @@ def init(_bokeh_document):
             if parameter[2]=='':
                 thisparameter = TextInput(value=M.state[parameter[0]], \
                                           title=parameter[1], \
-                                          disabled=False, width=94)
+                                          disabled=False, width=parameter[4]*104-10)
             else:
                 thisparameter = Select(value=M.state[parameter[0]], \
                                        title=parameter[1], \
                                        options=parameter[2], \
-                                       height=50, width=94)
-            thisparameter.on_change('value', get_callback(parameter[5]))
+                                       height=50, width=parameter[4]*104-10)
+            thisparameter.on_change('value', get_callback(parameter[6]))
             parameters[parameter[0]] = thisparameter
-            parameters_enable_logic[thisparameter] = parameter[4]
-            parameters_required[thisparameter] = parameter[6]
-        return parameters, parameters_enable_logic, parameters_required
+            parameters_enable_logic[thisparameter] = parameter[5]
+            parameters_required[thisparameter] = parameter[7]
 
-    detect_parameters, detect_parameters_enable_logic, detect_parameters_required = parse_plugin_parameters(M.detect_parameters)
-    doubleclick_parameters, doubleclick_parameters_enable_logic, doubleclick_parameters_required = parse_plugin_parameters(M.doubleclick_parameters)
-    model_parameters, model_parameters_enable_logic, model_parameters_required = parse_plugin_parameters(M.model_parameters)
+        parameters_width = [x[4] for x in Mparameters]
+        parameters_partitioned = []
+        i0=0
+        for i in range(len(parameters_width)):
+            if sum(parameters_width[i0:i+1]) > width:
+                parameters_partitioned.append(range(i0, i))
+                i0 = i
+            elif i==len(parameters_width)-1:
+                parameters_partitioned.append(range(i0, i+1))
 
-    configuration_contents = TextAreaInput(rows=49-3*np.ceil(len(model_parameters)/6).astype(np.int),
+        return parameters, parameters_enable_logic, parameters_required, parameters_partitioned
+
+    detect_parameters, detect_parameters_enable_logic, detect_parameters_required, detect_parameters_partitioned = parse_plugin_parameters(M.detect_parameters, 8)
+    doubleclick_parameters, doubleclick_parameters_enable_logic, doubleclick_parameters_required, _ = parse_plugin_parameters(M.doubleclick_parameters, 1)
+    model_parameters, model_parameters_enable_logic, model_parameters_required, model_parameters_partitioned = parse_plugin_parameters(M.model_parameters, 6)
+
+    configuration_contents = TextAreaInput(rows=49-3*len(model_parameters_partitioned),
                                            max_length=50000, \
                                            disabled=True, css_classes=['fixedwidth'])
     if M.configuration_file:

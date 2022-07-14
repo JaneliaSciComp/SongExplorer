@@ -54,23 +54,23 @@ use_audio=1
 use_video=0
 
 model_parameters = [
-  # key, title in GUI, '' for textbox or [] for pull-down, default value, enable logic, callback, required
+  # key, title in GUI, '' for textbox or [] for pull-down, default value, width, enable logic, callback, required
   ["representation",     "representation", ['waveform',
-                                            'leaf'],         'leaf',       [],                None,            True],
-  ["window_ms",          "window (msec)",  '',               '6.4',        ["representation",
+                                            'leaf'],         'leaf',       1, [],                None,            True],
+  ["window_ms",          "window (msec)",  '',               '6.4',        1, ["representation",
                                                                             ["leaf"]],        window_callback, True],
-  ["stride_ms",          "stride (msec)",  '',               '1.6',        ["representation",
+  ["stride_ms",          "stride (msec)",  '',               '1.6',        1, ["representation",
                                                                             ["leaf"]],        stride_callback, True],
-  ["nfilters",           "# filters",      '',               '9',          ["representation",
+  ["nfilters",           "# filters",      '',               '9',          1, ["representation",
                                                                             ["leaf"]],        None,            True],
-  ["kernel_size",        "kernel size",    '',               '8',          [],                None,            True],
-  ["nstacks",            "# stacks",       '',               '3',          [],                None,            True],
-  ["nfeatures",          "# features",     '',               '16',         [],                None,            True],
-  ["dilations",          "dilations",      '',               '1,2,4,8,16', [],                None,            True],
-  ["upsample",           "upsample",       ['yes','no'],     'yes',        [],                None,            True],
+  ["kernel_size",        "kernel size",    '',               '8',          1, [],                None,            True],
+  ["nstacks",            "# stacks",       '',               '3',          1, [],                None,            True],
+  ["nfeatures",          "# features",     '',               '16',         1, [],                None,            True],
+  ["dilations",          "dilations",      '',               '1,2,4,8,16', 1, [],                None,            True],
+  ["upsample",           "upsample",       ['yes','no'],     'yes',        1, [],                None,            True],
   ["connection_type",    "connection",     ['plain',
-                                            'skip'],         'skip',       [],                None,            True],
-  ["dropout",            "dropout",        '',               '0.1',        [],                None,            True],
+                                            'skip'],         'skip',       1, [],                None,            True],
+  ["dropout",            "dropout",        '',               '0.1',        1, [],                None,            True],
   ]
 
 class Slice(tf.keras.layers.Layer):
