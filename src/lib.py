@@ -23,8 +23,20 @@ from scipy.io import wavfile
 import csv
 from datetime import datetime
 
+import tifffile
+
 sys.path.append(os.path.dirname(os.path.realpath(__file__)))
 from jitter import *
+
+def compute_background(vidfile, video_bkg_frames, video_data, tiffile):
+    print("INFO: calculating median background for "+vidfile)
+    nframes = min(video_bkg_frames, len(video_data))
+    iframes = np.linspace(0, len(video_data)-1, num=nframes, dtype=np.int)
+    full = np.empty((nframes, *video_data[1].shape))
+    for (i,iframe) in enumerate(iframes):
+      full[i] = video_data[iframe]
+    bkg = np.median(full, axis=0)
+    tifffile.imwrite(tiffile, bkg, photometric='rgb')
 
 def combine_events(events1, events2, logic):
   max_time1 = np.max([int(x[2]) for x in events1]+[0])

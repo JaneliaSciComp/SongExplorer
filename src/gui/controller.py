@@ -1690,6 +1690,7 @@ async def _classify_actuate(wavfiles):
             "--audio_tic_rate="+str(M.audio_tic_rate),
             "--audio_nchannels="+str(M.audio_nchannels),
             "--video_findfile="+str(M.video_findfile_plugin),
+            "--video_bkg_frames="+str(M.video_bkg_frames),
             "--video_frame_rate="+str(M.video_frame_rate),
             "--video_frame_height="+str(M.video_frame_height),
             "--video_frame_width="+str(M.video_frame_width),

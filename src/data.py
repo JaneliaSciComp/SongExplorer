@@ -249,14 +249,7 @@ class AudioProcessor(object):
 
           tiffile = os.path.join(sound_dirname, os.path.splitext(vidfile)[0]+".tif")
           if not os.path.exists(tiffile):
-            print("INFO: calculating median background for "+vidfile)
-            nframes = min(video_bkg_frames, len(video_data))
-            iframes = np.linspace(0, len(video_data)-1, num=nframes, dtype=np.int)
-            full = np.empty((nframes, *video_data[1].shape))
-            for (i,iframe) in enumerate(iframes):
-              full[i] = video_data[iframe]
-            bkg = np.median(full, axis=0)
-            tifffile.imwrite(tiffile, bkg, photometric='rgb')
+            compute_background(vidfile, video_bkg_frames, video_data, tiffile)
 
         if use_video:
           if ticks[0] < context_tics//2 + shiftby_tics or \

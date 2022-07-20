@@ -23,7 +23,7 @@
 # generate .wav files of per-label probabilities
 
 # e.g.
-# $SONGEXPLORER_BIN classify.sh \
+# $SONGEXPLORER_BIN classify.py \
 #      --context_ms=204.8 \
 #      --shiftby_ms=0.0 \
 #      --video_findfile=same-basename \
@@ -57,6 +57,7 @@ import pims
 import importlib
 
 import tifffile
+from lib import compute_background
 
 FLAGS = None
 
@@ -120,9 +121,11 @@ def main():
     sound_basename = os.path.basename(FLAGS.wav)
     sound_dirname =  os.path.dirname(FLAGS.wav)
     vidfile = video_findfile(sound_dirname, sound_basename)
-    tiffile = os.path.join(sound_dirname, os.path.splitext(vidfile)[0]+".tif")
-    bkg = tifffile.imread(tiffile)
     video_data = pims.open(os.path.join(sound_dirname, vidfile))
+    tiffile = os.path.join(sound_dirname, os.path.splitext(vidfile)[0]+".tif")
+    if not os.path.exists(tiffile):
+      compute_background(vidfile, FLAGS.video_bkg_frames, video_data, tiffile)
+    bkg = tifffile.imread(tiffile)
     video_channels = tf.cast([int(x) for x in FLAGS.video_channels.split(',')], tf.int32)
     video_frame_rate = FLAGS.video_frame_rate
     if video_data.frame_rate != video_frame_rate:
@@ -267,6 +270,11 @@ if __name__ == '__main__':
       type=str,
       default='same-basename',
       help='What function to use to match WAV files to corresponding video files')
+  parser.add_argument(
+      '--video_bkg_frames',
+      type=int,
+      default=1000,
+      help='How many frames to use to calculate the median background image')
   parser.add_argument(
       '--video_frame_rate',
       type=int,
