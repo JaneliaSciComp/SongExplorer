@@ -404,7 +404,9 @@ class AudioProcessor(object):
         label_index = self.label_to_index[sound['label']]
         labels[i - offset] = label_index
         sounds.append(sound)
-      if use_audio:
+      if use_audio and use_video:
+        q.put([[audio_slice, video_slice], labels, sounds])
+      elif use_audio:
         q.put([audio_slice, labels, sounds])
       elif use_video:
         q.put([video_slice, labels, sounds])

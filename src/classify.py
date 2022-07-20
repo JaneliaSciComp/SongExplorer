@@ -67,8 +67,10 @@ def main():
   sys.path.append(os.path.dirname(FLAGS.video_findfile))
   video_findfile = importlib.import_module(os.path.basename(FLAGS.video_findfile)).video_findfile
 
+  audio_tic_rate = FLAGS.audio_tic_rate
+
   print('model = '+str(FLAGS.model))
-  print('audio_tic_rate = '+str(FLAGS.audio_tic_rate))
+  print('audio_tic_rate = '+str(audio_tic_rate))
 
   with open(FLAGS.model_labels, 'r') as fid:
     model_labels = fid.read().splitlines()
@@ -105,9 +107,9 @@ def main():
   #Load a wav file and return audio_tic_rate and numpy data of float64 type.
   if use_audio:
     audio_data, fs = tf.audio.decode_wav(tf.io.read_file(FLAGS.wav))
-    if fs.numpy() != FLAGS.audio_tic_rate:
+    if fs.numpy() != audio_tic_rate:
       print("ERROR: audio_tic_rate of WAV file is %d while %d was expected" %
-            (fs.numpy(), FLAGS.audio_tic_rate))
+            (fs.numpy(), audio_tic_rate))
       exit()
     if audio_data.shape[1] != FLAGS.audio_nchannels:
       print("ERROR: audio_nchannels of WAV file is %d while %d was expected" %
@@ -122,8 +124,9 @@ def main():
     bkg = tifffile.imread(tiffile)
     video_data = pims.open(os.path.join(sound_dirname, vidfile))
     video_channels = tf.cast([int(x) for x in FLAGS.video_channels.split(',')], tf.int32)
-    if video_data.frame_rate != FLAGS.video_frame_rate:
-      print('ERROR: frame_rate of video file is %d when %d is expected' % (video_data.frame_rate, FLAGS.video_frame_rate))
+    video_frame_rate = FLAGS.video_frame_rate
+    if video_data.frame_rate != video_frame_rate:
+      print('ERROR: frame_rate of video file is %d when %d is expected' % (video_data.frame_rate, video_frame_rate))
       exit()
     if video_data.frame_shape[0] != FLAGS.video_frame_width:
       print('ERROR: frame_width of video file is %d when %d is expected' % (video_data.frame_shape[1], FLAGS.video_frame_width))
@@ -138,15 +141,19 @@ def main():
   if FLAGS.parallelize==1:
     print("WARNING: classify_parallelize in configuration.pysh is set to 1.  making predictions is faster if it is > 1")
 
+  input_shape = thismodel.get_input_shape()
   if use_audio:
-    clip_window_samples = thismodel.get_input_shape()[1].numpy()
+    clip_window_samples = input_shape[0][1].numpy() if use_video else input_shape[1].numpy()
     data_len_samples = audio_data.shape[0]
-    data_sample_rate = FLAGS.audio_tic_rate
+    data_sample_rate = audio_tic_rate
   elif use_video:
-    clip_window_samples = thismodel.get_input_shape()[1].numpy()
+    clip_window_samples = input_shape[1].numpy()
     data_len_samples = len(video_data)
-    data_sample_rate = FLAGS.video_frame_rate
-    video_slice = np.zeros((clip_window_samples,
+    data_sample_rate = video_frame_rate
+
+  if use_video:
+    clip_window_frames = input_shape[1][1].numpy() if use_audio else input_shape[1].numpy()
+    video_slice = np.zeros((clip_window_frames,
                             FLAGS.video_frame_height,
                             FLAGS.video_frame_width,
                             len(video_channels)),
@@ -156,8 +163,8 @@ def main():
   stride_x_downsample_samples = (clip_window_samples - context_samples) // (FLAGS.parallelize-1)
   clip_stride_samples = stride_x_downsample_samples * FLAGS.parallelize
 
-  stride_x_downsample_ms = stride_x_downsample_samples / data_sample_rate*1000
-  npadding = round((FLAGS.context_ms/2+FLAGS.shiftby_ms)/stride_x_downsample_ms)
+  stride_x_downsample_ms = stride_x_downsample_samples / data_sample_rate * 1000
+  npadding = round((FLAGS.context_ms/2 + FLAGS.shiftby_ms) / stride_x_downsample_ms)
   probability_list = [np.zeros((npadding, len(labels)), dtype=np.float32)]
 
   # Inference along audio stream.
@@ -171,11 +178,20 @@ def main():
                     np.pad(audio_data[start_sample:stop_sample,:],
                            ((0,pad_len),(0,0)), mode='median')
     if use_video:
-      if start_sample+clip_window_samples > len(video_data): break
-      for iframe, frame in enumerate(video_data[start_sample:stop_sample]):
-        video_slice[iframe,:,:,:] = frame[:,:,video_channels] - bkg[:,:,video_channels]
+      if use_audio:
+        start_frame = round(start_sample / audio_tic_rate * video_frame_rate)
+        stop_frame = start_frame + clip_window_frames
+      else:
+        start_frame, stop_frame = start_sample, stop_sample
+      for iframe in range(start_frame, stop_frame):
+        if iframe < len(video_data):
+          video_slice[iframe-start_frame,:,:,:] = video_data[iframe][:,:,video_channels] - bkg[:,:,video_channels]
+        else:
+          video_slice[iframe-start_frame,:,:,:] = bkg[:,:,video_channels]
 
-    if use_audio:
+    if use_audio and use_video:
+      inputs = [tf.expand_dims(audio_slice, 0), tf.expand_dims(video_slice, 0)]
+    elif use_audio:
       inputs = tf.expand_dims(audio_slice, 0)
     elif use_video:
       inputs = tf.expand_dims(video_slice, 0)

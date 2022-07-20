@@ -229,8 +229,7 @@ def main():
           FLAGS.batch_size, 0, model_settings, FLAGS.shiftby_ms, 'training',
           model.use_audio, model.use_video, video_findfile)
 
-      cross_entropy_mean, train_accuracy = train_step(tf.constant(train_fingerprints),
-                                                      tf.constant(train_ground_truth))
+      cross_entropy_mean, train_accuracy = train_step(train_fingerprints, train_ground_truth)
       t1=datetime.now()-t0
 
       with train_writer.as_default():
@@ -288,14 +287,13 @@ def validate_and_test(model, set_kind, set_size, model_settings, \
                                  FLAGS.shiftby_ms, set_kind,
                                  use_audio, use_video, video_findfile))
     logits, accuracy, hidden_activations, cross_entropy_mean, confusion_matrix = \
-            validate_test_step(model, tf.constant(nlabels),
-                               tf.constant(fingerprints), tf.constant(ground_truth))
+            validate_test_step(model, nlabels, fingerprints, ground_truth)
 
     with validation_writer.as_default():
       tf.summary.scalar('cross_entropy', cross_entropy_mean, step=training_step)
       tf.summary.scalar('accuracy', accuracy, step=training_step)
 
-    this_batch_size = fingerprints.shape[0]
+    this_batch_size = fingerprints[0].shape[0] if use_audio and use_video else fingerprints.shape[0]
     total_accuracy += (accuracy * this_batch_size) / set_size
     if total_conf_matrix is None:
       total_conf_matrix = confusion_matrix
@@ -319,9 +317,20 @@ def validate_and_test(model, set_kind, set_size, model_settings, \
           hidden_layers[ihidden][isound:isound+this_batch_size,...] = hidden_activations[ihidden]
       if FLAGS.save_fingerprints:
         if isound==0:
-          nHWC = np.shape(fingerprints)[1:]
-          input_layer = np.empty((set_size ,*nHWC))
-        input_layer[isound:isound+this_batch_size,...] = fingerprints
+          if use_audio + use_video == 1:
+            nHWC = np.shape(fingerprints)[1:]
+            input_layer = np.empty((set_size ,*nHWC))
+          else:
+            input_layer = []
+            nHWC = np.shape(fingerprints[0])[1:]
+            input_layer[0] = np.empty((set_size ,*nHWC))
+            nHWC = np.shape(fingerprints[1])[1:]
+            input_layer[1] = np.empty((set_size ,*nHWC))
+        if use_audio + use_video == 1:
+          input_layer[isound:isound+this_batch_size,...] = fingerprints
+        else:
+          input_layer[0][isound:isound+this_batch_size,...] = fingerprints[0]
+          input_layer[1][isound:isound+this_batch_size,...] = fingerprints[1]
     isound += this_batch_size
   print('Confusion Matrix:\n %s\n %s' % \
                   (audio_processor.labels_list, total_conf_matrix.numpy()))

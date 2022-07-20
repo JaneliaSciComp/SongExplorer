@@ -99,7 +99,13 @@ def create_inference_graph():
       def get_use_video(self):
           return self.use_video
 
-      @tf.function(input_signature=[tf.TensorSpec(shape=None, dtype=tf.float32)])
+      if model.use_audio and model.use_video:
+          signature = [[tf.TensorSpec(shape=None, dtype=tf.float32),
+                        tf.TensorSpec(shape=None, dtype=tf.float32)]]
+      else:
+          signature = [tf.TensorSpec(shape=None, dtype=tf.float32)]
+
+      @tf.function(input_signature=signature)
       def inference_step(self, waveform):
           hidden, output = self.thismodel(waveform, training=False)
           return hidden, tf.nn.softmax(output)
