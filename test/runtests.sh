@@ -39,7 +39,7 @@ for file in ${files[*]} ; do
   if [[ $(diff $repo_path/test/scratch/tutorial-sh/$file \
                $repo_path/test/scratch/tutorial-py/$file) ]] ; then
       echo WARNING $file in tutorial-sh/ and tutorial-py/ differ
-      echo WARNING is is normal that the numbers therein are close but not exact
+      echo WARNING it is normal that the numbers therein are close but not exact
   fi
 done
 

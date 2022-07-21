@@ -177,6 +177,7 @@ if __name__ == "__main__":
   
     labels=None
     temp_files=[]
+    thresholds=set()
     for wavdir in wavdirs:
       for wavfile in wavdirs[wavdir]:
         wavfile_noext = os.path.splitext(wavfile)[0]
@@ -210,6 +211,8 @@ if __name__ == "__main__":
                                                                      audio_tic_rate_probabilities,
                                                                      half_stride_sec,
                                                                      audio_tic_rate)
+          if len(features)>0:
+            thresholds.add(str(threshold)+'th')
           filename = os.path.join(basepath, wavdir,
                                   wavfile_noext+'-predicted-'+str(threshold)+'th.csv')
           temp_files.append(filename)
@@ -220,6 +223,8 @@ if __name__ == "__main__":
                                     start_tics[isort], stop_tics[isort], \
                                     cycle(['predicted']),
                                     features[isort]))
+
+    thresholds = realsorted(list(thresholds))
   
     humans = set()
     precision_recalls = set()
@@ -358,20 +363,20 @@ if __name__ == "__main__":
       if len(sorted_hm)<4:
         ax_venn = fig_venn.add_subplot(nrows,ncols,iplot)
         ax_venn.set_title(os.path.basename(csvbase), fontsize=8)
-      xdata=['Everyone', *['only '+(x if x!=pr else 'SE') for x in sorted_hm]]
+      xdata=['Everyone', *['only '+x for x in sorted_hm]]
       ydata=only_data
       if len(sorted_hm)>2:
-        xdata.extend(['not '+(x if x!=pr else 'SE') for x in sorted_hm])
+        xdata.extend(['not '+x for x in sorted_hm])
         ydata.extend(not_data)
       if len(sorted_hm)==2:
         idx = [1,2,0]  # Ab, aB, AB
         venn2(subsets=[ydata[x] for x in idx],
-              set_labels=[x if x!=pr else 'SE' for x in sorted_hm],
+              set_labels=sorted_hm,
               ax=ax_venn)
       elif len(sorted_hm)==3:
         idx = [1,2,6,3,5,4,0]  # Abc, aBc, ABc, abC, AbC, aBC, ABC
         venn3(subsets=[ydata[x] for x in idx],
-              set_labels=[x if x!=pr else 'SE' for x in sorted_hm],
+              set_labels=sorted_hm,
               ax=ax_venn)
       ax.bar(xdata, ydata, color='k')
       ax.set_title(os.path.basename(csvbase), fontsize=8)
@@ -382,20 +387,20 @@ if __name__ == "__main__":
       if len(sorted_hm)<4:
         ax_venn = fig_venn.add_subplot(nrows,ncols,1)
         ax_venn.set_title('all files', fontsize=8)
-      xdata=['Everyone', *['only '+(x if x!=pr else 'SE') for x in sorted_hm]]
+      xdata=['Everyone', *['only '+x for x in sorted_hm]]
       ydata=only_data
       if len(sorted_hm)>2:
-        xdata.extend(['not '+(x if x!=pr else 'SE') for x in sorted_hm])
+        xdata.extend(['not '+x for x in sorted_hm])
         ydata.extend(not_data)
       if len(sorted_hm)==2:
         idx = [1,2,0]
         venn2(subsets=[ydata[x] for x in idx],
-              set_labels=[x if x!=pr else 'SE' for x in sorted_hm],
+              set_labels=sorted_hm,
               ax=ax_venn)
       elif len(sorted_hm)==3:
         idx = [1,2,6,3,5,4,0]
         venn3(subsets=[ydata[x] for x in idx],
-              set_labels=[x if x!=pr else 'SE' for x in sorted_hm],
+              set_labels=sorted_hm,
               ax=ax_venn)
       ax.bar(xdata, ydata, color='k')
       ax.set_xticklabels(xdata, rotation=40, ha='right')
@@ -409,7 +414,7 @@ if __name__ == "__main__":
         if len(csvbases)==0:
           continue
   
-        if pr.endswith('pr'):
+        if pr not in thresholds:
           all_files_flag = len(csvbases)>1
           nrows = np.floor(np.sqrt(all_files_flag+len(csvbases))).astype(int)
           ncols = np.ceil((all_files_flag+len(csvbases))/nrows).astype(int)
@@ -434,7 +439,7 @@ if __name__ == "__main__":
                 onlyone_label[pr][label][csvbase], notone_label[pr][label][csvbase] = \
                 everyone[pr][label][csvbase].get()
   
-          if not pr.endswith('pr'):
+          if pr in thresholds:
             continue
   
           sorted_hm = natsorted(onlyone_tic[pr][label][csvbase].keys())
@@ -454,7 +459,7 @@ if __name__ == "__main__":
                           if len(sorted_hm)>2 else None)
           iplot-=1
   
-        if not pr.endswith('pr'):
+        if pr in thresholds:
           continue
   
         if all_files_flag:
@@ -511,7 +516,7 @@ if __name__ == "__main__":
             csvwriter.writerow([os.path.basename(csvbase)+'.wav',
                                 int(i[0]), int(i[1]), whichset, label])
   
-    for pr in filter(lambda x: x.endswith("pr"), precision_recalls):
+    for pr in filter(lambda x: x not in thresholds, precision_recalls):
       for csvbase in csvbases:
         to_csv([everyone[pr][label][csvbase] for label in timestamps.keys()],
                 csvbase, 'everyone')
@@ -544,14 +549,14 @@ if __name__ == "__main__":
         csvbase0 = next(iter(onlyone_tic[pr][label].keys()))
         sorted_hm = natsorted(onlyone_tic[pr][label][csvbase0].keys())
         for hm in sorted_hm:
-          key = 'only '+hm if hm!=pr else 'only SE'
+          key = 'only '+hm
           if do_tic:
             roc_table_tic[label][pr][key] = int(sum([sum([y[1]-y[0]+1 for y in f[hm]]) \
                                                      for f in onlyone_tic[pr][label].values()]))
           if do_label:
             roc_table_label[label][pr][key] = sum([len(f[hm]) for f in onlyone_label[pr][label].values()])
           if len(sorted_hm)>2:
-            key = 'not '+hm if hm!=pr else 'not SE'
+            key = 'not '+hm
             if do_tic:
               roc_table_tic[label][pr][key] = int(sum([sum([y[1]-y[0]+1 for y in f[hm]]) \
                                                        for f in notone_tic[pr][label].values()]))
@@ -565,36 +570,37 @@ if __name__ == "__main__":
   
     def plot_versus_thresholds(roc_table, measure):
       thresholds_touse = {}
-      desired_prs = None
       for label in roc_table:
-        thresholds = realsorted([x for x in roc_table[label].keys() if x.endswith('th')])
         if len(thresholds)>0:
           xdata = [float(x[:-2]) for x in thresholds]
-          desired_prs = natsorted([float(x[:-2]) for x in roc_table[label].keys()
-                                   if x.endswith('pr')])
           fig = plt.figure(figsize=(2*6.4, 4.8))
           ax1 = fig.add_subplot(1,2,1)
-          for not_only_every in sorted(roc_table[label][thresholds[0]].keys()):
-            ydata = [roc_table[label][x][not_only_every] for x in thresholds]
+          key = next(iter(roc_table[label].keys()-thresholds))
+          for not_only_every in sorted(roc_table[label][key].keys()):
             thislabel=not_only_every
+            not_only, *annotator = not_only_every.split(' ')
+            annotator = ' '.join(annotator)
+            if not_only=="Everyone":
+              ydata = [roc_table[label][x][not_only] for x in thresholds]
+            elif annotator not in humans:
+              ydata = [roc_table[label][x][not_only+' '+x] for x in thresholds]
+            else:
+              ydata = [roc_table[label][x][not_only_every] for x in thresholds]
             if not_only_every=='Everyone':
               TP = ydata
               thislabel += ' (TP)'
-            elif not_only_every=='only SE':
-              FP = ydata
-              thislabel += ' (FP)'
             else:
-              if len(humans)==1:
-                FN = ydata
-                thislabel += ' (FN)'
-              elif not_only_every=='not SE':
+              if not_only=="only" and annotator not in humans:
+                FP = ydata
+                thislabel += ' (FP)'
+              elif len(humans)==1 or (not_only=="not" and annotator not in humans):
                 FN = ydata
                 thislabel += ' (FN)'
             ax1.plot(xdata, ydata, '.-' if len(xdata)<10 else '-', label=thislabel)
           for (ipr,pr) in enumerate(precision_recalls_sparse):
             th = float([x[1:] for x in thresholds_sparse if x[0]==label][0][ipr])
             if 0<=th<=1 and not np.isnan(th):
-              ax1.axvline(x=th, label='sparse P/R = '+pr,
+              ax1.axvline(x=th, label='sparse P/R='+pr,
                          color=next(ax1._get_lines.prop_cycler)['color'])
           ax1.set_ylabel('# Annotations')
           ax1.set_xlabel('Threshold')
@@ -610,17 +616,17 @@ if __name__ == "__main__":
           ax3.legend(loc=(1.15, 0.0))
           f = interpolate.interp1d([p/r if r!=0 else np.nan for (p,r) in zip(P,R)],
                                    xdata, fill_value="extrapolate")
-          thresholds_touse[label] = f(desired_prs)
+          thresholds_touse[label] = f(precision_recalls_sparse)
           fP = interpolate.interp1d(xdata, P, fill_value="extrapolate")
           fR = interpolate.interp1d(xdata, R, fill_value="extrapolate")
           for (ipr,pr) in enumerate(precision_recalls_sparse):
             th = float([x[1:] for x in thresholds_sparse if x[0]==label][0][ipr])
             if 0<=th<=1 and not np.isnan(th):
-              ax2.plot(fR(th), fP(th), '.', label='sparse P/R = '+pr)
+              ax2.plot(fR(th), fP(th), '.', label='sparse P/R='+pr)
           for (ith,th) in enumerate(thresholds_touse[label]):
             if 0<=th<=1 and not np.isnan(th):
-              ax2.plot(fR(th), fP(th), '.', label='dense P/R = '+str(desired_prs[ith]))
-              ax1.axvline(x=th, label='dense P/R = '+str(desired_prs[ith]),
+              ax2.plot(fR(th), fP(th), '.', label='dense P/R='+str(precision_recalls_sparse[ith]))
+              ax1.axvline(x=th, label='dense P/R='+str(precision_recalls_sparse[ith]),
                          color=next(ax1._get_lines.prop_cycler)['color'])
           ax2.set_xlim(0,1)
           ax2.set_ylim(0,1)
@@ -642,23 +648,30 @@ if __name__ == "__main__":
         with open(os.path.join(basepath,'congruence.'+measure+'.'+label+'.csv'), 'w') as fid:
           csvwriter = csv.writer(fid)
           rows = roc_table[label].keys()
-          cols = roc_table[label][next(iter(rows))].keys()
+          cols = roc_table[label][next(iter(rows-thresholds))].keys()
           csvwriter.writerow([''] + list(cols) + ['Precision','Recall'] if len(thresholds)>0 else [])
           for row in realsorted(rows):
             pr = []
-            if row.endswith('th'):
+            if row in thresholds:
               pr = [P[thresholds.index(row)], R[thresholds.index(row)]]
-            csvwriter.writerow([row]+[roc_table[label][row][x] for x in cols]+pr)
+            thisrow = [row]
+            for col in cols:
+              if col in roc_table[label][row]:
+                thisrow.append(roc_table[label][row][col])
+              else:
+                thisrow.append(roc_table[label][row]['only '+row])
+            thisrow += pr
+            csvwriter.writerow(thisrow)
   
-      return thresholds_touse, desired_prs
+      return thresholds_touse
   
     if do_tic:
       plot_versus_thresholds(roc_table_tic, measure='tic')
     if do_label:
-      thresholds_touse, desired_prs = plot_versus_thresholds(roc_table_label, measure='label')
+      thresholds_touse = plot_versus_thresholds(roc_table_label, measure='label')
      
     if len(thresholds_touse)>0:
-      save_thresholds(logdir, model, ckpt, thresholds_touse, desired_prs,
+      save_thresholds(logdir, model, ckpt, thresholds_touse, precision_recalls_sparse,
                       list(thresholds_touse.keys()), True)
   
   except Exception as e:
