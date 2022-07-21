@@ -245,7 +245,7 @@ if __name__ == "__main__":
         print(os.path.join(wavdir, csvfile))
         m = re.search('(-annotated|-predicted)-(.*).csv', csvfile)
         annotator = csvfile[m.span(0)[0]:]
-        csvbase = os.path.join(wavdir, os.path.splitext(df[0][0])[0])
+        csvbase = os.path.join(wavdir, df[0][0])
         if '-annotated-' in csvfile:
           humans.add(m.groups()[1])
         if '-predicted-' in csvfile:
@@ -509,11 +509,12 @@ if __name__ == "__main__":
       pool.close()
   
     def to_csv(intervals, csvbase, whichset):
-      with open(os.path.join(basepath,csvbase+'-disjoint-'+whichset+'.csv'), 'w') as fid:
+      filename = os.path.splitext(csvbase)[0]+'-disjoint-'+whichset+'.csv'
+      with open(os.path.join(basepath,filename), 'w') as fid:
         csvwriter = csv.writer(fid)
         for ilabel,label in enumerate(timestamps.keys()):
           for i in intervals[ilabel]:
-            csvwriter.writerow([os.path.basename(csvbase)+'.wav',
+            csvwriter.writerow([os.path.basename(csvbase),
                                 int(i[0]), int(i[1]), whichset, label])
   
     for pr in filter(lambda x: x not in thresholds, precision_recalls):
