@@ -1886,11 +1886,13 @@ async def congruence_actuate():
     M.waitfor_job = [jobid]
     V.waitfor_update()
     regex_files = '('+'|'.join([os.path.splitext(x)[0] for x in all_files])+')*csv'
-    asyncio.create_task(actuate_monitor(displaystring, None, None, \
-                        lambda l=logfile, t=currtime: recent_file_exists(l, t, False), \
-                        lambda l=logfile: contains_two_timestamps(l), \
-                        lambda l=V.groundtruth_folder.value, t=currtime, r=regex_files,
-                               m=V.congruence_measure.value: congruence_succeeded(l, t, r, m)))
+    threads, results = [None], [None]
+    threads[0] = asyncio.create_task(actuate_monitor(displaystring, results, 0, \
+                                     lambda l=logfile, t=currtime: recent_file_exists(l, t, False), \
+                                     lambda l=logfile: contains_two_timestamps(l), \
+                                     lambda l=V.groundtruth_folder.value, t=currtime, r=regex_files,
+                                            m=V.congruence_measure.value: congruence_succeeded(l, t, r, m)))
+    asyncio.create_task(actuate_finalize(threads, results, V.groundtruth_update))
 
 def deletefailures_callback(arg):
     M.status_ticker_queue = {k:v for k,v in M.status_ticker_queue.items() if v!="failed"}
