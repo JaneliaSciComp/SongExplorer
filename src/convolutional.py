@@ -125,19 +125,6 @@ def nlayers_callback(n,M,V,C):
         else:
             _callback(['nconvlayers'],M,V,C)
 
-def ngroups_callback(n,M,V,C):
-    ngroups = [int(x) for x in V.model_parameters['ngroups'].value.split(',')]
-    nfeatures = [int(x) for x in V.model_parameters['nfeatures'].value.split(',')]
-    if any([g<1 for g in ngroups]) or any([g>f for g,f in zip(ngroups,nfeatures)]):
-        bokehlog.info("WARNING:  adjusting `# groups` to be between 1 and `# features`")
-        V.model_parameters['ngroups'].css_classes = ['changed']
-        V.model_parameters['ngroups'].value = ','.join([str(max(1, min(g,f)))
-                                                        for g,f in zip(ngroups,nfeatures)])
-        if V.bokeh_document:
-            V.bokeh_document.add_next_tick_callback(lambda: _callback(['ngroups'],M,V,C))
-        else:
-            _callback(['ngroups'],M,V,C)
-
 use_audio=1
 use_video=0
 
@@ -314,12 +301,6 @@ def create_model(model_settings, model_parameters):
     dropout_kind = Identity
   normalize_before = 'before' in model_parameters['normalization']
   normalize_after = 'after' in model_parameters['normalization']
-  if model_parameters['normalization'].startswith('batch'):
-    normalize_kind = lambda i: BatchNormalization()
-  elif model_parameters['normalization'].startswith('group'):
-    normalize_kind = lambda i: GroupNormalization(int(model_parameters['ngroups'].split(',')[i]))
-  else:
-    normalize_kind = None
 
   if representation == "waveform":
     window_tics = stride_tics = 1
@@ -399,10 +380,10 @@ def create_model(model_settings, model_parameters):
                                   [-1,conv_shape[1],conv_shape[2],-1])(bypass)])
     hidden_layers.append(conv)
     if normalize_before:
-      conv = normalize_kind(0)(conv)
+      conv = BatchNormalization()(conv)
     relu = ReLU()(conv)
     if normalize_after:
-      relu = normalize_kind(0)(relu)
+      relu = BatchNormalization()(relu)
     inputs = dropout_kind(dropout_rate)(relu)
     inputs_shape = inputs.get_shape().as_list()
     noutput_tics = math.ceil((noutput_tics - dilated_kernel_size[0] + 1) / strides[0])
@@ -430,10 +411,10 @@ def create_model(model_settings, model_parameters):
         conv = Add()([conv, Slice([0,offset,0,0],[-1,conv_shape[1],-1,-1])(bypass)])
     hidden_layers.append(conv)
     if normalize_before:
-      conv = normalize_kind(1)(conv)
+      conv = BatchNormalization()(conv)
     relu = ReLU()(conv)
     if normalize_after:
-      relu = normalize_kind(1)(relu)
+      relu = BatchNormalization()(relu)
     inputs = dropout_kind(dropout_rate)(relu)
     inputs_shape = inputs.get_shape().as_list()
     noutput_tics = math.ceil((noutput_tics - dilated_kernel_size + 1) / strides[0])
@@ -453,4 +434,4 @@ def create_model(model_settings, model_parameters):
 
   final = Reshape((-1,model_settings['nlabels']))(inputs)
 
-  return tf.keras.Model(inputs=inputs0, outputs=[hidden_layers, final])
+  return tf.keras.Model(inputs=inputs0, outputs=[hidden_layers, final], name="convolutional")
