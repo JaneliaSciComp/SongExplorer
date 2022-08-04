@@ -255,7 +255,7 @@ cp $repo_path/data/20161207T102314_ch1-annotated-person1.csv \
 logdir=$repo_path/test/scratch/tutorial-sh/omit-one
 wavfiles=(PS_20130625111709_ch3.wav 20161207T102314_ch1.wav)
 mkdir $logdir
-ioffsets=$(seq 0 $(dc -e "${#wavfiles[@]} 1 - p"))
+ioffsets=$(seq 0 $(( "${#wavfiles[@]}" - 1 )) )
 for ioffset in $ioffsets ; do
   cmd="generalize.py \
         $context_ms $shiftby_ms \
@@ -269,12 +269,12 @@ for ioffset in $ioffsets ; do
         $video_frame_rate $video_frame_width $video_frame_height $video_channels \
         $batch_seed $weights_seed $deterministic \
         $ioffset ${wavfiles[ioffset]}"
-  echo $cmd &>> $logdir/generalize$(dc -e "${ioffset} 1 + p").log
-  eval $cmd &>> $logdir/generalize$(dc -e "${ioffset} 1 + p").log
+  echo $cmd &>> $logdir/generalize$(( "${ioffset}" + 1 )).log
+  eval $cmd &>> $logdir/generalize$(( "${ioffset}" + 1 )).log
 done
 
 for ioffset in $ioffsets ; do
-  ioffset1=$(dc -e "${ioffset} 1 + p")
+  ioffset1=$(( "${ioffset}" + 1 ))
   check_file_exists $logdir/generalize${ioffset1}.log
   check_file_exists $logdir/generalize_${ioffset1}w.log
   check_file_exists $logdir/generalize_${ioffset1}w/ckpt-$nsteps.index
@@ -290,7 +290,7 @@ check_file_exists $logdir/accuracy.log
 check_file_exists $logdir/accuracy.pdf
 check_file_exists $logdir/confusion-matrices.pdf
 for ioffset in $ioffsets ; do
-  ioffset1=$(dc -e "${ioffset} 1 + p")
+  ioffset1=$(( "${ioffset}" + 1 ))
   check_file_exists $logdir/generalize_${ioffset1}w/precision-recall.ckpt-$nsteps.pdf
   check_file_exists $logdir/generalize_${ioffset1}w/probability-density.ckpt-$nsteps.pdf
   check_file_exists $logdir/generalize_${ioffset1}w/thresholds.ckpt-$nsteps.csv
