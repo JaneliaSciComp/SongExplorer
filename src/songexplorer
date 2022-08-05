@@ -2,11 +2,11 @@
 
 # launch the graphical user interface
  
-# gui.sh <configuration-file> <port>
+# songexplorer <configuration-file> <port>
 # http://<hostname>:<port>/gui
 
 # e.g.
-# $SONGEXPLORER_BIN gui.sh `pwd`/configuration.pysh 5006
+# $SONGEXPLORER_BIN songexplorer `pwd`/configuration.pysh 5006
 
 configuration_file=$1
 port=$2
@@ -20,7 +20,7 @@ import os
 import sys
 import tensorflow as tf
 import psutil
-from subprocess import run, PIPE, STDOUT, Popen
+from subprocess import run, PIPE, Popen
 import socket
 
 exec(open("$configuration_file").read(), globals())
@@ -35,15 +35,15 @@ print("detected "+str(local_ncpu_cores)+" local_ncpu_cores, "+
 
 if server_ipaddr:
     p = run(["ssh", "-l", server_username, server_ipaddr,
-             "python3 -c 'import os; print(os.cpu_count())'"], stdout=PIPE, stderr=STDOUT)
+             "python3 -c 'import os; print(os.cpu_count())'"], stdout=PIPE)
     server_ncpu_cores = int(p.stdout.decode('ascii').rstrip())
-    p = run(["ssh", "-l", server_username, server_ipaddr,
-             "conda activate test;", "python3 -c 'import tensorflow; print(len(tensorflow.config.list_physical_devices(\"GPU\")))'"],
-            stdout=PIPE, stderr=STDOUT)
+    p = run(["ssh", "-l", server_username, server_ipaddr, "\$SONGEXPLORER_BIN",
+             "python3 -c 'import tensorflow; print(len(tensorflow.config.list_physical_devices(\"GPU\")))'"],
+            stdout=PIPE)
     server_ngpu_cards = int(p.stdout.decode('ascii').rstrip())
-    p = run(["ssh", "-l", server_username, server_ipaddr,
+    p = run(["ssh", "-l", server_username, server_ipaddr, "\$SONGEXPLORER_BIN",
              "python3 -c 'import psutil; print(int(psutil.virtual_memory().total/1024/1024/1024))'"],
-            stdout=PIPE, stderr=STDOUT)
+            stdout=PIPE)
     server_ngigabytes_memory = int(p.stdout.decode('ascii').rstrip())
 
     print("detected "+str(server_ncpu_cores)+" server_ncpu_cores, "+
@@ -213,13 +213,13 @@ trap "local_njobs=\`hetero njobs\`; \
           hetero stop; \
       fi; \
       if [[ -n \"$server_ipaddr\" ]] ; then \
-        server_njobs=\`ssh -l $server_username $server_ipaddr \"export SINGULARITYENV_PREPEND_PATH=$source_path; $SONGEXPLORER_BIN hetero njobs\"\`; \
+        server_njobs=\`ssh -l $server_username $server_ipaddr \"export SINGULARITYENV_PREPEND_PATH=$source_path; \\\\\\\$SONGEXPLORER_BIN hetero njobs\"\`; \
         if [[ \\\$\? && (( \"\$server_njobs\" > 0 )) ]] ; then \
             echo WARNING: jobs are still queued on the server; \
             echo to kill them execute \\\`ssh -l $server_username $server_ipaddr \\\$SONGEXPLORER_BIN hetero stop force\\\`; \
             echo to stop SongExplorer\'s scheduler, wait until they are done and execute \\\`ssh -l $server_username $server_ipaddr \\\$SONGEXPLORER_BIN hetero stop\\\`; \
         else \
-            ssh -l $server_username $server_ipaddr \"export SINGULARITYENV_PREPEND_PATH=$source_path; $SONGEXPLORER_BIN hetero stop\"; \
+            ssh -l $server_username $server_ipaddr \"export SINGULARITYENV_PREPEND_PATH=$source_path; \\\$SONGEXPLORER_BIN hetero stop\"; \
         fi; \
       fi" INT TERM KILL STOP HUP
 
@@ -237,10 +237,10 @@ elif [[ "$hetero_nslots" != "$local_ncpu_cores $local_ngpu_cards $local_ngigabyt
 fi
 
 if [[ -n "$server_ipaddr" ]] ; then
-    hetero_nslots=`ssh -l $server_username $server_ipaddr "export SINGULARITYENV_PREPEND_PATH=$source_path; $SONGEXPLORER_BIN hetero nslots"`
+    hetero_nslots=`ssh -l $server_username $server_ipaddr "export SINGULARITYENV_PREPEND_PATH=$source_path; \\\$SONGEXPLORER_BIN hetero nslots"`
     hetero_isrunning=$?
     if [[ "$hetero_isrunning" != 0 ]] ; then
-        ssh -l $server_username $server_ipaddr "export SINGULARITYENV_PREPEND_PATH=$source_path; $SONGEXPLORER_BIN hetero start \
+        ssh -l $server_username $server_ipaddr "export SINGULARITYENV_PREPEND_PATH=$source_path; \$SONGEXPLORER_BIN hetero start \
                             $server_ncpu_cores $server_ngpu_cards $server_ngigabytes_memory" &
     elif [[ "$hetero_nslots" != "$server_ncpu_cores $server_ngpu_cards $server_ngigabytes_memory" ]] ; then
 
