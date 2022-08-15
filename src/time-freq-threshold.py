@@ -107,7 +107,7 @@ if __name__ == '__main__':
         sigdigs = np.ceil(np.log10(next_higher)).astype(int)+1
         next_higher_ms = np.around(next_higher/audio_tic_rate*1000, decimals=sigdigs)
         next_lower_ms = np.around(next_lower/audio_tic_rate*1000, decimals=sigdigs)
-        raise Exception("ERROR: 'freq N (msec)' should be a power of two when converted to tics.  "+frequency_n_ms+" ms is "+str(frequency_n)+" tics for Fs="+str(audio_tic_rate)+".  try "+str(next_lower_ms)+" ms (="+str(next_lower)+") or "+str(next_higher_ms)+"ms (="+str(next_higher)+") instead.")
+        raise Exception("ERROR: 'freq N (msec)' should be a power of two when converted to tics.  "+detect_parameters['frequency_n_ms']+" ms is "+str(frequency_n)+" tics for Fs="+str(audio_tic_rate)+".  try "+str(next_lower_ms)+" ms (="+str(next_lower)+") or "+str(next_higher_ms)+"ms (="+str(next_higher)+") instead.")
 
       if np.ndim(song)==1:
         song = np.expand_dims(song, axis=1)
