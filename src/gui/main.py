@@ -34,7 +34,7 @@ detect_parameters = list(V.detect_parameters.values())
 doubleclick_parameters = list(V.doubleclick_parameters.values())
 model_parameters = list(V.model_parameters.values())
 
-spacer_width = 790 + 100*(len(M.gui_snippets_spectrogram)>0) + 103*len(doubleclick_parameters)
+spacer_width = 790 + 100*(len(M.snippets_spectrogram)>0) + 103*len(doubleclick_parameters)
 main_content = row(column(row(V.which_layer, V.which_species, V.which_word,
                               V.which_nohyphen, V.which_kind,
                               column(V.color_picker, width=75),
@@ -54,8 +54,8 @@ main_content = row(column(row(V.which_layer, V.which_species, V.which_word,
                               column(V.redo, width=60, align='end'),
                               Spacer(width=(M.gui_width_pix-spacer_width)//4),
                               column(V.spectrogram_length, width=100) \
-                                      if M.gui_snippets_spectrogram or \
-                                         M.gui_context_spectrogram else Spacer(),
+                                      if M.snippets_spectrogram or \
+                                         M.context_spectrogram else Spacer(),
                               column(V.zoom_context, width=100),
                               column(V.zoom_offset, width=100)),
                           V.recordings,
