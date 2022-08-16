@@ -67,7 +67,8 @@ def generic_actuate(cmd, logfile, where,
                    stdin=pe.stdout, stdout=PIPE, stderr=STDOUT)
         pe.stdout.close()
         jobinfo = ps.communicate()[0].decode('ascii').rstrip()
-        jobid = re.search('([0-9]+)',jobinfo).group(1)
+        tmp = re.search('([0-9]+)',jobinfo)
+        jobid = tmp.group(1) if hasattr(tmp,'group') else "ERROR"
         bokehlog.info(jobinfo)
     return jobid
 
