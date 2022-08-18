@@ -28,6 +28,10 @@
 #      --shiftby_ms=0.0 \
 #      --video_findfile=same-basename \
 #      --video_bkg_frames=1000 \
+#      --audio_read_plugin=load-wav \
+#      --audio_read_plugin_kwargs="{}" \
+#      --video_read_plugin=load-avi-mp4-mov \
+#      --video_read_plugin_kwargs="{}" \
 #      --model_architecture=convolutional \
 #      --model_parameters='{"representation":"waveform", "window_ms":6.4, "stride_ms":1.6, "mel_dct":"7,7", "dropout":0.5, "kernel_sizes":5,3,3", last_conv_width":130, "nfeatures":"256,256,256", "dilate_after_layer":65535, "stride_after_layer":65535, "connection_type":"plain"}' \
 #      --start_checkpoint=`pwd`/trained-classifier/train_1k/ckpt-50 \
@@ -78,6 +82,9 @@ def main():
   for key in sorted(flags.keys()):
     print('%s = %s' % (key, flags[key]))
 
+  audio_read_plugin_kwargs = eval(FLAGS.audio_read_plugin_kwargs)
+  video_read_plugin_kwargs = eval(FLAGS.video_read_plugin_kwargs)
+
   for physical_device in tf.config.experimental.list_physical_devices('GPU'):
     tf.config.experimental.set_memory_growth(physical_device, True)
   tf.config.set_soft_device_placement(True)
@@ -114,7 +121,9 @@ def main():
       FLAGS.testing_equalize_ratio, FLAGS.testing_max_sounds,
       model_settings, FLAGS.model_parameters,
       FLAGS.data_loader_queuesize, FLAGS.data_loader_maxprocs,
-      model.use_audio, model.use_video, video_findfile, FLAGS.video_bkg_frames)
+      model.use_audio, model.use_video, video_findfile, FLAGS.video_bkg_frames,
+      FLAGS.audio_read_plugin, FLAGS.video_read_plugin,
+      audio_read_plugin_kwargs, video_read_plugin_kwargs)
 
   thismodel = model.create_model(model_settings, FLAGS.model_parameters)
   thismodel.summary()
@@ -322,6 +331,26 @@ if __name__ == '__main__':
       type=int,
       default=1000,
       help='How many frames to use to calculate the median background image')
+  parser.add_argument(
+      '--audio_read_plugin',
+      type=str,
+      default="load-wav",
+      help='What function to use to read audio files')
+  parser.add_argument(
+      '--audio_read_plugin_kwargs',
+      type=str,
+      default="{}",
+      help='What default arguments to use to read audio files')
+  parser.add_argument(
+      '--video_read_plugin',
+      type=str,
+      default="load-avi-mp4-mov",
+      help='What function to use to read video files')
+  parser.add_argument(
+      '--video_read_plugin_kwargs',
+      type=str,
+      default="{}",
+      help='What default arguments to use to read video files')
   parser.add_argument(
       '--data_loader_queuesize',
       type=int,

@@ -33,11 +33,12 @@ Table of Contents
       * [Discovering Novel Sounds](#discovering-novel-sounds)
       * [Unsupervised Methods](#unsupervised-methods)
       * [Scripting Automation](#scripting-automation)
-      * [Customizing with Plug-ins](#customizing-with-plug-ins)
-         * [Event Detection](#event-detection)
-         * [Double-Click Annotations](#double-click-annotations)
-         * [Network Architecture](#network-architecture)
-         * [Video Filenames](#video-filenames)
+   * [Customizing with Plug-ins](#customizing-with-plug-ins)
+      * [Loading Data](#loading-data)
+      * [Video Filenames](#video-filenames)
+      * [Event Detection](#event-detection)
+      * [Double-Click Annotations](#double-click-annotations)
+      * [Network Architecture](#network-architecture)
    * [Troubleshooting](#troubleshooting)
    * [Frequently Asked Questions](#frequently-asked-questions)
    * [Reporting Problems](#reporting-problems)
@@ -1634,9 +1635,51 @@ These two files implement, as Bash and Python scripts respectively, the entire
 workflow presented in this [Tutorial](#tutorial), from [Detecting
 Sounds](#detecting-sounds) all the way to [Testing Densely](#testing-densely).
 
-## Customizing with Plug-ins ##
+# Customizing with Plug-ins #
 
-### Event Detection ###
+## Loading Data ##
+
+As described above the default file format for audio recordings is WAV files.
+Should your data be in a different format, one option is to convert it all.
+Alternatively, if you are fluent in python, you can write a script which
+tells SongExplorer how to load the raw data.  This script should define a
+function called `audio_read` which inputs the full path to the recording
+as well as an interval of time and possibly some keyword arguments, and
+returns the sampling rate and the slice of the data during that interval.
+To see how this works, take a look at `src/load-wav.py`, which is the
+default plugin, and `src/audio-read-plugin.py` which is a blank template.
+
+A further advantage of loading data in a plugin script is that you can add
+custom signal pre-preprocessing.  Say for example there is artifactual
+noise in a particular frequency band.  You can eliminate that before
+SongExplorer ever sees the data by simply adding a filter to the plugin.
+One particular use case is ultrasonic vocalizations, which are frequently
+contaminated by low frequency audible noise.  SongExplorer comes with a
+plugin, `src/highpass-filter.py`, which uses a butterworth filter with
+a customizable cutoff frequency to attenuate that noise.
+
+Video loading is also done with a plugin.  The default
+is `src/load-avi-mp4-mov.py` and a blank template is in
+`src/video-read-plugin.py`.
+
+To use an alternative plugin, change the "audio_read_plugin" variable in
+"configuration.pysh".  It should be a python 2-tuple, with the first element
+being the full path to the script, without the ".py" extension, and the
+second being a dictionary of keyword arguments.  The specific format for
+each plugin is documented in a comment at the top of each python script.
+
+## Video Filenames ##
+
+By default, SongExplorer expects video files to have the same basename
+as the corresponding audio file, and the extension to be one of AVI, MP4,
+or MOV.  If this is not the case, one can provide a python function which
+inputs a directory and a WAV file and outputs the name of the video file
+to load.  The name and location of the python file containing this function
+is specified, without the ".py" extension, as the "video_findfile_plugin"
+parameter in "configuration.pysh".  For examples, see "src/same-basename.py"
+(the default) and "src/maybe-1sec-off.py".
+
+## Event Detection ##
 
 By default the Detect button thresholds in the time and frequency domains to
 find sounds of interest.  See the source code in "src/time-freq-threshold.py"
@@ -1688,10 +1731,10 @@ a pared down version of which is as follows:
             for e in range(events):
                 csvwriter.writerow([basename, e[0], e[1], 'detected', e[2]])
 
-### Double-Click Annotations ###
+## Double-Click Annotations ##
 
 New annotations can be layed down by double-clicking a snippet,
-double-clicking on a clustered event in the upper half of the context window,
+double-clicking on an event in the upper half of the context window,
 clicking and horizontally dragging in the lower half of the context window,
 or double-clicking in a blank portion of the lower half of context window.
 The default behavior for the latter method results in a point annotation
@@ -1704,17 +1747,17 @@ annotation, as SongExplorer will automatically augment these annotations
 by randomly choosing a specific point in time within them each time they
 are chosen for a batch of training examples.
 
-To facilitate range annotations with a double-click gesture, SongExplorer
-has a hook in the callback which you can supply with python code to
-customize the behavior.  The python file must contain a list called
-`doubleclick_parameters` which defines the required hyperparameters, and
-a function called `doubleclick_annotation` which inputs a point in time
+To facilitate temporally-precise range annotations with a double-click
+gesture, SongExplorer has a hook in the callback which you can supply with
+python code to customize the behavior.  The python file must contain a list
+called `doubleclick_parameters` which defines the required hyperparameters,
+and a function called `doubleclick_annotation` which inputs a point in time
 and outputs a range.  See "src/snap-to.py" for a plugin which searches
 for a nearby peak in the waveform and lays down a range annotation of a
 specified width.  The default double-click plugin is "src/point.py" and a
 template is in "src/doubleclick-plugin.py".
 
-### Network Architecture ###
+## Network Architecture ##
 
 The default network architecture is a set of layered convolutions, the depth
 and width of which can be configured as described above.  Should this not prove
@@ -1756,7 +1799,7 @@ template of how this works, a pared down version of which is as follows:
 
         return tf.keras.Model(inputs=input_layer, outputs=[hidden_layers, output_layer])
 
-In brief, two objects must be supplied in a python file:  (1) a list of
+In brief, two objects must be supplied in a python file:  (1) a list named
 `model_parameters` which defines the variable names, titles, and default
 values, etc. to appear in the GUI, and (2) a function `create_model` which
 builds and returns the network graph.  Specify as the `architecture_plugin` in
@@ -1767,17 +1810,6 @@ All the workflows described above (detecting sounds, making predicions, fixing
 mistakes, etc) can be used with this custom network in an identical manner.
 The default convolutional architecture is itself written as a plug-in, and
 can be found in "src/convolutional.py".
-
-### Video Filenames ###
-
-By default, SongExplorer expects video files to have the same basename
-as the corresponding audio file, and the extension to be one of AVI, MP4,
-or MOV.  If this is not the case, one can provide a python function which
-inputs a directory and a WAV file and outputs the name of the video file
-to load.  The name and location of the python file containing this function
-is specified, without the ".py" extension, as the "video_findfile_plugin"
-parameter in "configuration.pysh".  For examples, see "src/same-basename.py"
-(the default) and "src/maybe-1sec-off.py".
 
 
 # Troubleshooting #
@@ -1819,7 +1851,7 @@ To build an image, change to a local (i.e. not NFS mounted; e.g.
 
     $ git clone https://github.com/JaneliaSciComp/SongExplorer.git
     $ rm -rf songexplorer/.git
-    $ sudo singularity build -s songexplorer.img songexplorer/containers/singularity.def
+    $ sudo singularity build -s [--no-cleanup] songexplorer.img songexplorer/containers/singularity.def
 
 To confirm that the image works:
 
@@ -1830,7 +1862,7 @@ To confirm that the image works:
 
 Compress the image into a single file:
 
-    $ sudo singularity build songexplorer.sif songexplorer.img
+    $ sudo singularity build [--tmpdir <>] songexplorer.sif songexplorer.img
 
 Next create an access token at cloud.sylabs.io and login using:
 

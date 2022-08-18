@@ -1119,6 +1119,10 @@ async def train_actuate():
         logfile = os.path.join(V.logs_folder.value, "train"+str(ireplicate)+".log")
         args = [V.context_ms.value, V.shiftby_ms.value, \
                 V.optimizer.value, V.learning_rate.value, \
+                str(M.audio_read_plugin), \
+                "'"+json.dumps(M.audio_read_plugin_kwargs)+"'", \
+                str(M.video_read_plugin), \
+                "'"+json.dumps(M.video_read_plugin_kwargs)+"'", \
                 M.video_findfile_plugin, \
                 str(M.video_bkg_frames), \
                 str(M.data_loader_queuesize), str(M.data_loader_maxprocs), \
@@ -1198,6 +1202,10 @@ async def leaveout_actuate(comma):
                 V.shiftby_ms.value, \
                 V.optimizer.value, \
                 V.learning_rate.value, \
+                str(M.audio_read_plugin), \
+                "'"+json.dumps(M.audio_read_plugin_kwargs)+"'", \
+                str(M.video_read_plugin), \
+                "'"+json.dumps(M.video_read_plugin_kwargs)+"'", \
                 M.video_findfile_plugin, \
                 str(M.video_bkg_frames), \
                 str(M.data_loader_queuesize), str(M.data_loader_maxprocs), \
@@ -1258,6 +1266,10 @@ async def xvalidate_actuate():
                 V.shiftby_ms.value, \
                 V.optimizer.value, \
                 V.learning_rate.value, \
+                str(M.audio_read_plugin), \
+                "'"+json.dumps(M.audio_read_plugin_kwargs)+"'", \
+                str(M.video_read_plugin), \
+                "'"+json.dumps(M.video_read_plugin_kwargs)+"'", \
                 M.video_findfile_plugin, \
                 str(M.video_bkg_frames), \
                 str(M.data_loader_queuesize), str(M.data_loader_maxprocs), \
@@ -1690,12 +1702,16 @@ async def _classify_actuate(wavfiles):
             "--parallelize="+str(M.classify_parallelize),
             "--audio_tic_rate="+str(M.audio_tic_rate),
             "--audio_nchannels="+str(M.audio_nchannels),
-            "--video_findfile="+str(M.video_findfile_plugin),
+            "--video_findfile="+M.video_findfile_plugin,
             "--video_bkg_frames="+str(M.video_bkg_frames),
             "--video_frame_rate="+str(M.video_frame_rate),
             "--video_frame_height="+str(M.video_frame_height),
             "--video_frame_width="+str(M.video_frame_width),
             "--video_channels="+str(M.video_channels),
+            "--audio_read_plugin="+M.audio_read_plugin,
+            "--audio_read_plugin_kwargs='"+json.dumps(M.audio_read_plugin_kwargs)+"'",
+            "--video_read_plugin="+M.video_read_plugin,
+            "--video_read_plugin_kwargs='"+json.dumps(M.video_read_plugin_kwargs)+"'",
             "--deterministic="+str(M.deterministic)]
     if V.prevalences.value!='':
         args += ["--labels="+V.labels_touse.value,

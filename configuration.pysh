@@ -8,6 +8,8 @@ state_dir=""
 # sampling rate of and number of channels in the WAV files
 audio_tic_rate=2500
 audio_nchannels=1
+audio_read_plugin="load-wav"
+audio_read_plugin_kwargs={}
 
 # sampling rate and frame size of the AVI, MP4, or MOV files (if any)
 video_frame_rate=0
@@ -16,6 +18,8 @@ video_frame_height=0
 video_channels=0  # comma-separated list of which colors to use
 video_bkg_frames=0  # how many frames to use when computing median background image to subtract
 video_findfile_plugin="same-basename"  # given a directory and a WAV file, return the corresponding video file
+video_read_plugin="load-avi-mp4-mov"
+video_read_plugin_kwargs={}
 
 # URL of the 'server' computer
 server_username=""

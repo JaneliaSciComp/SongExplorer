@@ -21,12 +21,6 @@ import base64
 import io
 from natsort import natsorted
 
-# use agg here as otherwise pims tries to open gtk
-# see https://github.com/soft-matter/pims/issues/351
-import matplotlib as mpl
-mpl.use('Agg')
-import pims
-
 import av
 from bokeh import palettes
 from itertools import cycle, product
@@ -577,16 +571,12 @@ def snippets_update(redraw_wavs):
                 labels_annotated.append(M.annotated_sounds[iannotated]['label'])
             midpoint = np.mean(thissound['ticks'], dtype=int)
             if redraw_wavs:
-                _, wavs = spiowav.read(os.path.join(groundtruth_folder.value, thissound['file']),
-                                       mmap=True)
-                if np.ndim(wavs)==1:
-                  wavs = np.expand_dims(wavs, axis=1)
-                start_frame = max(0, midpoint-M.snippets_tic//2)
-                nframes_to_get = min(np.shape(wavs)[0] - start_frame,
-                                     M.snippets_tic+1,
-                                     M.snippets_tic+1+(midpoint-M.snippets_tic//2))
-                left_pad = max(0, M.snippets_pix-nframes_to_get if start_frame==0 else 0)
-                right_pad = max(0, M.snippets_pix-nframes_to_get if start_frame>0 else 0)
+                start_tic = max(0, midpoint-M.snippets_tic//2)
+                _, wavs = M.audio_read(os.path.join(groundtruth_folder.value, thissound['file'],
+                                       start_tic, start_tic+M.snippets_tic))
+                ntics_gotten = np.shape(wavs)[0]
+                left_pad = max(0, M.snippets_pix-ntics_gotten if start_tic==0 else 0)
+                right_pad = max(0, M.snippets_pix-ntics_gotten if start_tic>0 else 0)
                 ywav = [[]]*len(M.snippets_waveform)
                 scale = [[]]*len(M.snippets_waveform)
                 gram_freq = [[]]*len(M.snippets_spectrogram)
@@ -595,7 +585,7 @@ def snippets_update(redraw_wavs):
                 ilow = [[]]*len(M.snippets_spectrogram)
                 ihigh = [[]]*len(M.snippets_spectrogram)
                 for ichannel in range(M.audio_nchannels):
-                    wavi = wavs[start_frame : start_frame+nframes_to_get, ichannel]
+                    wavi = wavs[start_tic : start_tic+ntics_gotten, ichannel]
                     if ichannel+1 in M.snippets_waveform:
                         idx = M.snippets_waveform.index(ichannel+1)
                         wavi_downsampled = wavi[0::M.snippets_decimate_by].astype(float)
@@ -692,21 +682,21 @@ def nparray2base64wav(data, tic_rate):
     return ret_val
 
 def nparray2base64mp4(filename, start_sec, stop_sec):
-    vid = pims.open(filename)
+    frame_rate, video_data = M.video_read(filename)
 
-    start_frame = np.ceil(start_sec * vid.frame_rate).astype(np.int)
-    stop_frame = np.floor(stop_sec * vid.frame_rate).astype(np.int)
+    start_frame = np.ceil(start_sec * frame_rate).astype(np.int)
+    stop_frame = np.floor(stop_sec * frame_rate).astype(np.int)
 
     fid=io.BytesIO()
     container = av.open(fid, mode='w', format='mp4')
 
-    stream = container.add_stream('h264', rate=vid.frame_rate)
-    stream.width = vid.frame_shape[0]
-    stream.height = vid.frame_shape[1]
+    stream = container.add_stream('h264', rate=frame_rate)
+    stream.width = video_data.shape[1]
+    stream.height = video_data.shape[2]
     stream.pix_fmt = 'yuv420p'
 
     for iframe in range(start_frame, stop_frame):
-        frame = av.VideoFrame.from_ndarray(np.array(vid[iframe]), format='rgb24')
+        frame = av.VideoFrame.from_ndarray(np.array(video_data[iframe]), format='rgb24')
         for packet in stream.encode(frame):
             container.mux(packet)
 
@@ -717,7 +707,7 @@ def nparray2base64mp4(filename, start_sec, stop_sec):
     fid.seek(0)
     ret_val = base64.b64encode(fid.read()).decode('utf-8')
     fid.close()
-    return ret_val, stream.height, stream.width, vid.frame_rate
+    return ret_val, stream.height, stream.width, frame_rate
 
 # _context_update() might be able to be folded back in to context_update() with bokeh 2.0
 # ditto for _doit_callback() and _groundtruth_update()
@@ -809,10 +799,7 @@ def context_update():
         if recordings.value != tapped_sound['file']:
             M.user_changed_recording=False
         recordings.value = tapped_sound['file']
-        _, wavs = spiowav.read(os.path.join(groundtruth_folder.value, tapped_sound['file']),
-                               mmap=True)
-        if np.ndim(wavs)==1:
-            wavs = np.expand_dims(wavs, axis=1)
+        _, wavs = M.audio_read(os.path.join(groundtruth_folder.value, tapped_sound['file']))
         M.file_nframes = np.shape(wavs)[0]
         probs = [None]*len(M.clustered_labels)
         for ilabel,label in enumerate(M.clustered_labels):

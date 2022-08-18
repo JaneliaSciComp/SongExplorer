@@ -27,21 +27,16 @@ import re
 import sys
 import tarfile
 import csv
-import scipy.io.wavfile as spiowav
 from glob import glob
 
 import numpy as np
-
-# use agg here as otherwise pims tries to open gtk
-# see https://github.com/soft-matter/pims/issues/351
-import matplotlib as mpl
-mpl.use('Agg')
-import pims
 
 import tifffile
 
 from multiprocessing import Process, Queue, cpu_count
 import time
+
+import importlib
 
 MAX_NUM_WAVS_PER_CLASS = 2**27 - 1  # ~134M
 
@@ -111,10 +106,21 @@ class AudioProcessor(object):
                testing_equalize_ratio, testing_max_sounds,
                model_settings, model_parameters,
                queue_size, max_procs,
-               use_audio, use_video, video_findfile, video_bkg_frames):
+               use_audio, use_video, video_findfile, video_bkg_frames,
+               audio_read_plugin, video_read_plugin,
+               audio_read_plugin_kwargs, video_read_plugin_kwargs):
     self.data_dir = data_dir
     random.seed(None if random_seed_batch==-1 else random_seed_batch)
     self.np_rng = np.random.default_rng(None if random_seed_batch==-1 else random_seed_batch)
+
+    sys.path.append(os.path.dirname(audio_read_plugin))
+    self.audio_read_plugin = os.path.basename(audio_read_plugin)
+    self.audio_read_plugin_kwargs = audio_read_plugin_kwargs
+
+    sys.path.append(os.path.dirname(video_read_plugin))
+    self.video_read_plugin = os.path.basename(video_read_plugin)
+    self.video_read_plugin_kwargs = video_read_plugin_kwargs
+
     self.prepare_data_index(shiftby_ms,
                             labels_touse, kinds_touse,
                             validation_percentage, validation_offset_percentage, validation_files,
@@ -126,6 +132,15 @@ class AudioProcessor(object):
     self.queue_size = queue_size
     self.max_procs = max_procs
 
+  def audio_read(self, fullpath, start_tic=None, stop_tic=None):
+      audio_read_module = importlib.import_module(self.audio_read_plugin)
+      return audio_read_module.audio_read(fullpath, start_tic, stop_tic,
+                                          **self.audio_read_plugin_kwargs)
+
+  def video_read(self, fullpath, start_frame=None, stop_frame=None):
+      video_read_module = importlib.import_module(self.video_read_plugin)
+      return video_read_module.video_read(fullpath, start_frame, stop_frame,
+                                          **self.video_read_plugin_kwargs)
 
   def prepare_data_index(self,
                          shiftby_ms,
@@ -219,11 +234,9 @@ class AudioProcessor(object):
                   for x in self.data_index['training']]) >= partition_n:
             continue
         if use_audio and wav_path not in audio_ntics:
-          audio_tic_rate, audio_data = spiowav.read(wav_path, mmap=True)
+          audio_tic_rate, audio_data = self.audio_read(wav_path)
           if audio_tic_rate != model_settings['audio_tic_rate']:
             print('ERROR: audio_tic_rate is set to %d in configuration.pysh but is actually %d in %s' % (model_settings['audio_tic_rate'], audio_tic_rate, wav_path))
-          if np.ndim(audio_data)==1:
-            audio_data = np.expand_dims(audio_data, axis=1)
           if np.shape(audio_data)[1] != model_settings['audio_nchannels']:
             print('ERROR: audio_nchannels is set to %d in configuration.pysh but is actually %d in %s' % (model_settings['audio_nchannels'], np.shape(audio_data)[1], wav_path))
           audio_ntics[wav_path] = len(audio_data)
@@ -236,16 +249,16 @@ class AudioProcessor(object):
           vidfile = video_findfile(sound_dirname, wavfile)
           if not vidfile:
             print("ERROR: video file corresponding to "+wavfile+" not found")
-          video_data = pims.open(os.path.join(sound_dirname,vidfile))
-          if video_frame_rate != video_data.frame_rate:
-            print('ERROR: video_frame_rate is set to %d in configuration.pysh but is actually %d in %s' % (video_frame_rate, video_data.frame_rate, vidfile))
-          if video_frame_width != video_data.frame_shape[0]:
-            print('ERROR: video_frame_width is set to %d in configuration.pysh but is actually %d in %s' % (video_frame_width, video_data.frame_shape[1], vidfile))
-          if video_frame_height != video_data.frame_shape[1]:
-            print('ERROR: video_frame_height is set to %d in configuration.pysh but is actually %d in %s' % (video_frame_height, video_data.frame_shape[1], vidfile))
-          if max(video_channels) > video_data.frame_shape[2]:
-            print('ERROR: video_channels is set to %d in configuration.pysh but %s has only %d channels' % (video_channels, vidfile, video_data.frame_shape[2]))
-          video_nframes[wav_path] = len(video_data)
+          frame_rate, video_data = self.video_read(os.path.join(sound_dirname,vidfile))
+          if video_frame_rate != frame_rate:
+            print('ERROR: video_frame_rate is set to %d in configuration.pysh but is actually %d in %s' % (video_frame_rate, frame_rate, vidfile))
+          if video_frame_width != video_data.shape[1]:
+            print('ERROR: video_frame_width is set to %d in configuration.pysh but is actually %d in %s' % (video_frame_width, video_data.shape[1], vidfile))
+          if video_frame_height != video_data.shape[2]:
+            print('ERROR: video_frame_height is set to %d in configuration.pysh but is actually %d in %s' % (video_frame_height, video_data.shape[2], vidfile))
+          if max(video_channels) > video_data.shape[3]:
+            print('ERROR: video_channels is set to %d in configuration.pysh but %s has only %d channels' % (video_channels, vidfile, video_data.shape[3]))
+          video_nframes[wav_path] = video_data.shape[0]
 
           tiffile = os.path.join(sound_dirname, os.path.splitext(vidfile)[0]+".tif")
           if not os.path.exists(tiffile):
@@ -377,12 +390,7 @@ class AudioProcessor(object):
         stop_tic  = offset_tic + math.ceil(context_tics/2) - shiftby_tics
         if use_audio:
           wavpath = os.path.join(self.data_dir, sound['file'])
-          _, audio_data = spiowav.read(wavpath, mmap=True)
-          if np.ndim(audio_data)==1:
-            audio_data = np.expand_dims(audio_data, axis=1)
-          audio_clipped = audio_data[start_tic : stop_tic, :]
-          audio_float32 = audio_clipped.astype(np.float32)
-          audio_slice[i-offset,:,:] = audio_float32 / abs(np.iinfo(np.int16).min)
+          _, audio_slice[i-offset,:,:] = self.audio_read(wavpath, start_tic, stop_tic)
         if use_video:
           sound_basename = os.path.basename(sound['file'])
           sound_dirname = os.path.join(self.data_dir, os.path.dirname(sound['file']))
@@ -390,9 +398,10 @@ class AudioProcessor(object):
           tiffile = os.path.join(sound_dirname, os.path.splitext(vidfile)[0]+".tif")
           if vidfile not in bkg:
             bkg[vidfile] = tifffile.imread(tiffile)
-          video_data = pims.open(os.path.join(sound_dirname, vidfile))
           start_frame = round(start_tic / audio_tic_rate * video_frame_rate)
-          for iframe, frame in enumerate(video_data[start_frame:start_frame+nframes]):
+          _, video_data = self.video_read(os.path.join(sound_dirname, vidfile),
+                                          start_frame, start_frame+nframes)
+          for iframe, frame in enumerate(video_data):
             video_slice[i-offset,iframe,:,:,:] = frame[:,:,video_channels] - bkg[vidfile][:,:,video_channels]
         label_index = self.label_to_index[sound['label']]
         labels[i - offset] = label_index

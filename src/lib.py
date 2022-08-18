@@ -30,8 +30,8 @@ from jitter import *
 
 def compute_background(vidfile, video_bkg_frames, video_data, tiffile):
     print("INFO: calculating median background for "+vidfile)
-    nframes = min(video_bkg_frames, len(video_data))
-    iframes = np.linspace(0, len(video_data)-1, num=nframes, dtype=np.int)
+    nframes = min(video_bkg_frames, video_data.shape[0])
+    iframes = np.linspace(0, video_data.shape[0]-1, num=nframes, dtype=np.int)
     full = np.empty((nframes, *video_data[1].shape))
     for (i,iframe) in enumerate(iframes):
       full[i] = video_data[iframe]

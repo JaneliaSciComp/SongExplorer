@@ -41,6 +41,8 @@ mkdir $logdir
 cmd="train.py \
       $context_ms $shiftby_ms \
       $optimizer $learning_rate \
+      $audio_read_plugin $audio_read_plugin_kwargs \
+      $video_read_plugin $video_read_plugin_kwargs \
       $video_findfile_plugin $video_bkg_frames \
       $data_loader_queuesize $data_loader_maxprocs \
       $architecture '$model_parameters' \
@@ -61,6 +63,8 @@ mkdir $logdir
 cmd="train.py \
       $context_ms $shiftby_ms \
       $optimizer $learning_rate \
+      $audio_read_plugin $audio_read_plugin_kwargs \
+      $video_read_plugin $video_read_plugin_kwargs \
       $video_findfile_plugin $video_bkg_frames \
       $data_loader_queuesize $data_loader_maxprocs \
       $architecture '$model_parameters' \

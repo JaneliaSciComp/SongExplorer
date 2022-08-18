@@ -38,15 +38,11 @@ try:
   print('audio_tic_rate: '+audio_tic_rate)
   audio_tic_rate=float(audio_tic_rate)
 
+  if not os.path.isfile(wav_file):
+    print('cannot find WAV file')
+    exit()
   wavpath, wavname = os.path.split(wav_file)
   wavname_noext = os.path.splitext(wavname)[0]
-  if os.path.isfile(os.path.join(wavpath,wavname_noext+'.wav')):
-    wavname = wavname_noext+'.wav'
-  elif os.path.isfile(os.path.join(wavpath,wavname_noext+'.WAV')):
-    wavname = wavname_noext+'.WAV'
-  else:
-    print('cannot find corresponding WAV file')
-    exit()
 
   precision_recall_ratios, thresholds = read_thresholds(logdir, model, thresholds_file)
 

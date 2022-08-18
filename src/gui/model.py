@@ -221,13 +221,23 @@ def init(_bokeh_document, _configuration_file):
     global context_width_ms0, context_offset_ms0
     global xcluster, ycluster, zcluster, ndcluster, tic2pix_max, snippet_width_pix, ilayer, ispecies, iword, inohyphen, ikind, nlayers, layers, species, words, nohyphens, kinds, clustered_labels, snippets_gap_ms, snippets_tic, snippets_gap_tic, snippets_decimate_by, snippets_pix, snippets_gap_pix, context_decimate_by, context_width_tic, context_offset_tic, isnippet, xsnippet, ysnippet, file_nframes, context_midpoint_tic, ilabel, annotated_sounds, annotated_starts_sorted, annotated_stops, iannotated_stops_sorted, annotated_csvfiles_all, nrecent_annotations, clustered_sounds, clustered_activations, clustered_recording2firstsound, clustered_starts_sorted, clustered_stops, iclustered_stops_sorted, songexplorer_starttime, history_stack, history_idx, wizard, action, function, statepath, state, file_dialog_root, file_dialog_filter, nearest_sounds, status_ticker_queue, waitfor_job, dfs, remaining_isounds
     global user_changed_recording, user_copied_parameters
-    global detect_parameters, detect_labels, doubleclick_parameters, doubleclick_annotation, context_data, context_data_istart, model_parameters, video_findfile
+    global audio_read, video_read, detect_parameters, detect_labels, doubleclick_parameters, doubleclick_annotation, context_data, context_data_istart, model_parameters, video_findfile
 
     bokeh_document = _bokeh_document
 
     exec(open(_configuration_file).read(), globals())
 
     sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
+    sys.path.append(os.path.dirname(audio_read_plugin))
+    audio_read_module = importlib.import_module(os.path.basename(audio_read_plugin))
+    def audio_read(wav_path, start_tic=None, stop_tic=None):
+        return audio_read_module.audio_read(wav_path, start_tic, stop_tic, **audio_read_plugin_kwargs)
+
+    sys.path.append(os.path.dirname(video_read_plugin))
+    video_read_module = importlib.import_module(os.path.basename(video_read_plugin))
+    def video_read(fullpath, start_frame=None, stop_frame=None):
+        return video_read_module.video_read(fullpath, start_frame, stop_frame, **FLAGS.video_read_plugin_kwargs)
 
     sys.path.append(os.path.dirname(detect_plugin))
     tmp = importlib.import_module(os.path.basename(detect_plugin))

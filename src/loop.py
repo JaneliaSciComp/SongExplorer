@@ -119,6 +119,8 @@ def main():
   for key in sorted(flags.keys()):
     print('%s = %s' % (key, flags[key]))
 
+  audio_read_plugin_kwargs = eval(FLAGS.audio_read_plugin_kwargs)
+  video_read_plugin_kwargs = eval(FLAGS.video_read_plugin_kwargs)
   FLAGS.model_parameters = json.loads(FLAGS.model_parameters)
 
   if FLAGS.random_seed_weights!=-1:
@@ -166,7 +168,9 @@ def main():
       FLAGS.testing_equalize_ratio, FLAGS.testing_max_sounds,
       model_settings, FLAGS.model_parameters,
       FLAGS.data_loader_queuesize, FLAGS.data_loader_maxprocs,
-      model.use_audio, model.use_video, video_findfile, FLAGS.video_bkg_frames)
+      model.use_audio, model.use_video, video_findfile, FLAGS.video_bkg_frames,
+      FLAGS.audio_read_plugin, FLAGS.video_read_plugin,
+      audio_read_plugin_kwargs, video_read_plugin_kwargs)
 
   thismodel = model.create_model(model_settings, FLAGS.model_parameters)
   thismodel.summary()
@@ -550,6 +554,26 @@ if __name__ == '__main__':
       type=int,
       default=1000,
       help='How many frames to use to calculate the median background image')
+  parser.add_argument(
+      '--audio_read_plugin',
+      type=str,
+      default="load-wav",
+      help='What function to use to read audio files')
+  parser.add_argument(
+      '--audio_read_plugin_kwargs',
+      type=str,
+      default="{}",
+      help='What default arguments to use to read audio files')
+  parser.add_argument(
+      '--video_read_plugin',
+      type=str,
+      default="load-avi-mp4-mov",
+      help='What function to use to read video files')
+  parser.add_argument(
+      '--video_read_plugin_kwargs',
+      type=str,
+      default="{}",
+      help='What default arguments to use to read video files')
   parser.add_argument(
       '--data_loader_queuesize',
       type=int,

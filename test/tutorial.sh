@@ -77,6 +77,8 @@ mkdir $logdir
 cmd="train.py \
       $context_ms $shiftby_ms \
       $optimizer $learning_rate  \
+      $audio_read_plugin $audio_read_plugin_kwargs \
+      $video_read_plugin $video_read_plugin_kwargs \
       $video_findfile_plugin $video_bkg_frames \
       $data_loader_queuesize $data_loader_maxprocs \
       $architecture '$model_parameters' \
@@ -165,7 +167,7 @@ done
 
 cmd="ethogram.py \
       $logdir train_${ireplicates}r thresholds.ckpt-${check_point}.csv \
-      $wavpath_noext $audio_tic_rate"
+      ${wavpath_noext}.wav $audio_tic_rate"
 echo $cmd &>> ${wavpath_noext}-ethogram.log
 eval $cmd &>> ${wavpath_noext}-ethogram.log
 
@@ -260,6 +262,8 @@ for ioffset in $ioffsets ; do
   cmd="generalize.py \
         $context_ms $shiftby_ms \
         $optimizer $learning_rate \
+        $audio_read_plugin $audio_read_plugin_kwargs \
+        $video_read_plugin $video_read_plugin_kwargs \
         $video_findfile_plugin $video_bkg_frames \
         $data_loader_queuesize $data_loader_maxprocs \
         $architecture '$model_parameters' \
@@ -312,6 +316,8 @@ for nfeatures in ${nfeaturess[@]} ; do
     cmd="xvalidate.py \
           $context_ms $shiftby_ms \
           $optimizer $learning_rate  \
+          $audio_read_plugin $audio_read_plugin_kwargs \
+          $video_read_plugin $video_read_plugin_kwargs \
           $video_findfile_plugin $video_bkg_frames \
           $data_loader_queuesize $data_loader_maxprocs \
           $architecture '$model_parameters' \
@@ -375,6 +381,8 @@ mkdir $logdir
 cmd="train.py \
       $context_ms $shiftby_ms \
       $optimizer $learning_rate  \
+      $audio_read_plugin $audio_read_plugin_kwargs \
+      $video_read_plugin $video_read_plugin_kwargs \
       $video_findfile_plugin $video_bkg_frames \
       $data_loader_queuesize $data_loader_maxprocs \
       $architecture '$model_parameters' \
@@ -566,7 +574,7 @@ done
 
 cmd="ethogram.py \
       $logdir xvalidate_1k thresholds.ckpt-${check_point}.csv \
-      $wavpath_noext $audio_tic_rate"
+      ${wavpath_noext}.wav $audio_tic_rate"
 echo $cmd &>> ${wavpath_noext}-ethogram.log
 eval $cmd &>> ${wavpath_noext}-ethogram.log
 
@@ -647,7 +655,7 @@ mv ${logdir}/xvalidate_1k/${thresholds_dense_file} ${logdir}/xvalidate_1k,2k
 
 cmd="ethogram.py \
       $logdir xvalidate_1k,2k ${thresholds_dense_file} \
-      $wavpath_noext $audio_tic_rate"
+      ${wavpath_noext}.wav $audio_tic_rate"
 echo $cmd &>> ${wavpath_noext}-ethogram.log
 eval $cmd &>> ${wavpath_noext}-ethogram.log
 

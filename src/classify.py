@@ -27,6 +27,10 @@
 #      --context_ms=204.8 \
 #      --shiftby_ms=0.0 \
 #      --video_findfile=same-basename \
+#      --audio_read_plugin=load-wav \
+#      --audio_read_plugin_kwargs="{}" \
+#      --video_read_plugin=load-avi-mp4-mov \
+#      --video_read_plugin_kwargs="{}" \
 #      --model=`pwd`/trained-classifier/train_1k/frozen-graph.ckpt-50.pb \
 #      --model_labels=`pwd`/trained-classifier/train_1k/labels.txt \
 #      --wav=`pwd`/groundtruth-data/round1/20161207T102314_ch1_p1.wav \
@@ -68,6 +72,16 @@ def main():
   sys.path.append(os.path.dirname(FLAGS.video_findfile))
   video_findfile = importlib.import_module(os.path.basename(FLAGS.video_findfile)).video_findfile
 
+  sys.path.append(os.path.dirname(FLAGS.audio_read_plugin))
+  audio_read_module = importlib.import_module(os.path.basename(FLAGS.audio_read_plugin))
+  def audio_read(wav_path, start_tic=None, stop_tic=None):
+      return audio_read_module.audio_read(wav_path, start_tic, stop_tic, **FLAGS.audio_read_plugin_kwargs)
+
+  sys.path.append(os.path.dirname(FLAGS.video_read_plugin))
+  video_read_module = importlib.import_module(os.path.basename(FLAGS.video_read_plugin))
+  def video_read(fullpath, start_frame=None, stop_frame=None):
+      return video_read_module.video_read(fullpath, start_frame, stop_frame, **FLAGS.video_read_plugin_kwargs)
+
   audio_tic_rate = FLAGS.audio_tic_rate
 
   print('model = '+str(FLAGS.model))
@@ -107,38 +121,38 @@ def main():
 
   #Load a wav file and return audio_tic_rate and numpy data of float64 type.
   if use_audio:
-    audio_data, fs = tf.audio.decode_wav(tf.io.read_file(FLAGS.wav))
-    if fs.numpy() != audio_tic_rate:
+    fs, audio_data = audio_read(FLAGS.wav)
+    if fs != audio_tic_rate:
       print("ERROR: audio_tic_rate of WAV file is %d while %d was expected" %
-            (fs.numpy(), audio_tic_rate))
+            (fs, audio_tic_rate))
       exit()
-    if audio_data.shape[1] != FLAGS.audio_nchannels:
+    if np.shape(audio_data)[1] != FLAGS.audio_nchannels:
       print("ERROR: audio_nchannels of WAV file is %d while %d was expected" %
-            (audio_data.shape[1], FLAGS.audio_nchannels))
+            (np.shape(audio_data)[1], FLAGS.audio_nchannels))
       exit()
 
   if use_video:
     sound_basename = os.path.basename(FLAGS.wav)
     sound_dirname =  os.path.dirname(FLAGS.wav)
     vidfile = video_findfile(sound_dirname, sound_basename)
-    video_data = pims.open(os.path.join(sound_dirname, vidfile))
+    frame_rate, video_data = video_read(os.path.join(sound_dirname, vidfile))
     tiffile = os.path.join(sound_dirname, os.path.splitext(vidfile)[0]+".tif")
     if not os.path.exists(tiffile):
       compute_background(vidfile, FLAGS.video_bkg_frames, video_data, tiffile)
     bkg = tifffile.imread(tiffile)
     video_channels = tf.cast([int(x) for x in FLAGS.video_channels.split(',')], tf.int32)
     video_frame_rate = FLAGS.video_frame_rate
-    if video_data.frame_rate != video_frame_rate:
-      print('ERROR: frame_rate of video file is %d when %d is expected' % (video_data.frame_rate, video_frame_rate))
+    if frame_rate != video_frame_rate:
+      print('ERROR: frame_rate of video file is %d when %d is expected' % (frame_rate, video_frame_rate))
       exit()
-    if video_data.frame_shape[0] != FLAGS.video_frame_width:
-      print('ERROR: frame_width of video file is %d when %d is expected' % (video_data.frame_shape[1], FLAGS.video_frame_width))
+    if video_data.shape[1] != FLAGS.video_frame_width:
+      print('ERROR: frame_width of video file is %d when %d is expected' % (video_data.shape[1], FLAGS.video_frame_width))
       exit()
-    if video_data.frame_shape[1] != FLAGS.video_frame_height:
-      print('ERROR: frame_height of video file is %d when %d is expected' % (video_data.frame_shape[1], FLAGS.video_frame_height))
+    if video_data.shape[2] != FLAGS.video_frame_height:
+      print('ERROR: frame_height of video file is %d when %d is expected' % (video_data.shape[2], FLAGS.video_frame_height))
       exit()
-    if video_data.frame_shape[2] < max(video_channels):
-      print('ERROR: nchannels of video file is %d when channel(s) %s is/are expected' % (video_data.frame_shape[2], FLAGS.video_channels))
+    if video_data.shape[3] < max(video_channels):
+      print('ERROR: nchannels of video file is %d when channel(s) %s is/are expected' % (video_data.shape[3], FLAGS.video_channels))
       exit()
 
   if FLAGS.parallelize==1:
@@ -147,11 +161,11 @@ def main():
   input_shape = thismodel.get_input_shape()
   if use_audio:
     clip_window_samples = input_shape[0][1].numpy() if use_video else input_shape[1].numpy()
-    data_len_samples = audio_data.shape[0]
+    data_len_samples = np.shape(audio_data)[0]
     data_sample_rate = audio_tic_rate
   elif use_video:
     clip_window_samples = input_shape[1].numpy()
-    data_len_samples = len(video_data)
+    data_len_samples = video_data.shape[0]
     data_sample_rate = video_frame_rate
 
   if use_video:
@@ -187,7 +201,7 @@ def main():
       else:
         start_frame, stop_frame = start_sample, stop_sample
       for iframe in range(start_frame, stop_frame):
-        if iframe < len(video_data):
+        if iframe < video_data.shape[0]:
           video_slice[iframe-start_frame,:,:,:] = video_data[iframe][:,:,video_channels] - bkg[:,:,video_channels]
         else:
           video_slice[iframe-start_frame,:,:,:] = bkg[:,:,video_channels]
@@ -275,6 +289,26 @@ if __name__ == '__main__':
       type=int,
       default=1000,
       help='How many frames to use to calculate the median background image')
+  parser.add_argument(
+      '--audio_read_plugin',
+      type=str,
+      default="load-wav",
+      help='What function to use to read audio files')
+  parser.add_argument(
+      '--audio_read_plugin_kwargs',
+      type=eval,
+      default="{}",
+      help='Default arguments to use to read audio files')
+  parser.add_argument(
+      '--video_read_plugin',
+      type=str,
+      default="load-avi-mp4-mov",
+      help='What function to use to read video files')
+  parser.add_argument(
+      '--video_read_plugin_kwargs',
+      type=eval,
+      default="{}",
+      help='Default arguments to use to read video files')
   parser.add_argument(
       '--video_frame_rate',
       type=int,
