@@ -178,13 +178,13 @@ class Augment(tf.keras.layers.Layer):
         if not training:
             return inputs
         if self.volume_range != [1,1] or self.noise_range != [0,0]:
-            nbatch_1_nchannel = tf.concat((tf.shape(inputs)[0], 1, tf.shape(inputs)[2]), axis=0)
+            nbatch_1_nchannel = tf.stack((tf.shape(inputs)[0], 1, tf.shape(inputs)[2]), axis=0)
         if self.volume_range != [1,1]:
             volume_ranges = tf.random.uniform(nbatch_1_nchannel, *self.volume_range)
             inputs = tf.math.multiply(volume_ranges, inputs)
         if self.noise_range != [0,0]:
             noise_ranges = tf.random.uniform(nbatch_1_nchannel, *self.noise_range)
-            noises = tf.random.uniform(tf.shape(inputs), 0, noise_ranges)
+            noises = tf.random.normal(tf.shape(inputs), 0, noise_ranges)
             inputs = tf.math.add(noises, inputs)
         return inputs
 
