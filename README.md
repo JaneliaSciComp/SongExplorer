@@ -34,6 +34,7 @@ Table of Contents
       * [Discovering Novel Sounds](#discovering-novel-sounds)
       * [Unsupervised Methods](#unsupervised-methods)
       * [Scripting Automation](#scripting-automation)
+   * [Training on Video](#training-on-video)
    * [Customizing with Plug-ins](#customizing-with-plug-ins)
       * [Loading Data](#loading-data)
       * [Video Filenames](#video-filenames)
@@ -1648,6 +1649,23 @@ For more details see the system tests in $CONDA_PREFIX/songexplorer/test/tutoria
 These two files implement, as Bash and Python scripts respectively, the entire
 workflow presented in this [Tutorial](#tutorial), from [Detecting
 Sounds](#detecting-sounds) all the way to [Testing Densely](#testing-densely).
+
+# Training on Video #
+
+SongExplorer was conceived to analyze one-dimensional audio recordings.
+However, in addition to being able to view accompanying 3D video recordings
+as described in [Manually Annotating](#manually-annotating), one can also
+train a model on them as well, either in conjuction with audio recordings
+or alone.
+
+The default plugin to load video data is "src/load-avi-mp4-mov.py", and
+a blank template is "src/video-read-plugin.py".  These work similarly to
+the corresponding plugins to load audio recordings.
+
+See "src/video.py" for a network architecture plugin that inputs only video,
+and "src/ensemble-concat-dense.py" for an architecture plugin which combines a
+(possibly pretrained) audio-only model and a (possibly pretrained) video-only
+model with a simple top model.
 
 # Customizing with Plug-ins #
 
