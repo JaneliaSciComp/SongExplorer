@@ -8,6 +8,7 @@ Table of Contents
    * [Citations and Repositories](#citations-and-repositories)
    * [Notation](#notation)
    * [Installation](#installation)
+      * [Conda for all Platforms](#conda-for-all-platforms)
       * [Singularity for Linux](#singularity-for-linux)
       * [Docker for Windows and Mac](#docker-for-windows-and-mac)
       * [System Configuration](#system-configuration)
@@ -124,46 +125,56 @@ represent sections which you much customize.
 
 # Installation #
 
-SongExplorer can be run on all three major platforms.  The installation
-procedure is different on each due to various support of the technologies used.
-We recommend using Singularity on Linux, and Docker on Microsoft Windows and
-Apple Macintosh.  Training your own classifier is fastest with an Nvidia
-graphics processing unit (GPU).
+SongExplorer can be run on all three major platforms.  The conda package
+manager is the preferred installation method, and pre-build images for
+docker and singularity containers are available too.  If you have a Linux
+distribution other than Ubuntu, then you will need to use a container, as
+Tensorflow, the machine learning framework from Google that SongExplorer
+uses, only supports Ubuntu.  Training your own classifier is fastest with
+a graphics processing unit (GPU).  For this reason, containers are not
+recommended on Mac and Windows as they do not support access to GPUs.
 
-TensorFlow, the machine learning framework from Google that SongExplorer uses,
-supports Ubuntu, Windows and Mac.  The catch is that Nvidia (and hence
-TensorFlow) currently doesn't support GPUs on Macs.  So while using a
-pre-trained classifier would be fine on a Mac, because inference is just as
-fast on the CPU, training your own would take longer.
+## Conda for all Platforms ##
 
-Docker, a popular container framework which provides an easy way to deploy
-software across platforms, supports Linux, Windows and Mac, but only supports
-GPUs on Linux.  Moreover, on Windows and Mac it runs within a heavy-weight
-virtual machine, and on all platforms it requires administrator privileges to
-both install and run.
+On Windows, you'll need
+[WSL2](https://docs.microsoft.com/en-us/windows/wsl/install).  Choose to
+install the Ubuntu linux distribution, then follow the directions below.
 
-Singularity is an alternative to Docker that does not require root access.
-For this reason it is required in certain high-performance computing
-(HPC) environments.  Currently it only natively supports Linux.  There is
-a version for Macs which uses a light-weight virtual machine, but it is
-not being actively developed anymore.  You can run Singularity on Windows
-within a virtual environment, like Docker does, but would have to set that
-up yourself.  As with Docker, GPUs are only accessible on Linux.
+Platform-specific installation instructions can be found at
+[Mamba](https://mamba.readthedocs.io/en/latest/installation.html).
+You can either add it to an existing installation of
+[Conda](https://conda.io/projects/conda/en/latest/user-guide/install), or
+install a fresh copy.  On Macs you can also use [Homebrew](https://brew.sh/)
+to install conda and mamba.
 
-To use SongExplorer with a GPU on Windows one must install it manually, without
-the convenience of a container.  We're looking for volunteers to write a
-Conda recipe to make this easy.
+Then, simply install Songexplorer its own environment:
 
+    $ mamba install songexplorer -n songexplorer -c conda-forge -c apple -c nvidia
+
+And put this definition in your .bashrc file:
+
+    alias songexplorer="songexplorer <path-to-configuration.pysh> 5006"
+
+In [System Configuration](#system-configuration) we'll make a copy of the default
+configuration file.  For now, you just need to decide where you're going to put it,
+and then specify the full path to that file in the alias definition (e.g.
+"$HOME/songexplorer/configuration.pysh").
+
+Each time you want to start SongExplorer, you'll need to first switch to
+its environment:
+
+    $ conda activate songexplorer
+  
 ## Singularity for Linux ##
 
 Platform-specific installation instructions can be found at
-[Sylabs](https://www.sylabs.io).  SongExplorer has been tested with version 3.4 on
+[Sylabs](https://www.sylabs.io).  SongExplorer has been tested with version 3.7 on
 Linux and [3.3 Desktop Beta](https://sylabs.io/singularity-desktop-macos) on
 Mac.
 
 On Linux you'll also need to install the CUDA and CUDNN drivers from
 nvidia.com.  The latter requires you to register for an account.  SongExplorer
-was tested and built with version 10.2.
+was tested and built with version 11.7.
 
 Next download the SongExplorer image from the cloud.  You can either go to
 [SongExplorer's cloud.sylabs.io
@@ -190,13 +201,6 @@ Put these definitions in your .bashrc (or .zshrc file on Mac OS Catalina and new
 
 Add to the SONGEXPLORER_BIN export any directories you want to access using the
 `-B` flag (e.g. `singularity exec -B /my/home/directory ...`).
-
-On Mac singularity runs within a virtual machine that is configured by default
-to only use one CPU core and one GB of memory.  Use the `--vm-cpu` and
-`--vm-ram` flags to allocate a different amount of system resources to SongExplorer
-(e.g. `singularity exec --vm-cpu 4 --vm-ram 4096 ...`).  Note that even when
-SongExplorer is idle these resources will *not* be available to other programs,
-including the operating system.
 
 In [System Configuration](#system-configuration) we'll make a copy of the default
 configuration file.  For now, you just need to decide where you're going to put it,
@@ -275,6 +279,10 @@ a cluster.  You specify how you want this to work by editing
 
 Copy the exemplar configuration file out of the container and into your home
 directory:
+
+    $ cp $CONDA_PREFIX/songexplorer/configuration.pysh $PWD
+
+Note that if you're using a container, use this command instead:
 
     $ $SONGEXPLORER_BIN cp /opt/songexplorer/configuration.pysh $PWD
 
@@ -359,9 +367,10 @@ resources, but rather they just limit how many jobs are running simultaneously.
 It is important not to overburden you computer with tasks, so don't
 underestimate the resources required, particularly memory consumption.  To make
 an accurate assessment for your particular workflow, use the `top` and
-`nvidia-smi` commands to monitor jobs while they are running.
+`nvidia-smi` commands on Unix, the Task Manager on Windows, or the Activity
+Monitor on Macs to monitor jobs while they are running.
 
-    $ $SONGEXPLORER_BIN top
+    $ top
     top - 09:36:18 up 25 days,  1:18,  0 users,  load average: 11.40, 12.46, 12.36
     Tasks: 252 total,   1 running, 247 sleeping,   0 stopped,   4 zombie
     %Cpu(s):  0.7 us,  0.9 sy, 87.9 ni, 10.4 id,  0.1 wa,  0.0 hi,  0.0 si,  0.0 st
@@ -380,9 +389,9 @@ the 32702004 KiB of total system memory (so about 2.15 GiB).
 Use the `nvidia-smi` command to similarly monitor the GPU card.  The same
 `python3` command as above is currently using 4946 MiB of GPU memory and 67% of
 the GPU cores.  Use the `watch` command to receive repeated updates (i.e.
-`$SONGEXPLORER_BIN watch nvidia-smi`).
+`watch nvidia-smi`).
 
-    $ $SONGEXPLORER_BIN nvidia-smi
+    $ nvidia-smi
     Fri Jan 31 09:35:13 2020       
     +-----------------------------------------------------------------------------+
     | NVIDIA-SMI 418.39       Driver Version: 418.39       CUDA Version: 10.1     |
@@ -473,8 +482,9 @@ definitely need to specify the IP address of the head node and corresponding
 job submission command and its flags.  The best person to ask for help here is
 your system administrator.
 
-    $ grep -A3 \'cluster configuration.pysh
+    $ grep -A4 \'cluster configuration.pysh
     # specs of the 'cluster'
+    cluster_username="arthurb"
     cluster_ipaddr="login1"
     cluster_cmd="bsub -Ne -Pmylab"
     cluster_logfile_flag="-oo"
@@ -520,7 +530,7 @@ tutorial we supply you with *Drosophila melanogaster* data sampled at 2500 Hz.
 
 First, let's get some data bundled with SongExplorer into your home directory.
 
-    $ $SONGEXPLORER_BIN ls -1 /opt/songexplorer/data
+    $ ls -1 $CONDA_PREFIX/songexplorer/data
     20161207T102314_ch1-annotated-person1.csv
     20161207T102314_ch1.wav*
     20190122T093303a-7-annotated-person2.csv*
@@ -535,7 +545,7 @@ First, let's get some data bundled with SongExplorer into your home directory.
 
     $ mkdir -p groundtruth-data/round1
 
-    $ $SONGEXPLORER_BIN cp /opt/songexplorer/data/PS_20130625111709_ch3.wav \
+    $ cp $CONDA_PREFIX/songexplorer/data/PS_20130625111709_ch3.wav \
           $PWD/groundtruth-data/round1
 
 ## Detecting Sounds ##
@@ -829,7 +839,7 @@ First let's get some more data bundled with SongExplorer into your home director
 
     $ mkdir groundtruth-data/round2
 
-    $ $SONGEXPLORER_BIN cp /opt/songexplorer/data/20161207T102314_ch1.wav \
+    $ cp $CONDA_PREFIX/songexplorer/data/20161207T102314_ch1.wav \
             $PWD/groundtruth-data/round2
 
 Use the `Freeze` button to save the classifier's neural network graph
@@ -1551,25 +1561,28 @@ For some tasks it may be easier to write code instead of use the GUI-- tasks
 which require many tedious mouse clicks, for example, or simpler ones that must
 be performed repeatedly.  To facilitate coding your analysis, SongExplorer is
 structured such that each action button (`Detect`, `Misses`, `Activations`,
-etc.) is backed by a Linux Bash script.  At the top of each script is
+etc.) is backed by a Python script.  At the top of each script is
 documentation showing how to call it.  Here, for example, is the interface for
 `Detect`:
 
-    $ $SONGEXPLORER_BIN head -n 8 /opt/songexplorer/src/detect.sh
+    $ head -n 8 $CONDA_PREFIX/songexplorer/src/time-freq-threshold.py
     #!/bin/bash
 
     # threshold an audio recording in both the time and frequency spaces
 
-    # detect.sh <full-path-to-wavfile>
+    # time-freq-threshold.py <full-path-to-wavfile> {
     #           <time-sigma-signal> <time-sigma-noise> <time-smooth-ms>
     #           <frequency-n-ms> <frequency-nw> <frequency-p-signal>
-    #           <frequency-p-noise> <frequency-smooth-ms>
+    #           <frequency-p-noise> <frequency-smooth-ms> <detect-time-sigma-robust> }
     #           <audio-tic-rate> <audio-nchannels>
 
     # e.g.
-    # $SONGEXPLORER_BIN detect.sh
-    #                   `pwd`/groundtruth-data/round2/20161207T102314_ch1_p1.wav
-    #                   4 2 6.4 25.6 4 0.1 1.0 25.6 2500 1
+    # time-freq-threshold.py `pwd`/groundtruth-data/round2/20161207T102314_ch1_p1.wav 
+    #    {"time_sigma":"9,4", "time_smooth_ms":"6.4",
+    #     "frequency_n_ms":"25.6", "frequency_nw":"4", "frequency_p":"0.1,1.0",
+    #     "frequency_smooth_ms":"25.6", "time_sigma_robust":"median"}
+    #    2500 1
+
 
 The following Bash code directly calls this script to make predictions on a set
 of recordings in different folders:
@@ -1595,7 +1608,7 @@ buttons:
     import os
 
     # load the GUI
-    sys.path.append("/opt/songexplorer/src/gui")
+    sys.path.append(os.path.join(os.environ["CONDA_PREFIX"],"songexplorer/src/gui"))
     import model as M
     import view as V
     import controller as C
@@ -1610,12 +1623,13 @@ buttons:
          str(M.local_ngpu_cards), str(M.local_ngigabytes_memory)])
 
     # set the needed textbox variables
-    V.time_sigma_string.value = "4,2"
-    V.time_smooth_ms_string.value = "6.4"
-    V.frequency_n_ms_string.value = "25.6"
-    V.frequency_nw_string.value = "4"
-    V.frequency_p_string.value = "0.1,1.0"
-    V.frequency_smooth_ms_string.value = "25.6"
+    V.detect_parameters["time_sigma"].value = "9,4"
+    V.detect_parameters["time_smooth_ms"].value = "6.4"
+    V.detect_parameters["frequency_n_ms"].value = "25.6"
+    V.detect_parameters["frequency_nw"].value = "4"
+    V.detect_parameters["frequency_p"].value = "0.1,1.0"
+    V.detect_parameters["frequency_smooth_ms"].value = "25.6"
+    V.detect_parameters["time_sigma_robust"].value = "median"
 
     # repeatedly push the Detect button
     wavpaths_noext = [
@@ -1624,13 +1638,13 @@ buttons:
                      "groundtruth-data/round3/Antigua_20110313095210_ch26",
                      ]
     for wavpath_noext in wavepaths_noext:
-        V.wavtfcsvfiles_string.value = wavpath_noext+".wav"
+        V.wavtfcsvfiles.value = wavpath_noext+".wav"
         C.detect_actuate()
 
     # stop the job scheduler
     run(["hetero", "stop"], stdout=PIPE, stderr=STDOUT)
 
-For more details see the system tests in /opt/songexplorer/test/tutorial.{sh,py}.
+For more details see the system tests in $CONDA_PREFIX/songexplorer/test/tutorial.{sh,py}.
 These two files implement, as Bash and Python scripts respectively, the entire
 workflow presented in this [Tutorial](#tutorial), from [Detecting
 Sounds](#detecting-sounds) all the way to [Testing Densely](#testing-densely).
@@ -1844,6 +1858,41 @@ to improve SongExplorer instead instead of forking your own version.
 
 # Development #
 
+## Conda ##
+
+To build locally:
+
+    $ mamba build <path-to-songexplorer>/install/conda/songexplorer -c conda-forge -c apple -c nvidia
+    $ conda create --name songexplorer
+    $ mamba install -n songexplorer --use-local songexplorer -c conda-forge -c apple -c nvidia
+
+To build locally on a machine without a GPU, set the CONDA_OVERRIDE_CUDA
+variable to the desired version of CUDA.
+
+To delete the local build:
+
+    $ conda build purge-all
+    $ conda index <path-to-miniconda>/conda-bld
+
+To access a network drive on WSL:
+
+    $ sudo mkdir /mnt/u
+    $ sudo mount -t drvfs \\\\dm11.hhmi.org\\scicompsoft$\\arthurb /mnt/u
+
+Currently, there is a [bug](https://github.com/mamba-org/mamba/issues/1826)
+in mamba on apple silicon.  The workaround is:
+
+    $ conda install libarchive -n base -c conda-forge
+
+Currently, songexplorer [hangs](https://github.com/microsoft/WSL/issues/7443)
+for large models on Windows.  This, despite updating to the latest version
+of WSL:
+
+    $ wsl --status
+    $ wsl --update
+    $ wsl --shutdown
+    $ wsl --status
+
 ## Singularity ##
 
 To build an image, change to a local (i.e. not NFS mounted; e.g.
@@ -1851,7 +1900,7 @@ To build an image, change to a local (i.e. not NFS mounted; e.g.
 
     $ git clone https://github.com/JaneliaSciComp/SongExplorer.git
     $ rm -rf songexplorer/.git
-    $ sudo singularity build -s [--no-cleanup] songexplorer.img songexplorer/containers/singularity.def
+    $ sudo singularity build -s [-B /opt:/mnt] [--no-cleanup] songexplorer.img songexplorer/install/singularity.def
 
 To confirm that the image works:
 
@@ -1873,9 +1922,6 @@ Then push the image to the cloud:
     $ singularity sign songexplorer.sif
     $ singularity push songexplorer.sif library://bjarthur/janelia/songexplorer[:<version>]
 
-To build an image without GPU support, comment out the section titled "install
-CUDA" in "singularity.def" and omit the `--nv` flags.
-
 To use a copy of the SongExplorer source code outside of the container, set
 SINGULARITYENV_PREPEND_PATH to the full path to SongExplorer's `src` directory in
 your shell environment.  `source_path` in "configuration.pysh" must be set
@@ -1891,7 +1937,7 @@ To start docker on Linux and set permissions:
 To build a docker image and push it to docker hub:
 
     $ cd songexplorer
-    $ docker build --file=containers/dockerfile --tag=bjarthur/songexplorer[:<tag>] \
+    $ docker build --file=install/dockerfile --tag=bjarthur/songexplorer[:<tag>] \
           [--no-cache=true] .
     $ [docker tag <image-id> bjarthur/songexplorer:<tag>]  % get image-id from `docker image ls`
     $ docker login
@@ -1914,6 +1960,10 @@ SongExplorer comes with a comprehensive set of tests to facilitate easy validati
 that everything works both after you've first installed it as well as after any
 changes have been made to the code.  The tests exercise both the Python GUI as
 well as the Linux Bash interfaces.  To run them, simply execute "runtests.sh":
+
+    $ runtests.sh
+
+or with singularity:
 
     $ singularity exec -B /tmp:/opt/songexplorer/test/scratch <songexplorer.sif> \
             /opt/songexplorer/test/runtests.sh

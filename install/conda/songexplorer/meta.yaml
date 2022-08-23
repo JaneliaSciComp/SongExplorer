@@ -1,0 +1,36 @@
+package:
+  name: songexplorer
+  version: 0.4
+
+source:
+  git_url: https://github.com/JaneliaSciComp/SongExplorer.git
+  git_rev: master
+  git_depth: 1
+
+requirements:
+  run:
+    - bash >=4
+    - python =3.8  # pyinterval requires python <=3.8
+    - numpy
+    - tensorflow >=2.8 # [not arm64]
+    - tensorflow-deps # [arm64]
+    - cudatoolkit # [not osx]
+    - cudnn # [not osx]
+    - cuda-nvcc # [not osx]
+    - bokeh
+    - matplotlib
+    - natsort 
+    - scikit-image
+    - nitime  # [not arm64] https://github.com/conda-forge/nitime-feedstock/issues/24
+    - umap-learn
+    - pandas
+    - dictdiffer
+    - av
+    - pyinterval  # [not arm64] https://github.com/conda-forge/pycrlibm-feedstock/issues/6
+    - matplotlib-venn
+    - psutil
+    - pims  # https://github.com/soft-matter/pims/issues/425
+    - nodejs
+
+about:
+  summary: deep learning for acoustic signals

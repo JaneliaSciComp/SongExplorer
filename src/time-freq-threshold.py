@@ -5,7 +5,7 @@
 # time-freq-threshold.py <full-path-to-wavfile> { <time-sigma> <time-smooth-ms> <frequency-n-ms> <frequency-nw> <frequency-p> <frequency-smooth-ms> <detect-time-sigma-robust> } <audio-tic-rate> <audio-nchannels>
 
 # e.g.
-# detect.py `pwd`/groundtruth-data/round2/20161207T102314_ch1_p1.wav {"time_sigma":"9,4", "time_smooth_ms":"6.4", "frequency_n_ms":"25.6", "frequency_nw":"4", "frequency_p":"0.1,1.0", "frequency_smooth_ms":"25.6", "time_sigma_robust":"median"} 2500 1
+# time-freq-threshold.py `pwd`/groundtruth-data/round2/20161207T102314_ch1_p1.wav {"time_sigma":"9,4", "time_smooth_ms":"6.4", "frequency_n_ms":"25.6", "frequency_nw":"4", "frequency_p":"0.1,1.0", "frequency_smooth_ms":"25.6", "time_sigma_robust":"median"} 2500 1
 
 def _frequency_n_callback(M,V,C):
     C.time.sleep(0.5)
