@@ -2,10 +2,10 @@
 
 # apply per-class thresholds to discretize probabilities
  
-# ethogram.py <logdir> <model> <thresholds-file> <wav-file> <wav-tic-rate>
+# ethogram <logdir> <model> <thresholds-file> <wav-file> <wav-tic-rate>
 
 # e.g.
-# ethogram.py `pwd`/trained-classifier 1k 50 `pwd`/groundtruth-data/round1/20161207T102314_ch1_p1.wav 5000
+# ethogram `pwd`/trained-classifier 1k 50 `pwd`/groundtruth-data/round1/20161207T102314_ch1_p1.wav 5000
 
 import sys
 import os

@@ -38,7 +38,7 @@ weights_seed=1
 ireplicates=1
 mkdir $logdir
 
-cmd="train.py \
+cmd="train \
       $context_ms $shiftby_ms \
       $optimizer $learning_rate \
       $audio_read_plugin $audio_read_plugin_kwargs \
@@ -60,7 +60,7 @@ shiftby_ms=51.2
 logdir=$repo_path/test/scratch/shiftby/shiftby-$shiftby_ms
 mkdir $logdir
 
-cmd="train.py \
+cmd="train \
       $context_ms $shiftby_ms \
       $optimizer $learning_rate \
       $audio_read_plugin $audio_read_plugin_kwargs \

@@ -2,10 +2,10 @@
 
 # plot accuracy across hyperparameter values
  
-# compare.py <logdirs-prefix>
+# compare <logdirs-prefix>
 
 # e.g.
-# compare.py `pwd`/withhold
+# compare `pwd`/withhold
 
 import sys
 import os

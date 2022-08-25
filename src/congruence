@@ -2,9 +2,9 @@
 
 # generate figures of false positives and negatives
 
-# congruence.py <path-to-groundtruth> <wavfiles-with-dense-annotations-and-predictions> <portion> <convolve-ms> <measure> <nprobabilities> <audio-tic-rate> <congruence-parallelize>
+# congruence <path-to-groundtruth> <wavfiles-with-dense-annotations-and-predictions> <portion> <convolve-ms> <measure> <nprobabilities> <audio-tic-rate> <congruence-parallelize>
 
-# congruence.py /groups/stern/sternlab/behavior/arthurb/groundtruth/kyriacou2017 PS_20130625111709_ch3.wav,PS_20130625111709_ch7.wav union 0 label 20 2500 1
+# congruence /groups/stern/sternlab/behavior/arthurb/groundtruth/kyriacou2017 PS_20130625111709_ch3.wav,PS_20130625111709_ch7.wav union 0 label 20 2500 1
 
 import sys
 import os

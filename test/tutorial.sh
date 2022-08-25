@@ -38,7 +38,7 @@ cp $repo_path/data/PS_20130625111709_ch3.wav \
 
 wavpath_noext=$repo_path/test/scratch/tutorial-sh/groundtruth-data/round1/PS_20130625111709_ch3
 detect_parameters='{"time_sigma":"9,4","time_smooth_ms":"6.4","frequency_n_ms":"25.6","frequency_nw":"4","frequency_p":"0.1,1.0","frequency_smooth_ms":"25.6","time_sigma_robust":"median"}'
-cmd="time-freq-threshold.py \
+cmd="${detect_plugin}.py \
       ${wavpath_noext}.wav \
       '$detect_parameters' \
       $audio_tic_rate $audio_nchannels"
@@ -74,7 +74,7 @@ batch_seed=1
 weights_seed=1
 ireplicates=1
 mkdir $logdir
-cmd="train.py \
+cmd="train \
       $context_ms $shiftby_ms \
       $optimizer $learning_rate  \
       $audio_read_plugin $audio_read_plugin_kwargs \
@@ -98,7 +98,7 @@ check_file_exists $logdir/train_1r/ckpt-$nsteps.index
 check_file_exists $logdir/train_1r/logits.validation.ckpt-$nsteps.npz
 
 precision_recall_ratios=0.5,1.0,2.0
-cmd="accuracy.py $logdir $precision_recall_ratios \
+cmd="accuracy $logdir $precision_recall_ratios \
       $nprobabilities $accuracy_parallelize"
 echo $cmd &>> $logdir/accuracy.log
 eval $cmd &>> $logdir/accuracy.log
@@ -115,7 +115,7 @@ for label in $(echo $labels_touse | sed "s/,/ /g") ; do
 done
 
 check_point=$nsteps
-cmd="freeze.py \
+cmd="freeze \
       --context_ms=$context_ms \
       --model_architecture=$architecture \
       --model_parameters='$model_parameters' \
@@ -140,7 +140,7 @@ cp $repo_path/data/20161207T102314_ch1.wav \
    $repo_path/test/scratch/tutorial-sh/groundtruth-data/round2
 
 wavpath_noext=$repo_path/test/scratch/tutorial-sh/groundtruth-data/round2/20161207T102314_ch1
-cmd="classify.py \
+cmd="classify \
       --context_ms=$context_ms \
       --shiftby_ms=$shiftby_ms \
       --model=$logdir/train_${ireplicates}r/frozen-graph.ckpt-${check_point}.pb \
@@ -165,7 +165,7 @@ for label in $(echo $labels_touse | sed "s/,/ /g") ; do
   check_file_exists ${wavpath_noext}-${label}.wav
 done
 
-cmd="ethogram.py \
+cmd="ethogram \
       $logdir train_${ireplicates}r thresholds.ckpt-${check_point}.csv \
       ${wavpath_noext}.wav $audio_tic_rate"
 echo $cmd &>> ${wavpath_noext}-ethogram.log
@@ -179,7 +179,7 @@ count_lines_with_label ${wavpath_noext}-predicted-1.0pr.csv mel-pulse 510 WARNIN
 count_lines_with_label ${wavpath_noext}-predicted-1.0pr.csv mel-sine 767 WARNING
 count_lines_with_label ${wavpath_noext}-predicted-1.0pr.csv ambient 124 WARNING
 
-cmd="time-freq-threshold.py \
+cmd="${detect_plugin}.py\
       ${wavpath_noext}.wav \
       '$detect_parameters' \
       $audio_tic_rate $audio_nchannels"
@@ -192,7 +192,7 @@ count_lines_with_label ${wavpath_noext}-detected.csv time 1298 ERROR
 count_lines_with_label ${wavpath_noext}-detected.csv frequency 179 ERROR
 
 csvfiles=${wavpath_noext}-detected.csv,${wavpath_noext}-predicted-1.0pr.csv
-cmd="misses.py $csvfiles"
+cmd="misses $csvfiles"
 echo $cmd &> ${wavpath_noext}-misses.log
 eval $cmd &> ${wavpath_noext}-misses.log
 
@@ -205,7 +205,7 @@ check_point=$nsteps
 kinds_touse=annotated,missed
 equalize_ratio=1000
 max_sounds=10000
-cmd="activations.py \
+cmd="activations \
       --context_ms=$context_ms \
       --shiftby_ms=$shiftby_ms \
       --video_findfile=$video_findfile_plugin \
@@ -241,7 +241,7 @@ cluster_algorithm=UMAP
 cluster_ndims=3
 cluster_parallelize=1
 cluster_args=(10 0.1)
-cmd="cluster.py \
+cmd="cluster \
       $groundtruth_directory $these_layers \
       $pca_fraction_variance_to_retain $pca_batch_size \
       $cluster_algorithm $cluster_ndims $cluster_parallelize ${cluster_args[@]}"
@@ -259,7 +259,7 @@ wavfiles=(PS_20130625111709_ch3.wav 20161207T102314_ch1.wav)
 mkdir $logdir
 ioffsets=$(seq 0 $(( "${#wavfiles[@]}" - 1 )) )
 for ioffset in $ioffsets ; do
-  cmd="generalize.py \
+  cmd="generalize \
         $context_ms $shiftby_ms \
         $optimizer $learning_rate \
         $audio_read_plugin $audio_read_plugin_kwargs \
@@ -285,7 +285,7 @@ for ioffset in $ioffsets ; do
   check_file_exists $logdir/generalize_${ioffset1}w/logits.validation.ckpt-$nsteps.npz
 done
 
-cmd="accuracy.py $logdir $precision_recall_ratios \
+cmd="accuracy $logdir $precision_recall_ratios \
       $nprobabilities $accuracy_parallelize"
 echo $cmd &>> $logdir/accuracy.log
 eval $cmd &>> $logdir/accuracy.log
@@ -313,7 +313,7 @@ for nfeatures in ${nfeaturess[@]} ; do
   ifolds=$(seq 1 $kfold)
   mkdir $logdir
   for ifold in $ifolds ; do
-    cmd="xvalidate.py \
+    cmd="xvalidate \
           $context_ms $shiftby_ms \
           $optimizer $learning_rate  \
           $audio_read_plugin $audio_read_plugin_kwargs \
@@ -338,7 +338,7 @@ for nfeatures in ${nfeaturess[@]} ; do
     check_file_exists $logdir/xvalidate_${ifold}k/logits.validation.ckpt-$nsteps.npz
   done
 
-  cmd="accuracy.py $logdir $precision_recall_ratios $nprobabilities $accuracy_parallelize"
+  cmd="accuracy $logdir $precision_recall_ratios $nprobabilities $accuracy_parallelize"
   echo $cmd &>> $logdir/accuracy.log
   $cmd &>> $logdir/accuracy.log
 
@@ -358,7 +358,7 @@ for nfeatures in ${nfeaturess[@]} ; do
 done
 
 logdirs_prefix=$repo_path/test/scratch/tutorial-sh/nfeatures
-cmd="compare.py $logdirs_prefix"
+cmd="compare $logdirs_prefix"
 echo $cmd &> ${logdirs_prefix}-compare.log
 eval $cmd &> ${logdirs_prefix}-compare.log
 
@@ -367,7 +367,7 @@ check_file_exists ${logdirs_prefix}-compare-precision-recall.pdf
 check_file_exists ${logdirs_prefix}-compare-confusion-matrices.pdf
 check_file_exists ${logdirs_prefix}-compare-overall-params-speed.pdf
 
-cmd="mistakes.py $data_dir"
+cmd="mistakes $data_dir"
 echo $cmd &> $data_dir/mistakes.log
 eval $cmd &> $data_dir/mistakes.log
 
@@ -378,7 +378,7 @@ logdir=$repo_path/test/scratch/tutorial-sh/trained-classifier2
 kinds_touse=annotated
 validation_percentage=20
 mkdir $logdir
-cmd="train.py \
+cmd="train \
       $context_ms $shiftby_ms \
       $optimizer $learning_rate  \
       $audio_read_plugin $audio_read_plugin_kwargs \
@@ -401,7 +401,7 @@ check_file_exists $logdir/train_1r.log
 check_file_exists $logdir/train_1r/ckpt-$nsteps.index
 check_file_exists $logdir/train_1r/logits.validation.ckpt-$nsteps.npz
 
-cmd="accuracy.py $logdir $precision_recall_ratios $nprobabilities $accuracy_parallelize"
+cmd="accuracy $logdir $precision_recall_ratios $nprobabilities $accuracy_parallelize"
 echo $cmd &>> $logdir/accuracy.log
 eval $cmd &>> $logdir/accuracy.log
 
@@ -416,7 +416,7 @@ for label in $(echo $labels_touse | sed "s/,/ /g") ; do
   check_file_exists $logdir/validation-PvR-$label.pdf
 done
 
-cmd="freeze.py \
+cmd="freeze \
       --context_ms=$context_ms \
       --model_architecture=$architecture \
       --model_parameters='$model_parameters' \
@@ -441,7 +441,7 @@ cp $repo_path/data/20190122T093303a-7.wav \
    $repo_path/test/scratch/tutorial-sh/groundtruth-data/congruence
 
 wavpath_noext=$repo_path/test/scratch/tutorial-sh/groundtruth-data/congruence/20190122T093303a-7
-cmd="classify.py \
+cmd="classify \
       --context_ms=$context_ms \
       --shiftby_ms=$shiftby_ms \
       --model=$logdir/train_${ireplicates}r/frozen-graph.ckpt-${check_point}.pb \
@@ -466,7 +466,7 @@ for label in $(echo $labels_touse | sed "s/,/ /g") ; do
   check_file_exists ${wavpath_noext}-${label}.wav
 done
 
-cmd="ethogram.py \
+cmd="ethogram \
       $logdir train_${ireplicates}r thresholds.ckpt-${check_point}.csv \
       ${wavpath_noext}.wav $audio_tic_rate"
 echo $cmd &>> ${wavpath_noext}-ethogram.log
@@ -486,7 +486,7 @@ cp $repo_path/data/${wav_file_noext}-annotated-person3.csv \
 portion=union
 convolve_ms=0.0
 measure=both
-cmd="congruence.py \
+cmd="congruence \
       $data_dir ${wav_file_noext}.wav $portion $convolve_ms $measure $nprobabilities \
       $audio_tic_rate $congruence_parallelize"
 echo $cmd &>> $data_dir/congruence.log
@@ -526,7 +526,7 @@ done
 logdir=${repo_path}/test/scratch/tutorial-sh/nfeatures-64
 
 mkdir ${logdir}/xvalidate_1k,2k
-cmd="ensemble.py \
+cmd="ensemble \
       --start_checkpoints=${logdir}/xvalidate_1k/ckpt-300,${logdir}/xvalidate_2k/ckpt-300 \
       --output_file=${logdir}/xvalidate_1k,2k/frozen-graph.ckpt-300,300.pb \
       --labels_touse=mel-pulse,mel-sine,ambient \
@@ -547,7 +547,7 @@ cp $repo_path/data/20190122T132554a-14.wav \
    $repo_path/test/scratch/tutorial-sh/groundtruth-data/congruence-ensemble
 
 wavpath_noext=$repo_path/test/scratch/tutorial-sh/groundtruth-data/congruence-ensemble/20190122T132554a-14
-cmd="classify.py \
+cmd="classify \
       --context_ms=$context_ms \
       --shiftby_ms=$shiftby_ms \
       --model=${logdir}/xvalidate_1k,2k/frozen-graph.ckpt-${check_point},${check_point}.pb \
@@ -572,7 +572,7 @@ for label in $(echo $labels_touse | sed "s/,/ /g") ; do
   check_file_exists ${wavpath_noext}-${label}.wav
 done
 
-cmd="ethogram.py \
+cmd="ethogram \
       $logdir xvalidate_1k thresholds.ckpt-${check_point}.csv \
       ${wavpath_noext}.wav $audio_tic_rate"
 echo $cmd &>> ${wavpath_noext}-ethogram.log
@@ -592,7 +592,7 @@ cp $repo_path/data/${wav_file_noext}-annotated-person2.csv \
 cp $repo_path/data/${wav_file_noext}-annotated-person3.csv \
    $repo_path/test/scratch/tutorial-sh/groundtruth-data/congruence-ensemble
 
-cmd="congruence.py \
+cmd="congruence \
       $data_dir ${wav_file_noext}.wav $portion $convolve_ms $measure $nprobabilities \
       $audio_tic_rate $congruence_parallelize"
 echo $cmd &>> $data_dir/congruence.log
@@ -625,7 +625,7 @@ for kind in ${kinds[@]} ; do
 done
 
 wavpath_noext=$repo_path/test/scratch/tutorial-sh/groundtruth-data/round1/PS_20130625111709_ch3
-cmd="classify.py \
+cmd="classify \
       --context_ms=$context_ms \
       --shiftby_ms=$shiftby_ms \
       --model=${logdir}/xvalidate_1k,2k/frozen-graph.ckpt-${check_point},${check_point}.pb \
@@ -653,7 +653,7 @@ done
 thresholds_dense_file=$(basename $(ls ${logdir}/xvalidate_1k/thresholds-dense-*))
 mv ${logdir}/xvalidate_1k/${thresholds_dense_file} ${logdir}/xvalidate_1k,2k
 
-cmd="ethogram.py \
+cmd="ethogram \
       $logdir xvalidate_1k,2k ${thresholds_dense_file} \
       ${wavpath_noext}.wav $audio_tic_rate"
 echo $cmd &>> ${wavpath_noext}-ethogram.log

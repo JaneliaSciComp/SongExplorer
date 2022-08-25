@@ -2,7 +2,7 @@
 
 # run all of the tests
 
-# ${SONGEXPLORER_BIN/-B/-B /tmp:/opt/songexplorer/test/scratch -B} bash -c "test/runtests.sh"
+# ${SONGEXPLORER_BIN/-B/-B /tmp:/opt/songexplorer/test/scratch -B} bash -c "test/runtests"
 
 repo_path=$(dirname $(dirname $(readlink -f $(which songexplorer))))
 

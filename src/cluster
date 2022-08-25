@@ -2,11 +2,11 @@
 
 # reduce dimensionality of internal activation states
 
-# cluster.py <groundtruth-directory> <which-layers-to-cluster> <pca-fraction-variance-to-retain> <pca-batch_size> <cluster-algorithm> <cluster-num-dimensions> <cluster-parallelize> [ <tsne-perplexity> <tsne-exaggeration> | <umap-n-neighbors> <umap-min-distance> ]
+# cluster <groundtruth-directory> <which-layers-to-cluster> <pca-fraction-variance-to-retain> <pca-batch_size> <cluster-algorithm> <cluster-num-dimensions> <cluster-parallelize> [ <tsne-perplexity> <tsne-exaggeration> | <umap-n-neighbors> <umap-min-distance> ]
 
 # e.g.
-# cluster.py `pwd`/groundtruth-data 3 0.99 5 tSNE 2 1 30 12.0
-# cluster.py `pwd`/groundtruth-data 0,1,2,3,4 1 5 UMAP 3 0 10 0.1
+# cluster `pwd`/groundtruth-data 3 0.99 5 tSNE 2 1 30 12.0
+# cluster `pwd`/groundtruth-data 0,1,2,3,4 1 5 UMAP 3 0 10 0.1
 
 import os
 import numpy as np
@@ -104,7 +104,8 @@ if __name__ == "__main__":
       for label in labels:
         count = sum([label==x['label'] and kind==x['kind'] for x in sounds])
         print(count,label)
-  
+ 
+
     activations_flattened = [None]*nlayers
     for ilayer in range(nlayers):
       if ilayer not in these_layers:

@@ -2,10 +2,10 @@
 
 # record whether annotations where correctly or mistakenly classified
  
-# mistakes.py <path-to-annotations-npz-file>
+# mistakes <path-to-annotations-npz-file>
 
 # e.g.
-# mistakes.py `pwd`/groundtruth-data
+# mistakes `pwd`/groundtruth-data
 
 import os
 import numpy as np

@@ -23,7 +23,7 @@
 # save input, hidden, and output layer activations at the time points annotated in the test set
 
 # e.g.
-# $SONGEXPLORER_BIN activations.py \
+# $SONGEXPLORER_BIN activations \
 #      --context_ms=204.8 \
 #      --shiftby_ms=0.0 \
 #      --video_findfile=same-basename \

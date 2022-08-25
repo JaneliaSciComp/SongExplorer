@@ -2,10 +2,10 @@
 
 # find events that are detected but not predicted, a.k.a. false negatives
  
-# misses.py <detected-and-predicted-csv-files>
+# misses <detected-and-predicted-csv-files>
 
 # e.g.
-# misses.py `pwd`/groundtruth-data/round2/20161207T102314_ch1_p1-detected.csv `pwd`/groundtruth-data/round2/20161207T102314_ch1_p1-predicted-2.0pr.csv
+# misses `pwd`/groundtruth-data/round2/20161207T102314_ch1_p1-detected.csv `pwd`/groundtruth-data/round2/20161207T102314_ch1_p1-predicted-2.0pr.csv
 
 import os
 import sys
