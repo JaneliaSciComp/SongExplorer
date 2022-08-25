@@ -56,7 +56,9 @@ V.model_parameters["kernel_sizes"].value = "3x3,32"
 V.model_parameters["nconvlayers"].value = "2"
 V.model_parameters["denselayers"].value = ""
 V.model_parameters["nfeatures"].value = "16,16"
-V.model_parameters["dilate_after_layer"].value = "256,256"
+V.model_parameters["stride_freq"].value = ""
+V.model_parameters["dilate_time"].value = ""
+V.model_parameters["dilate_freq"].value = ""
 V.model_parameters["connection_type"].value = "plain"
 V.model_parameters["window_ms"].value = "3.2"
 V.model_parameters["stride_ms"].value = "0.8"
@@ -77,12 +79,12 @@ V.nreplicates.value = "1"
 
 for representation in ["waveform", "spectrogram", "mel-cepstrum"]:
   V.model_parameters["representation"].value = representation
-  for stride_after_layer in ["2,256", "256,256"]:
-    V.model_parameters["stride_after_layer"].value = stride_after_layer
+  for stride_time in ["2", ""]:
+    V.model_parameters["stride_time"].value = stride_time
     V.logs_folder.value = os.path.join(repo_path,
                                        "test/scratch/freeze-classify",
                                        "trained-classifier-r="+representation+
-                                       "-s="+stride_after_layer.replace(',','comma'))
+                                       "-s="+stride_time)
     asyncio.run(C.train_actuate())
 
     wait_for_job(M.status_ticker_queue)
@@ -117,7 +119,7 @@ for representation in ["waveform", "spectrogram", "mel-cepstrum"]:
       outpath = os.path.join(repo_path, 
                              "test/scratch/freeze-classify",
                              "trained-classifier-r="+representation+
-                             "-s="+stride_after_layer.replace(',','comma'),
+                             "-s="+stride_time,
                              parallelize)
       os.makedirs(outpath)
 
@@ -131,7 +133,7 @@ for representation in ["waveform", "spectrogram", "mel-cepstrum"]:
     outpath = os.path.join(repo_path, 
                            "test/scratch/freeze-classify",
                            "trained-classifier-r="+representation+
-                           "-s="+stride_after_layer.replace(',','comma'))
+                           "-s="+stride_time)
     for label in V.labels_touse.value.split(','):
       wavbase_noext = os.path.basename(wavpath_noext)
       outpath64 = os.path.join(outpath, "64", wavbase_noext+"-"+label+".wav")

@@ -1205,18 +1205,17 @@ is reached, or the width in time becomes less than the second number in
 corresponding stages in `kernels`.  See [LeCun *et al* (1989; Neural
 Computation)](http://yann.lecun.com/exdb/publis/pdf/lecun-89e.pdf).
 
-* `dilate after` specifies the first layer, starting from zero, at which
-to start dilating the convolutional kernels.  When `representation` is
-"waveform", the value after the comma is ignored.  For `spectrogram`
-and `mel-cepstrum`, the value before the comma is the temporal
-dilation and that after is the frequency.  See [Yu and Koltun (2016;
-arXiv)](https://arxiv.org/pdf/1511.07122.pdf).
+* `stride time` and `stride freq` specify the layers, starting from zero, at
+which to stride the convolutional kernels by two in the time and frequency
+axes, respectively.  The format is a comma-separated list of integers,
+possibly prefixed with an inequality, or a hyphenated range.  For example,
+"1,2,3,5,6,7", "1-3,5-7", and "<=3,>=5" are all valid and equivalent.
+Striding in time downsamples the output tic rate.
 
-* `stride after` specifies the first layer, starting from zero, at which to
-start striding the convolutional kernels by two.  As with `dilate after`,
-when `representation` is "waveform", the value after the comma is ignored,
-and for "spectrogram" and "mel-cepstrum" the value before the comma is the
-temporal dilation and that after is the frequency.
+* `dilate time` and `dilate freq` similarly specify the layers at
+which to dilate the convolutional kernels.  See [Yu and Koltun (2016;
+arXiv)](https://arxiv.org/pdf/1511.07122.pdf).  Striding and dilation can
+not be both done in the same layer.
 
 * `connection` specifies whether to use identity bypasses, which can help
 models with many layers converge.  See [He, Zhang, Ren, and Sun (2015;

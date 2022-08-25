@@ -42,9 +42,9 @@ def stride_callback(n,M,V,C):
     stride_ms = float(V.model_parameters['stride_ms'].value)
     stride_tics = round(M.audio_tic_rate * stride_ms / 1000)
     stride_ms2 = stride_tics / M.audio_tic_rate * 1000
-    stride_after_layer = parse_after_layer(V.model_parameters['stride_after_layer'].value)
-    downsample_by = 2 ** max(0, int(V.model_parameters['nconvlayers'].value) -
-                                stride_after_layer[0] + 1)
+    nconvlayers = int(V.model_parameters['nconvlayers'].value)
+    nstride_time = len(parse_layers(V.model_parameters['stride_time'].value, nconvlayers))
+    downsample_by = 2 ** nstride_time
     output_tic_rate = M.audio_tic_rate / stride_tics / downsample_by
     if output_tic_rate != round(output_tic_rate) or stride_ms2 != stride_ms:
         if output_tic_rate == round(output_tic_rate):
@@ -87,35 +87,53 @@ def mel_dct_callback(n,M,V,C):
         else:
             _callback(['mel_dct'],M,V,C)
 
-def stride_after_layer_callback(n,M,V,C):
+def fused_callback(n,M,V,C):
+    dilate_stride_callback("stride_time",n,M,V,C)
+    stride_time_callback(n,M,V,C)
+
+def dilate_stride_callback(key,n,M,V,C):
     nconvlayers = int(V.model_parameters['nconvlayers'].value)
-    stride_after_layer = parse_after_layer(V.model_parameters['stride_after_layer'].value)[0]
-    downsampled_rate = M.audio_tic_rate / 2 ** max(0, nconvlayers - stride_after_layer + 1)
-    if stride_after_layer<0 or downsampled_rate != round(downsampled_rate):
-        bokehlog.info("WARNING:  adjusting `stride after` such that the downsampled rate achieved in conjunction with `# layers` is an integer")
-        for this_stride_after in range(stride_after_layer,nconvlayers):
-            downsampled_rate = M.audio_tic_rate / 2 ** max(0, nconvlayers - this_stride_after + 1)
-            if downsampled_rate == round(downsampled_rate):
-                break
-        V.model_parameters['stride_after_layer'].css_classes = ['changed']
-        if ',' in V.model_parameters['stride_after_layer'].value:
-            V.model_parameters['stride_after_layer'].value = str(this_stride_after) + \
-                     ',' + V.model_parameters['stride_after_layer'].value.split(',')[1]
-        else:
-            V.model_parameters['stride_after_layer'].value = str(this_stride_after)
+    stride_time = parse_layers(V.model_parameters['stride_time'].value, nconvlayers)
+    stride_freq = parse_layers(V.model_parameters['stride_freq'].value, nconvlayers)
+    dilate_time = parse_layers(V.model_parameters['dilate_time'].value, nconvlayers)
+    dilate_freq = parse_layers(V.model_parameters['dilate_freq'].value, nconvlayers)
+    stride = set(stride_time + stride_freq)
+    dilate = set(dilate_time + dilate_freq)
+    if stride & dilate:
+        bokehlog.info("WARNING:  adjusting `"+key+"` so that the convolutional layers with strides do not overlap with those that dilate")
+        V.model_parameters[key].css_classes = ['changed']
+        tmp = set(parse_layers(V.model_parameters[key].value, nconvlayers))
+        V.model_parameters[key].value = esrap_layers(list(tmp - (stride & dilate)), nconvlayers)
         if V.bokeh_document:
-            V.bokeh_document.add_next_tick_callback(lambda: _callback(['stride_after_layer'],M,V,C))
+            V.bokeh_document.add_next_tick_callback(lambda: _callback([key],M,V,C))
         else:
-            _callback(['stride_after_layer'],M,V,C)
+            _callback([key],M,V,C)
+
+def stride_time_callback(n,M,V,C):
+    nconvlayers = int(V.model_parameters['nconvlayers'].value)
+    stride_time = parse_layers(V.model_parameters['stride_time'].value, nconvlayers)
+    downsampled_rate = M.audio_tic_rate / 2 ** len(stride_time)
+    if downsampled_rate != round(downsampled_rate):
+        bokehlog.info("WARNING:  adjusting `stride time` such that the downsampled rate achieved in conjunction with `# layers` is an integer")
+        while downsampled_rate != round(downsampled_rate):
+            stride_time.pop()
+            downsampled_rate = M.audio_tic_rate / 2 ** min(nconvlayers, len(stride_time))
+        V.model_parameters['stride_time'].css_classes = ['changed']
+        V.model_parameters['stride_time'].value = esrap_layers(stride_time, nconvlayers)
+        if V.bokeh_document:
+            V.bokeh_document.add_next_tick_callback(lambda: _callback(['stride_time'],M,V,C))
+        else:
+            _callback(['stride_time'],M,V,C)
 
 def nlayers_callback(n,M,V,C):
     nconvlayers = int(V.model_parameters['nconvlayers'].value)
-    stride_after_layer = parse_after_layer(V.model_parameters['stride_after_layer'].value)[0]
-    downsampled_rate = M.audio_tic_rate / 2 ** max(0, nconvlayers - stride_after_layer + 1)
-    if nconvlayers<0 or downsampled_rate != round(downsampled_rate):
-        bokehlog.info("WARNING:  adjusting `# conv layers` such that the downsampled rate achieved in conjunction with `stride after` is an integer")
+    stride_time = parse_layers(V.model_parameters['stride_time'].value, nconvlayers)
+    downsampled_rate = M.audio_tic_rate / 2 ** len(stride_time)
+    if downsampled_rate != round(downsampled_rate):
+        bokehlog.info("WARNING:  adjusting `# conv layers` such that the downsampled rate achieved in conjunction with `stride time` is an integer")
         for this_nconvlayers in range(nconvlayers,0,-1):
-            downsampled_rate = M.audio_tic_rate / 2 ** max(0, this_nconvlayers - stride_after_layer + 1)
+            stride_time = [x for x in stride_time if x <= this_nconvlayers]
+            downsampled_rate = M.audio_tic_rate / 2 ** min(this_nconvlayers, len(stride_time))
             if downsampled_rate == round(downsampled_rate):
                 break
         V.model_parameters['nconvlayers'].css_classes = ['changed']
@@ -130,36 +148,42 @@ use_video=0
 
 model_parameters = [
   # key, title in GUI, '' for textbox or [] for pull-down, default value, width, enable logic, callback, required
-  ["augment_volume",     "augment volume", '',                   '1,1',          1, [],                     None,                        True],
-  ["augment_noise",      "augment noise",  '',                   '0,0',          1, [],                     None,                        True],
-  ["representation",     "representation", ['waveform',
-                                            'spectrogram',
-                                            'mel-cepstrum'],     'mel-cepstrum', 1, [],                     None,                        True],
-  ["window_ms",          "window (msec)",  '',                   '6.4',          1, ["representation",
+  ["augment_volume",  "augment volume", '',                   '1,1',          1, [],                 None,                                                          True],
+  ["augment_noise",   "augment noise",  '',                   '0,0',          1, [],                 None,                                                          True],
+  ["representation",  "representation", ['waveform',
+                                         'spectrogram',
+                                         'mel-cepstrum'],     'mel-cepstrum', 1, [],                 None,                                                          True],
+  ["window_ms",       "window (msec)",  '',                   '6.4',          1, ["representation",
                                                                                   ["spectrogram",
-                                                                                   "mel-cepstrum"]],     window_callback,             True],
-  ["stride_ms",          "stride (msec)",  '',                   '1.6',          1, ["representation",
+                                                                                   "mel-cepstrum"]], window_callback,                                               True],
+  ["stride_ms",       "stride (msec)",  '',                   '1.6',          1, ["representation",
                                                                                   ["spectrogram",
-                                                                                   "mel-cepstrum"]],     stride_callback,             True],
-  ["mel_dct",            "mel & DCT",      '',                   '7,7',          1, ["representation",
-                                                                                  ["mel-cepstrum"]],     mel_dct_callback,            True],
-  ["nconvlayers",        "# conv layers",  '',                   '2',            1, [],                     nlayers_callback,            True],
-  ["kernel_sizes",       "kernels",        '',                   '5x5,3',        1, [],                     None,                        True],
-  ["nfeatures",          "# features",     '',                   '64,64',        1, [],                     None,                        True],
-  ["dilate_after_layer", "dilate after",   '',                   '256,256',      1, [],                     None,                        True],
-  ["stride_after_layer", "stride after",   '',                   '256,256',      1, [],                     stride_after_layer_callback, True],
-  ["connection_type",    "connection",     ['plain',
-                                            'residual'],         'plain',        1, [],                     None,                        True],
-  ["denselayers",        "dense layers",   '',                   '',             1, [],                     None,                        False],
-  ["dropout_kind",       "dropout kind",   ['none',
-                                            'unit',
-                                            'map'],              'unit',         1, [],                     None,                        True],
-  ["dropout_rate",       "dropout %",      '',                   '50',           1, ["dropout_kind",
+                                                                                   "mel-cepstrum"]], stride_callback,                                               True],
+  ["mel_dct",         "mel & DCT",      '',                   '7,7',          1, ["representation",
+                                                                                  ["mel-cepstrum"]], mel_dct_callback,                                              True],
+  ["nconvlayers",     "# conv layers",  '',                   '2',            1, [],                 nlayers_callback,                                              True],
+  ["kernel_sizes",    "kernels",        '',                   '5x5,3',        1, [],                 None,                                                          True],
+  ["nfeatures",       "# features",     '',                   '64,64',        1, [],                 None,                                                          True],
+  ["dropout_kind",    "dropout kind",   ['none',
+                                         'unit',
+                                         'map'],              'unit',         1, [],                 None,                                                          True],
+  ["dropout_rate",    "dropout %",      '',                   '50',           1, ["dropout_kind",
                                                                                   ["unit",
-                                                                                   "map"]],              None,                        True],
-  ["normalization",      "normalization",  ['none',
-                                            'batch before ReLU',
-                                            'batch after ReLU'], 'none',         1, [],                     None,                        True],
+                                                                                   "map"]],          None,                                                          True],
+  ["connection_type", "connection",     ['plain',
+                                         'residual'],         'plain',        1, [],                 None,                                                          True],
+  ["stride_time",     "stride time",    '',                   '',             1, [],                 fused_callback,                                                False],
+  ["stride_freq",     "stride freq",    '',                   '',             1, ["representation",
+                                                                                  ["spectrogram",
+                                                                                   "mel-cepstrum"]], lambda n,M,V,C: dilate_stride_callback("stride_freq",n,M,V,C), False],
+  ["dilate_time",     "dilate time",    '',                   '',             1, [],                 lambda n,M,V,C: dilate_stride_callback("dilate_time",n,M,V,C), False],
+  ["dilate_freq",     "dilate freq",    '',                   '',             1, ["representation",
+                                                                                  ["spectrogram",
+                                                                                   "mel-cepstrum"]], lambda n,M,V,C: dilate_stride_callback("dilate_freq",n,M,V,C), False],
+  ["denselayers",     "dense layers",   '',                   '',             1, [],                 None,                                                          False],
+  ["normalization",   "normalization",  ['none',
+                                         'batch before ReLU',
+                                         'batch after ReLU'], 'none',         1, [],                 None,                                                          True],
   ]
 
 class Augment(tf.keras.layers.Layer):
@@ -268,14 +292,51 @@ class Slice(tf.keras.layers.Layer):
     def call(self, inputs):
         return tf.slice(inputs, self.begin, self.size)
 
-def parse_after_layer(varname):
-  if ',' in varname:
-    return [int(x) for x in varname.split(',')]
-  else:
-    return [int(varname), int(varname)]
+def esrap_layers(arg, nconvlayers):
+    if not arg: return ""
+    arg_appended = arg + [arg[-1]+2]
+    last_elt = start = arg_appended[0]
+    stride_time = ""
+    for elt in arg_appended[1:]:
+        if last_elt+1 != elt:
+            stop = last_elt
+            if stride_time:  stride_time += ","
+            if start == stop:
+                stride_time += str(start)
+            elif start==0:
+                stride_time += "<=" + str(stop)
+            elif stop==nconvlayers:
+                stride_time += ">=" + str(start)
+            else:
+                stride_time += str(start) + "-" + str(stop)
+            start = elt
+        last_elt = elt
+    return stride_time 
 
-def dilation(iconv, dilate_after_layer):
-  return [2**max(0,iconv-dilate_after_layer[0]), 2**max(0,iconv-dilate_after_layer[1])]
+def parse_layers(arg, nconvlayers):
+    arg = arg.split(',') if ',' in arg else [arg]
+    layers = []
+    for elt in arg:
+        if '-' in elt:
+            elts = elt.split('-')
+            if len(elts) != 2:
+                bokehlog.info("WARNING: invalid stride or dilation layers specification: ", elt, " in ", arg)
+            layers.extend(range(int(elts[0]), int(elts[1])+1))
+        elif elt.startswith('<='):
+            layers.extend(range(1,int(elt[2:])+1))
+        elif elt.startswith('>='):
+            layers.extend(range(int(elt[2:]), nconvlayers+1))
+        elif elt.startswith('<'):
+            layers.extend(range(1,int(elt[1:])))
+        elif elt.startswith('>'):
+            layers.extend(range(int(elt[1:])+1, nconvlayers+1))
+        elif elt:
+            layers.append(int(elt))
+    return sorted([x for x in layers if x<=nconvlayers])
+
+def dilation(iconv, dilate_time, dilate_freq):
+  return [2**(1+dilate_time.index(iconv) if iconv in dilate_time else 0),
+          2**(1+dilate_freq.index(iconv) if iconv in dilate_freq else 0)]
 
 def create_model(model_settings, model_parameters):
   audio_tic_rate = model_settings['audio_tic_rate']
@@ -288,8 +349,10 @@ def create_model(model_settings, model_parameters):
   denselayers = [] if model_parameters['denselayers']=='' \
                    else [int(x) for x in model_parameters['denselayers'].split(',')]
   nfeatures = [int(x) for x in model_parameters['nfeatures'].split(',')]
-  dilate_after_layer = parse_after_layer(model_parameters['dilate_after_layer'])
-  stride_after_layer = parse_after_layer(model_parameters['stride_after_layer'])
+  stride_time = parse_layers(model_parameters['stride_time'], nconvlayers)
+  stride_freq = parse_layers(model_parameters['stride_freq'], nconvlayers)
+  dilate_time = parse_layers(model_parameters['dilate_time'], nconvlayers)
+  dilate_freq = parse_layers(model_parameters['dilate_freq'], nconvlayers)
   use_residual = model_parameters['connection_type']=='residual'
   dropout_rate = float(model_parameters['dropout_rate'])/100
   if model_parameters['dropout_kind']=='unit':
@@ -319,7 +382,7 @@ def create_model(model_settings, model_parameters):
                       str(audio_tic_rate)+".  try "+str(next_lower_ms)+" ms (="+str(next_lower)+
                       ") or "+str(next_higher_ms)+"ms (="+str(next_higher)+") instead.")
 
-  downsample_by = 2 ** max(0, nconvlayers - stride_after_layer[0] + 1)
+  downsample_by = 2 ** len(stride_time)
   output_tic_rate = audio_tic_rate / stride_tics / downsample_by
   print('downsample_by = '+str(downsample_by))
   print('output_tic_rate = '+str(output_tic_rate))
@@ -352,9 +415,9 @@ def create_model(model_settings, model_parameters):
                          int(filterbank_nchannels), int(dct_ncoefficients))(inputs)
   inputs_shape = inputs.get_shape().as_list()
 
-  receptive_field_tics = last_stride = 1
+  receptive_field = [1,1]
   iconv=0
-  dilation_rate = dilation(iconv, dilate_after_layer)
+  dilation_rate = dilation(iconv+1, dilate_time, dilate_freq)
 
   # 2D convolutions
   dilated_kernel_size = [(kernel_sizes[0][0] - 1) * dilation_rate[0] + 1,
@@ -365,11 +428,11 @@ def create_model(model_settings, model_parameters):
         iconv<nconvlayers:
     if use_residual and iconv%2!=0:
       bypass = inputs
-    strides=[1+(iconv>=stride_after_layer[0]), 1+(iconv>=stride_after_layer[1])]
+    strides=[1+(iconv+1 in stride_time), 1+(iconv+1 in stride_freq)]
     conv = Conv2D(nfeatures[0], kernel_sizes[0],
                   strides=strides, dilation_rate=dilation_rate)(inputs)
-    receptive_field_tics += (dilated_kernel_size[0] - 1) * last_stride
-    last_stride = strides[0]
+    receptive_field[0] += (dilated_kernel_size[0] - 1) * strides[0]
+    receptive_field[1] += (dilated_kernel_size[1] - 1) * strides[1]
     if use_residual and iconv%2==0 and iconv>1:
       bypass_shape = bypass.get_shape().as_list()
       conv_shape = conv.get_shape().as_list()
@@ -388,7 +451,7 @@ def create_model(model_settings, model_parameters):
     inputs_shape = inputs.get_shape().as_list()
     noutput_tics = math.ceil((noutput_tics - dilated_kernel_size[0] + 1) / strides[0])
     iconv += 1
-    dilation_rate = dilation(iconv, dilate_after_layer)
+    dilation_rate = dilation(iconv+1, dilate_time, dilate_freq)
     dilated_kernel_size = [(kernel_sizes[0][0] - 1) * dilation_rate[0] + 1,
                            (kernel_sizes[0][1] - 1) * dilation_rate[1] + 1]
 
@@ -398,11 +461,10 @@ def create_model(model_settings, model_parameters):
         iconv<nconvlayers:
     if use_residual and iconv%2!=0:
       bypass = inputs
-    strides=[1+(iconv>=stride_after_layer[0]), 1]
+    strides=[1+(iconv+1 in stride_time), 1]
     conv = Conv2D(nfeatures[1], (kernel_sizes[1], inputs_shape[2]),
                   strides=strides, dilation_rate=[dilation_rate[0], 1])(inputs)
-    receptive_field_tics += (dilated_kernel_size - 1) * last_stride
-    last_stride = strides[0]
+    receptive_field[0] += (dilated_kernel_size - 1) * strides[0]
     if use_residual and iconv%2==0 and iconv>1:
       bypass_shape = bypass.get_shape().as_list()
       conv_shape = conv.get_shape().as_list()
@@ -419,17 +481,18 @@ def create_model(model_settings, model_parameters):
     inputs_shape = inputs.get_shape().as_list()
     noutput_tics = math.ceil((noutput_tics - dilated_kernel_size + 1) / strides[0])
     iconv += 1
-    dilation_rate = dilation(iconv, dilate_after_layer)
+    dilation_rate = dilation(iconv+1, dilate_time, dilate_freq)
     dilated_kernel_size = (kernel_sizes[1] - 1) * dilation_rate[0] + 1
 
-  receptive_field_tics *= stride_tics
-  print("receptive_field_tics = %d" % receptive_field_tics)
+  receptive_field[0] *= stride_tics
+  
+  print("receptive_field_time = %d tics = %f ms" % (receptive_field[0], receptive_field[0]/audio_tic_rate*1000))
+  print("receptive_field_freq = %d bins = %f Hz" % (receptive_field[1], receptive_field[1] * audio_tic_rate / window_tics))
 
   # final dense layers (or actually, pan-freq pan-time 2D convs)
   for idense, nunits in enumerate(denselayers+[model_settings['nlabels']]):
-    strides=1+(iconv>=stride_after_layer[0] and idense==0)
-    inputs = Conv2D(nunits, (noutput_tics if idense==0 else 1, inputs_shape[2]),
-                    strides=strides)(inputs)
+    ### if idense>0: ReLU ???
+    inputs = Conv2D(nunits, (noutput_tics if idense==0 else 1, inputs_shape[2]))(inputs)
     inputs_shape = inputs.get_shape().as_list()
 
   final = Reshape((-1,model_settings['nlabels']))(inputs)
