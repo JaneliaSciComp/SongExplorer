@@ -572,8 +572,8 @@ def snippets_update(redraw_wavs):
             midpoint = np.mean(thissound['ticks'], dtype=int)
             if redraw_wavs:
                 start_tic = max(0, midpoint-M.snippets_tic//2)
-                _, wavs = M.audio_read(os.path.join(groundtruth_folder.value, thissound['file'],
-                                       start_tic, start_tic+M.snippets_tic))
+                _, wavs = M.audio_read(os.path.join(groundtruth_folder.value, thissound['file']),
+                                       start_tic, start_tic+M.snippets_tic)
                 ntics_gotten = np.shape(wavs)[0]
                 left_pad = max(0, M.snippets_pix-ntics_gotten if start_tic==0 else 0)
                 right_pad = max(0, M.snippets_pix-ntics_gotten if start_tic>0 else 0)
@@ -585,7 +585,7 @@ def snippets_update(redraw_wavs):
                 ilow = [[]]*len(M.snippets_spectrogram)
                 ihigh = [[]]*len(M.snippets_spectrogram)
                 for ichannel in range(M.audio_nchannels):
-                    wavi = wavs[start_tic : start_tic+ntics_gotten, ichannel]
+                    wavi = wavs[:, ichannel]
                     if ichannel+1 in M.snippets_waveform:
                         idx = M.snippets_waveform.index(ichannel+1)
                         wavi_downsampled = wavi[0::M.snippets_decimate_by].astype(float)

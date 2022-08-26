@@ -1378,9 +1378,13 @@ async def activations_actuate():
             "--batch_size="+V.mini_batch.value, \
             "--audio_tic_rate="+str(M.audio_tic_rate),
             "--audio_nchannels="+str(M.audio_nchannels),
+            "--audio_read_plugin="+M.audio_read_plugin,
+            "--audio_read_plugin_kwargs='"+json.dumps(M.audio_read_plugin_kwargs)+"'",
             "--video_frame_rate="+str(M.video_frame_rate),
             "--video_frame_height="+str(M.video_frame_height),
             "--video_frame_width="+str(M.video_frame_width),
+            "--video_read_plugin="+M.video_read_plugin,
+            "--video_read_plugin_kwargs='"+json.dumps(M.video_read_plugin_kwargs)+"'",
             "--video_channels="+str(M.video_channels),
             "--validation_percentage=0.0",
             "--validation_offset_percentage=0.0",

@@ -9,8 +9,6 @@ def audio_read(wav_path, start_tic, stop_tic):
 
     if np.ndim(data)==1:
         data = np.expand_dims(data, axis=1)
-    if np.issubdtype(data.dtype, np.integer):
-        data = data.astype('float32') / abs(np.iinfo(data.dtype).min)
 
     if not start_tic: start_tic=0
     if not stop_tic: stop_tic=np.shape(data)[0]+1

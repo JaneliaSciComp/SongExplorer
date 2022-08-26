@@ -130,6 +130,7 @@ def main():
       print("ERROR: audio_nchannels of WAV file is %d while %d was expected" %
             (np.shape(audio_data)[1], FLAGS.audio_nchannels))
       exit()
+    audio_data = audio_data.astype('float32') / abs(np.iinfo(audio_data.dtype).min)
 
   if use_video:
     sound_basename = os.path.basename(FLAGS.wav)

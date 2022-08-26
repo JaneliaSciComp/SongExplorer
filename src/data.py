@@ -390,7 +390,8 @@ class AudioProcessor(object):
         stop_tic  = offset_tic + math.ceil(context_tics/2) - shiftby_tics
         if use_audio:
           wavpath = os.path.join(self.data_dir, sound['file'])
-          _, audio_slice[i-offset,:,:] = self.audio_read(wavpath, start_tic, stop_tic)
+          _, audio_data = self.audio_read(wavpath, start_tic, stop_tic)
+          audio_slice[i-offset,:,:] = audio_data.astype(np.float32) / abs(np.iinfo(np.int16).min)
         if use_video:
           sound_basename = os.path.basename(sound['file'])
           sound_dirname = os.path.join(self.data_dir, os.path.dirname(sound['file']))

@@ -237,7 +237,7 @@ def init(_bokeh_document, _configuration_file):
     sys.path.append(os.path.dirname(video_read_plugin))
     video_read_module = importlib.import_module(os.path.basename(video_read_plugin))
     def video_read(fullpath, start_frame=None, stop_frame=None):
-        return video_read_module.video_read(fullpath, start_frame, stop_frame, **FLAGS.video_read_plugin_kwargs)
+        return video_read_module.video_read(fullpath, start_frame, stop_frame, **video_read_plugin_kwargs)
 
     sys.path.append(os.path.dirname(detect_plugin))
     tmp = importlib.import_module(os.path.basename(detect_plugin))
