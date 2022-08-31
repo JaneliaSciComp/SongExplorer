@@ -76,7 +76,7 @@ _start() {
     islot=$((i+1))
     { tail -n+0 -f ${prefix}.queue$i & \
         { echo $! >> ${prefix}.pids ; } ; } | \
-      xargs -P${!islot} -n1 $flags bash -c {} &
+      xargs -P${!islot} $flags bash -c {} &
       echo $! >> ${prefix}.pids
   done
 }
