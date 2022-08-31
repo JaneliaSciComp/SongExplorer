@@ -204,7 +204,8 @@ for x in "${pyout[@]}"; do
     fi
 done
 
-trap "local_njobs=\`hetero njobs\`; \
+trap "trap \"\" INT TERM KILL STOP HUP; \
+      local_njobs=\`hetero njobs\`; \
       if [[ \\\$\? && (( \"\$local_njobs\" > 0 )) ]] ; then \
           echo WARNING: jobs are still queued locally; \
           echo to kill them execute \\\`\\\$SONGEXPLORER_BIN hetero stop force\\\`; \
