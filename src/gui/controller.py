@@ -204,17 +204,20 @@ play_callback_code="""
 const aud = document.getElementById("context_audio")
 const vid = document.getElementById("context_video")
 var x0 = p.x_range.start
+var r0 = waveform_span_red.location
+var v0 = vid.currentTime
 
 aud.ontimeupdate = function() {
   waveform_span_red.location = x0+aud.currentTime
   spectrogram_span_red.location = x0+aud.currentTime
-  probablity_span_red.location = x0+aud.currentTime
+  probability_span_red.location = x0+aud.currentTime
 };
 
 aud.onended = function() {
-  waveform_span_red.location = x0
-  spectrogram_span_red.location = x0
-  probability_span_red.location = x0
+  waveform_span_red.location = r0
+  spectrogram_span_red.location = r0
+  probability_span_red.location = r0
+  vid.currentTime = v0
 };
 
 vid.currentTime = 0
@@ -228,7 +231,7 @@ const vid = document.getElementById("context_video")
 vid.currentTime = parseFloat(cb_obj.value - cb_obj.start);
 waveform_span_red.location = parseFloat(cb_obj.value)
 spectrogram_span_red.location = parseFloat(cb_obj.value)
-probablity_span_red.location = parseFloat(cb_obj.value)
+probability_span_red.location = parseFloat(cb_obj.value)
 """
 
 def _recordings_callback(n):

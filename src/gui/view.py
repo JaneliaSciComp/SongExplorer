@@ -717,39 +717,56 @@ def reset_video():
     load_multimedia_callback.code = C.load_multimedia_callback_code % ("", "")
     load_multimedia.text = ""
 
-def __context_update(wavi, tapped_sound, istart_bounded, ilength):
+def ___context_update(start_sec, stop_sec, frame_rate, tapped_sound):
     if video_toggle.active:
-        sound_basename=os.path.basename(tapped_sound)
-        sound_dirname=os.path.join(groundtruth_folder.value, os.path.dirname(tapped_sound))
+        video_slider.visible = True
+        video_slider.start = np.ceil(start_sec * frame_rate) / frame_rate
+        video_slider.end = np.floor(stop_sec * frame_rate) / frame_rate
+        video_slider.step = 1/frame_rate
+        midpoint_tics = (tapped_sound['ticks'][0] + tapped_sound['ticks'][1]) / 2
+        midpoint_frames = np.round(midpoint_tics / M.audio_tic_rate * frame_rate) / frame_rate
+        video_slider.value = np.clip(midpoint_frames, video_slider.start, video_slider.end)
+        waveform_span_red.location = video_slider.value
+        spectrogram_span_red.location = video_slider.value
+        probability_span_red.location = video_slider.value
+    else:
+        video_slider.value = 0
+        video_slider.visible = False
+        waveform_span_red.location = start_sec
+        spectrogram_span_red.location = start_sec
+        probability_span_red.location = start_sec
+
+def __context_update(wavi, tapped_sound, istart_bounded, ilength):
+    start_sec = istart_bounded / M.audio_tic_rate
+    stop_sec = (istart_bounded+ilength) / M.audio_tic_rate
+
+    if video_toggle.active:
+        video_toggle.button_type="default"
+        sound_basename=os.path.basename(tapped_sound['file'])
+        sound_dirname=os.path.join(groundtruth_folder.value, os.path.dirname(tapped_sound['file']))
         vidfile = M.video_findfile(sound_dirname, sound_basename)
         if not vidfile:
-            bokehlog.info("ERROR: video file corresponding to "+tapped_sound+" not found")
-            video_toggle.button_type="default"
+            bokehlog.info("ERROR: video file corresponding to "+tapped_sound['file']+" not found")
             return
-        start_sec = istart_bounded / M.audio_tic_rate
-        stop_sec = (istart_bounded+ilength) / M.audio_tic_rate
         base64vid, height, width, frame_rate = nparray2base64mp4(os.path.join(sound_dirname,
                                                                               vidfile),
                                                                  start_sec, stop_sec)
         labelcounts.style = {'overflow-y':'hidden', 'overflow-x':'scroll',
                              'width':str(max(100,M.gui_width_pix-450-width))+'px'}
         video_div.style = {'width':str(width)+'px', 'height':str(height)+'px'}
-        video_toggle.button_type="default"
-        video_slider.visible = True
-        video_slider.start = np.ceil(start_sec * frame_rate) / frame_rate
-        video_slider.end = np.floor(stop_sec * frame_rate) / frame_rate
-        video_slider.step = 1/frame_rate
-        video_slider.value = video_slider.start
     else:
+        frame_rate = 0
         base64vid = ""
         labelcounts.style = {'overflow-y':'hidden', 'overflow-x':'scroll',
                             'width':str(M.gui_width_pix-450-1)+'px'}
         video_div.style = {'width':'1px', 'height':'1px'}
-        video_slider.visible=False
 
     base64wav = nparray2base64wav(wavi, M.audio_tic_rate)
     load_multimedia_callback.code = C.load_multimedia_callback_code % (base64wav, base64vid)
     load_multimedia.text = str(np.random.random())
+
+    bokeh_document.add_next_tick_callback(lambda: \
+            ___context_update(start_sec, stop_sec, frame_rate, tapped_sound))
 
 def _context_update(wavi, tapped_sound, istart_bounded, ilength):
     if video_toggle.active:
@@ -837,7 +854,7 @@ def context_update():
                     if bokeh_document: 
                         bokeh_document.add_next_tick_callback(lambda: \
                                 _context_update(wavi,
-                                                tapped_sound['file'],
+                                                tapped_sound,
                                                 istart_bounded,
                                                 ilength))
 
@@ -949,11 +966,10 @@ def context_update():
                                            for j in M.remaining_isounds])]
 
             if M.context_waveform:
-                waveform_span_red.location=xwav0
                 waveform_span_red.visible=True
             if M.context_spectrogram:
-                spectrogram_span_red.location=xwav0
                 spectrogram_span_red.visible=True
+            probability_span_red.visible=True
 
             if not tapped_wav_in_view:
                 if M.context_waveform:
@@ -1010,6 +1026,7 @@ def context_update():
             spectrogram_quad_fuchsia.data.update(left=[], right=[], top=[], bottom=[])
             spectrogram_span_red.location=0
             spectrogram_span_red.visible=False
+        probability_span_red.visible=False
         reset_video()
 
     for ichannel in range(M.audio_nchannels):
@@ -1389,7 +1406,7 @@ def init(_bokeh_document):
     global p_snippets, snippet_palette, snippets_dy, snippets_both, snippets_label_sources_clustered, snippets_label_sources_annotated, snippets_wave_sources, snippets_wave_glyphs, snippets_gram_sources, snippets_gram_glyphs, snippets_quad_grey, snippets_quad_fuchsia
     global p_waveform, waveform_span_red, waveform_quad_grey_clustered, waveform_quad_grey_annotated, waveform_quad_grey_pan, waveform_quad_fuchsia, waveform_source, waveform_glyph, waveform_label_source_clustered, waveform_label_source_annotated
     global p_spectrogram, spectrogram_span_red, spectrogram_quad_grey_clustered, spectrogram_quad_grey_annotated, spectrogram_quad_grey_pan, spectrogram_quad_fuchsia, spectrogram_source, spectrogram_glyph, spectrogram_label_source_clustered, spectrogram_label_source_annotated, spectrogram_length
-    global p_probability, probability_source, probability_glyph
+    global p_probability, probability_span_red, probability_source, probability_glyph
     global which_layer, which_species, which_word, which_nohyphen, which_kind
     global color_picker
     global zoom_context, zoom_offset, zoomin, zoomout, reset, panleft, panright, allleft, allout, allright, firstlabel, nextlabel, prevlabel, lastlabel
