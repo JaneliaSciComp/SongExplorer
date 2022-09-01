@@ -438,7 +438,7 @@ def spectrogram_window_callback(attr, old, new):
     else:
         _spectrogram_window_callback(any_changed)
     
-def zoom_context_callback(attr, old, new):
+def zoom_width_callback(attr, old, new):
     M.context_width_ms = float(new)
     M.context_width_tic = int(np.rint(M.context_width_ms/1000*M.audio_tic_rate))
     M.save_state_callback()
@@ -454,13 +454,13 @@ def zoomin_callback():
     if M.context_width_tic>20:
         M.context_width_ms /= 2
         M.context_width_tic = int(np.rint(M.context_width_ms/1000*M.audio_tic_rate))
-        V.zoom_context.value = str(M.context_width_ms)
+        V.zoom_width.value = str(M.context_width_ms)
     
 def zoomout_callback():
     limit = M.file_nframes/M.audio_tic_rate*1000
     M.context_width_ms = np.minimum(limit, 2*M.context_width_ms)
     M.context_width_tic = int(np.rint(M.context_width_ms/1000*M.audio_tic_rate))
-    V.zoom_context.value = str(M.context_width_ms)
+    V.zoom_width.value = str(M.context_width_ms)
     limit_lo = (M.context_width_tic//2 - M.context_midpoint_tic) / M.audio_tic_rate*1000
     limit_hi = (M.file_nframes - M.context_width_tic//2 - M.context_midpoint_tic) / \
                M.audio_tic_rate*1000
@@ -471,7 +471,7 @@ def zoomout_callback():
 def zero_callback():
     M.context_width_ms = M.context_width_ms0
     M.context_width_tic = int(np.rint(M.context_width_ms/1000*M.audio_tic_rate))
-    V.zoom_context.value = str(M.context_width_ms)
+    V.zoom_width.value = str(M.context_width_ms)
     M.context_offset_ms = M.context_offset_ms0
     M.context_offset_tic = int(np.rint(M.context_offset_ms/1000*M.audio_tic_rate))
     V.zoom_offset.value = str(M.context_offset_ms)
@@ -498,7 +498,7 @@ def allleft_callback():
 def allout_callback():
     M.context_width_ms = M.file_nframes/M.audio_tic_rate*1000
     M.context_width_tic = int(np.rint(M.context_width_ms/1000*M.audio_tic_rate))
-    V.zoom_context.value = str(M.context_width_ms)
+    V.zoom_width.value = str(M.context_width_ms)
     M.context_offset_ms = M.context_width_ms//2 - \
                           M.context_midpoint_tic/M.audio_tic_rate*1000
     M.context_offset_tic = int(np.rint(M.context_offset_ms/1000*M.audio_tic_rate))
@@ -593,7 +593,7 @@ def spectrogram_mousewheel_callback(event):
         return
     spectrogram_mousewheel_last_change = this_change
     if event.delta<0:
-        if 2*M.spectrogram_length_ms[ichannel] <= float(V.zoom_context.value):
+        if 2*M.spectrogram_length_ms[ichannel] <= float(V.zoom_width.value):
             M.spectrogram_length_ms[ichannel] = 2*M.spectrogram_length_ms[ichannel]
         else:
             return

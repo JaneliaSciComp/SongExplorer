@@ -795,7 +795,7 @@ def context_update():
     if M.isnippet>=0:
         play.disabled=False
         video_toggle.disabled=False
-        zoom_context.disabled=False
+        zoom_width.disabled=False
         zoom_offset.disabled=False
         zoomin.disabled=False
         zoomout.disabled=False
@@ -1004,7 +1004,7 @@ def context_update():
     else:
         play.disabled=True
         video_toggle.disabled=True
-        zoom_context.disabled=True
+        zoom_width.disabled=True
         zoom_offset.disabled=True
         zoomin.disabled=True
         zoomout.disabled=True
@@ -1409,7 +1409,7 @@ def init(_bokeh_document):
     global p_probability, probability_span_red, probability_source, probability_glyph
     global which_layer, which_species, which_word, which_nohyphen, which_kind
     global color_picker
-    global zoom_context, zoom_offset, zoomin, zoomout, reset, panleft, panright, allleft, allout, allright, firstlabel, nextlabel, prevlabel, lastlabel
+    global zoom_width, zoom_offset, zoomin, zoomout, reset, panleft, panright, allleft, allout, allright, firstlabel, nextlabel, prevlabel, lastlabel
     global save_indicator, nsounds_per_label_buttons, label_texts
     global load_multimedia, play, video_slider, load_multimedia_callback, play_callback, video_slider_callback, video_toggle, video_div
     global undo, redo, remaining
@@ -1693,14 +1693,14 @@ def init(_bokeh_document):
 
     if M.gui_snippets_spectrogram or M.gui_context_spectrogram:
         spectrogram_length = TextInput(value=','.join([str(x) for x in M.spectrogram_length_ms]), \
-                                       title="window (msec)", \
+                                       title="length (msec)", \
                                        disabled=False)
         spectrogram_length.on_change('value', C.spectrogram_window_callback)
 
-    zoom_context = TextInput(value=str(M.context_width_ms),
-                             title="context (msec):",
+    zoom_width = TextInput(value=str(M.context_width_ms),
+                             title="width (msec):",
                              disabled=True)
-    zoom_context.on_change("value", C.zoom_context_callback)
+    zoom_width.on_change("value", C.zoom_width_callback)
 
     zoom_offset = TextInput(value=str(M.context_offset_ms),
                             title="offset (msec):",

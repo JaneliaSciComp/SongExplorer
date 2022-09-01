@@ -56,7 +56,7 @@ main_content = row(column(row(V.which_layer, V.which_species, V.which_word,
                               column(V.spectrogram_length, width=100) \
                                       if M.snippets_spectrogram or \
                                          M.context_spectrogram else Spacer(),
-                              column(V.zoom_context, width=100),
+                              column(V.zoom_width, width=100),
                               column(V.zoom_offset, width=100)),
                           V.recordings,
                           V.p_waveform if M.context_waveform else Spacer(),
