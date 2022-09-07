@@ -58,7 +58,7 @@ def generic_actuate(cmd, logfile, where,
     elif where == "cluster":
         pe = Popen(["echo",
                     "export SINGULARITYENV_PREPEND_PATH="+M.source_path+";",
-                    os.environ["SONGEXPLORER_BIN"]+" "+cmd+" "+' '.join(args)+filter_warnings],
+                    "$SONGEXPLORER_BIN "+cmd+" "+' '.join(args)+filter_warnings],
                    stdout=PIPE)
         ps = Popen(["ssh", "-l", M.cluster_username, M.cluster_ipaddr, M.cluster_cmd,
                     #"-J ${logfile//,/}.job",
