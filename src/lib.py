@@ -490,7 +490,6 @@ def discretize_probabilities(probability_matrix, thresholds, labels,
     features[ifeature] = labels[ichanges[ijchange]]
     ifeature += 1
     ijchange += 2
-  ifeature -= 1
 
   features = features[:ifeature]
   start_tics = np.round((start_tics[:ifeature] / audio_tic_rate_probabilities \
