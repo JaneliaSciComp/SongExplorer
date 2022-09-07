@@ -368,6 +368,7 @@ if __name__ == "__main__":
       if len(sorted_hm)>2:
         xdata.extend(['not '+x for x in sorted_hm])
         ydata.extend(not_data)
+      if sum(ydata)==0:  return
       if len(sorted_hm)==2:
         idx = [1,2,0]  # Ab, aB, AB
         venn2(subsets=[ydata[x] for x in idx],
@@ -392,6 +393,7 @@ if __name__ == "__main__":
       if len(sorted_hm)>2:
         xdata.extend(['not '+x for x in sorted_hm])
         ydata.extend(not_data)
+      if sum(ydata)==0:  return
       if len(sorted_hm)==2:
         idx = [1,2,0]
         venn2(subsets=[ydata[x] for x in idx],
@@ -519,22 +521,32 @@ if __name__ == "__main__":
   
     for pr in filter(lambda x: x not in thresholds, precision_recalls):
       for csvbase in csvbases:
-        to_csv([everyone[pr][label][csvbase] for label in timestamps.keys()],
-                csvbase, 'everyone')
+        to_csv([everyone[pr][label][csvbase] if csvbase in everyone[pr][label] \
+                                             else interval() \
+                for label in timestamps.keys()],
+               csvbase, 'everyone')
         label0 = next(iter(natsorted(onlyone_tic[pr].keys())))
         sorted_hm = natsorted(onlyone_tic[pr][label][csvbase].keys())
         for hm in sorted_hm:
           if do_tic:
-            to_csv([onlyone_tic[pr][label][csvbase][hm] for label in timestamps.keys()],
-                    csvbase, 'tic-only'+hm)
+            to_csv([onlyone_tic[pr][label][csvbase][hm] if csvbase in onlyone_tic[pr][label] \
+                                                        else interval() \
+                    for label in timestamps.keys()],
+                   csvbase, 'tic-only'+hm)
             if len(sorted_hm)>2:
-              to_csv([notone_tic[pr][label][csvbase][hm] for label in timestamps.keys()],
+              to_csv([notone_tic[pr][label][csvbase][hm] if csvbase in notone_tic[pr][label] \
+                                                         else interval() \
+                      for label in timestamps.keys()],
                      csvbase, 'tic-not'+hm)
           if do_label:
-            to_csv([onlyone_label[pr][label][csvbase][hm] for label in timestamps.keys()],
+            to_csv([onlyone_label[pr][label][csvbase][hm] if csvbase in onlyone_label[pr][label] \
+                                                          else interval() \
+                    for label in timestamps.keys()],
                    csvbase, 'label-only'+hm)
             if len(sorted_hm)>2:
-              to_csv([notone_label[pr][label][csvbase][hm] for label in timestamps.keys()],
+              to_csv([notone_label[pr][label][csvbase][hm] if csvbase in notone_label[pr][label] \
+                                                           else interval() \
+                      for label in timestamps.keys()],
                      csvbase, 'label-not'+hm)
   
     roc_table_tic = {}
