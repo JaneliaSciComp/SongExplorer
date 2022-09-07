@@ -202,6 +202,9 @@ class AudioProcessor(object):
       for (iannotation, annotation) in enumerate(annotation_list):
         wavfile=annotation[0]
         ticks=[int(annotation[1]),int(annotation[2])]
+        if ticks[0]>ticks[1]:
+          print("ERROR: "+str(annotation)+" has start tic after stop tic")
+          continue
         kind=annotation[3]
         label=annotation[4]
         if kind not in kinds_touse:
@@ -243,6 +246,7 @@ class AudioProcessor(object):
         if use_audio:
           if ticks[0] < context_tics//2 + shiftby_tics or \
              ticks[1] > (audio_ntics[wav_path] - context_tics//2 + shiftby_tics):
+            print("WARNING: "+str(annotation)+" is too close to edge of recording.  not using")
             continue
         if use_video and wav_path not in video_nframes:
           sound_dirname = os.path.join(self.data_dir, os.path.dirname(wav_base2))

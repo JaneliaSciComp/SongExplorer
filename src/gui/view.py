@@ -1339,7 +1339,10 @@ def labelcounts_update():
                               os.listdir(os.path.join(groundtruth_folder.value, subdir))):
             filepath = os.path.join(groundtruth_folder.value, subdir, csvfile)
             if os.path.getsize(filepath) > 0:
-                df = pd.read_csv(filepath, header=None, index_col=False)
+                try:
+                    df = pd.read_csv(filepath, header=None, index_col=False)
+                except:
+                    bokehlog.info("WARNING: "+csvfile+" is not in the correct format")
                 if 5<=len(df.columns)<=6:
                     dfs.append(df)
                     subdirs.append(subdir)
