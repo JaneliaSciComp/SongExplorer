@@ -2092,7 +2092,7 @@ def init(_bokeh_document):
             if sum(parameters_width[i0:i+1]) > width:
                 parameters_partitioned.append(range(i0, i))
                 i0 = i
-            elif i==len(parameters_width)-1:
+            if i==len(parameters_width)-1:
                 parameters_partitioned.append(range(i0, i+1))
 
         return parameters, parameters_enable_logic, parameters_required, parameters_partitioned
