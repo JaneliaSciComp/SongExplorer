@@ -430,7 +430,7 @@ def spectrogram_window_callback(attr, old, new):
         if changed:
             any_changed = True
             V.spectrogram_length.css_classes = ['changed']
-            M.spectrogram_length_ms[ilength] = str(length_ms2)
+            M.spectrogram_length_ms[ilength] = length_ms2
     if any_changed:
         V.spectrogram_length.value = ','.join([str(x) for x in M.spectrogram_length_ms])
     if bokeh_document:
@@ -598,7 +598,7 @@ def spectrogram_mousewheel_callback(event):
         else:
             return
     else:
-        if M.spectrogram_length_ms[ichannel]/2 >= 1000/M.audio_tic_rate:
+        if M.spectrogram_length_ms[ichannel]/2 > 1000/M.audio_tic_rate*2:
             M.spectrogram_length_ms[ichannel] = M.spectrogram_length_ms[ichannel]/2
         else:
             return

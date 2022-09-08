@@ -203,8 +203,10 @@ def finalize_annotation(redraw_snippets=True):
 
 def next_pow2_ms(x_ms):
     x = round(x_ms/1000*audio_tic_rate)
-    if not (x & (x-1) == 0) or x == 0:
-        next_higher = np.power(2, np.ceil(np.log2(x))).astype(np.int)
+    if x<=0:
+        return True, 4/audio_tic_rate*1000
+    if not (x & (x-1) == 0):
+        next_higher = max(4, np.power(2, np.ceil(np.log2(x))).astype(np.int))
         return True, next_higher/audio_tic_rate*1000
     return False, x_ms
 
