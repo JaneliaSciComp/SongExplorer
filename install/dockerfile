@@ -10,7 +10,7 @@ RUN apt-get update && apt-get install -y wget vim ssh tree && \
     /opt/miniconda3/bin/conda install conda-build -c conda-forge && \
     /opt/miniconda3/bin/conda install mamba -c conda-forge && \
     /opt/miniconda3/bin/conda create --name songexplorer && \
-    /opt/miniconda3/bin/mamba build /opt/songexplorer/containers/conda/songexplorer -c conda-forge -c apple -c nvidia && \
+    /opt/miniconda3/bin/mamba build /opt/songexplorer/install/conda/songexplorer -c conda-forge -c apple -c nvidia && \
     /opt/miniconda3/bin/mamba install -y --use-local songexplorer -n songexplorer -c conda-forge -c apple -c nvidia
 
 ENV PATH=/opt/miniconda3/envs/songexplorer/bin:/opt/miniconda3/condabin:$PATH
