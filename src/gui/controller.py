@@ -663,7 +663,7 @@ def spectrogram_tap_callback(event):
     x_tic = int(np.rint(event.x*M.audio_tic_rate))
     currfile = M.clustered_sounds[M.isnippet]['file']
     isounds_shortest = get_shortest_tapped_sound(x_tic, currfile)
-    if event.sy<0 or len(isounds_shortest)==0:
+    if np.modf(event.y)[0]<0.5 or len(isounds_shortest)==0 or M.clustered_activations is None:
         idx = len(M.context_spectrogram) - 1 - int(np.floor(event.y))
         ichannel = M.context_spectrogram[idx] - 1
         M.spectrogram_low_hz[ichannel] = 0
