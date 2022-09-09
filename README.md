@@ -45,6 +45,7 @@ Table of Contents
    * [Frequently Asked Questions](#frequently-asked-questions)
    * [Reporting Problems](#reporting-problems)
    * [Development](#development)
+      * [Conda](#conda)
       * [Singularity](#singularity)
       * [Docker](#docker)
 
@@ -127,7 +128,7 @@ represent sections which you much customize.
 # Installation #
 
 SongExplorer can be run on all three major platforms.  The conda package
-manager is the preferred installation method, and pre-build images for
+manager is the preferred installation method, and pre-built images for
 docker and singularity containers are available too.  If you have a Linux
 distribution other than Ubuntu, then you will need to use a container, as
 Tensorflow, the machine learning framework from Google that SongExplorer
@@ -135,25 +136,40 @@ uses, only supports Ubuntu.  Training your own classifier is fastest with
 a graphics processing unit (GPU).  For this reason, containers are not
 recommended on Mac and Windows as they do not support access to GPUs.
 
+On Linux and Windows you'll need to install the CUDA and CUDNN drivers
+from nvidia.com if you have a GPU.  The latter requires you to register
+for an account.  SongExplorer was tested and built with version 11.7.
+
 ## Conda for all Platforms ##
 
 On Windows, you'll need
 [WSL2](https://docs.microsoft.com/en-us/windows/wsl/install).  Choose to
-install the Ubuntu linux distribution, then follow the directions below.
+install the Ubuntu linux distribution, then follow the directions below,
+installing conda and SongExplorer inside WSL.  To copy the miniconda
+install script into WSL, use `curl -O <URL>`.  To mount a lettered Windows
+drive inside WSL, use `sudo mkdir /mnt/u; mount -t drvfs C: /mnt/u`.
+Or equivalently put "C: /mnt/u drvfs defaults 0 0" in /etc/fstab.
 
 Platform-specific installation instructions can be found at
 [Mamba](https://mamba.readthedocs.io/en/latest/installation.html).
 You can either add it to an existing installation of
-[Conda](https://conda.io/projects/conda/en/latest/user-guide/install), or
-install a fresh copy.  On Macs you can also use [Homebrew](https://brew.sh/)
-to install conda and mamba.
+[Conda](https://conda.io/projects/conda/en/latest/user-guide/install),
+or install a fresh copy.  If the latter, consider using
+[Micromamba](https://mamba.readthedocs.io/en/latest/user_guide/micromamba.html).
+On Macs you can also use [Homebrew](https://brew.sh/) to install conda
+and mamba.
 
 Then, simply install Songexplorer its own environment:
 
     $ mamba install songexplorer -n songexplorer -c conda-forge -c apple -c nvidia
 
-And put this definition in your .bashrc file:
+NOTE:  The above command will work once a recipe is hosted on
+[conda-forge](see https://github.com/JaneliaSciComp/SongExplorer/issues/13).
+In the meantime, build locally as described below in [Conda](#conda).
 
+And put these definitions in your .bashrc file:
+
+    export SONGEXPLORER_BIN=
     alias songexplorer="songexplorer <path-to-configuration.pysh> 5006"
 
 In [System Configuration](#system-configuration) we'll make a copy of the default
@@ -172,10 +188,6 @@ Platform-specific installation instructions can be found at
 [Sylabs](https://www.sylabs.io).  SongExplorer has been tested with version 3.7 on
 Linux and [3.3 Desktop Beta](https://sylabs.io/singularity-desktop-macos) on
 Mac.
-
-On Linux you'll also need to install the CUDA and CUDNN drivers from
-nvidia.com.  The latter requires you to register for an account.  SongExplorer
-was tested and built with version 11.7.
 
 Next download the SongExplorer image from the cloud.  You can either go to
 [SongExplorer's cloud.sylabs.io
@@ -1877,24 +1889,24 @@ to improve SongExplorer instead instead of forking your own version.
 
 ## Conda ##
 
-To build locally:
+To build locally, first download the source code and install the conda
+build command.  These only need to be done once:
 
-    $ mamba build <path-to-songexplorer>/install/conda/songexplorer -c conda-forge -c apple -c nvidia
+    $ git clone https://github.com/JaneliaSciComp/SongExplorer
+    $ conda install conda-build
+
+Then build and install into a clean environment:
+
     $ conda create --name songexplorer
+    $ mamba build <path-to-songexplorer-repo>/install/conda/songexplorer -c conda-forge -c apple -c nvidia
     $ mamba install -n songexplorer --use-local songexplorer -c conda-forge -c apple -c nvidia
 
-To build locally on a machine without a GPU, set the CONDA_OVERRIDE_CUDA
-variable to the desired version of CUDA.
+To upgrade to the latest version, first get the new version and delete the
+local build, and then execute the above commands again:
 
-To delete the local build:
-
+    $ git -C <path-to-songexplorer-repo> pull
+    $ conda env remove --name songexplorer
     $ conda build purge-all
-    $ conda index <path-to-miniconda>/conda-bld
-
-To access a network drive on WSL:
-
-    $ sudo mkdir /mnt/u
-    $ sudo mount -t drvfs \\\\dm11.hhmi.org\\scicompsoft$\\arthurb /mnt/u
 
 Currently, there is a [bug](https://github.com/mamba-org/mamba/issues/1826)
 in mamba on apple silicon.  The workaround is:
