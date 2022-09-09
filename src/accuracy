@@ -231,6 +231,10 @@ if __name__ == "__main__":
                                                           train_step[model].index(y)]) \
                             for (x,y) in validation_intervals]
       ax1.plot([(x+y)/2 for (x,y) in validation_intervals], train_accuracy_ave, 'c', label='Train mean')
+      train_loss_ave = [np.mean(train_loss[model][train_step[model].index(x): \
+                                                  train_step[model].index(y)]) \
+                            for (x,y) in validation_intervals]
+      ax4.plot([(x+y)/2 for (x,y) in validation_intervals], train_loss_ave, 'm', label='Loss mean')
       if validation_accuracy[model]:
         ax1.plot(validation_step[model], validation_accuracy[model], 'r', label='Validation')
         ax1.set_title(model+"   "+str(round(validation_accuracy[model][-1],1))+'%')
