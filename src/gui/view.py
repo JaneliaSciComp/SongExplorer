@@ -1211,6 +1211,8 @@ def groundtruth_update():
         groundtruth_folder_button.disabled=True
         if bokeh_document: 
             bokeh_document.add_next_tick_callback(_groundtruth_update)
+        else:
+            _groundtruth_update()
 
 def labels_touse_update_other():
     theselabels_touse = [x.value for x in label_texts if x.value!='']
@@ -2150,8 +2152,6 @@ def init(_bokeh_document):
     labelcounts = Div(text="",
                       style={'overflow-y':'hidden', 'overflow-x':'scroll',
                              'width':str(M.gui_width_pix-450-1)+'px'})
-    groundtruth_update()
-
     wizard_buttons = set([
         labelsounds,
         makepredictions,
@@ -2286,3 +2286,5 @@ def init(_bokeh_document):
             compare: [logs_folder],
             congruence: [groundtruth_folder, validation_files, test_files, congruence_portion, congruence_convolve, congruence_measure],
             None: parameter_textinputs }
+
+    groundtruth_update()

@@ -262,7 +262,10 @@ def recordings_callback(a,o,n):
     if M.user_changed_recording:
         V.recordings.disabled=True
         V.recordings.css_classes = ['changed']
-        bokeh_document.add_next_tick_callback(lambda: _recordings_callback(n))
+        if bokeh_document:
+            bokeh_document.add_next_tick_callback(lambda: _recordings_callback(n))
+        else:
+            _recordings_callback(n)
     M.user_changed_recording=True
 
 def cluster_tap_callback(event):
