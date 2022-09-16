@@ -34,29 +34,29 @@ use_video=1
 
 model_parameters = [
   # key, title in GUI, '' for textbox or [] for pull-down, default value, width, enable logic, callback, required
-  ["use_bias",       "use bias",       ["yes", "no"],              "yes",         1, [], None, True],
-  ["augmentation",   "augmentation",   ['none',
-                                        'flip',
-                                        'rotate',
-                                        'both'],                   'both',        1, [], None, True],
-  ["initializer",    "initializer",    ['he_normal',
-                                        'glorot_normal',
-                                        'lecun_normal',
-                                        'random_normal',
-                                        'truncated_normal'],       'he_normal',   1, [], None, True],
-  ["dropout_rate",   "dropout %",      '',                         '50',          1, [], None, True],
-  ["nstride2",       "# stride by 2",  '',                         '0',           1, [], None, True],
-  ["depth",          "# layers",       ['13', '26', '50', '101'],  '26',          1, [], None, True],
-  ["nfilters",       "# filters",      '',                         '256',         1, [], None, True],
-  ["pool_size",      "pool size",      '',                         '11',          1, [], None, True],
-  ["kernel_size",    "kernel size",    '',                         '3',           1, [], None, True],
-  ["bn_momentum",    "BN momentum",    '',                         '0.9',         1, [], None, True],
-  ["epsilon",        "BN epsilon",     '',                         '0.0001',      1, [], None, True],
-  ["arch",           "architecture",   ['ip-csn',
-                                       'ir-csn',
-                                       'ip'],                      'ip-csn',       1, [], None, True],
-  ["regularization", "regularization", ['weight_decay',
-                                        'l2'],                     'weight_decay', 1, [], None, True],
+  ["use_bias",         "use bias",         ["yes", "no"],              "yes",         1, [], None, True],
+  ["augmentation",     "augmentation",     ['none',
+                                            'flip',
+                                            'rotate',
+                                            'both'],                   'both',        1, [], None, True],
+  ["initializer",      "initializer",      ['he_normal',
+                                            'glorot_normal',
+                                            'lecun_normal',
+                                            'random_normal',
+                                            'truncated_normal'],       'he_normal',   1, [], None, True],
+  ["dropout_rate",     "dropout %",        '',                         '50',          1, [], None, True],
+  ["nstride2",         "# stride by 2",    '',                         '0',           1, [], None, True],
+  ["depth",            "# layers",         ['13', '26', '50', '101'],  '26',          1, [], None, True],
+  ["nfilters",         "# filters",        '',                         '256',         1, [], None, True],
+  ["pool_size_stride", "pool size&stride", '',                         '11',          1, [], None, True],
+  ["kernel_size",      "kernel size",      '',                         '3',           1, [], None, True],
+  ["bn_momentum",      "BN momentum",      '',                         '0.9',         1, [], None, True],
+  ["epsilon",          "BN epsilon",       '',                         '0.0001',      1, [], None, True],
+  ["arch",             "architecture",     ['ip-csn',
+                                           'ir-csn',
+                                           'ip'],                      'ip-csn',       1, [], None, True],
+  ["regularization",   "regularization",   ['weight_decay',
+                                            'l2'],                     'weight_decay', 1, [], None, True],
   ]
 
 import math
@@ -336,16 +336,13 @@ def network(PARAMS, inputs):
     # https://distill.pub/2019/computing-receptive-fields/
     print("receptive_field = %d" % int(1+np.sum((np.array(kernels)-1)*np.cumprod(strides[:-1]))))
 
-    pool_size = int(PARAMS['pool_size'])
-    x = layers.AveragePooling3D(
-        pool_size=[
-            1, 
-            pool_size, 
-            pool_size,
-        ], 
-        strides=[1, 1, 1],
-        data_format=PARAMS['data_format'],
-        )(x)
+    pool_size_stride = int(PARAMS['pool_size_stride'])
+    if pool_size_stride>0:
+        x = layers.AveragePooling3D(
+            pool_size=[1, pool_size_stride, pool_size_stride], 
+            strides=[1, pool_size_stride, pool_size_stride],
+            data_format=PARAMS['data_format'],
+            )(x)
 
     x = layers.Dropout(PARAMS['dropout_rate'])(x)
     i = PARAMS['data_format'] == 'channels_first'
@@ -357,8 +354,6 @@ def network(PARAMS, inputs):
         kernel_regularizer=regularizer(PARAMS),
         data_format=PARAMS['data_format'],
         )(x)
-    kernels.append(x.get_shape().as_list()[i+3])
-    strides.append(1)
     x = layers.Activation(
         'linear', 
         dtype='float32',
