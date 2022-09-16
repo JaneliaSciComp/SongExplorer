@@ -34,29 +34,29 @@ use_video=1
 
 model_parameters = [
   # key, title in GUI, '' for textbox or [] for pull-down, default value, width, enable logic, callback, required
-  ["use_bias",         "use bias",         ["yes", "no"],              "yes",         1, [], None, True],
+  ["use_bias",         "use bias",         ["yes", "no"],        "yes",          1, [], None, True],
   ["augmentation",     "augmentation",     ['none',
                                             'flip',
                                             'rotate',
-                                            'both'],                   'both',        1, [], None, True],
+                                            'both'],             'both',         1, [], None, True],
   ["initializer",      "initializer",      ['he_normal',
                                             'glorot_normal',
                                             'lecun_normal',
                                             'random_normal',
-                                            'truncated_normal'],       'he_normal',   1, [], None, True],
-  ["dropout_rate",     "dropout %",        '',                         '50',          1, [], None, True],
-  ["nstride2",         "# stride by 2",    '',                         '0',           1, [], None, True],
-  ["depth",            "# layers",         ['13', '26', '50', '101'],  '26',          1, [], None, True],
-  ["nfilters",         "# filters",        '',                         '256',         1, [], None, True],
-  ["pool_size_stride", "pool size&stride", '',                         '11',          1, [], None, True],
-  ["kernel_size",      "kernel size",      '',                         '3',           1, [], None, True],
-  ["bn_momentum",      "BN momentum",      '',                         '0.9',         1, [], None, True],
-  ["epsilon",          "BN epsilon",       '',                         '0.0001',      1, [], None, True],
+                                            'truncated_normal'], 'he_normal',    1, [], None, True],
+  ["dropout_rate",     "dropout %",        '',                   '50',           1, [], None, True],
+  ["nstride2",         "# stride by 2",    '',                   '0',            1, [], None, True],
+  ["num_blocks",       "# blocks",         '',                   '1,1,1,1',      1, [], None, True],
+  ["nfilters",         "# filters",        '',                   '256',          1, [], None, True],
+  ["pool_size_stride", "pool size&stride", '',                   '11',           1, [], None, True],
+  ["kernel_size",      "kernel size",      '',                   '3',            1, [], None, True],
+  ["bn_momentum",      "BN momentum",      '',                   '0.9',          1, [], None, True],
+  ["epsilon",          "BN epsilon",       '',                   '0.0001',       1, [], None, True],
   ["arch",             "architecture",     ['ip-csn',
-                                           'ir-csn',
-                                           'ip'],                      'ip-csn',       1, [], None, True],
+                                            'ir-csn',
+                                            'ip'],                'ip-csn',      1, [], None, True],
   ["regularization",   "regularization",   ['weight_decay',
-                                            'l2'],                     'weight_decay', 1, [], None, True],
+                                            'l2'],               'weight_decay', 1, [], None, True],
   ]
 
 import math
@@ -66,16 +66,17 @@ from tensorflow.keras import layers, regularizers
 
 import numpy as np
 
-NUM_BLOCKS = {
-    13: (1, 1, 1, 1),
-    26: (2, 2, 2, 2),
-    50: (3, 4, 6, 3),
-    101: (3, 4, 23, 3),
-    152: (3, 8, 36, 3),
-}
+#NUM_BLOCKS = {
+#    13: (1, 1, 1, 1),
+#    20: (1, 2, 2, 1),
+#    26: (2, 2, 2, 2),
+#    50: (3, 4, 6, 3),
+#    101: (3, 4, 23, 3),
+#    152: (3, 8, 36, 3),
+#}
+
 STRIDES = [
     (1, 1, 1),
-    (1, 2, 2),
     (1, 2, 2),
 ]
 
@@ -275,63 +276,18 @@ def network(PARAMS, inputs):
             beta_regularizer=regularizer(PARAMS),
             )(x)
         x = layers.ReLU()(x)
-    
-    for _ in tf.range(NUM_BLOCKS[PARAMS['depth']][0]):
-        x = bottleneck(PARAMS,
-            x, 
-            filter_idx=tf.constant(0),
-            stride_idx=tf.constant(0),
-        )
-    
-    x = bottleneck(PARAMS,
-        x, 
-        filter_idx=tf.constant(1), 
-        stride_idx=tf.constant(1),
-    )
-    for _ in tf.range(NUM_BLOCKS[PARAMS['depth']][1] - 1):
-        x = bottleneck(PARAMS,
-            x, 
-            filter_idx=tf.constant(1),
-            stride_idx=tf.constant(0),
-        )
-    
-    if PARAMS['context_frames'] < 4:
-        x = bottleneck(PARAMS,
-            x, 
-            filter_idx=tf.constant(2), 
-            stride_idx=tf.constant(2),
-        )
-    else:
-        x = bottleneck(PARAMS,
-            x, 
-            filter_idx=tf.constant(2),
-            stride_idx=tf.constant(1),
-        )
-    for _ in tf.range(NUM_BLOCKS[PARAMS['depth']][2] - 1):
-        x = bottleneck(PARAMS,
-            x, 
-            filter_idx=tf.constant(2),
-            stride_idx=tf.constant(0),
-        )
-   
-    if PARAMS['context_frames'] < 8:
-        x = bottleneck(PARAMS,
-            x, 
-            filter_idx=tf.constant(3),
-            stride_idx=tf.constant(2),
-        )
-    else:
-        x = bottleneck(PARAMS,
-            x, 
-            filter_idx=tf.constant(3), 
-            stride_idx=tf.constant(1),
-        )
-    for _ in tf.range(NUM_BLOCKS[PARAMS['depth']][3] - 1):
-        x = bottleneck(PARAMS,
-            x, 
-            filter_idx=tf.constant(3),
-            stride_idx=tf.constant(0),
-        )
+
+    for iblocks, nblocks in enumerate(PARAMS['num_blocks']):
+        for _ in tf.range(nblocks):
+            x = bottleneck(PARAMS,
+                x, 
+                filter_idx=tf.constant(iblocks),
+                stride_idx=tf.constant(0))
+        if iblocks < len(PARAMS['num_blocks'])-1:
+            x = bottleneck(PARAMS,
+                x, 
+                filter_idx=tf.constant(iblocks+1), 
+                stride_idx=tf.constant(1))
 
     # https://distill.pub/2019/computing-receptive-fields/
     print("receptive_field = %d" % int(1+np.sum((np.array(kernels)-1)*np.cumprod(strides[:-1]))))
@@ -410,7 +366,7 @@ def create_model(model_settings, model_parameters):
   params['use_bias'] = params['use_bias']=="yes"
   params['data_format'] = 'channels_last'
   params['dropout_rate'] = float(params['dropout_rate'])/100
-  params['depth'] = int(params['depth'])
+  params['num_blocks'] = [int(x) for x in params['num_blocks'].split(',')]
   params['bn_momentum'] = float(params['bn_momentum'])
   params['epsilon'] = float(params['epsilon'])
 
