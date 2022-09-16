@@ -45,6 +45,7 @@ model_parameters = [
                                         'random_normal',
                                         'truncated_normal'],       'he_normal',   1, [], None, True],
   ["dropout_rate",   "dropout %",      '',                         '50',          1, [], None, True],
+  ["nstride2",       "# stride by 2",  '',                         '0',           1, [], None, True],
   ["depth",          "# layers",       ['13', '26', '50', '101'],  '26',          1, [], None, True],
   ["nfilters",       "# filters",      '',                         '256',         1, [], None, True],
   ["pool_size",      "pool size",      '',                         '11',          1, [], None, True],
@@ -253,26 +254,27 @@ def bottleneck(PARAMS,
     
 def network(PARAMS, inputs):
     x = inputs
-    x = layers.Conv3D(
-        filters=int(PARAMS['nfilters']),
-        kernel_size=(1,7,7), 
-        strides=(1,2,2), 
-        use_bias=PARAMS['use_bias'],
-        kernel_initializer=PARAMS['initializer'],
-        kernel_regularizer=regularizer(PARAMS),
-        data_format=PARAMS['data_format'],
-        )(x)
-    kernels.append(7)
-    strides.append(2)
-    update_noutput_tics(PARAMS, 1, 1)
-    x = layers.BatchNormalization(
-        momentum=PARAMS['bn_momentum'],
-        epsilon=PARAMS['epsilon'],
-        scale=False,
-        gamma_regularizer=regularizer(PARAMS),
-        beta_regularizer=regularizer(PARAMS),
-        )(x)
-    x = layers.ReLU()(x)
+
+    for _ in range(int(PARAMS['nstride2'])):
+        x = layers.Conv3D(
+            filters=int(PARAMS['nfilters']),
+            kernel_size=(1,3,3), 
+            strides=(1,2,2), 
+            use_bias=PARAMS['use_bias'],
+            kernel_initializer=PARAMS['initializer'],
+            kernel_regularizer=regularizer(PARAMS),
+            data_format=PARAMS['data_format'],
+            )(x)
+        kernels.append(3)
+        strides.append(2)
+        x = layers.BatchNormalization(
+            momentum=PARAMS['bn_momentum'],
+            epsilon=PARAMS['epsilon'],
+            scale=False,
+            gamma_regularizer=regularizer(PARAMS),
+            beta_regularizer=regularizer(PARAMS),
+            )(x)
+        x = layers.ReLU()(x)
     
     for _ in tf.range(NUM_BLOCKS[PARAMS['depth']][0]):
         x = bottleneck(PARAMS,
