@@ -217,14 +217,14 @@ if __name__ == "__main__":
       idx = range(nx) if nx<10000 else np.round(np.linspace(0, nx-1, 10000)).astype(np.int)
       ax4.plot(np.array(train_step[model])[idx],
                np.array(train_loss[model])[idx],
-               'g', label='Cross entropy')
+               'g', alpha=0.5, label='Loss')
       ax4.set_xlabel('Step')
       ax4.set_ylabel('Loss', color='g')
       ax4.tick_params(axis='y', labelcolor='g')
       ax1 = ax4.twinx()
       ax1.plot(np.array(train_step[model])[idx],
                np.array(train_accuracy[model])[idx],
-               'b', label='Train')
+               'b', alpha=0.5, label='Train')
       validation_intervals = list(zip(validation_step[model][0:-1], \
                                       validation_step[model][1:]))
       train_accuracy_ave = [np.mean(train_accuracy[model][train_step[model].index(x): \
