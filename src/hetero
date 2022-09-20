@@ -19,8 +19,8 @@
 # first two finish.
 # 
 # Other kinds of resources you might want to meter out include accelerator cards,
-# memory, and file or network I/O.  If in addition your machine also has two GPUs
-# and 32 GB of RAM:
+# memory, and file or network I/O.  So for example, if in addition your machine
+# also has two GPUs and 32 GB of RAM:
 # 
 #   hetero start 6 2 32
 #   hetero submit my-high-memory-app 1 0 32
@@ -181,9 +181,7 @@ _submit() {
       done;
       if [[ -e $tmpfile ]] ; then
         source $tmpfile;
-        $cmd &
-        echo \#running\ \$"'!'" >> $tmpfile;
-        wait;
+        (set -m; $cmd & echo \#running\ \$"'!'" >> $tmpfile; wait);
         rm $tmpfile;
       fi"
   eval $modified_cmd &>/dev/null &
@@ -398,11 +396,11 @@ _kill() {
       return 1
     fi
     if grep running ${prefix}.job$thisjob &> /dev/null ; then
-      kill -9 `grep running ${prefix}.job$thisjob | cut -d' ' -f2`
+      kill -9 '-'`grep running ${prefix}.job$thisjob | cut -d' ' -f2`
     else
       pid=`head -n 1 ${prefix}.job$thisjob`
       rm ${prefix}.job$thisjob;
-      kill -9 ${pid:1}
+      kill -9 -${pid:1}
     fi
   done
 }
