@@ -395,25 +395,25 @@ def create_model(model_settings, model_parameters):
   ninput_tics = context_tics + (model_settings['parallelize']-1) * stride_tics * downsample_by
   noutput_tics = (context_tics-window_tics) // stride_tics + 1
 
-  inputs0 = Input(shape=(ninput_tics, model_settings['audio_nchannels']))
-  hidden_layers.append(inputs0)
+  inputs = Input(shape=(ninput_tics, model_settings['audio_nchannels']))
+  hidden_layers.append(inputs)
   
   volume_range = [float(x) for x in model_parameters['augment_volume'].split(',')]
   noise_range = [float(x) for x in model_parameters['augment_noise'].split(',')]
   if volume_range != [1,1] or noise_range != [0,0]:
-    inputs = Augment(volume_range, noise_range)(inputs0)
+    x = Augment(volume_range, noise_range)(inputs)
   else:
-    inputs = inputs0
+    x = inputs
 
   if representation == "waveform":
-    inputs = Reshape((ninput_tics,1,model_settings['audio_nchannels']))(inputs)
+    x = Reshape((ninput_tics,1,model_settings['audio_nchannels']))(x)
   elif representation == "spectrogram":
-    inputs = Spectrogram(window_tics, stride_tics)(inputs)
+    x = Spectrogram(window_tics, stride_tics)(x)
   elif representation == "mel-cepstrum":
     filterbank_nchannels, dct_ncoefficients = model_parameters['mel_dct'].split(',')
-    inputs = MelCepstrum(window_tics, stride_tics, audio_tic_rate,
-                         int(filterbank_nchannels), int(dct_ncoefficients))(inputs)
-  inputs_shape = inputs.get_shape().as_list()
+    x = MelCepstrum(window_tics, stride_tics, audio_tic_rate,
+                         int(filterbank_nchannels), int(dct_ncoefficients))(x)
+  x_shape = x.get_shape().as_list()
 
   receptive_field = [1,1]
   iconv=0
@@ -422,15 +422,15 @@ def create_model(model_settings, model_parameters):
   # 2D convolutions
   dilated_kernel_size = [(kernel_sizes[0][0] - 1) * dilation_rate[0] + 1,
                          (kernel_sizes[0][1] - 1) * dilation_rate[1] + 1]
-  while inputs_shape[1] >= dilated_kernel_size[0] and \
-        inputs_shape[2] >= dilated_kernel_size[1] and \
+  while x_shape[1] >= dilated_kernel_size[0] and \
+        x_shape[2] >= dilated_kernel_size[1] and \
         noutput_tics >= dilated_kernel_size[0] and \
         iconv<nconvlayers:
     if use_residual and iconv%2!=0:
-      bypass = inputs
+      bypass = x
     strides=[1+(iconv+1 in stride_time), 1+(iconv+1 in stride_freq)]
     conv = Conv2D(nfeatures[0], kernel_sizes[0],
-                  strides=strides, dilation_rate=dilation_rate)(inputs)
+                  strides=strides, dilation_rate=dilation_rate)(x)
     receptive_field[0] += (dilated_kernel_size[0] - 1) * strides[0]
     receptive_field[1] += (dilated_kernel_size[1] - 1) * strides[1]
     if use_residual and iconv%2==0 and iconv>1:
@@ -447,8 +447,8 @@ def create_model(model_settings, model_parameters):
     relu = ReLU()(conv)
     if normalize_after:
       relu = BatchNormalization()(relu)
-    inputs = dropout_kind(dropout_rate)(relu)
-    inputs_shape = inputs.get_shape().as_list()
+    x = dropout_kind(dropout_rate)(relu)
+    x_shape = x.get_shape().as_list()
     noutput_tics = math.ceil((noutput_tics - dilated_kernel_size[0] + 1) / strides[0])
     iconv += 1
     dilation_rate = dilation(iconv+1, dilate_time, dilate_freq)
@@ -460,10 +460,10 @@ def create_model(model_settings, model_parameters):
   while noutput_tics >= dilated_kernel_size and \
         iconv<nconvlayers:
     if use_residual and iconv%2!=0:
-      bypass = inputs
+      bypass = x
     strides=[1+(iconv+1 in stride_time), 1]
-    conv = Conv2D(nfeatures[1], (kernel_sizes[1], inputs_shape[2]),
-                  strides=strides, dilation_rate=[dilation_rate[0], 1])(inputs)
+    conv = Conv2D(nfeatures[1], (kernel_sizes[1], x_shape[2]),
+                  strides=strides, dilation_rate=[dilation_rate[0], 1])(x)
     receptive_field[0] += (dilated_kernel_size - 1) * strides[0]
     if use_residual and iconv%2==0 and iconv>1:
       bypass_shape = bypass.get_shape().as_list()
@@ -477,8 +477,8 @@ def create_model(model_settings, model_parameters):
     relu = ReLU()(conv)
     if normalize_after:
       relu = BatchNormalization()(relu)
-    inputs = dropout_kind(dropout_rate)(relu)
-    inputs_shape = inputs.get_shape().as_list()
+    x = dropout_kind(dropout_rate)(relu)
+    x_shape = x.get_shape().as_list()
     noutput_tics = math.ceil((noutput_tics - dilated_kernel_size + 1) / strides[0])
     iconv += 1
     dilation_rate = dilation(iconv+1, dilate_time, dilate_freq)
@@ -491,10 +491,12 @@ def create_model(model_settings, model_parameters):
 
   # final dense layers (or actually, pan-freq pan-time 2D convs)
   for idense, nunits in enumerate(denselayers+[model_settings['nlabels']]):
-    ### if idense>0: ReLU ???
-    inputs = Conv2D(nunits, (noutput_tics if idense==0 else 1, inputs_shape[2]))(inputs)
-    inputs_shape = inputs.get_shape().as_list()
+    if idense>0:
+      relu = ReLU()(x)
+      x = dropout_kind(dropout_rate)(relu)
+    x = Conv2D(nunits, (noutput_tics if idense==0 else 1, x_shape[2]))(x)
+    x_shape = x.get_shape().as_list()
 
-  final = Reshape((-1,model_settings['nlabels']))(inputs)
+  final = Reshape((-1,model_settings['nlabels']))(x)
 
-  return tf.keras.Model(inputs=inputs0, outputs=[hidden_layers, final], name="convolutional")
+  return tf.keras.Model(inputs=inputs, outputs=[hidden_layers, final], name="convolutional")
