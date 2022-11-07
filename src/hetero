@@ -170,9 +170,6 @@ _submit() {
   fi
 
   local prefix=$(_prefix)
-
-      #ls $tmpfile |
-      #entr -ns '[[ \`cat $tmpfile | wc -l\` -eq $((1+ntotal)) ]] && ! $dependencies && kill \$PPID';
   local tmpfile=$(mktemp ${prefix}.jobXXX)
   local modified_cmd="
       echo \#'$cmd' >> $tmpfile;
@@ -186,10 +183,6 @@ _submit() {
       fi"
   eval $modified_cmd &>/dev/null &
   echo \#$! > $tmpfile
-
-      #ls $tmpfile |
-      #entr -ns '[[ \`cat $tmpfile | wc -l\` -ne 0 ]] && kill \$PPID';
-        #ls $tmpfile | entr -ns 'kill \$PPID';
   local reserve_resources_cmd="
       while [[ -e $tmpfile && \`cat $tmpfile | wc -l\` -eq 0 ]] ; do
         sleep 1;
