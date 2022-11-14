@@ -1,0 +1,32 @@
+#!/usr/bin/env python3
+
+# delete unused checkpoints, to compact the size of models and conserve disk space
+
+# delete-cktps <logdir> <ckpt-tokeep>
+
+# e.g. delete-ckpts /Volumes/sternlab/behavior/arthurb/e-fish/timo/models/HandLabeled/ben-k3x15_dt1_df0_mb16_lr1e6-EPOCH 10000
+
+import sys
+import os
+from glob import glob
+import shutil
+
+_,logdir,ckpt_tokeep = sys.argv
+print('logdir: '+logdir)
+print('ckpt_tokeep: '+ckpt_tokeep)
+
+def delete_glob(pattern, fn):
+  search_path = os.path.join(logdir, '*', pattern.replace('X', '*'))
+  notpattern = pattern.replace('X', ckpt_tokeep).replace('*', '')
+  for ckpt in glob(search_path):
+      if notpattern not in ckpt:
+          fn(ckpt)
+
+delete_glob("ckpt-X.index", os.remove)
+delete_glob("ckpt-X.data*", os.remove)
+delete_glob("logits.validation.ckpt-X.npz", os.remove)
+delete_glob("precision-recall.ckpt-X.pdf", os.remove)
+delete_glob("predictions.ckpt-X", shutil.rmtree)
+delete_glob("probability-density.ckpt-X.pdf", os.remove)
+delete_glob("specificity-sensitivity.ckpt-X.pdf", os.remove)
+delete_glob("thresholds.ckpt-X.csv", os.remove)
