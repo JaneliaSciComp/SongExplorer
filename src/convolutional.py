@@ -180,6 +180,12 @@ model_parameters = [
   ["dilate_freq",     "dilate freq",    '',                   '',             1, ["representation",
                                                                                   ["spectrogram",
                                                                                    "mel-cepstrum"]], lambda n,M,V,C: dilate_stride_callback("dilate_freq",n,M,V,C), False],
+  ["pool_kind",       "pool kind",      ["none",
+                                         "max",
+                                         "average"],          "none",         1, [],                 None,                                                          True],
+  ["pool_size",       "pool size",      '',                   '2,2',          1, ["pool_kind",
+                                                                                  ["max",
+                                                                                   "average"]],      None,                                                          True],
   ["denselayers",     "dense layers",   '',                   '',             1, [],                 None,                                                          False],
   ["normalization",   "normalization",  ['none',
                                          'batch before ReLU',
@@ -362,6 +368,14 @@ def create_model(model_settings, model_parameters):
   else:
     def Identity(x): return lambda x: x
     dropout_kind = Identity
+  if model_parameters['pool_kind']=='max':
+    pool_kind = MaxPool2D
+  elif model_parameters['pool_kind']=='average':
+    pool_kind = AveragePooling2D
+  else:
+    pool_kind = None
+  if pool_kind:
+    pool_size = [int(x) for x in model_parameters['pool_size'].split(',')]
   normalize_before = 'before' in model_parameters['normalization']
   normalize_after = 'after' in model_parameters['normalization']
 
@@ -488,6 +502,11 @@ def create_model(model_settings, model_parameters):
   
   print("receptive_field_time = %d tics = %f ms" % (receptive_field[0], receptive_field[0]/audio_tic_rate*1000))
   print("receptive_field_freq = %d bins = %f Hz" % (receptive_field[1], receptive_field[1] * audio_tic_rate / window_tics))
+
+  if pool_kind:
+    x = pool_kind(pool_size=pool_size, strides=pool_size)(x)
+    x_shape = x.get_shape().as_list()
+    noutput_tics = math.floor(noutput_tics / pool_size[0])
 
   # final dense layers (or actually, pan-freq pan-time 2D convs)
   for idense, nunits in enumerate(denselayers+[model_settings['nlabels']]):

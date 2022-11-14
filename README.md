@@ -1168,7 +1168,8 @@ by at each training step.  Set it such that the training curve accuracy in
 "train-loss.pdf" does not saturate until after at least one epoch of ground
 truth has been trained upon.
 
-The above apply to all architectures.  Specific to convolutional networks are:
+The above apply to all architectures.  Specific to the default convolutional
+network architecture plugin are:
 
 * `representation` specifies whether to use the raw waveform directly, to make
 a spectrogram of the waveform to input to the neural network, or to use a
@@ -1228,6 +1229,11 @@ Striding in time downsamples the output tic rate.
 which to dilate the convolutional kernels.  See [Yu and Koltun (2016;
 arXiv)](https://arxiv.org/pdf/1511.07122.pdf).  Striding and dilation can
 not be both done in the same layer.
+
+* if `pool kind` is other than none, a maximum or average pooling layer is
+added before the final dense layer(s) whose size and stride are identical
+and specified by `pool size`.  The latter is of the form "T,F" where T is
+the size and stride in time and F that in frequency.
 
 * `connection` specifies whether to use identity bypasses, which can help
 models with many layers converge.  See [He, Zhang, Ren, and Sun (2015;
