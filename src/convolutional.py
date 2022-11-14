@@ -341,8 +341,8 @@ def parse_layers(arg, nconvlayers):
     return sorted([x for x in layers if x<=nconvlayers])
 
 def dilation(iconv, dilate_time, dilate_freq):
-  return [2**(1+dilate_time.index(iconv) if iconv in dilate_time else 0),
-          2**(1+dilate_freq.index(iconv) if iconv in dilate_freq else 0)]
+  return [2**(sum([x<=iconv for x in dilate_time])),
+          2**(sum([x<=iconv for x in dilate_freq]))]
 
 def create_model(model_settings, model_parameters):
   audio_tic_rate = model_settings['audio_tic_rate']
