@@ -77,6 +77,9 @@ def stride_callback(n,M,V,C):
             _callback(['stride_ms'],M,V,C)
 
 def mel_dct_callback(n,M,V,C):
+    if V.model_parameters['mel_dct'].value.count(',') != 1:
+        bokehlog.info("ERROR:  `mel & DCT` must to two positive integers separated by a comma.")
+        return
     mel, dct = V.model_parameters['mel_dct'].value.split(',')
     if int(dct) > int(mel):
         bokehlog.info("WARNING:  adjusting `mel & DCT` such that DCT is less than or equal to mel")
@@ -86,6 +89,23 @@ def mel_dct_callback(n,M,V,C):
             V.bokeh_document.add_next_tick_callback(lambda: _callback(['mel_dct'],M,V,C))
         else:
             _callback(['mel_dct'],M,V,C)
+
+def range_callback(n,M,V,C):
+    if V.model_parameters['range_hz'].value=="":  return
+    if V.model_parameters['range_hz'].value.count('-') != 1:
+        bokehlog.info("ERROR:  `range (Hz)`, if not blank, must to two non-negative numbers separated by a hyphen.")
+        return
+    lo, hi = V.model_parameters['range_hz'].value.split('-')
+    if float(hi) > M.audio_tic_rate//2:  hi=M.audio_tic_rate//2;
+    if float(lo) > float(hi):  lo=0;
+    if V.model_parameters['range_hz'].value != str(lo)+'-'+str(hi):
+        bokehlog.info("WARNING:  adjusting `range (Hz)` such that lower bound is not negative and the higher bound less than the Nyquist frequency.")
+        V.model_parameters['range_hz'].css_classes = ['changed']
+        V.model_parameters['range_hz'].value = str(lo)+'-'+str(hi)
+        if V.bokeh_document:
+            V.bokeh_document.add_next_tick_callback(lambda: _callback(['range_hz'],M,V,C))
+        else:
+            _callback(['range_hz'],M,V,C)
 
 def fused_callback(n,M,V,C):
     dilate_stride_callback("stride_time",n,M,V,C)
@@ -148,8 +168,6 @@ use_video=0
 
 model_parameters = [
   # key, title in GUI, '' for textbox or [] for pull-down, default value, width, enable logic, callback, required
-  ["augment_volume",  "augment volume", '',                   '1,1',          1, [],                 None,                                                          True],
-  ["augment_noise",   "augment noise",  '',                   '0,0',          1, [],                 None,                                                          True],
   ["representation",  "representation", ['waveform',
                                          'spectrogram',
                                          'mel-cepstrum'],     'mel-cepstrum', 1, [],                 None,                                                          True],
@@ -159,8 +177,12 @@ model_parameters = [
   ["stride_ms",       "stride (msec)",  '',                   '1.6',          1, ["representation",
                                                                                   ["spectrogram",
                                                                                    "mel-cepstrum"]], stride_callback,                                               True],
+  ["range_hz",        "range (Hz)",     '',                   '',             1, ["representation",
+                                                                                  ["spectrogram"]],  range_callback,                                                False],
   ["mel_dct",         "mel & DCT",      '',                   '7,7',          1, ["representation",
                                                                                   ["mel-cepstrum"]], mel_dct_callback,                                              True],
+  ["connection_type", "connection",     ['plain',
+                                         'residual'],         'plain',        1, [],                 None,                                                          True],
   ["nconvlayers",     "# conv layers",  '',                   '2',            1, [],                 nlayers_callback,                                              True],
   ["kernel_sizes",    "kernels",        '',                   '5x5,3',        1, [],                 None,                                                          True],
   ["nfeatures",       "# features",     '',                   '64,64',        1, [],                 None,                                                          True],
@@ -170,8 +192,9 @@ model_parameters = [
   ["dropout_rate",    "dropout %",      '',                   '50',           1, ["dropout_kind",
                                                                                   ["unit",
                                                                                    "map"]],          None,                                                          True],
-  ["connection_type", "connection",     ['plain',
-                                         'residual'],         'plain',        1, [],                 None,                                                          True],
+  ["normalization",   "normalization",  ['none',
+                                         'batch before ReLU',
+                                         'batch after ReLU'], 'none',         1, [],                 None,                                                          True],
   ["stride_time",     "stride time",    '',                   '',             1, [],                 fused_callback,                                                False],
   ["stride_freq",     "stride freq",    '',                   '',             1, ["representation",
                                                                                   ["spectrogram",
@@ -187,9 +210,8 @@ model_parameters = [
                                                                                   ["max",
                                                                                    "average"]],      None,                                                          True],
   ["denselayers",     "dense layers",   '',                   '',             1, [],                 None,                                                          False],
-  ["normalization",   "normalization",  ['none',
-                                         'batch before ReLU',
-                                         'batch after ReLU'], 'none',         1, [],                 None,                                                          True],
+  ["augment_volume",  "augment volume", '',                   '1,1',          1, [],                 None,                                                          True],
+  ["augment_noise",   "augment noise",  '',                   '0,0',          1, [],                 None,                                                          True],
   ]
 
 class Augment(tf.keras.layers.Layer):
@@ -423,6 +445,12 @@ def create_model(model_settings, model_parameters):
     x = Reshape((ninput_tics,1,model_settings['audio_nchannels']))(x)
   elif representation == "spectrogram":
     x = Spectrogram(window_tics, stride_tics)(x)
+    if model_parameters['range_hz'] != "":
+      lo, hi = model_parameters['range_hz'].split('-')
+      nyquist = audio_tic_rate/2
+      nfreqs = x.get_shape().as_list()[2]
+      x = Slice([0, 0, round(nfreqs * float(lo) / nyquist), 0],
+                [-1, -1, round(nfreqs * (float(hi) - float(lo)) / nyquist), -1])(x)
   elif representation == "mel-cepstrum":
     filterbank_nchannels, dct_ncoefficients = model_parameters['mel_dct'].split(',')
     x = MelCepstrum(window_tics, stride_tics, audio_tic_rate,

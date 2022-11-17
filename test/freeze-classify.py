@@ -65,6 +65,7 @@ V.model_parameters["connection_type"].value = "plain"
 V.model_parameters["window_ms"].value = "3.2"
 V.model_parameters["stride_ms"].value = "0.8"
 V.model_parameters["mel_dct"].value = "3,3"
+V.model_parameters["range_hz"].value = ""
 V.groundtruth_folder.value = os.path.join(repo_path,
                                           "test/scratch/freeze-classify/groundtruth-data")
 V.labels_touse.value = "mel-pulse,mel-sine,ambient"

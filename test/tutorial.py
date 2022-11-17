@@ -84,6 +84,7 @@ V.model_parameters["representation"].value = "mel-cepstrum"
 V.model_parameters["window_ms"].value = "6.4"
 V.model_parameters["stride_ms"].value = "1.6"
 V.model_parameters["mel_dct"].value = "7,7"
+V.model_parameters["range_hz"].value = ""
 V.logs_folder.value = os.path.join(repo_path, "test/scratch/tutorial-py/trained-classifier1")
 V.groundtruth_folder.value = os.path.join(repo_path, "test/scratch/tutorial-py/groundtruth-data")
 V.labels_touse.value = "mel-pulse,mel-sine,ambient"

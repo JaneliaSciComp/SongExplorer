@@ -1187,6 +1187,11 @@ window length in tics and should round down to a power of two.
 spectrogram are shifted.  1000/`stride` must be an integer multiple of
 the downsampling rate achieved by `stride after`.
 
+* `range (Hz)` controls the frequency band of the spectrogram to use.
+If left blank, the entire range from 0 to the Nyquist frequency is used
+by the neural network.  Specify a sub-band in Hertz if desired with the
+low and high frequency bounds separated by a hyphen.
+
 * `mel & DCT` controls the frequency resolution of the mel-frequency cepstrum.
 The first number specifies how many frequencies to use when resampling the
 linear-frequency spectrogram into mel-frequency space, and the second is
