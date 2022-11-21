@@ -408,9 +408,9 @@ def create_model(model_settings, model_parameters):
     stride_tics = round(audio_tic_rate * float(model_parameters['stride_ms']) / 1000)
 
     if not (window_tics & (window_tics-1) == 0) or window_tics == 0:
-      next_higher = np.power(2, np.ceil(np.log2(window_tics))).astype(np.int)
-      next_lower = np.power(2, np.floor(np.log2(window_tics))).astype(np.int)
-      sigdigs = np.ceil(np.log10(next_higher)).astype(np.int)+1
+      next_higher = np.power(2, np.ceil(np.log2(window_tics))).astype(int)
+      next_lower = np.power(2, np.floor(np.log2(window_tics))).astype(int)
+      sigdigs = np.ceil(np.log10(next_higher)).astype(int)+1
       next_higher_ms = np.around(next_higher/audio_tic_rate*1000, decimals=sigdigs)
       next_lower_ms = np.around(next_lower/audio_tic_rate*1000, decimals=sigdigs)
       raise Exception("ERROR: 'window (msec)' should be a power of two when converted to tics.  "+

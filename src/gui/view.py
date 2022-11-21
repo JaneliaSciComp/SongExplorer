@@ -1355,7 +1355,7 @@ def labelcounts_update():
         M.kinds = sorted(set(df[3]))
         words = sorted(set(df[4]))
         bkinds = {}
-        table = np.empty((1+len(words),len(M.kinds)), dtype=np.int)
+        table = np.empty((1+len(words),len(M.kinds)), dtype=int)
         for iword,word in enumerate(words):
             bword = np.array(df[4]==word)
             for ikind,kind in enumerate(M.kinds):

@@ -31,7 +31,7 @@ from jitter import *
 def compute_background(vidfile, video_bkg_frames, video_data, tiffile):
     print("INFO: calculating median background for "+vidfile)
     nframes = min(video_bkg_frames, video_data.shape[0])
-    iframes = np.linspace(0, video_data.shape[0]-1, num=nframes, dtype=np.int)
+    iframes = np.linspace(0, video_data.shape[0]-1, num=nframes, dtype=int)
     full = np.empty((nframes, *video_data[1].shape))
     for (i,iframe) in enumerate(iframes):
       full[i] = video_data[iframe]
@@ -174,7 +174,7 @@ def layout(nplots):
     return 2,5
   if nplots==21:
     return 3,7
-  nrows = 1 if nplots==1 else np.floor(np.sqrt(nplots)).astype(np.int)
+  nrows = 1 if nplots==1 else np.floor(np.sqrt(nplots)).astype(int)
   ncols = math.ceil(nplots / nrows)
   return nrows, ncols
 
@@ -494,10 +494,10 @@ def discretize_probabilities(probability_matrix, thresholds, labels,
   features = features[:ifeature]
   start_tics = np.round((start_tics[:ifeature] / audio_tic_rate_probabilities \
                          - half_stride_sec) \
-                        * audio_tic_rate).astype(np.int)
+                        * audio_tic_rate).astype(int)
   stop_tics = np.round((stop_tics[:ifeature] / audio_tic_rate_probabilities \
                          + half_stride_sec) \
-                       * audio_tic_rate).astype(np.int)
+                       * audio_tic_rate).astype(int)
   return features, start_tics, stop_tics
 
 def read_thresholds(logdir, model, thresholds_file):

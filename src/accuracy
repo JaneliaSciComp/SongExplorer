@@ -214,7 +214,7 @@ if __name__ == "__main__":
     for (imodel,model) in enumerate(keys_to_plot):
       ax4 = fig.add_subplot(nrows, ncols, imodel+1)
       nx = len(train_step[model])
-      idx = range(nx) if nx<10000 else np.round(np.linspace(0, nx-1, 10000)).astype(np.int)
+      idx = range(nx) if nx<10000 else np.round(np.linspace(0, nx-1, 10000)).astype(int)
       ax4.plot(np.array(train_step[model])[idx],
                np.array(train_loss[model])[idx],
                'g', alpha=0.5, label='Loss')
@@ -415,7 +415,7 @@ if __name__ == "__main__":
   
       plt.savefig(os.path.join(logdir,'train-overlay.pdf'))
       plt.close()
-  
+
     summed_confusion_matrix, confusion_matrices, labels = \
         parse_confusion_matrices(logdir, next(iter(keys_to_plot)).split('_')[0])
   

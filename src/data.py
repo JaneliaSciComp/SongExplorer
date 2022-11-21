@@ -377,7 +377,7 @@ class AudioProcessor(object):
                                 len(video_channels)),
                                dtype=np.float32)
         bkg = {}
-      labels = np.zeros(nsounds, dtype=np.int)
+      labels = np.zeros(nsounds, dtype=int)
       # repeatedly to generate the final output sound data we'll use in training.
       for i in range(offset, offset + nsounds):
         # Pick which sound to use.
