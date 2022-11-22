@@ -203,8 +203,9 @@ if __name__ == "__main__":
           _, _, _, \
           labels_touse, label_counts, _, _, batch_size, _ = \
           read_logs(logdir)
-    training_set_size = {x: len(label_counts[x]) * np.max(list(label_counts[x].values())) \
-                                    for x in label_counts.keys()}
+    training_set_size = {k: len(label_counts[k]["training"]) * \
+                            np.max(list(label_counts[k]["training"].values())) \
+                         for k in label_counts.keys()}
   
     keys_to_plot = natsorted(train_step.keys())
   
@@ -416,6 +417,31 @@ if __name__ == "__main__":
       plt.savefig(os.path.join(logdir,'train-overlay.pdf'))
       plt.close()
 
+      fig = plt.figure(figsize=(6.4, 4.8))
+  
+      model_validation_accuracy = np.zeros(len(validation_accuracy[keys_to_plot[0]]))
+      nmodels = 0
+      for model in keys_to_plot:
+        if validation_step[model] != validation_step[keys_to_plot[0]]:
+          print("WARNING: not all checkpoint steps are the same for "+model)
+          continue
+        model_validation_accuracy += validation_accuracy[model]
+        model_validation_step = validation_step[model]
+        nmodels += 1
+      ax = fig.add_subplot(1,1,1)
+      line, = ax.plot(model_validation_step, model_validation_accuracy / nmodels)
+      line.set_label("model average")
+      ax.set_ylim(top=100)
+      ax.set_xlabel('Step')
+      ax.set_ylabel('Overall accuracy')
+      ax.legend(loc=(1.05, 0.0))
+      ax.grid(True)
+  
+      fig.tight_layout()
+  
+      plt.savefig(os.path.join(logdir,'train-summed.pdf'))
+      plt.close()
+  
     summed_confusion_matrix, confusion_matrices, labels = \
         parse_confusion_matrices(logdir, next(iter(keys_to_plot)).split('_')[0])
   
@@ -481,6 +507,7 @@ if __name__ == "__main__":
     ax.plot(accuracies_ordered, keys_to_plot, 'k.')
     ax.set_xlabel('Overall accuracy (%)')
     ax.set_ylabel('Model')
+    ax.set_title(str(round(y,1))+"%")
   
     fig.tight_layout()
     plt.savefig(os.path.join(logdir,'accuracy.pdf'))

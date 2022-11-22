@@ -206,17 +206,33 @@ def read_log(frompath, logfile):
   with open(os.path.join(frompath,logfile),'r') as fid:
     train_restart_correction=0.0
     validation_restart_correction=0.0
-    count_train_state=False
+    count_validation_state=count_testing_state=count_training_state=False
     for line in fid:
-      if "num training labels" in line:
-        count_train_state=True
-        label_counts = {}
-      elif count_train_state:
-        if "Model: " in line:
-          count_train_state = False
+      if "num validation labels" in line:
+        count_validation_state=True
+        label_counts = {"validation":{}, "testing":{}, "training":{}, }
+      elif count_validation_state:
+        if "num testing labels" in line:
+          count_validation_state = False
         else:
           m=re.search('\s*(\d+)\s(.*)',line)
-          label_counts[m.group(2)]=int(m.group(1))
+          label_counts["validation"][m.group(2)]=int(m.group(1))
+      if "num testing labels" in line:
+        count_testing_state=True
+      elif count_testing_state:
+        if "num training labels" in line:
+          count_testing_state = False
+        else:
+          m=re.search('\s*(\d+)\s(.*)',line)
+          label_counts["testing"][m.group(2)]=int(m.group(1))
+      if "num training labels" in line:
+        count_training_state=True
+      elif count_training_state:
+        if "downsample_by = " in line:
+          count_training_state = False
+        else:
+          m=re.search('\s*(\d+)\s(.*)',line)
+          label_counts["training"][m.group(2)]=int(m.group(1))
       if "labels_touse = " in line:
         m=re.search('labels_touse = (.+)',line)
         labels_touse = m.group(1).split(',')

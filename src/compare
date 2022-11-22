@@ -46,7 +46,6 @@ try:
   validation_time={}
   validation_step={}
   labels_touse={}
-  label_counts={}
   nparameters_total={}
   nparameters_finallayer={}
   batch_size={}
@@ -62,13 +61,12 @@ try:
     _, _, train_time[logdir], _, \
             _, _, validation_accuracy[logdir], validation_time[logdir], validation_step[logdir], \
             _, _, _, \
-            labels_touse[logdir], label_counts[logdir], \
+            labels_touse[logdir], _, \
             nparameters_total[logdir], nparameters_finallayer[logdir], \
             batch_size[logdir], nlayers[logdir] = \
             read_logs(os.path.join(basename,logdir))
     if len(set([tuple(x) for x in labels_touse[logdir].values()]))>1:
       print('WARNING: not all labels_touse are the same')
-    #assert len(set(label_counts[logdir].values()))==1
     if len(set(nparameters_total[logdir].values()))>1:
       print('WARNING: not all nparameters_total are the same')
     if len(set(nparameters_finallayer[logdir].values()))>1:
@@ -80,7 +78,6 @@ try:
     if len(validation_accuracy)>0:
       if set([tuple(x) for x in labels_touse[logdirs[0]].values()])!=set([tuple(x) for x in labels_touse[logdir].values()]):
         print('WARNING: not all labels_touse are the same')
-      #assert set(label_counts[logdirs[0]].values())==set(label_counts[logdir].values())
       if set(nparameters_total[logdirs[0]].values())!=set(nparameters_total[logdir].values()):
         print('WARNING: not all nparameters_total are the same')
       if set(nparameters_finallayer[logdirs[0]].values())!=set(nparameters_finallayer[logdir].values()):
