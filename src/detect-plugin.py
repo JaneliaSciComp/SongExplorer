@@ -42,7 +42,7 @@ def detect_labels(audio_nchannels):
 if __name__ == '__main__':
 
     import os
-    import scipy.io.wavfile as spiowav
+    import importlib
     import sys
     import csv
     import socket
@@ -54,24 +54,33 @@ if __name__ == '__main__':
 
     print(str(datetime.now())+": start time")
     with open(os.path.join(repodir, "VERSION.txt"), 'r') as fid:
-      print('SongExplorer version = '+fid.read().strip().replace('\n',', '))
+        print('SongExplorer version = '+fid.read().strip().replace('\n',', '))
     print("hostname = "+socket.gethostname())
 
     try:
 
-        _, filename, detect_parameters, audio_tic_rate, audio_nchannels = sys.argv
+        _, filename, detect_parameters, audio_tic_rate, audio_nchannels, audio_read_plugin, audio_read_plugin_kwargs = sys.argv
         print('filename: '+filename)
         print('detect_parameters: '+detect_parameters)
         print('audio_tic_rate: '+audio_tic_rate)
         print('audio_nchannels: '+audio_nchannels)
+        print('audio_read_plugin: '+audio_read_plugin)
+        print('audio_read_plugin_kwargs: '+audio_read_plugin_kwargs)
 
         detect_parameters = json.loads(detect_parameters)
         audio_tic_rate = int(audio_tic_rate)
         audio_nchannels = int(audio_nchannels)
+        audio_read_plugin_kwargs = json.loads(audio_read_plugin_kwargs)
+
+        sys.path.append(os.path.dirname(audio_read_plugin))
+        audio_read_module = importlib.import_module(os.path.basename(audio_read_plugin))
+        def audio_read(wav_path, start_tic=None, stop_tic=None):
+            return audio_read_module.audio_read(wav_path, start_tic, stop_tic,
+                                                **audio_read_plugin_kwargs)
 
         hyperparameter1 = int(detect_parameters["my-simple-textbox"])
 
-        _, song = spiowav.read(filename)
+        _, song = audio_read(filename)
         song = abs(song)
         if audio_nchannels>1:
             song = np.max(song, axis=1)

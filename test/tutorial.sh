@@ -41,7 +41,8 @@ detect_parameters='{"time_sigma":"9,4","time_smooth_ms":"6.4","frequency_n_ms":"
 cmd="${detect_plugin}.py \
       ${wavpath_noext}.wav \
       '$detect_parameters' \
-      $audio_tic_rate $audio_nchannels"
+      $audio_tic_rate $audio_nchannels \
+      $audio_read_plugin $audio_read_plugin_kwargs"
 echo $cmd &>> ${wavpath_noext}-detect.log
 eval $cmd &>> ${wavpath_noext}-detect.log
 
@@ -182,7 +183,8 @@ count_lines_with_label ${wavpath_noext}-predicted-1.0pr.csv ambient 124 WARNING
 cmd="${detect_plugin}.py\
       ${wavpath_noext}.wav \
       '$detect_parameters' \
-      $audio_tic_rate $audio_nchannels"
+      $audio_tic_rate $audio_nchannels \
+      $audio_read_plugin $audio_read_plugin_kwargs"
 echo $cmd &>> ${wavpath_noext}-detect.log
 eval $cmd &>> ${wavpath_noext}-detect.log
 

@@ -919,7 +919,9 @@ async def _detect_actuate(i, wavfiles, threads, results):
                             M.detect_cluster_flags,
                             wavfile, \
                             "'"+json.dumps({k:v.value for k,v in V.detect_parameters.items()})+"'", \
-                            str(M.audio_tic_rate), str(M.audio_nchannels))
+                            str(M.audio_tic_rate), str(M.audio_nchannels),
+                            str(M.audio_read_plugin),
+                            "'"+json.dumps(M.audio_read_plugin_kwargs)+"'")
     M.waitfor_job.append(jobid)
     displaystring = "DETECT "+os.path.basename(wavfile)+" ("+jobid+")"
     threads[i] = asyncio.create_task(actuate_monitor(displaystring, results, i, \

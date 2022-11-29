@@ -2,10 +2,10 @@
 
 # threshold an audio recording in both the time and frequency spaces
 
-# time-freq-threshold.py <full-path-to-wavfile> { <time-sigma> <time-smooth-ms> <frequency-n-ms> <frequency-nw> <frequency-p> <frequency-smooth-ms> <detect-time-sigma-robust> } <audio-tic-rate> <audio-nchannels>
+# time-freq-threshold.py <full-path-to-wavfile> { <time-sigma> <time-smooth-ms> <frequency-n-ms> <frequency-nw> <frequency-p> <frequency-smooth-ms> <detect-time-sigma-robust> } <audio-tic-rate> <audio-nchannels> <audio-read-plugin> <audio-read-plugin-kwargs>
 
 # e.g.
-# time-freq-threshold.py `pwd`/groundtruth-data/round2/20161207T102314_ch1_p1.wav {"time_sigma":"9,4", "time_smooth_ms":"6.4", "frequency_n_ms":"25.6", "frequency_nw":"4", "frequency_p":"0.1,1.0", "frequency_smooth_ms":"25.6", "time_sigma_robust":"median"} 2500 1
+# time-freq-threshold.py `pwd`/groundtruth-data/round2/20161207T102314_ch1_p1.wav {"time_sigma":"9,4", "time_smooth_ms":"6.4", "frequency_n_ms":"25.6", "frequency_nw":"4", "frequency_p":"0.1,1.0", "frequency_smooth_ms":"25.6", "time_sigma_robust":"median"} 2500 1 load-wav {}
 
 def _frequency_n_callback(M,V,C):
     C.time.sleep(0.5)
@@ -51,7 +51,7 @@ if __name__ == '__main__':
 
     import os
     import numpy as np
-    import scipy.io.wavfile as spiowav
+    import importlib
     import skimage
     from skimage.morphology import closing, opening
     import nitime.utils as utils
@@ -72,20 +72,29 @@ if __name__ == '__main__':
 
     print(str(datetime.now())+": start time")
     with open(os.path.join(repodir, "VERSION.txt"), 'r') as fid:
-      print('SongExplorer version = '+fid.read().strip().replace('\n',', '))
+        print('SongExplorer version = '+fid.read().strip().replace('\n',', '))
     print("hostname = "+socket.gethostname())
 
     try:
 
-      _, filename, detect_parameters, audio_tic_rate, audio_nchannels = sys.argv
+      _, filename, detect_parameters, audio_tic_rate, audio_nchannels, audio_read_plugin, audio_read_plugin_kwargs = sys.argv
       print('filename: '+filename)
       print('detect_parameters: '+detect_parameters)
       print('audio_tic_rate: '+audio_tic_rate)
       print('audio_nchannels: '+audio_nchannels)
+      print('audio_read_plugin: '+audio_read_plugin)
+      print('audio_read_plugin_kwargs: '+audio_read_plugin_kwargs)
 
       detect_parameters = json.loads(detect_parameters)
       audio_tic_rate = int(audio_tic_rate)
       audio_nchannels = int(audio_nchannels)
+      audio_read_plugin_kwargs = json.loads(audio_read_plugin_kwargs)
+
+      sys.path.append(os.path.dirname(audio_read_plugin))
+      audio_read_module = importlib.import_module(os.path.basename(audio_read_plugin))
+      def audio_read(wav_path, start_tic=None, stop_tic=None):
+          return audio_read_module.audio_read(wav_path, start_tic, stop_tic,
+                                              **audio_read_plugin_kwargs)
 
       time_sigma_signal, time_sigma_noise = [int(x) for x in detect_parameters['time_sigma'].split(',')]
       
@@ -96,7 +105,7 @@ if __name__ == '__main__':
       frequency_smooth = round(float(detect_parameters['frequency_smooth_ms'])/1000*audio_tic_rate) // (frequency_n//2)
       time_sigma_robust = detect_parameters['time_sigma_robust']
 
-      fs, song = spiowav.read(filename)
+      fs, song = audio_read(filename)
       if fs!=audio_tic_rate:
         raise Exception("ERROR: sampling rate of WAV file (="+str(fs)+
               ") is not the same as specified in the config file (="+str(audio_tic_rate)+")")
