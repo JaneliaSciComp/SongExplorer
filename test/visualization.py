@@ -25,8 +25,7 @@ import view as V
 import controller as C
 
 os.makedirs(os.path.join(repo_path, "test/scratch/visualization"))
-#shutil.copy(os.path.join(repo_path, "configuration.pysh"),
-shutil.copy(os.path.join(repo_path, "test/configuration.pysh"),
+shutil.copy(os.path.join(repo_path, "configuration.pysh"),
             os.path.join(repo_path, "test/scratch/visualization"))
 
 M.init(None, os.path.join(repo_path, "test/scratch/visualization/configuration.pysh"))
@@ -41,7 +40,7 @@ shutil.copy(os.path.join(repo_path, "data/PS_20130625111709_ch3.wav"), \
 shutil.copy(os.path.join(repo_path, "data/PS_20130625111709_ch3-annotated-person1.csv"), \
             os.path.join(repo_path, "test/scratch/visualization/groundtruth-data/round1"))
 
-run(["hetero", "start", "1", "0", "1"])
+run(["hstart", "1,0,1"])
 
 V.groundtruth_folder.value = os.path.join(repo_path, "test/scratch/visualization/groundtruth-data")
 V.kinds_touse.value = 'annotated'
@@ -151,4 +150,4 @@ C.snippets_tap_callback(event)
 
 C.panright_callback()
 
-run(["hetero", "stop"], stdout=PIPE, stderr=STDOUT)
+run(["hstop"], stdout=PIPE, stderr=STDOUT)

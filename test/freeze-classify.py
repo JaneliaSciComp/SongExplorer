@@ -38,7 +38,7 @@ os.makedirs(os.path.join(repo_path, "test/scratch/freeze-classify/groundtruth-da
 shutil.copy(os.path.join(repo_path, "data/PS_20130625111709_ch3.wav"),
             os.path.join(repo_path, "test/scratch/freeze-classify/groundtruth-data/round1"))
 
-run(["hetero", "start", "1", "0", "1"])
+run(["hstart", "1,0,1"])
 
 shutil.copy(os.path.join(repo_path, "data/PS_20130625111709_ch3-annotated-person1.csv"),
             os.path.join(repo_path, "test/scratch/freeze-classify/groundtruth-data/round1"))
@@ -150,4 +150,4 @@ for representation in ["waveform", "spectrogram", "mel-cepstrum"]:
               " differ by at most "+str(max(abs(wavs64-wavs16384)))+" part(s) in 2^16"+
               " for "+str(sum(wavs64!=wavs16384))+" samples")
 
-run(["hetero", "stop"], stdout=PIPE, stderr=STDOUT)
+run(["hstop"], stdout=PIPE, stderr=STDOUT)

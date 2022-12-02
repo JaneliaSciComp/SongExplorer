@@ -88,7 +88,7 @@ cmd="train \
       $mini_batch '$testing_files' \
       $audio_tic_rate $audio_nchannels \
       $video_frame_rate $video_frame_width $video_frame_height $video_channels \
-      $batch_seed $weights_seed $deterministic \
+      $batch_seed $weights_seed $deterministic '' \
       $ireplicates"
 echo $cmd &>> $logdir/train1.log
 eval $cmd &>> $logdir/train1.log
@@ -273,7 +273,7 @@ for ioffset in $ioffsets ; do
         $nsteps '$restore_from' $save_and_test_period $mini_batch \
         '$testing_files' $audio_tic_rate $audio_nchannels \
         $video_frame_rate $video_frame_width $video_frame_height $video_channels \
-        $batch_seed $weights_seed $deterministic \
+        $batch_seed $weights_seed $deterministic '' \
         $ioffset ${wavfiles[ioffset]}"
   echo $cmd &>> $logdir/generalize$(( "${ioffset}" + 1 )).log
   eval $cmd &>> $logdir/generalize$(( "${ioffset}" + 1 )).log
@@ -327,7 +327,7 @@ for nfeatures in ${nfeaturess[@]} ; do
           $nsteps '$restore_from' $save_and_test_period $mini_batch \
           '$testing_files' $audio_tic_rate $audio_nchannels \
           $video_frame_rate $video_frame_width $video_frame_height $video_channels \
-          $batch_seed $weights_seed $deterministic \
+          $batch_seed $weights_seed $deterministic '' \
           $kfold $ifold"
     echo $cmd &>> $logdir/xvalidate${ifold}.log
     eval $cmd &>> $logdir/xvalidate${ifold}.log
@@ -393,7 +393,7 @@ cmd="train \
       $mini_batch '$testing_files' \
       $audio_tic_rate $audio_nchannels \
       $video_frame_rate $video_frame_width $video_frame_height $video_channels \
-      $batch_seed $weights_seed $deterministic \
+      $batch_seed $weights_seed $deterministic '' \
       $ireplicates"
 echo $cmd &>> $logdir/train1.log
 eval $cmd &>> $logdir/train1.log

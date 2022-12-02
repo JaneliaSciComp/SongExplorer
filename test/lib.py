@@ -4,7 +4,7 @@ import time
 
 def wait_for_job(status_ticker_queue):
   while True:
-    p = run(["hetero", "jobs"], stdout=PIPE, stderr=STDOUT)
+    p = run(["hjobs"], stdout=PIPE, stderr=STDOUT)
     if p.stdout.decode('ascii').rstrip() == "":
       for key in status_ticker_queue.keys():
         if status_ticker_queue[key] == "failed":

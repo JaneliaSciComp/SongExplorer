@@ -51,7 +51,7 @@ cmd="train \
       $mini_batch '$testing_files' \
       $audio_tic_rate $audio_nchannels \
       $video_frame_rate $video_frame_width $video_frame_height $video_channels \
-      $batch_seed $weights_seed $deterministic $ireplicates \
+      $batch_seed $weights_seed $deterministic ''  $ireplicates \
       True"
 echo $cmd &> $logdir/train1.log
 eval $cmd &> $logdir/train1.log
@@ -73,7 +73,7 @@ cmd="train \
       $mini_batch '$testing_files' \
       $audio_tic_rate $audio_nchannels \
       $video_frame_rate $video_frame_width $video_frame_height $video_channels \
-      $batch_seed $weights_seed $deterministic $ireplicates \
+      $batch_seed $weights_seed $deterministic ''  $ireplicates \
       True"
 echo $cmd &> $logdir/train1.log
 eval $cmd &> $logdir/train1.log

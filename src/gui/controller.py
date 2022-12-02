@@ -1,5 +1,5 @@
 import os
-from subprocess import run, PIPE, STDOUT, Popen
+from subprocess import run, PIPE, Popen
 import pandas as pd
 from datetime import datetime
 import numpy as np
@@ -24,47 +24,47 @@ import model as M
 import view as V
 
 def generic_actuate(cmd, logfile, where,
-                    ncpu_cores, ngpu_cards, ngigabyes_memory, localdeps, clusterflags, *args):
+                    ncpu_cores, ngpu_cards, ngigabyes_memory, clusterflags, *args):
     args = ["\'\'" if x=="" else x for x in args]
     with open(logfile, 'w') as fid:
         fid.write(cmd+" "+' '.join(args)+'\n')
+    localdeps = []
     if V.waitfor.active:
-        if localdeps=="":
-            localdeps = ""
-            for job in M.waitfor_job:
-                localdeps += "hetero job "+job+" || "
-            localdeps = localdeps[:-4]
+        for job in M.waitfor_job:
+            localdeps.append("-d "+job)
         if " -w \"done(" not in clusterflags:
             clusterflags = " -w "
             for job in M.waitfor_job:
                clusterflags += "\"done("+job+")\"&&"
             clusterflags = clusterflags[:-2]
-    filter_warnings=" 2>&1 | sed -r '/\(deprecated\|more times\)/d'"  # pims.open(video)
     if where == "local":
-        p = run(["hetero", "submit",
-                 "{ export CUDA_VISIBLE_DEVICES=$QUEUE1; "+cmd+" "+' '.join(args)+filter_warnings+" ; } >> "+logfile+" 2>&1",
-                 str(ncpu_cores), str(ngpu_cards), str(ngigabyes_memory), localdeps],
-                stdout=PIPE, stderr=STDOUT)
-        jobid = p.stdout.decode('ascii').rstrip()
+        p = Popen(["hsubmit",
+                   "-o", logfile, "-e", logfile,
+                   *localdeps,
+                   str(ncpu_cores)+','+str(ngpu_cards)+','+str(ngigabyes_memory),
+                   cmd+" "+' '.join(args)],
+                  stdout=PIPE)
+        jobid = p.stdout.readline().decode('ascii').rstrip()
         bokehlog.info(jobid)
     elif where == "server":
-        p = run(["ssh", "-l", M.server_username, M.server_ipaddr, "export SINGULARITYENV_PREPEND_PATH="+M.source_path+";",
-                 "$SONGEXPLORER_BIN", "hetero", "submit",
-                 "\"{ export CUDA_VISIBLE_DEVICES=\$QUEUE1; "+cmd+" "+' '.join(args).replace('"','\\"')+filter_warnings+" ; } >> "+logfile+" 2>&1\"",
-                 str(ncpu_cores), str(ngpu_cards), str(ngigabyes_memory), "'"+localdeps+"'"],
-                stdout=PIPE, stderr=STDOUT)
-        jobid = p.stdout.decode('ascii').rstrip()
+        p = Popen(["ssh", "-l", M.server_username, M.server_ipaddr, "export SINGULARITYENV_PREPEND_PATH="+M.source_path+";",
+                   "$SONGEXPLORER_BIN", "hsubmit",
+                   "-o", logfile, "-e", logfile,
+                   *localdeps,
+                   str(ncpu_cores)+','+str(ngpu_cards)+','+str(ngigabyes_memory),
+                   cmd+" "+' '.join(args).replace('"','\\"')],
+                  stdout=PIPE)
+        jobid = p.stdout.readline().decode('ascii').rstrip()
         bokehlog.info(jobid)
     elif where == "cluster":
         pe = Popen(["echo",
                     "export SINGULARITYENV_PREPEND_PATH="+M.source_path+";",
-                    "$SONGEXPLORER_BIN "+cmd+" "+' '.join(args)+filter_warnings],
+                    "$SONGEXPLORER_BIN "+cmd+" "+' '.join(args)],
                    stdout=PIPE)
         ps = Popen(["ssh", "-l", M.cluster_username, M.cluster_ipaddr, M.cluster_cmd,
-                    #"-J ${logfile//,/}.job",
                     clusterflags,
                     M.cluster_logfile_flag+" "+logfile],
-                   stdin=pe.stdout, stdout=PIPE, stderr=STDOUT)
+                   stdin=pe.stdout, stdout=PIPE)
         pe.stdout.close()
         jobinfo = ps.communicate()[0].decode('ascii').rstrip()
         tmp = re.search('([0-9]+)',jobinfo)
@@ -915,7 +915,6 @@ async def _detect_actuate(i, wavfiles, threads, results):
                             M.detect_ncpu_cores,
                             M.detect_ngpu_cards,
                             M.detect_ngigabytes_memory,
-                            "",
                             M.detect_cluster_flags,
                             wavfile, \
                             "'"+json.dumps({k:v.value for k,v in V.detect_parameters.items()})+"'", \
@@ -964,7 +963,6 @@ async def misses_actuate():
                             M.misses_ncpu_cores,
                             M.misses_ngpu_cards,
                             M.misses_ngigabytes_memory,
-                            "",
                             M.misses_cluster_flags, \
                             V.wavcsv_files.value)
     displaystring = "MISSES "+wavfile+" ("+jobid+")"
@@ -1146,7 +1144,7 @@ async def train_actuate():
                 str(M.video_frame_width), \
                 str(M.video_frame_height), \
                 str(M.video_channels), \
-                V.batch_seed.value, V.weights_seed.value, M.deterministic, \
+                V.batch_seed.value, V.weights_seed.value, M.deterministic, "QUEUE1", \
                 ','.join([str(x) for x in range(ireplicate, min(1+nreplicates, \
                                                                 ireplicate+M.models_per_job))])]
         if M.train_gpu == 1:
@@ -1154,14 +1152,14 @@ async def train_actuate():
                                     M.train_gpu_ncpu_cores,
                                     M.train_gpu_ngpu_cards,
                                     M.train_gpu_ngigabytes_memory,
-                                    "", M.train_gpu_cluster_flags,
+                                    M.train_gpu_cluster_flags,
                                     *args)
         else:
             jobid = generic_actuate("train", logfile, M.train_where,
                                     M.train_cpu_ncpu_cores,
                                     M.train_cpu_ngpu_cards,
                                     M.train_cpu_ngigabytes_memory,
-                                    "", M.train_cpu_cluster_flags,
+                                    M.train_cpu_cluster_flags,
                                     *args)
         jobids.append(jobid)
     displaystring = "TRAIN "+os.path.basename(V.logs_folder.value.rstrip('/'))+ \
@@ -1229,7 +1227,7 @@ async def leaveout_actuate(comma):
                 str(M.video_frame_width), \
                 str(M.video_frame_height), \
                 str(M.video_channels), \
-                V.batch_seed.value, V.weights_seed.value, M.deterministic, \
+                V.batch_seed.value, V.weights_seed.value, M.deterministic, "QUEUE1", \
                 str(ivalidation_file),
                 *validation_files[ivalidation_file:ivalidation_file+M.models_per_job]]
         if M.generalize_gpu == 1:
@@ -1237,7 +1235,6 @@ async def leaveout_actuate(comma):
                                     M.generalize_gpu_ncpu_cores,
                                     M.generalize_gpu_ngpu_cards,
                                     M.generalize_gpu_ngigabytes_memory,
-                                    "", \
                                     M.generalize_gpu_cluster_flags, \
                                     *args)
         else:
@@ -1245,7 +1242,6 @@ async def leaveout_actuate(comma):
                                     M.generalize_cpu_ncpu_cores,
                                     M.generalize_cpu_ngpu_cards,
                                     M.generalize_cpu_ngigabytes_memory,
-                                    "", \
                                     M.generalize_cpu_cluster_flags, \
                                     *args)
         jobids.append(jobid)
@@ -1293,7 +1289,7 @@ async def xvalidate_actuate():
                 str(M.video_frame_width), \
                 str(M.video_frame_height), \
                 str(M.video_channels), \
-                V.batch_seed.value, V.weights_seed.value, M.deterministic, \
+                V.batch_seed.value, V.weights_seed.value, M.deterministic, "QUEUE1", \
                 V.kfold.value, \
                 ','.join([str(x) for x in range(ifold, min(1+kfolds, ifold+M.models_per_job))])]
         if M.xvalidate_gpu == 1:
@@ -1301,7 +1297,6 @@ async def xvalidate_actuate():
                                     M.xvalidate_gpu_ncpu_cores,
                                     M.xvalidate_gpu_ngpu_cards,
                                     M.xvalidate_gpu_ngigabytes_memory,
-                                    "", \
                                     M.xvalidate_gpu_cluster_flags, \
                                     *args)
         else:
@@ -1309,7 +1304,6 @@ async def xvalidate_actuate():
                                     M.xvalidate_cpu_ncpu_cores,
                                     M.xvalidate_cpu_ngpu_cards,
                                     M.xvalidate_cpu_ngigabytes_memory,
-                                    "", \
                                     M.xvalidate_cpu_cluster_flags, \
                                     *args)
         jobids.append(jobid)
@@ -1341,7 +1335,6 @@ async def mistakes_actuate():
                             M.mistakes_ncpu_cores,
                             M.mistakes_ngpu_cards,
                             M.mistakes_ngigabytes_memory,
-                            "",
                             M.mistakes_cluster_flags,
                             V.groundtruth_folder.value)
     displaystring = "MISTAKES "+os.path.basename(V.groundtruth_folder.value.rstrip('/'))+ \
@@ -1404,15 +1397,13 @@ async def activations_actuate():
                                 M.activations_gpu_ncpu_cores,
                                 M.activations_gpu_ngpu_cards,
                                 M.activations_gpu_ngigabytes_memory,
-                                "",
                                 M.activations_gpu_cluster_flags,
-                                *args)
+                                *args, "--igpu=QUEUE1")
     else:
         jobid = generic_actuate("activations", logfile, M.activations_where,
                                 M.activations_cpu_ncpu_cores,
                                 M.activations_cpu_ngpu_cards,
                                 M.activations_cpu_ngigabytes_memory,
-                                "",
                                 M.activations_cpu_cluster_flags,
                                 *args)
 
@@ -1446,7 +1437,6 @@ async def cluster_actuate():
                             M.cluster_ncpu_cores,
                             M.cluster_ngpu_cards,
                             M.cluster_ngigabytes_memory,
-                            "",
                             M.cluster_cluster_flags,
                             *args)
 
@@ -1538,7 +1528,6 @@ async def accuracy_actuate():
                             M.accuracy_ncpu_cores,
                             M.accuracy_ngpu_cards,
                             M.accuracy_ngigabytes_memory,
-                            "",
                             M.accuracy_cluster_flags,
                             V.logs_folder.value, \
                             V.precision_recall_ratios.value, \
@@ -1577,7 +1566,6 @@ async def _freeze_actuate(ckpts):
                             M.freeze_ncpu_cores,
                             M.freeze_ngpu_cards,
                             M.freeze_ngigabytes_memory,
-                            "",
                             M.freeze_cluster_flags,
                             "--start_checkpoint="+os.path.join(logdir,model,"ckpt-"+check_point), \
                             "--output_file="+os.path.join(logdir,model,"frozen-graph.ckpt-"+check_point+".pb"), \
@@ -1658,7 +1646,6 @@ async def ensemble_actuate():
                             M.ensemble_ncpu_cores,
                             M.ensemble_ngpu_cards,
                             M.ensemble_ngigabytes_memory,
-                            "",
                             M.ensemble_cluster_flags,
                             "--start_checkpoints="+V_model_file_value, \
                             "--output_file="+os.path.join(logdir, model,
@@ -1735,15 +1722,13 @@ async def _classify_actuate(wavfiles):
                                   M.classify_gpu_ncpu_cores,
                                   M.classify_gpu_ngpu_cards,
                                   M.classify_gpu_ngigabytes_memory,
-                                  "",
                                   M.classify_gpu_cluster_flags,
-                                  *args)
+                                  *args, "--igpu=QUEUE1")
     else:
         jobid = generic_actuate("classify", logfile, M.classify_where,
                                   M.classify_cpu_ncpu_cores,
                                   M.classify_cpu_ngpu_cards,
                                   M.classify_cpu_ngigabytes_memory,
-                                  "",
                                   M.classify_cpu_cluster_flags,
                                   *args)
     displaystring = "CLASSIFY "+os.path.basename(wavfile)+" ("+jobid+")"
@@ -1794,7 +1779,7 @@ async def _ethogram_actuate(i, wavfiles, threads, results):
                             M.ethogram_ncpu_cores,
                             M.ethogram_ngpu_cards,
                             M.ethogram_ngigabytes_memory,
-                            "", M.ethogram_cluster_flags,
+                            M.ethogram_cluster_flags,
                             logdir, model, thresholds_file, wavfile,
                             str(M.audio_tic_rate))
     displaystring = "ETHOGRAM "+os.path.basename(wavfile)+" ("+jobid+")"
@@ -1836,7 +1821,6 @@ async def compare_actuate():
                             M.compare_ncpu_cores,
                             M.compare_ngpu_cards,
                             M.compare_ngigabytes_memory,
-                            "",
                             M.compare_cluster_flags,
                             V.logs_folder.value)
     displaystring = "COMPARE "+os.path.basename(V.logs_folder.value.rstrip('/'))+ \
@@ -1901,7 +1885,6 @@ async def congruence_actuate():
                             M.congruence_ncpu_cores,
                             M.congruence_ngpu_cards,
                             M.congruence_ngigabytes_memory,
-                            "",
                             M.congruence_cluster_flags,
                             V.groundtruth_folder.value,
                             ','.join(all_files),
@@ -2102,7 +2085,7 @@ def _copy_callback():
                 V.labels_touse.value = m.group(1)
             elif "model_parameters = " in line:
                 m=re.search('model_parameters = ({.*})', line)
-                params = json.loads(m.group(1))
+                params = json.loads(m.group(1).replace("'",'"'))
                 for k,v in params.items():
                   V.model_parameters[k].value = v
     _copy_callback_finalize()

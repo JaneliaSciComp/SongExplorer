@@ -34,10 +34,10 @@
 #      --audio_tic_rate=5000 \
 #      --audio_nchannels=1
 
-
 import argparse
 import os.path
 import sys
+import re
 
 from datetime import datetime
 import socket
@@ -188,7 +188,10 @@ if __name__ == '__main__':
       default='yes,no,up,down,left,right,on,off,stop,go',
       help='Words to use (others will be added to an unknown label)',)
   parser.add_argument(
-      '--output_file', type=str, help='Where to save the frozen graph.')
+      '--output_file',
+      type=str,
+      help='Where to save the frozen graph.')
+
   FLAGS, unparsed = parser.parse_known_args()
 
   print(str(datetime.now())+": start time")

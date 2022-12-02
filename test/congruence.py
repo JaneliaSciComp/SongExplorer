@@ -44,7 +44,7 @@ M.init(None, os.path.join(repo_path, "test/scratch/congruence/configuration.pysh
 V.init(None)
 C.init(None)
 
-run(["hetero", "start", "1", "0", "1"])
+run(["hstart", "1,0,1"])
 
 V.groundtruth_folder.value = os.path.join(repo_path, "test/scratch/congruence/groundtruth-data")
 
@@ -231,4 +231,4 @@ for filename, correctvalue in correctvalues:
   if len(df.index)!=correctvalue:
     print("ERROR: "+filename+" has "+str(len(df.index))+" rows when it should have "+str(correctvalue))
 
-run(["hetero", "stop"], stdout=PIPE, stderr=STDOUT)
+run(["hstop"], stdout=PIPE, stderr=STDOUT)

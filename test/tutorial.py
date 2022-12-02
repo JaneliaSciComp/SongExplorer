@@ -35,7 +35,7 @@ os.makedirs(os.path.join(repo_path, "test/scratch/tutorial-py/groundtruth-data/r
 shutil.copy(os.path.join(repo_path, "data/PS_20130625111709_ch3.wav"), \
             os.path.join(repo_path, "test/scratch/tutorial-py/groundtruth-data/round1"))
 
-run(["hetero", "start", "1", "0", "1"])
+run(["hstart", "1,0,1"])
 
 wavpath_noext = os.path.join(repo_path,
                              "test/scratch/tutorial-py/groundtruth-data/round1/PS_20130625111709_ch3")
@@ -542,4 +542,4 @@ for pr in V.precision_recall_ratios.value.split(','):
   check_file_exists(wavpath_noext+"-predicted-"+pr+"pr.csv")
 count_lines_with_label(wavpath_noext+"-predicted-1.0pr.csv", "mel-pulse", 594, "WARNING")
 
-run(["hetero", "stop"], stdout=PIPE, stderr=STDOUT)
+run(["hstop"], stdout=PIPE, stderr=STDOUT)
