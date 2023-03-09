@@ -1000,7 +1000,7 @@ def _validation_test_files(files_string, comma=True):
                     dfs.append(pd.read_csv(filepath, header=None, index_col=False))
         if dfs:
             df = pd.concat(dfs)
-            wavfiles = set(df.loc[df[3]=="annotated"][0])
+            wavfiles = sorted(list(set(df.loc[df[3]=="annotated"][0])))
             return [','.join(wavfiles)] if comma else list(wavfiles)
     elif os.path.dirname(files_string.rstrip('/')) == V.groundtruth_folder.value.rstrip('/'):
         dfs = []
@@ -1010,7 +1010,7 @@ def _validation_test_files(files_string, comma=True):
                 dfs.append(pd.read_csv(filepath, header=None, index_col=False))
         if dfs:
             df = pd.concat(dfs)
-            wavfiles = set(df.loc[df[3]=="annotated"][0])
+            wavfiles = sorted(list(set(df.loc[df[3]=="annotated"][0])))
             return [','.join(wavfiles)] if comma else list(wavfiles)
     elif files_string.lower().endswith('.wav'):
         return [files_string] if comma else files_string.split(',')
