@@ -1,4 +1,4 @@
-#!/usr/bin/env bash
+#!/usr/bin/env python3
 
 # launch the graphical user interface
  
@@ -8,22 +8,16 @@
 # e.g.
 # $SONGEXPLORER_BIN songexplorer `pwd`/configuration.pysh 5006
 
-configuration_file=$1
-port=$2
-
-source $configuration_file
-
-DIR="$( cd "$( dirname "$(readlink -f ${BASH_SOURCE[0]})" )" >/dev/null 2>&1 && pwd )"
-
-readarray pyout < <(python3 - <<DONE
 import os
 import sys
 import tensorflow as tf
 import psutil
-from subprocess import run, PIPE, Popen
+from subprocess import run, PIPE, DEVNULL
 import socket
 
-exec(open("$configuration_file").read(), globals())
+_, configuration_file, port = sys.argv
+
+exec(open(configuration_file).read(), globals())
 
 local_ncpu_cores = os.cpu_count()
 local_ngpu_cards = len(tf.config.list_physical_devices("GPU"))
@@ -161,102 +155,68 @@ for resource_kind in ["ncpu_cores", "ngpu_cards", "ngigabytes_memory"]:
                         str(server_resource_value)+" "+server_resource_name)
 
 
-with open(os.path.join("$DIR","..","VERSION.txt"), 'r') as fid:
+repodir = os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
+with open(os.path.join(repodir,"VERSION.txt"), 'r') as fid:
     version = fid.read().replace('\n', ' ')
 print("SongExplorer version: "+version)
-
-allow_websocket="--allow-websocket-origin=localhost:$port"
+allow_websockets=["localhost:"+port]
 ipaddr="noIPv4s"
 
 thisip = socket.gethostbyname(socket.gethostname())
-allow_websocket += " --allow-websocket-origin="+thisip+":$port"
+allow_websockets.append(thisip+":"+port)
 ipaddr=thisip
 
 thisip = socket.gethostname()
-allow_websocket += " --allow-websocket-origin="+thisip+":$port"
+allow_websockets.append(thisip+":"+port)
 ipaddr=thisip
 
-print(ipaddr+":$port")
+print(ipaddr+":"+port)
 
-print(allow_websocket)
-DONE
-)
 
-for x in "${pyout[@]}"; do
-    if [[ "$x" =~ allow-websocket-origin.* ]] ; then
-        allow_websocket=$x
-    elif [[ "$x" =~ detected.*local.* ]] ; then
-        local_ncpu_cores=${x% local_ncpu_cores*}
-        local_ncpu_cores=${local_ncpu_cores##* }
-        local_ngpu_cards=${x% local_ngpu_cards*}
-        local_ngpu_cards=${local_ngpu_cards##* }
-        local_ngigabytes_memory=${x% local_ngigabytes_memory*}
-        local_ngigabytes_memory=${local_ngigabytes_memory##* }
-        echo $x
-    elif [[ "$x" =~ detected.*server* ]] ; then
-        server_ncpu_cores=${x% server_ncpu_cores*}
-        server_ncpu_cores=${server_ncpu_cores##* }
-        server_ngpu_cards=${x% server_ngpu_cards*}
-        server_ngpu_cards=${server_ngpu_cards##* }
-        server_ngigabytes_memory=${x% server_ngigabytes_memory*}
-        server_ngigabytes_memory=${server_ngigabytes_memory##* }
-        echo $x
-    fi
-done
+p = run(["hnslots"], stdout=PIPE, stderr=DEVNULL)
+if p.returncode==1:
+    run(["hstart",
+          str(local_ncpu_cores)+','+str(local_ngpu_cards)+','+str(local_ngigabytes_memory)])
+else:
+    nslots = [int(x) for x in p.stdout.decode('ascii').rstrip().split(',')]
+    if nslots != [local_ncpu_cores, local_ngpu_cards, local_ngigabytes_memory]:
+        print("WARNING: SongExplorer's scheduler is already running with local_ncpu_cores, local_ngpu_cards, and local_ngigabytes_memory set to "+str(nslots)+" respectively, which is different than specified in the configuration file.  To use the latter instead, quit SongExplorer, execute `$SONGEXPLORER_BIN hstop`, and restart SongExplorer.")
 
-trap "trap \"\" INT TERM KILL STOP HUP; \
-      local_njobs=\`hjobs | wc -l\`; \
-      if [[ \\\$\? && (( \"\$local_njobs\" > 1 )) ]] ; then \
-          echo WARNING: jobs are still queued locally; \
-          echo to kill them execute \\\`\\\$SONGEXPLORER_BIN hstop --force\\\`; \
-          echo to stop SongExplorer\'s scheduler, wait until they are done and execute \\\`\\\$SONGEXPLORER_BIN hstop\\\`; \
-      else \
-          hstop; \
-      fi; \
-      if [[ -n \"$server_ipaddr\" ]] ; then \
-        server_njobs=\`ssh -l $server_username $server_ipaddr \"export SINGULARITYENV_PREPEND_PATH=$source_path; \\\\\\\$SONGEXPLORER_BIN hjobs | wc -l\"\`; \
-        if [[ \\\$\? && (( \"\$server_njobs\" > 1 )) ]] ; then \
-            echo WARNING: jobs are still queued on the server; \
-            echo to kill them execute \\\`ssh -l $server_username $server_ipaddr \\\$SONGEXPLORER_BIN hstop --force\\\`; \
-            echo to stop SongExplorer\'s scheduler, wait until they are done and execute \\\`ssh -l $server_username $server_ipaddr \\\$SONGEXPLORER_BIN hstop\\\`; \
-        else \
-            ssh -l $server_username $server_ipaddr \"export SINGULARITYENV_PREPEND_PATH=$source_path; \\\$SONGEXPLORER_BIN hstop\"; \
-        fi; \
-      fi" INT TERM KILL STOP HUP
+if server_ipaddr:
+    p = Popen(["ssh", "-l", server_username, server_ipaddr,
+               "export SINGULARITYENV_PREPEND_PATH="+source_path+";",
+               "$SONGEXPLORER_BIN", "hnslots"], stdout=PIPE, stderr=DEVNULL)
+    if p.returncode==1:
+        Popen(["ssh", "-l", server_username, server_ipaddr,
+               "export SINGULARITYENV_PREPEND_PATH="+source_path+";",
+               "$SONGEXPLORER_BIN", "hstart",
+               str(server_ncpu_cores)+','+str(server_ngpu_cards)+','+str(server_ngigabytes_memory)])
+    else:
+        nslots = [int(x) for x in p.stdout.decode('ascii').rstrip().split(',')]
+        if nslots != [server_ncpu_cores, server_ngpu_cards, server_ngigabytes_memory]:
+            print("WARNING: SongExplorer's scheduler is already running with server_ncpu_cores, server_ngpu_cards, and server_ngigabytes_memory set to "+str(nslots)+" respectively, which is different than specified in the configuration file.  To use the latter instead, quit SongExplorer, execute `ssh -l "+server_username+" "+server_ipaddr+" $SONGEXPLORER_BIN hstop`, and restart SongExplorer.")
 
-aitch_nslots=`hnslots 2>/dev/null`
-aitch_isrunning=$?
-if [[ "$aitch_isrunning" != 0 ]] ; then
-    hstart $local_ncpu_cores,$local_ngpu_cards,$local_ngigabytes_memory >/dev/null
-elif [[ "$aitch_nslots" != "$local_ncpu_cores,$local_ngpu_cards,$local_ngigabytes_memory" ]] ; then
+try:
+    run(["bokeh", "serve", \
+         *[x for y in [["--allow-websocket-origin", x] for x in allow_websockets] for x in y],
+          "--show", os.path.join(repodir, "src", "gui"), \
+          "--port", port, \
+          "--args", version, \
+      configuration_file])
 
-    echo WARNING: SongExplorer\'s scheduler is already running with local_ncpu_cores,
-    echo local_ngpu_cards, and local_ngigabytes_memory set to ${aitch_nslots//,/ },
-    echo respectively, which is different than specified in the configuration
-    echo file.  To use the latter instead, quit SongExplorer, execute
-    echo \`\$SONGEXPLORER_BIN hstop\`, and restart SongExplorer.
-fi
-
-if [[ -n "$server_ipaddr" ]] ; then
-    aitch_nslots=`ssh -l $server_username $server_ipaddr "export SINGULARITYENV_PREPEND_PATH=$source_path; \\\$SONGEXPLORER_BIN hnslots 2>/dev/null"`
-    aitch_isrunning=$?
-    if [[ "$aitch_isrunning" != 0 ]] ; then
-        ssh -l $server_username $server_ipaddr "export SINGULARITYENV_PREPEND_PATH=$source_path; \$SONGEXPLORER_BIN hstart \
-                $server_ncpu_cores,$server_ngpu_cards,$server_ngigabytes_memory >/dev/null" &
-    elif [[ "$aitch_nslots" != "$server_ncpu_cores,$server_ngpu_cards,$server_ngigabytes_memory" ]] ; then
-
-        echo WARNING: SongExplorer\'s scheduler is already running on
-        echo $server_ipaddr with server_ncpu_cores, server_ngpu_cards, and
-        echo server_ngigabytes_memory set to ${aitch_nslots//,/ }, respectively, which
-        echo is different than specified in the configuration file.  To use
-        echo the latter instead, quit SongExplorer, execute \`ssh -l $server_username
-        echo $server_ipaddr \$SONGEXPLORER_BIN hstop\`, and restart SongExplorer.
-
-    fi
-fi
-
-bokeh serve \
-      $allow_websocket \
-      --show $DIR/gui \
-      --port $port \
-      --args "$(cat $DIR/../VERSION.txt)" $configuration_file
+except KeyboardInterrupt:
+    p = run(["hjobs"], stdout=PIPE, stderr=DEVNULL)
+    if len(p.stdout.decode('ascii').splitlines()) - 1 > 0:
+        print("WARNING: jobs are still queued locally; to kill them execute `$SONGEXPLORER_BIN hstop --force`; to stop SongExplorer's scheduler, wait until they are done and execute `$SONGEXPLORER_BIN hstop`")
+    else:
+        run(["hstop"])
+    if server_ipaddr:
+        p = Popen(["ssh", "-l", server_username, server_ipaddr,
+                   "export SINGULARITYENV_PREPEND_PATH="+source_path+";",
+                   "$SONGEXPLORER_BIN", "hjobs"], stdout=PIPE, stderr=DEVNULL)
+        if len(p.stdout.decode('ascii').splitlines()) - 1 > 0:
+            print("WARNING: jobs are still queued on the server; to kill them execute `ssh -l "+server_username+" "+server_ipaddr+" $SONGEXPLORER_BIN hstop --force`; to stop SongExplorer's scheduler, wait until they are done and execute `ssh -l "+server_username+" "+server_ipaddr+" $SONGEXPLORER_BIN $SONGEXPLORER_BIN hstop`")
+        else:
+            Popen(["ssh", "-l", server_username, server_ipaddr,
+                   "export SINGULARITYENV_PREPEND_PATH="+source_path+";",
+                   "$SONGEXPLORER_BIN", "hstop"])
