@@ -2,16 +2,21 @@
 
 # reduce dimensionality of internal activation states
 
-# cluster <groundtruth-directory> <which-layers-to-cluster> <pca-fraction-variance-to-retain> <pca-batch_size> <cluster-algorithm> <cluster-num-dimensions> <cluster-parallelize> [ <tsne-perplexity> <tsne-exaggeration> | <umap-n-neighbors> <umap-min-distance> ]
-
 # e.g.
-# cluster `pwd`/groundtruth-data 3 0.99 5 tSNE 2 1 30 12.0
-# cluster `pwd`/groundtruth-data 0,1,2,3,4 1 5 UMAP 3 0 10 0.1
-
+# $SONGEXPLORER_BIN cluster \
+#     --data_dir=`pwd`/groundtruth-data \
+#     --layers=0,1,2,3,4 \
+#     --pca_fraction_variance_to_retain=1 \
+#     --pca_batch_size=5 \
+#     --algorithm=UMAP \
+#     --ndims=3 \
+#     --parallelize=0 \
+#     --kwargs='{"n_neighbors": 10, "min_distance": 0.1}'
+ 
+import argparse
 import os
 import numpy as np
 import sys
-from sys import argv
 from sklearn.decomposition import PCA, IncrementalPCA
 from umap import UMAP
 from sklearn.manifold import TSNE
@@ -20,181 +25,190 @@ from datetime import datetime
 import socket
 from itertools import repeat
 
-repodir = os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
+import json
 
-def do_cluster(activations_tocluster, ilayer, these_layers, cluster_algorithm, cluster_ndims, cluster_args):
-  if cluster_algorithm=="PCA":
-    return activations_tocluster[ilayer][:,:cluster_ndims]
-  elif cluster_algorithm=="tSNE":
+def do_cluster(activations_tocluster, ilayer, layers, algorithm, ndims, kwargs):
+  if algorithm=="PCA":
+    return activations_tocluster[ilayer][:,:ndims]
+  elif algorithm=="tSNE":
     print("reducing dimensionality with t-SNE...")
-    if ilayer in these_layers:
-      return TSNE(n_components=cluster_ndims, verbose=3, \
-                        perplexity=cluster_args[0], \
-                        early_exaggeration=cluster_args[1] \
+    if ilayer in layers:
+      return TSNE(n_components=ndims, verbose=3, \
+                        perplexity=kwargs["perplexity"], \
+                        early_exaggeration=kwargs["exaggeration"] \
                        ).fit_transform(activations_tocluster[ilayer])
     else:
       return None
-  elif cluster_algorithm=="UMAP":
+  elif algorithm=="UMAP":
     print("reducing dimensionality with UMAP...")
-    if ilayer in these_layers:
-      return UMAP(n_components=cluster_ndims, verbose=3, \
-                  n_neighbors=cluster_args[0], \
-                  min_dist=cluster_args[1] \
+    if ilayer in layers:
+      return UMAP(n_components=ndims, verbose=3, \
+                  n_neighbors=kwargs["n_neighbors"], \
+                  min_dist=kwargs["min_distance"] \
                  ).fit_transform(activations_tocluster[ilayer])
     else:
       return None
 
+FLAGS = None
 
+def main():
+  flags = vars(FLAGS)
+  for key in sorted(flags.keys()):
+    print('%s = %s' % (key, flags[key]))
+
+  layers = [int(x) for x in FLAGS.layers.split(',')]
+
+  if FLAGS.algorithm not in ["PCA", "tSNE", "UMAP"]:
+    print('cluster_algorithm must be one of PCA, tSNE or UMAP')
+    exit()
+
+  print("loading data...")
+  activations=[]
+  npzfile = np.load(os.path.join(FLAGS.data_dir, 'activations.npz'),
+                    allow_pickle=True)
+  sounds = npzfile['sounds']
+  for arr_ in natsorted(filter(lambda x: x.startswith('arr_'), npzfile.files)):
+    activations.append(npzfile[arr_])
+
+  nlayers = len(activations)
+
+  kinds = set([x['kind'] for x in sounds])
+  labels = set([x['label'] for x in sounds])
+  print('label counts')
+  for kind in kinds:
+    print(kind)
+    for label in labels:
+      count = sum([label==x['label'] and kind==x['kind'] for x in sounds])
+      print(count,label)
+
+
+  activations_flattened = [None]*nlayers
+  for ilayer in range(nlayers):
+    if ilayer not in layers:
+      continue
+    nsounds = np.shape(activations[ilayer])[0]
+    activations_flattened[ilayer] = np.reshape(activations[ilayer],(nsounds,-1))
+    print(np.shape(activations_flattened[ilayer]))
+
+
+  fits_pca = [None]*nlayers
+  if FLAGS.pca_fraction_variance_to_retain<1 or FLAGS.algorithm=="PCA":
+    print("reducing dimensionality with PCA...")
+
+    activations_scaled = [None]*nlayers
+    for ilayer in range(nlayers):
+      if ilayer not in layers:
+        continue
+      mu = np.mean(activations_flattened[ilayer], axis=0)
+      sigma = np.std(activations_flattened[ilayer], axis=0)
+      activations_scaled[ilayer] = (activations_flattened[ilayer]-mu)/sigma
+      if FLAGS.pca_batch_size==0:
+        pca = PCA()
+      else:
+        nfeatures = np.shape(activations_scaled[ilayer])[1]
+        pca = IncrementalPCA(batch_size=FLAGS.pca_batch_size*nfeatures)
+      fits_pca[ilayer] =  pca.fit(activations_scaled[ilayer])
+      print(np.shape(fits_pca[ilayer]))
+
+    import matplotlib as mpl
+    mpl.use('Agg')
+    import matplotlib.pyplot as plt
+    #plt.ion()
+
+    activations_kept = [None]*nlayers
+    fig = plt.figure()
+    ax = fig.add_subplot(111)
+    for ilayer in range(nlayers):
+      if ilayer not in layers:
+        continue
+      cumsum = np.cumsum(fits_pca[ilayer].explained_variance_ratio_)
+      ncomponents = np.where(cumsum>=FLAGS.pca_fraction_variance_to_retain)[0][0]
+      line, = ax.plot(cumsum)
+      activations_transformed = fits_pca[ilayer].transform(activations_scaled[ilayer])
+      if FLAGS.algorithm=="PCA":
+        line.set_label('layer '+str(ilayer)+', n='+str(np.shape(activations_transformed)[1]))
+        activations_kept[ilayer] = activations_transformed
+      else:
+        line.set_label('layer '+str(ilayer)+', n='+str(ncomponents+1))
+        activations_kept[ilayer] = activations_transformed[:,0:ncomponents+1]
+
+    ax.set_ylabel('cumsum explained variance')
+    ax.set_xlabel('# of components')
+    ax.legend(loc='lower right')
+    plt.savefig(os.path.join(FLAGS.data_dir, 'cluster-pca.pdf'))
+
+    activations_tocluster = activations_kept
+  else:
+    activations_tocluster = activations_flattened
+
+  if FLAGS.parallelize!=0:
+    from multiprocessing import Pool
+    nprocs = os.cpu_count() if FLAGS.parallelize==-1 else FLAGS.parallelize
+    with Pool(min(nprocs,nlayers)) as p:
+      activations_clustered = p.starmap(do_cluster,
+                                        zip(repeat(activations_tocluster),
+                                            range(len(activations_tocluster)),
+                                            repeat(layers),
+                                            repeat(FLAGS.algorithm),
+                                            repeat(FLAGS.ndims),
+                                            repeat(FLAGS.kwargs)))
+  else:
+    activations_clustered = [None]*nlayers
+    for ilayer in layers:
+      print('layer '+str(ilayer))
+      activations_clustered[ilayer] = do_cluster(activations_tocluster, \
+                                                 ilayer, \
+                                                 FLAGS.algorithm, \
+                                                 FLAGS.ndims, \
+                                                 FLAGS.kwargs)
+
+  np.savez(os.path.join(FLAGS.data_dir, 'cluster'), \
+           sounds=sounds,
+           activations_clustered=activations_clustered,
+           fits_pca=fits_pca)
+  
 if __name__ == "__main__":
+  parser = argparse.ArgumentParser()
+  parser.add_argument(
+      '--data_dir',
+      type=str)
+  parser.add_argument(
+      '--layers',
+      type=str)
+  parser.add_argument(
+      '--pca_fraction_variance_to_retain',
+      type=float)
+  parser.add_argument(
+      '--pca_batch_size',
+      type=int)
+  parser.add_argument(
+      '--algorithm',
+      type=str,
+      default='UMAP')
+  parser.add_argument(
+      '--ndims',
+      type=int,
+      default=2)
+  parser.add_argument(
+      '--parallelize',
+      type=int,
+      default=0)
+  parser.add_argument(
+      '--kwargs',
+      type=json.loads,
+      default='{"n_neighbors": 10, "min_distance": 0.1}')
+
+  FLAGS, unparsed = parser.parse_known_args()
 
   print(str(datetime.now())+": start time")
+  repodir = os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
   with open(os.path.join(repodir, "VERSION.txt"), 'r') as fid:
     print('SongExplorer version = '+fid.read().strip().replace('\n',', '))
   print("hostname = "+socket.gethostname())
   
   try:
-  
-    _, groundtruth_directory, these_layers, pca_fraction_variance_to_retain, pca_batch_size, cluster_algorithm, cluster_ndims, cluster_parallelize = argv[:8]
-    print('groundtruth_directory: '+groundtruth_directory)
-    print('these_layers: '+these_layers)
-    print('pca_fraction_variance_to_retain: '+pca_fraction_variance_to_retain)
-    print('pca_batch_size: '+pca_batch_size)
-    print('cluster_algorithm: '+cluster_algorithm)
-    print('cluster_ndims: '+cluster_ndims)
-    print('cluster_parallelize: '+cluster_parallelize)
-    these_layers = [int(x) for x in these_layers.split(',')]
-    pca_fraction_variance_to_retain = float(pca_fraction_variance_to_retain)
-    pca_batch_size = int(pca_batch_size)
-    cluster_ndims = int(cluster_ndims)
-    cluster_parallelize = int(cluster_parallelize)
-    if cluster_algorithm=="PCA":
-      None
-    elif cluster_algorithm=="tSNE":
-      tsne_perplexity, tsne_exaggeration = argv[8:]
-      print('tsne_perplexity: '+tsne_perplexity)
-      print('tsne_exaggeration: '+tsne_exaggeration)
-      tsne_perplexity = int(tsne_perplexity)
-      tsne_exaggeration = float(tsne_exaggeration)
-    elif cluster_algorithm=="UMAP":
-      umap_n_neighbors, umap_min_distance = argv[8:]
-      print('umap_n_neighbors: '+umap_n_neighbors)
-      print('umap_min_distance: '+umap_min_distance)
-      umap_n_neighbors = int(umap_n_neighbors)
-      umap_min_distance = float(umap_min_distance)
-    else:
-      print('cluster_algorithm must be one of PCA, tSNE or UMAP')
-      exit()
-  
-  
-    print("loading data...")
-    activations=[]
-    npzfile = np.load(os.path.join(groundtruth_directory, 'activations.npz'),
-                      allow_pickle=True)
-    sounds = npzfile['sounds']
-    for arr_ in natsorted(filter(lambda x: x.startswith('arr_'), npzfile.files)):
-      activations.append(npzfile[arr_])
-  
-    nlayers = len(activations)
-  
-    kinds = set([x['kind'] for x in sounds])
-    labels = set([x['label'] for x in sounds])
-    print('label counts')
-    for kind in kinds:
-      print(kind)
-      for label in labels:
-        count = sum([label==x['label'] and kind==x['kind'] for x in sounds])
-        print(count,label)
- 
+    main()
 
-    activations_flattened = [None]*nlayers
-    for ilayer in range(nlayers):
-      if ilayer not in these_layers:
-        continue
-      nsounds = np.shape(activations[ilayer])[0]
-      activations_flattened[ilayer] = np.reshape(activations[ilayer],(nsounds,-1))
-      print(np.shape(activations_flattened[ilayer]))
-  
-  
-    fits_pca = [None]*nlayers
-    if pca_fraction_variance_to_retain<1 or cluster_algorithm=="PCA":
-      print("reducing dimensionality with PCA...")
-  
-      activations_scaled = [None]*nlayers
-      for ilayer in range(nlayers):
-        if ilayer not in these_layers:
-          continue
-        mu = np.mean(activations_flattened[ilayer], axis=0)
-        sigma = np.std(activations_flattened[ilayer], axis=0)
-        activations_scaled[ilayer] = (activations_flattened[ilayer]-mu)/sigma
-        if pca_batch_size==0:
-          pca = PCA()
-        else:
-          nfeatures = np.shape(activations_scaled[ilayer])[1]
-          pca = IncrementalPCA(batch_size=pca_batch_size*nfeatures)
-        fits_pca[ilayer] =  pca.fit(activations_scaled[ilayer])
-        print(np.shape(fits_pca[ilayer]))
-  
-      import matplotlib as mpl
-      mpl.use('Agg')
-      import matplotlib.pyplot as plt
-      #plt.ion()
-  
-      activations_kept = [None]*nlayers
-      fig = plt.figure()
-      ax = fig.add_subplot(111)
-      for ilayer in range(nlayers):
-        if ilayer not in these_layers:
-          continue
-        cumsum = np.cumsum(fits_pca[ilayer].explained_variance_ratio_)
-        ncomponents = np.where(cumsum>=pca_fraction_variance_to_retain)[0][0]
-        line, = ax.plot(cumsum)
-        activations_transformed = fits_pca[ilayer].transform(activations_scaled[ilayer])
-        if cluster_algorithm=="PCA":
-          line.set_label('layer '+str(ilayer)+', n='+str(np.shape(activations_transformed)[1]))
-          activations_kept[ilayer] = activations_transformed
-        else:
-          line.set_label('layer '+str(ilayer)+', n='+str(ncomponents+1))
-          activations_kept[ilayer] = activations_transformed[:,0:ncomponents+1]
-  
-      ax.set_ylabel('cumsum explained variance')
-      ax.set_xlabel('# of components')
-      ax.legend(loc='lower right')
-      plt.savefig(os.path.join(groundtruth_directory, 'cluster-pca.pdf'))
-  
-      activations_tocluster = activations_kept
-    else:
-      activations_tocluster = activations_flattened
-  
-    def get_cluster_args(cluster_algorithm):
-      if cluster_algorithm=="PCA":
-        return []
-      elif cluster_algorithm=="tSNE":
-        return [tsne_perplexity, tsne_exaggeration]
-      elif cluster_algorithm=="UMAP":
-        return [umap_n_neighbors, umap_min_distance]
-
-    if cluster_parallelize!=0:
-      from multiprocessing import Pool
-      nprocs = os.cpu_count() if cluster_parallelize==-1 else cluster_parallelize
-      with Pool(min(nprocs,nlayers)) as p:
-        activations_clustered = p.starmap(do_cluster,
-                                          zip(repeat(activations_tocluster),
-                                              range(len(activations_tocluster)),
-                                              repeat(these_layers),
-                                              repeat(cluster_algorithm),
-                                              repeat(cluster_ndims),
-                                              repeat(get_cluster_args(cluster_algorithm))))
-    else:
-      activations_clustered = [None]*nlayers
-      for ilayer in these_layers:
-        print('layer '+str(ilayer))
-        activations_clustered[ilayer] = do_cluster(activations_tocluster, ilayer, cluster_algorithm, cluster_ndims, get_cluster_args(cluster_algorithm))
-  
-    np.savez(os.path.join(groundtruth_directory, 'cluster'), \
-             sounds=sounds,
-             activations_clustered=activations_clustered,
-             fits_pca=fits_pca)
-  
   except Exception as e:
     print(e)
   

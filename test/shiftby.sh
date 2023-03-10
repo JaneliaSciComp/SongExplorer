@@ -39,20 +39,41 @@ ireplicates=1
 mkdir $logdir
 
 cmd="train \
-      $context_ms $shiftby_ms \
-      $optimizer $learning_rate \
-      $audio_read_plugin $audio_read_plugin_kwargs \
-      $video_read_plugin $video_read_plugin_kwargs \
-      $video_findfile_plugin $video_bkg_frames \
-      $data_loader_queuesize $data_loader_maxprocs \
-      $architecture '$model_parameters' \
-      $logdir $data_dir $labels_touse $kinds_touse \
-      $nsteps '$restore_from' $save_and_test_period $validation_percentage \
-      $mini_batch '$testing_files' \
-      $audio_tic_rate $audio_nchannels \
-      $video_frame_rate $video_frame_width $video_frame_height $video_channels \
-      $batch_seed $weights_seed $deterministic ''  $ireplicates \
-      True"
+     --context_ms=$context_ms \
+     --shiftby_ms=$shiftby_ms \
+     --optimizer=$optimizer \
+     --learning_rate=$learning_rate \
+     --audio_read_plugin=$audio_read_plugin \
+     --audio_read_plugin_kwargs=$audio_read_plugin_kwargs \
+     --video_read_plugin=$video_read_plugin \
+     --video_read_plugin_kwargs=$video_read_plugin_kwargs \
+     --video_findfile_plugin=$video_findfile_plugin \
+     --video_bkg_frames=$video_bkg_frames \
+     --data_loader_queuesize=$data_loader_queuesize \
+     --data_loader_maxprocs=$data_loader_maxprocs \
+     --model_architecture=$architecture \
+     --model_parameters='$model_parameters' \
+     --logdir=$logdir \
+     --data_dir=$data_dir \
+     --labels_touse=$labels_touse \
+     --kinds_touse=$kinds_touse \
+     --nsteps=$nsteps \
+     --restore_from='$restore_from' \
+     --save_and_test_period=$save_and_test_period \
+     --validation_percentage=$validation_percentage \
+     --mini_batch=$mini_batch \
+     --testing_files='$testing_files' \
+     --audio_tic_rate=$audio_tic_rate \
+     --audio_nchannels=$audio_nchannels \
+     --video_frame_rate=$video_frame_rate \
+     --video_frame_width=$video_frame_width \
+     --video_frame_height=$video_frame_height \
+     --video_channels=$video_channels \
+     --batch_seed=$batch_seed \
+     --weights_seed=$weights_seed \
+     --deterministic=$deterministic \
+     --ireplicates=$ireplicates \
+     --save_fingerprints=0"
 echo $cmd &> $logdir/train1.log
 eval $cmd &> $logdir/train1.log
 
@@ -61,19 +82,40 @@ logdir=$repo_path/test/scratch/shiftby/shiftby-$shiftby_ms
 mkdir $logdir
 
 cmd="train \
-      $context_ms $shiftby_ms \
-      $optimizer $learning_rate \
-      $audio_read_plugin $audio_read_plugin_kwargs \
-      $video_read_plugin $video_read_plugin_kwargs \
-      $video_findfile_plugin $video_bkg_frames \
-      $data_loader_queuesize $data_loader_maxprocs \
-      $architecture '$model_parameters' \
-      $logdir $data_dir $labels_touse $kinds_touse \
-      $nsteps '$restore_from' $save_and_test_period $validation_percentage \
-      $mini_batch '$testing_files' \
-      $audio_tic_rate $audio_nchannels \
-      $video_frame_rate $video_frame_width $video_frame_height $video_channels \
-      $batch_seed $weights_seed $deterministic ''  $ireplicates \
-      True"
+     --context_ms=$context_ms \
+     --shiftby_ms=$shiftby_ms \
+     --optimizer=$optimizer \
+     --learning_rate=$learning_rate \
+     --audio_read_plugin=$audio_read_plugin \
+     --audio_read_plugin_kwargs=$audio_read_plugin_kwargs \
+     --video_read_plugin=$video_read_plugin \
+     --video_read_plugin_kwargs=$video_read_plugin_kwargs \
+     --video_findfile_plugin=$video_findfile_plugin \
+     --video_bkg_frames=$video_bkg_frames \
+     --data_loader_queuesize=$data_loader_queuesize \
+     --data_loader_maxprocs=$data_loader_maxprocs \
+     --architecture=$architecture \
+     --model_parameters='$model_parameters' \
+     --logdir=$logdir \
+     --data_dir=$data_dir \
+     --labels_touse=$labels_touse \
+     --kinds_touse=$kinds_touse \
+     --nsteps=$nsteps \
+     --restore_from='$restore_from' \
+     --save_and_test_period=$save_and_test_period \
+     --validation_percentage=$validation_percentage \
+     --mini_batch=$mini_batch \
+     --testing_files='$testing_files' \
+     --audio_tic_rate=$audio_tic_rate \
+     --audio_nchannels=$audio_nchannels \
+     --video_frame_rate=$video_frame_rate \
+     --video_frame_width=$video_frame_width \
+     --video_frame_height=$video_frame_height \
+     --video_channels=$video_channels \
+     --batch_seed=$batch_seed \
+     --weights_seed=$weights_seed \
+     --deterministic=$deterministic \
+     --ireplicates=$ireplicates \
+     --save_fingerprints=0"
 echo $cmd &> $logdir/train1.log
 eval $cmd &> $logdir/train1.log

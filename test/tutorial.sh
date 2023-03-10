@@ -39,10 +39,12 @@ cp $repo_path/data/PS_20130625111709_ch3.wav \
 wavpath_noext=$repo_path/test/scratch/tutorial-sh/groundtruth-data/round1/PS_20130625111709_ch3
 detect_parameters='{"time_sigma":"9,4","time_smooth_ms":"6.4","frequency_n_ms":"25.6","frequency_nw":"4","frequency_p":"0.1,1.0","frequency_smooth_ms":"25.6","time_sigma_robust":"median"}'
 cmd="${detect_plugin}.py \
-      ${wavpath_noext}.wav \
-      '$detect_parameters' \
-      $audio_tic_rate $audio_nchannels \
-      $audio_read_plugin $audio_read_plugin_kwargs"
+      --filename=${wavpath_noext}.wav \
+      --parameters='$detect_parameters' \
+      --audio_tic_rate=$audio_tic_rate \
+      --audio_nchannels=$audio_nchannels \
+      --audio_read_plugin=$audio_read_plugin \
+      --audio_read_plugin_kwargs=$audio_read_plugin_kwargs"
 echo $cmd &>> ${wavpath_noext}-detect.log
 eval $cmd &>> ${wavpath_noext}-detect.log
 
@@ -76,20 +78,40 @@ weights_seed=1
 ireplicates=1
 mkdir $logdir
 cmd="train \
-      $context_ms $shiftby_ms \
-      $optimizer $learning_rate  \
-      $audio_read_plugin $audio_read_plugin_kwargs \
-      $video_read_plugin $video_read_plugin_kwargs \
-      $video_findfile_plugin $video_bkg_frames \
-      $data_loader_queuesize $data_loader_maxprocs \
-      $architecture '$model_parameters' \
-      $logdir $data_dir $labels_touse $kinds_touse \
-      $nsteps '$restore_from' $save_and_test_period $validation_percentage \
-      $mini_batch '$testing_files' \
-      $audio_tic_rate $audio_nchannels \
-      $video_frame_rate $video_frame_width $video_frame_height $video_channels \
-      $batch_seed $weights_seed $deterministic '' \
-      $ireplicates"
+     --context_ms=$context_ms \
+     --shiftby_ms=$shiftby_ms \
+     --optimizer=$optimizer \
+     --learning_rate=$learning_rate  \
+     --audio_read_plugin=$audio_read_plugin \
+     --audio_read_plugin_kwargs=$audio_read_plugin_kwargs \
+     --video_read_plugin=$video_read_plugin \
+     --video_read_plugin_kwargs=$video_read_plugin_kwargs \
+     --video_findfile_plugin=$video_findfile_plugin \
+     --video_bkg_frames=$video_bkg_frames \
+     --data_loader_queuesize=$data_loader_queuesize \
+     --data_loader_maxprocs=$data_loader_maxprocs \
+     --model_architecture=$architecture \
+     --model_parameters='$model_parameters' \
+     --logdir=$logdir \
+     --data_dir=$data_dir \
+     --labels_touse=$labels_touse \
+     --kinds_touse=$kinds_touse \
+     --nsteps=$nsteps \
+     --restore_from='$restore_from' \
+     --save_and_test_period=$save_and_test_period \
+     --validation_percentage=$validation_percentage \
+     --mini_batch=$mini_batch \
+     --testing_files='$testing_files' \
+     --audio_tic_rate=$audio_tic_rate \
+     --audio_nchannels=$audio_nchannels \
+     --video_frame_rate=$video_frame_rate \
+     --video_frame_width=$video_frame_width \
+     --video_frame_height=$video_frame_height \
+     --video_channels=$video_channels \
+     --batch_seed=$batch_seed \
+     --weights_seed=$weights_seed \
+     --deterministic=$deterministic \
+     --ireplicates=$ireplicates"
 echo $cmd &>> $logdir/train1.log
 eval $cmd &>> $logdir/train1.log
 
@@ -99,8 +121,11 @@ check_file_exists $logdir/train_1r/ckpt-$nsteps.index
 check_file_exists $logdir/train_1r/logits.validation.ckpt-$nsteps.npz
 
 precision_recall_ratios=0.5,1.0,2.0
-cmd="accuracy $logdir $precision_recall_ratios \
-      $nprobabilities $accuracy_parallelize"
+cmd="accuracy \
+     --logdir=$logdir \
+     --error_ratios=$precision_recall_ratios \
+     --nprobabilities=$nprobabilities \
+     --parallelize=$accuracy_parallelize"
 echo $cmd &>> $logdir/accuracy.log
 eval $cmd &>> $logdir/accuracy.log
 
@@ -181,10 +206,12 @@ count_lines_with_label ${wavpath_noext}-predicted-1.0pr.csv mel-sine 767 WARNING
 count_lines_with_label ${wavpath_noext}-predicted-1.0pr.csv ambient 124 WARNING
 
 cmd="${detect_plugin}.py\
-      ${wavpath_noext}.wav \
-      '$detect_parameters' \
-      $audio_tic_rate $audio_nchannels \
-      $audio_read_plugin $audio_read_plugin_kwargs"
+      --filename=${wavpath_noext}.wav \
+      --parameters='$detect_parameters' \
+      --audio_tic_rate=$audio_tic_rate \
+      --audio_nchannels=$audio_nchannels \
+      --audio_read_plugin=$audio_read_plugin \
+      --audio_read_plugin_kwargs=$audio_read_plugin_kwargs"
 echo $cmd &>> ${wavpath_noext}-detect.log
 eval $cmd &>> ${wavpath_noext}-detect.log
 
@@ -242,11 +269,16 @@ pca_batch_size=0
 cluster_algorithm=UMAP
 cluster_ndims=3
 cluster_parallelize=1
-cluster_args=(10 0.1)
+cluster_args='{\"n_neighbors\":10, \"min_distance\":0.1}'
 cmd="cluster \
-      $groundtruth_directory $these_layers \
-      $pca_fraction_variance_to_retain $pca_batch_size \
-      $cluster_algorithm $cluster_ndims $cluster_parallelize ${cluster_args[@]}"
+     --data_dir=$groundtruth_directory \
+     --layers=$these_layers \
+     --pca_fraction_variance_to_retain=$pca_fraction_variance_to_retain \
+     --pca_batch_size=$pca_batch_size \
+     --algorithm=$cluster_algorithm \
+     --ndims=$cluster_ndims \
+     --parallelize=$cluster_parallelize \
+     --kwargs=\"$cluster_args\""
 echo $cmd &>> $data_dir/cluster.log
 eval $cmd &>> $data_dir/cluster.log
 
@@ -262,19 +294,40 @@ mkdir $logdir
 ioffsets=$(seq 0 $(( "${#wavfiles[@]}" - 1 )) )
 for ioffset in $ioffsets ; do
   cmd="generalize \
-        $context_ms $shiftby_ms \
-        $optimizer $learning_rate \
-        $audio_read_plugin $audio_read_plugin_kwargs \
-        $video_read_plugin $video_read_plugin_kwargs \
-        $video_findfile_plugin $video_bkg_frames \
-        $data_loader_queuesize $data_loader_maxprocs \
-        $architecture '$model_parameters' \
-        $logdir $data_dir $labels_touse $kinds_touse \
-        $nsteps '$restore_from' $save_and_test_period $mini_batch \
-        '$testing_files' $audio_tic_rate $audio_nchannels \
-        $video_frame_rate $video_frame_width $video_frame_height $video_channels \
-        $batch_seed $weights_seed $deterministic '' \
-        $ioffset ${wavfiles[ioffset]}"
+       --context_ms=$context_ms \
+       --shiftby_ms=$shiftby_ms \
+       --optimizer=$optimizer \
+       --learning_rate=$learning_rate \
+       --audio_read_plugin=$audio_read_plugin \
+       --audio_read_plugin_kwargs=$audio_read_plugin_kwargs \
+       --video_read_plugin=$video_read_plugin \
+       --video_read_plugin_kwargs=$video_read_plugin_kwargs \
+       --video_findfile_plugin=$video_findfile_plugin \
+       --video_bkg_frames=$video_bkg_frames \
+       --data_loader_queuesize=$data_loader_queuesize \
+       --data_loader_maxprocs=$data_loader_maxprocs \
+       --model_architecture=$architecture \
+       --model_parameters='$model_parameters' \
+       --logdir=$logdir \
+       --data_dir=$data_dir \
+       --labels_touse=$labels_touse \
+       --kinds_touse=$kinds_touse \
+       --nsteps=$nsteps \
+       --restore_from='$restore_from' \
+       --save_and_test_period=$save_and_test_period \
+       --mini_batch=$mini_batch \
+       --testing_files='$testing_files' \
+       --audio_tic_rate=$audio_tic_rate \
+       --audio_nchannels=$audio_nchannels \
+       --video_frame_rate=$video_frame_rate \
+       --video_frame_width=$video_frame_width \
+       --video_frame_height=$video_frame_height \
+       --video_channels=$video_channels \
+       --batch_seed=$batch_seed \
+       --weights_seed=$weights_seed \
+       --deterministic=$deterministic '' \
+       --ioffset=$ioffset \
+       --subsets=${wavfiles[ioffset]}"
   echo $cmd &>> $logdir/generalize$(( "${ioffset}" + 1 )).log
   eval $cmd &>> $logdir/generalize$(( "${ioffset}" + 1 )).log
 done
@@ -287,8 +340,11 @@ for ioffset in $ioffsets ; do
   check_file_exists $logdir/generalize_${ioffset1}w/logits.validation.ckpt-$nsteps.npz
 done
 
-cmd="accuracy $logdir $precision_recall_ratios \
-      $nprobabilities $accuracy_parallelize"
+cmd="accuracy \
+     --logdir=$logdir \
+     --error_ratios=$precision_recall_ratios \
+     --nprobabilities=$nprobabilities \
+     --parallelize=$accuracy_parallelize"
 echo $cmd &>> $logdir/accuracy.log
 eval $cmd &>> $logdir/accuracy.log
 
@@ -316,19 +372,40 @@ for nfeatures in ${nfeaturess[@]} ; do
   mkdir $logdir
   for ifold in $ifolds ; do
     cmd="xvalidate \
-          $context_ms $shiftby_ms \
-          $optimizer $learning_rate  \
-          $audio_read_plugin $audio_read_plugin_kwargs \
-          $video_read_plugin $video_read_plugin_kwargs \
-          $video_findfile_plugin $video_bkg_frames \
-          $data_loader_queuesize $data_loader_maxprocs \
-          $architecture '$model_parameters' \
-          $logdir $data_dir $labels_touse $kinds_touse \
-          $nsteps '$restore_from' $save_and_test_period $mini_batch \
-          '$testing_files' $audio_tic_rate $audio_nchannels \
-          $video_frame_rate $video_frame_width $video_frame_height $video_channels \
-          $batch_seed $weights_seed $deterministic '' \
-          $kfold $ifold"
+         --context_ms=$context_ms \
+         --shiftby_ms=$shiftby_ms \
+         --optimizer=$optimizer \
+         --learning_rate=$learning_rate  \
+         --audio_read_plugin=$audio_read_plugin \
+         --audio_read_plugin_kwargs=$audio_read_plugin_kwargs \
+         --video_read_plugin=$video_read_plugin \
+         --video_read_plugin_kwargs=$video_read_plugin_kwargs \
+         --video_findfile_plugin=$video_findfile_plugin \
+         --video_bkg_frames=$video_bkg_frames \
+         --data_loader_queuesize=$data_loader_queuesize \
+         --data_loader_maxprocs=$data_loader_maxprocs \
+         --model_architecture=$architecture \
+         --model_parameters='$model_parameters' \
+         --logdir=$logdir \
+         --data_dir=$data_dir \
+         --labels_touse=$labels_touse \
+         --kinds_touse=$kinds_touse \
+         --nsteps=$nsteps \
+         --restore_from='$restore_from' \
+         --save_and_test_period=$save_and_test_period \
+         --mini_batch=$mini_batch \
+         --testing_files='$testing_files' \
+         --audio_tic_rate=$audio_tic_rate \
+         --audio_nchannels=$audio_nchannels \
+         --video_frame_rate=$video_frame_rate \
+         --video_frame_width=$video_frame_width \
+         --video_frame_height=$video_frame_height \
+         --video_channels=$video_channels \
+         --batch_seed=$batch_seed \
+         --weights_seed=$weights_seed \
+         --deterministic=$deterministic \
+         --kfold=$kfold \
+         --ifolds=$ifold"
     echo $cmd &>> $logdir/xvalidate${ifold}.log
     eval $cmd &>> $logdir/xvalidate${ifold}.log
   done
@@ -340,7 +417,11 @@ for nfeatures in ${nfeaturess[@]} ; do
     check_file_exists $logdir/xvalidate_${ifold}k/logits.validation.ckpt-$nsteps.npz
   done
 
-  cmd="accuracy $logdir $precision_recall_ratios $nprobabilities $accuracy_parallelize"
+  cmd="accuracy \
+       --logdir=$logdir \
+       --error_ratios=$precision_recall_ratios \
+       --nprobabilities=$nprobabilities \
+       --parallelize=$accuracy_parallelize"
   echo $cmd &>> $logdir/accuracy.log
   $cmd &>> $logdir/accuracy.log
 
@@ -381,20 +462,40 @@ kinds_touse=annotated
 validation_percentage=20
 mkdir $logdir
 cmd="train \
-      $context_ms $shiftby_ms \
-      $optimizer $learning_rate  \
-      $audio_read_plugin $audio_read_plugin_kwargs \
-      $video_read_plugin $video_read_plugin_kwargs \
-      $video_findfile_plugin $video_bkg_frames \
-      $data_loader_queuesize $data_loader_maxprocs \
-      $architecture '$model_parameters' \
-      $logdir $data_dir $labels_touse $kinds_touse \
-      $nsteps '$restore_from' $save_and_test_period $validation_percentage \
-      $mini_batch '$testing_files' \
-      $audio_tic_rate $audio_nchannels \
-      $video_frame_rate $video_frame_width $video_frame_height $video_channels \
-      $batch_seed $weights_seed $deterministic '' \
-      $ireplicates"
+     --context_ms=$context_ms \
+     --shiftby_ms=$shiftby_ms \
+     --optimizer=$optimizer \
+     --learning_rate=$learning_rate  \
+     --audio_read_plugin=$audio_read_plugin \
+     --audio_read_plugin_kwargs=$audio_read_plugin_kwargs \
+     --video_read_plugin=$video_read_plugin \
+     --video_read_plugin_kwargs=$video_read_plugin_kwargs \
+     --video_findfile_plugin=$video_findfile_plugin \
+     --video_bkg_frames=$video_bkg_frames \
+     --data_loader_queuesize=$data_loader_queuesize \
+     --data_loader_maxprocs=$data_loader_maxprocs \
+     --model_architecture=$architecture \
+     --model_parameters='$model_parameters' \
+     --logdir=$logdir \
+     --data_dir=$data_dir \
+     --labels_touse=$labels_touse \
+     --kinds_touse=$kinds_touse \
+     --nsteps=$nsteps \
+     --restore_from='$restore_from' \
+     --save_and_test_period=$save_and_test_period \
+     --validation_percentage=$validation_percentage \
+     --mini_batch=$mini_batch \
+     --testing_files='$testing_files' \
+     --audio_tic_rate=$audio_tic_rate \
+     --audio_nchannels=$audio_nchannels \
+     --video_frame_rate=$video_frame_rate \
+     --video_frame_width=$video_frame_width \
+     --video_frame_height=$video_frame_height \
+     --video_channels=$video_channels \
+     --batch_seed=$batch_seed \
+     --weights_seed=$weights_seed \
+     --deterministic=$deterministic \
+     --ireplicates=$ireplicates"
 echo $cmd &>> $logdir/train1.log
 eval $cmd &>> $logdir/train1.log
 
@@ -403,7 +504,11 @@ check_file_exists $logdir/train_1r.log
 check_file_exists $logdir/train_1r/ckpt-$nsteps.index
 check_file_exists $logdir/train_1r/logits.validation.ckpt-$nsteps.npz
 
-cmd="accuracy $logdir $precision_recall_ratios $nprobabilities $accuracy_parallelize"
+cmd="accuracy \
+     --logdir=$logdir \
+     --error_ratios=$precision_recall_ratios \
+     --nprobabilities=$nprobabilities \
+     --parallelize=$accuracy_parallelize"
 echo $cmd &>> $logdir/accuracy.log
 eval $cmd &>> $logdir/accuracy.log
 
@@ -489,8 +594,14 @@ portion=union
 convolve_ms=0.0
 measure=both
 cmd="congruence \
-      $data_dir ${wav_file_noext}.wav $portion $convolve_ms $measure $nprobabilities \
-      $audio_tic_rate $congruence_parallelize"
+     --basepath=$data_dir \
+     --wavfiles=${wav_file_noext}.wav \
+     --portion=$portion \
+     --convolve_ms=$convolve_ms \
+     --measure=$measure \
+     --nprobabilities=$nprobabilities \
+     --audio_tic_rate=$audio_tic_rate \
+     --parallelize=$congruence_parallelize"
 echo $cmd &>> $data_dir/congruence.log
 eval $cmd &>> $data_dir/congruence.log
 
@@ -595,8 +706,14 @@ cp $repo_path/data/${wav_file_noext}-annotated-person3.csv \
    $repo_path/test/scratch/tutorial-sh/groundtruth-data/congruence-ensemble
 
 cmd="congruence \
-      $data_dir ${wav_file_noext}.wav $portion $convolve_ms $measure $nprobabilities \
-      $audio_tic_rate $congruence_parallelize"
+     --basepath=$data_dir \
+     --wavfiles=${wav_file_noext}.wav \
+     --portion=$portion \
+     --convolve_ms=$convolve_ms \
+     --measure=$measure \
+     --nprobabilities=$nprobabilities \
+     --audio_tic_rate=$audio_tic_rate \
+     --parallelize=$congruence_parallelize"
 echo $cmd &>> $data_dir/congruence.log
 eval $cmd &>> $data_dir/congruence.log
 

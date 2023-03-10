@@ -916,11 +916,12 @@ async def _detect_actuate(i, wavfiles, threads, results):
                             M.detect_ngpu_cards,
                             M.detect_ngigabytes_memory,
                             M.detect_cluster_flags,
-                            wavfile, \
-                            "'"+json.dumps({k:v.value for k,v in V.detect_parameters.items()})+"'", \
-                            str(M.audio_tic_rate), str(M.audio_nchannels),
-                            str(M.audio_read_plugin),
-                            "'"+json.dumps(M.audio_read_plugin_kwargs)+"'")
+                            "--filename="+wavfile, \
+                            "--parameters='"+json.dumps({k:v.value for k,v in V.detect_parameters.items()})+"'", \
+                            "--audio_tic_rate="+str(M.audio_tic_rate), \
+                            "--audio_nchannels="+str(M.audio_nchannels),
+                            "--audio_read_plugin="+str(M.audio_read_plugin),
+                            "--audio_read_plugin_kwargs='"+json.dumps(M.audio_read_plugin_kwargs)+"'")
     M.waitfor_job.append(jobid)
     displaystring = "DETECT "+os.path.basename(wavfile)+" ("+jobid+")"
     threads[i] = asyncio.create_task(actuate_monitor(displaystring, results, i, \
@@ -1123,29 +1124,41 @@ async def train_actuate():
     nreplicates = int(V.nreplicates.value)
     for ireplicate in range(1, 1+nreplicates, M.models_per_job):
         logfile = os.path.join(V.logs_folder.value, "train"+str(ireplicate)+".log")
-        args = [V.context_ms.value, V.shiftby_ms.value, \
-                V.optimizer.value, V.learning_rate.value, \
-                str(M.audio_read_plugin), \
-                "'"+json.dumps(M.audio_read_plugin_kwargs)+"'", \
-                str(M.video_read_plugin), \
-                "'"+json.dumps(M.video_read_plugin_kwargs)+"'", \
-                M.video_findfile_plugin, \
-                str(M.video_bkg_frames), \
-                str(M.data_loader_queuesize), str(M.data_loader_maxprocs), \
-                M.architecture_plugin, \
-                "'"+json.dumps({k:v.value for k,v in V.model_parameters.items()})+"'", \
-                V.logs_folder.value, \
-                V.groundtruth_folder.value, V.labels_touse.value, \
-                V.kinds_touse.value, V.nsteps.value, V.restore_from.value, \
-                V.save_and_validate_period.value, \
-                V.validate_percentage.value, V.mini_batch.value, test_files, \
-                str(M.audio_tic_rate), str(M.audio_nchannels), \
-                str(M.video_frame_rate), \
-                str(M.video_frame_width), \
-                str(M.video_frame_height), \
-                str(M.video_channels), \
-                V.batch_seed.value, V.weights_seed.value, M.deterministic, "QUEUE1", \
-                ','.join([str(x) for x in range(ireplicate, min(1+nreplicates, \
+        args = ["--context_ms="+V.context_ms.value, \
+                "--shiftby_ms="+V.shiftby_ms.value, \
+                "--optimizer="+V.optimizer.value, \
+                "--learning_rate="+V.learning_rate.value, \
+                "--audio_read_plugin="+str(M.audio_read_plugin), \
+                "--audio_read_plugin_kwargs='"+json.dumps(M.audio_read_plugin_kwargs)+"'", \
+                "--video_read_plugin="+str(M.video_read_plugin), \
+                "--video_read_plugin_kwargs='"+json.dumps(M.video_read_plugin_kwargs)+"'", \
+                "--video_findfile="+M.video_findfile_plugin, \
+                "--video_bkg_frames="+str(M.video_bkg_frames), \
+                "--data_loader_queuesize="+str(M.data_loader_queuesize), \
+                "--data_loader_maxprocs="+str(M.data_loader_maxprocs), \
+                "--model_architecture="+M.architecture_plugin, \
+                "--model_parameters='"+json.dumps({k:v.value for k,v in V.model_parameters.items()})+"'", \
+                "--logdir="+V.logs_folder.value, \
+                "--data_dir="+V.groundtruth_folder.value, \
+                "--labels_touse="+V.labels_touse.value, \
+                "--kinds_touse="+V.kinds_touse.value, \
+                "--nsteps="+V.nsteps.value, \
+                "--restore_from="+V.restore_from.value, \
+                "--save_and_validate_period="+V.save_and_validate_period.value, \
+                "--validation_percentage="+V.validate_percentage.value, \
+                "--mini_batch="+V.mini_batch.value, \
+                "--testing_files="+test_files, \
+                "--audio_tic_rate="+str(M.audio_tic_rate), \
+                "--audio_nchannels="+str(M.audio_nchannels), \
+                "--video_frame_rate="+str(M.video_frame_rate), \
+                "--video_frame_width="+str(M.video_frame_width), \
+                "--video_frame_height="+str(M.video_frame_height), \
+                "--video_channels="+str(M.video_channels), \
+                "--batch_seed="+V.batch_seed.value, \
+                "--weights_seed="+V.weights_seed.value, \
+                "--deterministic="+M.deterministic, \
+                "--igpu="+"QUEUE1", \
+                "--ireplicates="+','.join([str(x) for x in range(ireplicate, min(1+nreplicates, \
                                                                 ireplicate+M.models_per_job))])]
         if M.train_gpu == 1:
             jobid = generic_actuate("train", logfile, M.train_where,
@@ -1204,32 +1217,40 @@ async def leaveout_actuate(comma):
     os.makedirs(V.logs_folder.value, exist_ok=True)
     for ivalidation_file in range(0, len(validation_files), M.models_per_job):
         logfile = os.path.join(V.logs_folder.value, "generalize"+str(1+ivalidation_file)+".log")
-        args = [V.context_ms.value, \
-                V.shiftby_ms.value, \
-                V.optimizer.value, \
-                V.learning_rate.value, \
-                str(M.audio_read_plugin), \
-                "'"+json.dumps(M.audio_read_plugin_kwargs)+"'", \
-                str(M.video_read_plugin), \
-                "'"+json.dumps(M.video_read_plugin_kwargs)+"'", \
-                M.video_findfile_plugin, \
-                str(M.video_bkg_frames), \
-                str(M.data_loader_queuesize), str(M.data_loader_maxprocs), \
-                M.architecture_plugin, \
-                "'"+json.dumps({k:v.value for k,v in V.model_parameters.items()})+"'", \
-                V.logs_folder.value, V.groundtruth_folder.value, \
-                V.labels_touse.value, V.kinds_touse.value, \
-                V.nsteps.value, V.restore_from.value, \
-                V.save_and_validate_period.value, \
-                V.mini_batch.value, test_files, \
-                str(M.audio_tic_rate), str(M.audio_nchannels), \
-                str(M.video_frame_rate), \
-                str(M.video_frame_width), \
-                str(M.video_frame_height), \
-                str(M.video_channels), \
-                V.batch_seed.value, V.weights_seed.value, M.deterministic, "QUEUE1", \
-                str(ivalidation_file),
-                *validation_files[ivalidation_file:ivalidation_file+M.models_per_job]]
+        args = ["--context_ms="+V.context_ms.value, \
+                "--shiftby_ms="+V.shiftby_ms.value, \
+                "--optimizer="+V.optimizer.value, \
+                "--learning_rate="+V.learning_rate.value, \
+                "--audio_read_plugin="+str(M.audio_read_plugin), \
+                "--audio_read_plugin_kwargs='"+json.dumps(M.audio_read_plugin_kwargs)+"'", \
+                "--video_read_plugin="+str(M.video_read_plugin), \
+                "--video_read_plugin_kwargs='"+json.dumps(M.video_read_plugin_kwargs)+"'", \
+                "--video_findfile_plugin="+M.video_findfile_plugin, \
+                "--video_bkg_frames="+str(M.video_bkg_frames), \
+                "--data_loader_queuesize="+str(M.data_loader_queuesize), \
+                "--data_loader_maxprocs="+str(M.data_loader_maxprocs), \
+                "--model_architecture="+M.architecture_plugin, \
+                "--model_parameters='"+json.dumps({k:v.value for k,v in V.model_parameters.items()})+"'", \
+                "--logdir="+V.logs_folder.value, \
+                "--data_dir="+V.groundtruth_folder.value, \
+                "--labels_touse="+V.labels_touse.value, \
+                "--kinds_touse="+V.kinds_touse.value, \
+                "--nsteps="+V.nsteps.value, \
+                "--restore_from="+V.restore_from.value, \
+                "--save_and_validate_period="+V.save_and_validate_period.value, \
+                "--mini_batch="+V.mini_batch.value, \
+                "--testing_files="+test_files, \
+                "--audio_tic_rate="+str(M.audio_tic_rate), \
+                "--audio_nchannels="+str(M.audio_nchannels), \
+                "--video_frame_rate="+str(M.video_frame_rate), \
+                "--video_frame_width="+str(M.video_frame_width), \
+                "--video_frame_height="+str(M.video_frame_height), \
+                "--video_channels="+str(M.video_channels), \
+                "--batch_seed="+V.batch_seed.value, \
+                "--weights_seed="+V.weights_seed.value, \
+                "--deterministic="+M.deterministic, \
+                "--ioffset="+str(ivalidation_file),
+                "--subsets ", *validation_files[ivalidation_file:ivalidation_file+M.models_per_job]]
         if M.generalize_gpu == 1:
             jobid = generic_actuate("generalize", logfile, M.generalize_where,
                                     M.generalize_gpu_ncpu_cores,
@@ -1266,32 +1287,41 @@ async def xvalidate_actuate():
     kfolds = int(V.kfold.value)
     for ifold in range(1, 1+kfolds, M.models_per_job):
         logfile = os.path.join(V.logs_folder.value, "xvalidate"+str(ifold)+".log")
-        args = [V.context_ms.value, \
-                V.shiftby_ms.value, \
-                V.optimizer.value, \
-                V.learning_rate.value, \
-                str(M.audio_read_plugin), \
-                "'"+json.dumps(M.audio_read_plugin_kwargs)+"'", \
-                str(M.video_read_plugin), \
-                "'"+json.dumps(M.video_read_plugin_kwargs)+"'", \
-                M.video_findfile_plugin, \
-                str(M.video_bkg_frames), \
-                str(M.data_loader_queuesize), str(M.data_loader_maxprocs), \
-                M.architecture_plugin, \
-                "'"+json.dumps({k:v.value for k,v in V.model_parameters.items()})+"'", \
-                V.logs_folder.value, V.groundtruth_folder.value, \
-                V.labels_touse.value, V.kinds_touse.value, \
-                V.nsteps.value, V.restore_from.value, \
-                V.save_and_validate_period.value, \
-                V.mini_batch.value, test_files, \
-                str(M.audio_tic_rate), str(M.audio_nchannels), \
-                str(M.video_frame_rate), \
-                str(M.video_frame_width), \
-                str(M.video_frame_height), \
-                str(M.video_channels), \
-                V.batch_seed.value, V.weights_seed.value, M.deterministic, "QUEUE1", \
-                V.kfold.value, \
-                ','.join([str(x) for x in range(ifold, min(1+kfolds, ifold+M.models_per_job))])]
+        args = ["--context_ms="+V.context_ms.value, \
+                "--shiftby_ms="+V.shiftby_ms.value, \
+                "--optimizer="+V.optimizer.value, \
+                "--learning_rate="+V.learning_rate.value, \
+                "--audio_read_plugin="+str(M.audio_read_plugin), \
+                "--audio_read_plugin_kwargs='"+json.dumps(M.audio_read_plugin_kwargs)+"'", \
+                "--video_read_plugin="+str(M.video_read_plugin), \
+                "--video_read_plugin_kwargs='"+json.dumps(M.video_read_plugin_kwargs)+"'", \
+                "--video_findfile_plugin="+M.video_findfile_plugin, \
+                "--video_bkg_frames="+str(M.video_bkg_frames), \
+                "--data_loader_queuesize="+str(M.data_loader_queuesize), \
+                "--data_loader_maxprocs="+str(M.data_loader_maxprocs), \
+                "--model_architecture="+M.architecture_plugin, \
+                "--model_parameters='"+json.dumps({k:v.value for k,v in V.model_parameters.items()})+"'", \
+                "--logdir="+V.logs_folder.value, \
+                "--data_dir="+V.groundtruth_folder.value, \
+                "--labels_touse="+V.labels_touse.value, \
+                "--kinds_touse="+V.kinds_touse.value, \
+                "--nsteps="+V.nsteps.value, \
+                "--restore_from="+V.restore_from.value, \
+                "--save_and_validate_period="+V.save_and_validate_period.value, \
+                "--mini_batch="+V.mini_batch.value, \
+                "--testing_files="+test_files, \
+                "--audio_tic_rate="+str(M.audio_tic_rate), \
+                "--audio_nchannels="+str(M.audio_nchannels), \
+                "--video_frame_rate="+str(M.video_frame_rate), \
+                "--video_frame_width="+str(M.video_frame_width), \
+                "--video_frame_height="+str(M.video_frame_height), \
+                "--video_channels="+str(M.video_channels), \
+                "--batch_seed="+V.batch_seed.value, \
+                "--weights_seed="+V.weights_seed.value, \
+                "--deterministic="+M.deterministic, \
+                "--igpu="+"QUEUE1", \
+                "--kfold="+V.kfold.value, \
+                "--ifolds="+','.join([str(x) for x in range(ifold, min(1+kfolds, ifold+M.models_per_job))])]
         if M.xvalidate_gpu == 1:
             jobid = generic_actuate("xvalidate", logfile, M.xvalidate_where,
                                     M.xvalidate_gpu_ncpu_cores,
@@ -1423,15 +1453,19 @@ async def cluster_actuate():
     algorithm, ndims = V.cluster_algorithm.value[:-1].split(' ')
     these_layers = ','.join([x for x in V.cluster_these_layers.value])
     logfile = os.path.join(V.groundtruth_folder.value, "cluster.log")
-    args = [V.groundtruth_folder.value, \
-            these_layers, \
-            V.pca_fraction_variance_to_retain.value, \
-            str(M.pca_batch_size), \
-            algorithm, ndims, str(M.cluster_parallelize)]
+    args = ["--data_dir="+V.groundtruth_folder.value, \
+            "--layers="+these_layers, \
+            "--pca_fraction_variance_to_retain="+V.pca_fraction_variance_to_retain.value, \
+            "--pca_batch_size="+str(M.pca_batch_size), \
+            "--algorithm="+algorithm, 
+            "--ndims="+ndims, 
+            "--parallelize="+str(M.cluster_parallelize)]
     if algorithm == "tSNE":
-        args.extend([V.tsne_perplexity.value, V.tsne_exaggeration.value])
+        args.append('--kwargs={\\\"perplexity\\\":'+V.tsne_perplexity.value+
+                    ',\\\"exaggeration\\\":'+V.tsne_exaggeration.value+'}')
     elif algorithm == "UMAP":
-        args.extend([V.umap_neighbors.value, V.umap_distance.value])
+        args.append('--kwargs={\\\"n_neighbors\\\":'+V.umap_neighbors.value+
+                    ',\\\"min_distance\\\":'+V.umap_distance.value+'}')
     jobid = generic_actuate("cluster", logfile,
                             M.cluster_where,
                             M.cluster_ncpu_cores,
@@ -1523,15 +1557,17 @@ def accuracy_succeeded(logdir, reftime):
 async def accuracy_actuate():
     currtime = time.time()
     logfile = os.path.join(V.logs_folder.value, "accuracy.log")
+    args = ["--logdir="+V.logs_folder.value, \
+            "--error_ratios="+V.precision_recall_ratios.value, \
+            "--nprobabilities="+str(M.nprobabilities), \
+            "--accuracy_parallelize="+str(M.accuracy_parallelize)]
     jobid = generic_actuate("accuracy", logfile,
                             M.accuracy_where,
                             M.accuracy_ncpu_cores,
                             M.accuracy_ngpu_cards,
                             M.accuracy_ngigabytes_memory,
                             M.accuracy_cluster_flags,
-                            V.logs_folder.value, \
-                            V.precision_recall_ratios.value, \
-                            str(M.nprobabilities), str(M.accuracy_parallelize))
+                            *args)
     displaystring = "ACCURACY "+os.path.basename(V.logs_folder.value.rstrip('/'))+ \
                     " ("+jobid+")"
     M.waitfor_job = [jobid]
@@ -1886,14 +1922,14 @@ async def congruence_actuate():
                             M.congruence_ngpu_cards,
                             M.congruence_ngigabytes_memory,
                             M.congruence_cluster_flags,
-                            V.groundtruth_folder.value,
-                            ','.join(all_files),
-                            V.congruence_portion.value,
-                            V.congruence_convolve.value,
-                            V.congruence_measure.value,
-                            str(M.nprobabilities),
-                            str(M.audio_tic_rate),
-                            str(M.congruence_parallelize))
+                            "--basepath="+V.groundtruth_folder.value,
+                            "--wavfiles="+','.join(all_files),
+                            "--portion="+V.congruence_portion.value,
+                            "--convolve_ms="+V.congruence_convolve.value,
+                            "--measure="+V.congruence_measure.value,
+                            "--nprobabilities="+str(M.nprobabilities),
+                            "--audio_tic_rate="+str(M.audio_tic_rate),
+                            "--parallelize="+str(M.congruence_parallelize))
     displaystring = "CONGRUENCE "+os.path.basename(all_files[0])+" ("+jobid+")"
     M.waitfor_job = [jobid]
     V.waitfor_update()

@@ -2,11 +2,46 @@
 
 # train a neural network with the annotations
 
-# train <context-ms> <shiftby-ms> <optimizer> <learning_rate> <audio-read-plugin> <audio-read-plugin-kwargs> <video-read-plugin> <video-read-plugin-kwargs> <video-findfile> <video-bkg-frames> <data-loader-queuesize> <data-loader-maxprocs> <model-architecture> <model-parameters-json> <logdir> <path-to-groundtruth> <label1>,<label2>,...,<labelN> <kinds-to-use> <nsteps> <restore-from> <save-and-validate-period> <validation-percentage> <mini-batch> <testing-files> <audio-tic-rate> <audio-nchannels> <video-frame-rate> <video-frame-width> <video-frame-height> <video-channels> <batch-seed> <weights-seed> <deterministic> <ireplicates> <igpu>
-
 # e.g.
-# $SONGEXPLORER_BIN train 204.8 0.0 Adam 0.0002 load-wav '{}' load-avi-mp4-mov '{}' same-basename 1000 0 1 convolutional '{"representation":"waveform", "window_ms":6.4, "stride_ms":1.6, "mel_dct":"7,7", "dropout":0.5, "kernel_sizes":5,128", last_conv_width":130, "nfeatures":"256,256", "dilate_after_layer":65535, "stride_after_layer":65535, "connection_type":"plain"}' `pwd`/trained-classifier `pwd`/groundtruth-data mel-sine,mel-pulse,ambient,other annotated 50 '' 10 40 32 "" 5000 1 0 0 0 0 -1 -1 0 1,2,3,4 0
+# $SONGEXPLORER_BIN train \
+#     --context_ms=204.8 \
+#     --shiftby_ms=0.0 \
+#     --optimizer=Adam \
+#     --learning_rate=0.0002 \
+#     --audio_read_plugin=load-wav \
+#     --audio_read_plugin_kwargs='{}' \
+#     --video_read_plugin=load-avi-mp4-mov \
+#     --video_read_plugin_kwargs='{}' \
+#     --video_findfile=same-basename \
+#     --video_bkg_frames=1000 \
+#     --data_loader_queuesize=0 \
+#     --data_loader_maxprocs=1 \
+#     --model_architecture=convolutional \
+#     --model_parameters='{"representation":"waveform", "window_ms":6.4, "stride_ms":1.6, "mel_dct":"7,7", "dropout":0.5, "kernel_sizes":5,128", last_conv_width":130, "nfeatures":"256,256", "dilate_after_layer":65535, "stride_after_layer":65535, "connection_type":"plain"}' \
+#     --logdir=`pwd`/trained-classifier \
+#     --data_dir=`pwd`/groundtruth-data \
+#     --labels_touse=mel-sine,mel-pulse,ambient,other \
+#     --kinds_touse=annotated \
+#     --nsteps=50 \
+#     --restore_from='' \
+#     --save_and_validate_period=10 \
+#     --validation_percentage=40 \
+#     --mini_batch=32 \
+#     --testing_files="" \
+#     --audio_tic_rate=5000 \
+#     --audio_nchannels=1 \
+#     --video_frame_rate=0 \
+#     --video_frame_width=0 \
+#     --video_frame_height=0 \
+#     --video_channels=0 \
+#     --batch_seed=-1 \
+#     --weights_seed=-1 \
+#     --deterministic=0 \
+#     --igpu=1,2,3,4 \
+#     --ireplicates=0 \
+#     --save_fingerprints=0
 
+import argparse
 import os
 import sys
 from subprocess import run, PIPE, STDOUT
@@ -15,60 +50,16 @@ import asyncio
 from datetime import datetime
 import socket
 
-print(str(datetime.now())+": start time")
-repodir = os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
-with open(os.path.join(repodir, "VERSION.txt"), 'r') as fid:
-  print('SongExplorer version = '+fid.read().strip().replace('\n',', '))
-print("hostname = "+socket.gethostname())
-print("CUDA_VISIBLE_DEVICES = "+os.environ.get('CUDA_VISIBLE_DEVICES',''))
-p = run('which nvidia-smi && nvidia-smi', shell=True, stdout=PIPE, stderr=STDOUT)
-print(p.stdout.decode('ascii').rstrip())
+FLAGS = None
 
-try:
+def main():
+  flags = vars(FLAGS)
+  for key in sorted(flags.keys()):
+    print('%s = %s' % (key, flags[key]))
 
-  _, context_ms, shiftby_ms, optimizer, learning_rate, audio_read_plugin, audio_read_plugin_kwargs, video_read_plugin, video_read_plugin_kwargs, video_findfile, video_bkg_frames, data_loader_queuesize, data_loader_maxprocs, architecture, model_parameters, logdir, data_dir, labels_touse, kinds_touse, nsteps, restore_from, save_and_validate_period, validation_percentage, mini_batch, testing_files, audio_tic_rate, audio_nchannels, video_frame_rate, video_frame_width, video_frame_height, video_channels, batch_seed, weights_seed, deterministic, igpu, ireplicates = sys.argv[:36]
-
-  print('context_ms: '+context_ms)
-  print('shiftby_ms: '+shiftby_ms)
-  print('optimizer: '+optimizer)
-  print('learning_rate: '+learning_rate)
-  print('audio_read_plugin: '+audio_read_plugin)
-  print('audio_read_plugin_kwargs: '+audio_read_plugin_kwargs)
-  print('video_read_plugin: '+video_read_plugin)
-  print('video_read_plugin_kwargs: '+video_read_plugin_kwargs)
-  print('video_findfile: '+video_findfile)
-  print('video_bkg_frames: '+video_bkg_frames)
-  print('data_loader_queuesize: '+data_loader_queuesize)
-  print('data_loader_maxprocs: '+data_loader_maxprocs)
-  print('architecture: '+architecture)
-  print('model_parameters: '+model_parameters)
-  print('logdir: '+logdir)
-  print('data_dir: '+data_dir)
-  print('labels_touse: '+labels_touse)
-  print('kinds_touse: '+kinds_touse)
-  print('nsteps: '+nsteps)
-  print('restore_from: '+restore_from)
-  print('save_and_validate_period: '+save_and_validate_period)
-  print('validation_percentage: '+validation_percentage)
-  print('mini_batch: '+mini_batch)
-  print('testing_files: '+testing_files)
-  print('audio_tic_rate: '+audio_tic_rate)
-  print('audio_nchannels: '+audio_nchannels)
-  print('video_frame_rate: '+video_frame_rate)
-  print('video_frame_width: '+video_frame_width)
-  print('video_frame_height: '+video_frame_height)
-  print('video_channels: '+video_channels)
-  print('batch_seed: '+batch_seed)
-  print('weights_seed: '+weights_seed)
-  print('deterministic: '+deterministic)
-  print('igpu: '+igpu)
-  print('ireplicates: '+ireplicates)
-
-  save_fingerprints="False" if len(sys.argv)==36 else sys.argv[36]
-
-  if restore_from:
+  if FLAGS.restore_from:
     mode='a'
-    start_checkpoint=os.path.join(logdir, "train_MODEL", "ckpt-"+restore_from)
+    start_checkpoint=os.path.join(FLAGS.logdir, "train_MODEL", "ckpt-"+FLAGS.restore_from)
   else:
     mode='w'
     start_checkpoint=''
@@ -80,50 +71,47 @@ try:
                                                   stdout=fid)
       await proc.communicate()
 
-  async def main():
+  async def doit():
     cmds = []
-    for ireplicate in ireplicates.split(','):
+    for ireplicate in FLAGS.ireplicates.split(','):
       model=ireplicate+'r'
       expr=["loop",
-            "--context_ms="+context_ms,
-            "--shiftby_ms="+shiftby_ms,
-            "--optimizer="+optimizer,
-            "--learning_rate="+learning_rate,
-            "--audio_read_plugin="+audio_read_plugin,
-            "--audio_read_plugin_kwargs="+audio_read_plugin_kwargs,
-            "--video_read_plugin="+video_read_plugin,
-            "--video_read_plugin_kwargs="+video_read_plugin_kwargs,
-            "--video_findfile="+video_findfile,
-            "--video_bkg_frames="+video_bkg_frames,
-            "--data_loader_queuesize="+data_loader_queuesize,
-            "--data_loader_maxprocs="+data_loader_maxprocs,
-            "--model_architecture="+architecture,
-            "--model_parameters="+model_parameters,
-            "--data_dir="+data_dir,
-            "--labels_touse="+labels_touse,
-            "--kinds_touse="+kinds_touse,
-            "--how_many_training_steps="+nsteps,
+            "--context_ms="+str(FLAGS.context_ms),
+            "--shiftby_ms="+str(FLAGS.shiftby_ms),
+            "--optimizer="+FLAGS.optimizer,
+            "--learning_rate="+str(FLAGS.learning_rate),
+            "--audio_read_plugin="+FLAGS.audio_read_plugin,
+            "--audio_read_plugin_kwargs="+FLAGS.audio_read_plugin_kwargs,
+            "--video_read_plugin="+FLAGS.video_read_plugin,
+            "--video_read_plugin_kwargs="+FLAGS.video_read_plugin_kwargs,
+            "--video_findfile="+FLAGS.video_findfile,
+            "--video_bkg_frames="+str(FLAGS.video_bkg_frames),
+            "--data_loader_queuesize="+str(FLAGS.data_loader_queuesize),
+            "--data_loader_maxprocs="+str(FLAGS.data_loader_maxprocs),
+            "--model_architecture="+FLAGS.model_architecture,
+            "--model_parameters="+FLAGS.model_parameters,
+            "--data_dir="+FLAGS.data_dir,
+            "--labels_touse="+FLAGS.labels_touse,
+            "--kinds_touse="+FLAGS.kinds_touse,
+            "--how_many_training_steps="+str(FLAGS.nsteps),
             "--start_checkpoint="+start_checkpoint.replace("MODEL",model),
-            "--save_step_period="+save_and_validate_period,
-            "--validate_step_period="+save_and_validate_period,
-            "--validation_percentage="+validation_percentage,
-            "--validation_offset_percentage=0.0",
-            "--batch_size="+mini_batch,
-            "--testing_percentage=0.0",
-            "--testing_files="+testing_files,
-            "--audio_tic_rate="+audio_tic_rate,
-            "--audio_nchannels="+audio_nchannels,
-            "--video_frame_rate="+video_frame_rate,
-            "--video_frame_width="+video_frame_width,
-            "--video_frame_height="+video_frame_height,
-            "--video_channels="+video_channels,
-            "--random_seed_batch="+batch_seed,
-            "--random_seed_weights="+weights_seed,
-            "--deterministic="+deterministic,
-            "--igpu="+igpu,
-            "--train_dir="+os.path.join(logdir,"train_"+model),
-            "--summaries_dir="+os.path.join(logdir,"summaries_"+model),
-            "--save_fingerprints="+save_fingerprints]
+            "--save_step_period="+str(FLAGS.save_and_validate_period),
+            "--validate_step_period="+str(FLAGS.save_and_validate_period),
+            "--validation_percentage="+str(FLAGS.validation_percentage),
+            "--batch_size="+str(FLAGS.mini_batch),
+            "--testing_files="+FLAGS.testing_files,
+            "--audio_tic_rate="+str(FLAGS.audio_tic_rate),
+            "--audio_nchannels="+str(FLAGS.audio_nchannels),
+            "--video_frame_rate="+str(FLAGS.video_frame_rate),
+            "--video_frame_width="+str(FLAGS.video_frame_width),
+            "--video_frame_height="+str(FLAGS.video_frame_height),
+            "--video_channels="+FLAGS.video_channels,
+            "--random_seed_batch="+str(FLAGS.batch_seed),
+            "--random_seed_weights="+str(FLAGS.weights_seed),
+            "--deterministic="+FLAGS.deterministic,
+            "--train_dir="+os.path.join(FLAGS.logdir,"train_"+model),
+            "--summaries_dir="+os.path.join(FLAGS.logdir,"summaries_"+model),
+            "--save_fingerprints="+FLAGS.save_fingerprints]
 
             #"--subsample_label=mel-pulse,mel-notpulse",
             #"--subsample_skip=4096",
@@ -133,17 +121,220 @@ try:
             #"--partition_training_files=PS_20130625111709_ch10.wav,PS_20130625111709_ch3.wav,PS_20130625155828_ch10.wav,PS_20130625155828_ch11.wav,PS_20130625155828_ch3.wav,PS_20130625155828_ch7.wav,PS_20130625155828_ch8.wav,PS_20130628144304_ch14.wav,PS_20130628144304_ch16.wav,PS_20130628144304_ch2.wav,PS_20130628144304_ch8.wav,PS_20130628165930_ch11.wav,PS_20130702114557_ch1.wav,PS_20130702114557_ch13.wav,PS_20130702114557_ch14.wav,PS_20130702144748_ch15.wav",
             #"--partition_validation_files=PS_20130625111709_ch7.wav,PS_20130625155828_ch6.wav,PS_20130628144304_ch15.wav,PS_20130702114557_ch10.wav",
 
-      cmds.append(expr+[os.path.join(logdir,"train_"+model+".log")])
+      if FLAGS.igpu:
+          expr += ["--igpu="+FLAGS.igpu]
+
+      cmds.append(expr+[os.path.join(FLAGS.logdir,"train_"+model+".log")])
       with open(cmds[-1][-1], mode) as fid:
         fid.write(' '.join(cmds[-1][:-1])+'\n')
 
     await asyncio.gather(*[redirect(x) for x in cmds])
 
-  asyncio.run(main())
+  asyncio.run(doit())
 
-except Exception as e:
-  print(e)
+if __name__ == '__main__':
+  parser = argparse.ArgumentParser()
+  parser.add_argument(
+      '--data_dir',
+      type=str,
+      default='/tmp/speech_dataset/',
+      help="""\
+      Where to download the speech training data to.
+      """)
+  parser.add_argument(
+      '--shiftby_ms',
+      type=float,
+      default=100.0,
+      help="""\
+      Range to shift the training audio by in time.
+      """)
+  parser.add_argument(
+      '--testing_files',
+      type=str,
+      default='',
+      help='Which wav files to use as a test set.')
+  parser.add_argument(
+      '--audio_tic_rate',
+      type=int,
+      default=16000,
+      help='Expected tic rate of the wavs',)
+  parser.add_argument(
+      '--audio_nchannels',
+      type=int,
+      default=1,
+      help='Expected number of channels in the wavs',)
+  parser.add_argument(
+      '--video_frame_rate',
+      type=int,
+      default=0,
+      help='Expected frame rate in Hz of the video',)
+  parser.add_argument(
+      '--video_frame_width',
+      type=int,
+      default=0,
+      help='Expected frame width in pixels of the video',)
+  parser.add_argument(
+      '--video_frame_height',
+      type=int,
+      default=0,
+      help='Expected frame height in pixels of the video',)
+  parser.add_argument(
+      '--video_channels',
+      type=str,
+      default='1',
+      help='Comma-separated list of which channels in the video to use',)
+  parser.add_argument(
+      '--context_ms',
+      type=float,
+      default=1000,
+      help='Expected duration in milliseconds of the wavs',)
+  parser.add_argument(
+      '--learning_rate',
+      type=float,
+      default=0.001,
+      help='How large a learning rate to use when training.')
+  parser.add_argument(
+      '--validation_percentage',
+      type=float,
+      default=10,
+      help='')
+  parser.add_argument(
+      '--optimizer',
+      type=str,
+      default='sgd',
+      help='What optimizer to use.  One of Adadelta, Adagrad, Adam, Adamax, Ftrl, Nadam, RMSProp, or SGD.')
+  parser.add_argument(
+      '--nsteps',
+      type=int,
+      default=15000,
+      help='How many training loops to run',)
+  parser.add_argument(
+      '--save_and_validate_period',
+      type=int,
+      default=400,
+      help='How often to checkpoint and evaluate the training results.')
+  parser.add_argument(
+      '--mini_batch',
+      type=int,
+      default=100,
+      help='How many items to train with at once',)
+  parser.add_argument(
+      '--labels_touse',
+      type=str,
+      default='yes,no,up,down,left,right,on,off,stop,go',
+      help='Words to use (others will be added to an unknown label)',)
+  parser.add_argument(
+      '--kinds_touse',
+      type=str,
+      default='annotated,classified',
+      help='A comma-separted list of "annotated", "detected" , or "classified"',)
+  parser.add_argument(
+      '--logdir',
+      type=str,
+      default='/tmp/speech_commands_train',
+      help='Directory to write event logs and checkpoint.')
+  parser.add_argument(
+      '--restore_from',
+      type=str,
+      default='',
+      help='If specified, restore this pretrained model before any training.')
+  parser.add_argument(
+      '--batch_seed',
+      type=int,
+      default=59185,
+      help='Randomize mini-batch selection if -1; otherwise use supplied number as seed.')
+  parser.add_argument(
+      '--weights_seed',
+      type=int,
+      default=59185,
+      help='Randomize weight initialization if -1; otherwise use supplied number as seed.')
+  parser.add_argument(
+      '--model_architecture',
+      type=str,
+      default='convolutional',
+      help='What model architecture to use')
+  parser.add_argument(
+      '--video_findfile',
+      type=str,
+      default='same-basename',
+      help='What function to use to match WAV files to corresponding video files')
+  parser.add_argument(
+      '--video_bkg_frames',
+      type=int,
+      default=1000,
+      help='How many frames to use to calculate the median background image')
+  parser.add_argument(
+      '--audio_read_plugin',
+      type=str,
+      default="load-wav",
+      help='What function to use to read audio files')
+  parser.add_argument(
+      '--audio_read_plugin_kwargs',
+      type=str,
+      default="{}",
+      help='What default arguments to use to read audio files')
+  parser.add_argument(
+      '--video_read_plugin',
+      type=str,
+      default="load-avi-mp4-mov",
+      help='What function to use to read video files')
+  parser.add_argument(
+      '--video_read_plugin_kwargs',
+      type=str,
+      default="{}",
+      help='What default arguments to use to read video files')
+  parser.add_argument(
+      '--data_loader_queuesize',
+      type=int,
+      default=0,
+      help='How many mini-batches to load in advance')
+  parser.add_argument(
+      '--data_loader_maxprocs',
+      type=int,
+      default=0,
+      help='The limit of how many extra processes to use to load mini-batches')
+  parser.add_argument(
+      '--model_parameters',
+      type=str,
+      default='{}',
+      help='What model parameters to use')
+  parser.add_argument(
+      '--deterministic',
+      type=str,
+      default='0',
+      help='')
+  parser.add_argument(
+      '--save_fingerprints',
+      type=str,
+      default='0',
+      help='')
+  parser.add_argument(
+      '--igpu',
+      type=str,
+      default='',
+      help='If a comma separated list of numbers, use those GPU(s); if alphanumeric, use the GPUs specified in that environment variable; otherwise, use them all.')
+  parser.add_argument(
+      '--ireplicates',
+      type=str,
+      default='',
+      help='A comma separated list of numbers')
 
-finally:
-  os.sync()
-  print(str(datetime.now())+": finish time")
+  FLAGS, unparsed = parser.parse_known_args()
+
+  print(str(datetime.now())+": start time")
+  repodir = os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
+  with open(os.path.join(repodir, "VERSION.txt"), 'r') as fid:
+    print('SongExplorer version = '+fid.read().strip().replace('\n',', '))
+  print("hostname = "+socket.gethostname())
+  p = run('which nvidia-smi && nvidia-smi', shell=True, stdout=PIPE, stderr=STDOUT)
+  print(p.stdout.decode('ascii').rstrip())
+  
+  try:
+    main()
+  
+  except Exception as e:
+    print(e)
+  
+  finally:
+    os.sync()
+    print(str(datetime.now())+": finish time")

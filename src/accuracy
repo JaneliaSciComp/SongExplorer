@@ -1,11 +1,15 @@
 #!/usr/bin/env python3
-# generate confusion matrices, precision-recall curves, thresholds, etc.
+
+# generate learning curves, confusion matrices, precision-recall curves, thresholds, etc.
  
-# accuracy <logdir> <error-ratios> <nprobabilities> <parallelize>
-
 # e.g.
-# accuracy trained-classifier 2,1,0.5 50 -1
+# $SONGEXPLORER_BIN accuracy \
+#     --logdir=trained-classifier \
+#     --error_ratios=2,1,0.5 \
+#     --nprobabilities=50 \
+#     --parallelize=-1
 
+import argparse
 import sys
 import os
 import re
@@ -29,6 +33,8 @@ from scipy import interpolate
 from scipy import stats
 import math
   
+FLAGS = None
+
 def plot_metrics_parameterized_by_threshold(thresholds, \
                                             metric1_data, metric2_data, \
                                             metric1_label, metric2_label, \
@@ -179,30 +185,19 @@ def doit(logdir, key_to_plot, ckpt, labels, nprobabilities, error_ratios):
   plt.close()
   return 1
 
-if __name__ == "__main__":
+def main():
+    flags = vars(FLAGS)
+    for key in sorted(flags.keys()):
+      print('%s = %s' % (key, flags[key]))
 
-  print(str(datetime.now())+": start time")
-  with open(os.path.join(repodir, "VERSION.txt"), 'r') as fid:
-    print('SongExplorer version = '+fid.read().strip().replace('\n',', '))
-  print("hostname = "+socket.gethostname())
-  
-  try:
-  
-    _,logdir,error_ratios,nprobabilities,accuracy_parallelize = sys.argv
-    print('logdir: '+logdir)
-    print('error_ratios: '+error_ratios)
-    print('nprobabilities: '+nprobabilities)
-    print('accuracy_parallelize: '+accuracy_parallelize)
-    error_ratios = [float(x) for x in error_ratios.split(',')]
-    nprobabilities = int(nprobabilities)
-    accuracy_parallelize=int(accuracy_parallelize)
+    error_ratios = [float(x) for x in FLAGS.error_ratios.split(',')]
   
     train_accuracy, train_loss, train_time, train_step, \
           validation_precision, validation_recall, validation_accuracy, \
           validation_time, validation_step, \
           _, _, _, \
           labels_touse, label_counts, _, _, batch_size, _ = \
-          read_logs(logdir)
+          read_logs(FLAGS.logdir)
     training_set_size = {k: len(label_counts[k]["training"]) * \
                             np.max(list(label_counts[k]["training"].values())) \
                          for k in label_counts.keys()}
@@ -274,7 +269,7 @@ if __name__ == "__main__":
       ax3.set_xlabel('Epoch')
   
     fig.tight_layout()
-    plt.savefig(os.path.join(logdir,'train-loss.pdf'))
+    plt.savefig(os.path.join(FLAGS.logdir,'train-loss.pdf'))
     plt.close()
   
     nrows, ncols = layout(len(keys_to_plot))
@@ -311,7 +306,7 @@ if __name__ == "__main__":
         ax[imodel].set_ylim([minp,100])
         ax[imodel].set_xlim([minr,100])
       fig.tight_layout()
-      plt.savefig(os.path.join(logdir,'validation-PvR-'+label+'.pdf'))
+      plt.savefig(os.path.join(FLAGS.logdir,'validation-PvR-'+label+'.pdf'))
       plt.close()
   
   
@@ -349,7 +344,7 @@ if __name__ == "__main__":
     lgd = fig.legend(lines, keys_to_plot, ncol=len(keys_to_plot),
                      bbox_to_anchor=(0.0,-0.02), loc="lower left")
     fig.tight_layout()
-    plt.savefig(os.path.join(logdir,'validation-F1.pdf'),
+    plt.savefig(os.path.join(FLAGS.logdir,'validation-F1.pdf'),
                 bbox_extra_artists=(lgd,), bbox_inches='tight')
     plt.close()
   
@@ -414,7 +409,7 @@ if __name__ == "__main__":
   
       fig.tight_layout()
   
-      plt.savefig(os.path.join(logdir,'train-overlay.pdf'))
+      plt.savefig(os.path.join(FLAGS.logdir,'train-overlay.pdf'))
       plt.close()
 
       fig = plt.figure(figsize=(6.4, 4.8))
@@ -439,11 +434,11 @@ if __name__ == "__main__":
   
       fig.tight_layout()
   
-      plt.savefig(os.path.join(logdir,'train-summed.pdf'))
+      plt.savefig(os.path.join(FLAGS.logdir,'train-summed.pdf'))
       plt.close()
   
     summed_confusion_matrix, confusion_matrices, labels = \
-        parse_confusion_matrices(logdir, next(iter(keys_to_plot)).split('_')[0])
+        parse_confusion_matrices(FLAGS.logdir, next(iter(keys_to_plot)).split('_')[0])
   
     recall_matrices={}
     precision_matrices={}
@@ -510,7 +505,7 @@ if __name__ == "__main__":
     ax.set_title(str(round(y,1))+"%")
   
     fig.tight_layout()
-    plt.savefig(os.path.join(logdir,'accuracy.pdf'))
+    plt.savefig(os.path.join(FLAGS.logdir,'accuracy.pdf'))
     plt.close()
   
     if len(keys_to_plot)>1:
@@ -519,29 +514,62 @@ if __name__ == "__main__":
                               recall_matrices,
                               labels, accuracies, keys_to_plot,
                               numbers=len(labels)<10)
-      plt.savefig(os.path.join(logdir,'confusion-matrices.pdf'))
+      plt.savefig(os.path.join(FLAGS.logdir,'confusion-matrices.pdf'))
       plt.close()
   
-    if accuracy_parallelize!=0:
+    if FLAGS.parallelize!=0:
       from multiprocessing import Pool
-      nprocs = os.cpu_count() if accuracy_parallelize==-1 else accuracy_parallelize
+      nprocs = os.cpu_count() if FLAGS.parallelize==-1 else FLAGS.parallelize
       pool = Pool(nprocs)
       results = []
   
     for key_to_plot in accuracies:
       for ckpt in [int(x.split('-')[1][:-4]) for x in \
                    filter(lambda x: 'validation' in x and x.endswith('.npz'), \
-                          os.listdir(os.path.join(logdir,key_to_plot)))]:
+                          os.listdir(os.path.join(FLAGS.logdir,key_to_plot)))]:
   
-        if accuracy_parallelize!=0:
-          results.append(pool.apply_async(doit, (logdir,key_to_plot,ckpt,labels,nprobabilities,error_ratios)))
+        if FLAGS.parallelize!=0:
+          results.append(pool.apply_async(doit, (FLAGS.logdir,key_to_plot,ckpt,labels,FLAGS.nprobabilities,error_ratios)))
         else:
-          doit(logdir, key_to_plot, ckpt, labels, nprobabilities, error_ratios)
+          doit(FLAGS.logdir, key_to_plot, ckpt, labels, FLAGS.nprobabilities, error_ratios)
   
-    if accuracy_parallelize!=0:
+    if FLAGS.parallelize!=0:
       for result in results:
         result.get()
       pool.close()
+  
+if __name__ == "__main__":
+  parser = argparse.ArgumentParser()
+  parser.add_argument(
+      '--logdir',
+      type=str,
+      default='/tmp/speech_commands_train',
+      help='Directory to write event logs and checkpoint.')
+  parser.add_argument(
+      '--error_ratios',
+      type=str,
+      default='2,1,0.5',
+      help='')
+  parser.add_argument(
+      '--nprobabilities',
+      type=int,
+      default=50,
+      help='')
+  parser.add_argument(
+      '--parallelize',
+      type=int,
+      default=0,
+      help='')
+
+  FLAGS, unparsed = parser.parse_known_args()
+
+  print(str(datetime.now())+": start time")
+  with open(os.path.join(repodir, "VERSION.txt"), 'r') as fid:
+    print('SongExplorer version = '+fid.read().strip().replace('\n',', '))
+  print("hostname = "+socket.gethostname())
+  
+  try:
+    main()
   
   except Exception as e:
     print(e)
