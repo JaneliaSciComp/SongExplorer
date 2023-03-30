@@ -1,7 +1,7 @@
 if [ `uname -m` == arm64 ] ; then
     python -m pip install –U pip
-    python -m pip install tensorflow-macos
-    python -m pip install tensorflow-metal
+    python -m pip install tensorflow-macos==2.9.2 # https://developer.apple.com/forums/thread/721619
+    python -m pip install tensorflow-metal==0.5.0
     python -m pip install nitime # https://github.com/conda-forge/nitime-feedstock/issues/24
     python -m pip install pyinterval # https://github.com/conda-forge/pycrlibm-feedstock/issues/6
 fi

@@ -13,7 +13,7 @@ requirements:
     - python =3.8  # pyinterval requires python <=3.8
     - numpy
     - tensorflow >=2.8 # [not arm64]
-    - tensorflow-deps # [arm64]
+    - tensorflow-deps =2.9 # [arm64]
     - cudatoolkit # [not osx]
     - cudnn # [not osx]
     - cuda-nvcc # [not osx]
