@@ -1157,23 +1157,15 @@ async def train_actuate():
                 "--batch_seed="+V.batch_seed.value, \
                 "--weights_seed="+V.weights_seed.value, \
                 "--deterministic="+M.deterministic, \
-                "--igpu="+"QUEUE1", \
+                "--igpu=QUEUE1", \
                 "--ireplicates="+','.join([str(x) for x in range(ireplicate, min(1+nreplicates, \
                                                                 ireplicate+M.models_per_job))])]
-        if M.train_gpu == 1:
-            jobid = generic_actuate("train", logfile, M.train_where,
-                                    M.train_gpu_ncpu_cores,
-                                    M.train_gpu_ngpu_cards,
-                                    M.train_gpu_ngigabytes_memory,
-                                    M.train_gpu_cluster_flags,
-                                    *args)
-        else:
-            jobid = generic_actuate("train", logfile, M.train_where,
-                                    M.train_cpu_ncpu_cores,
-                                    M.train_cpu_ngpu_cards,
-                                    M.train_cpu_ngigabytes_memory,
-                                    M.train_cpu_cluster_flags,
-                                    *args)
+        jobid = generic_actuate("train", logfile, M.train_where,
+                                M.train_ncpu_cores,
+                                M.train_ngpu_cards,
+                                M.train_ngigabytes_memory,
+                                M.train_cluster_flags,
+                                *args)
         jobids.append(jobid)
     displaystring = "TRAIN "+os.path.basename(V.logs_folder.value.rstrip('/'))+ \
                     " ("+','.join([str(x) for x in jobids])+")"
@@ -1250,21 +1242,14 @@ async def leaveout_actuate(comma):
                 "--weights_seed="+V.weights_seed.value, \
                 "--deterministic="+M.deterministic, \
                 "--ioffset="+str(ivalidation_file),
+                "--igpu=QUEUE1", \
                 "--subsets ", *validation_files[ivalidation_file:ivalidation_file+M.models_per_job]]
-        if M.generalize_gpu == 1:
-            jobid = generic_actuate("generalize", logfile, M.generalize_where,
-                                    M.generalize_gpu_ncpu_cores,
-                                    M.generalize_gpu_ngpu_cards,
-                                    M.generalize_gpu_ngigabytes_memory,
-                                    M.generalize_gpu_cluster_flags, \
-                                    *args)
-        else:
-            jobid = generic_actuate("generalize", logfile, M.generalize_where,
-                                    M.generalize_cpu_ncpu_cores,
-                                    M.generalize_cpu_ngpu_cards,
-                                    M.generalize_cpu_ngigabytes_memory,
-                                    M.generalize_cpu_cluster_flags, \
-                                    *args)
+        jobid = generic_actuate("generalize", logfile, M.generalize_where,
+                                M.generalize_ncpu_cores,
+                                M.generalize_ngpu_cards,
+                                M.generalize_ngigabytes_memory,
+                                M.generalize_cluster_flags, \
+                                *args)
         jobids.append(jobid)
     displaystring = "GENERALIZE "+os.path.basename(V.logs_folder.value.rstrip('/'))+ \
                     " ("+','.join([str(x) for x in jobids])+")"
@@ -1319,23 +1304,15 @@ async def xvalidate_actuate():
                 "--batch_seed="+V.batch_seed.value, \
                 "--weights_seed="+V.weights_seed.value, \
                 "--deterministic="+M.deterministic, \
-                "--igpu="+"QUEUE1", \
+                "--igpu=QUEUE1", \
                 "--kfold="+V.kfold.value, \
                 "--ifolds="+','.join([str(x) for x in range(ifold, min(1+kfolds, ifold+M.models_per_job))])]
-        if M.xvalidate_gpu == 1:
-            jobid = generic_actuate("xvalidate", logfile, M.xvalidate_where,
-                                    M.xvalidate_gpu_ncpu_cores,
-                                    M.xvalidate_gpu_ngpu_cards,
-                                    M.xvalidate_gpu_ngigabytes_memory,
-                                    M.xvalidate_gpu_cluster_flags, \
-                                    *args)
-        else:
-            jobid = generic_actuate("xvalidate", logfile, M.xvalidate_where,
-                                    M.xvalidate_cpu_ncpu_cores,
-                                    M.xvalidate_cpu_ngpu_cards,
-                                    M.xvalidate_cpu_ngigabytes_memory,
-                                    M.xvalidate_cpu_cluster_flags, \
-                                    *args)
+        jobid = generic_actuate("xvalidate", logfile, M.xvalidate_where,
+                                M.xvalidate_ncpu_cores,
+                                M.xvalidate_ngpu_cards,
+                                M.xvalidate_ngigabytes_memory,
+                                M.xvalidate_cluster_flags, \
+                                *args)
         jobids.append(jobid)
 
     displaystring = "XVALIDATE "+os.path.basename(V.logs_folder.value.rstrip('/'))+ \
@@ -1421,21 +1398,14 @@ async def activations_actuate():
             "--validation_offset_percentage=0.0",
             "--random_seed_batch="+V.batch_seed.value,
             "--deterministic="+str(M.deterministic),
+            "--igpu=QUEUE1", \
             "--save_activations=True"]
-    if M.activations_gpu:
-        jobid = generic_actuate("activations", logfile, M.activations_where,
-                                M.activations_gpu_ncpu_cores,
-                                M.activations_gpu_ngpu_cards,
-                                M.activations_gpu_ngigabytes_memory,
-                                M.activations_gpu_cluster_flags,
-                                *args, "--igpu=QUEUE1")
-    else:
-        jobid = generic_actuate("activations", logfile, M.activations_where,
-                                M.activations_cpu_ncpu_cores,
-                                M.activations_cpu_ngpu_cards,
-                                M.activations_cpu_ngigabytes_memory,
-                                M.activations_cpu_cluster_flags,
-                                *args)
+    jobid = generic_actuate("activations", logfile, M.activations_where,
+                            M.activations_ncpu_cores,
+                            M.activations_ngpu_cards,
+                            M.activations_ngigabytes_memory,
+                            M.activations_cluster_flags,
+                            *args)
 
     displaystring = "ACTIVATIONS " + \
                     os.path.join(os.path.basename(logdir), model, "ckpt-"+check_point) + \
@@ -1747,26 +1717,19 @@ async def _classify_actuate(wavfiles):
             "--audio_read_plugin_kwargs='"+json.dumps(M.audio_read_plugin_kwargs)+"'",
             "--video_read_plugin="+M.video_read_plugin,
             "--video_read_plugin_kwargs='"+json.dumps(M.video_read_plugin_kwargs)+"'",
+            "--igpu=QUEUE1", \
             "--deterministic="+str(M.deterministic)]
     if V.prevalences.value!='':
         args += ["--labels="+V.labels_touse.value,
                  "--prevalences="+V.prevalences.value]
     else:
         args += ["--labels=", "--prevalences="]
-    if M.classify_gpu:
-        jobid = generic_actuate("classify", logfile, M.classify_where,
-                                  M.classify_gpu_ncpu_cores,
-                                  M.classify_gpu_ngpu_cards,
-                                  M.classify_gpu_ngigabytes_memory,
-                                  M.classify_gpu_cluster_flags,
-                                  *args, "--igpu=QUEUE1")
-    else:
-        jobid = generic_actuate("classify", logfile, M.classify_where,
-                                  M.classify_cpu_ncpu_cores,
-                                  M.classify_cpu_ngpu_cards,
-                                  M.classify_cpu_ngigabytes_memory,
-                                  M.classify_cpu_cluster_flags,
-                                  *args)
+    jobid = generic_actuate("classify", logfile, M.classify_where,
+                              M.classify_ncpu_cores,
+                              M.classify_ngpu_cards,
+                              M.classify_ngigabytes_memory,
+                              M.classify_cluster_flags,
+                              *args)
     displaystring = "CLASSIFY "+os.path.basename(wavfile)+" ("+jobid+")"
     M.waitfor_job.append(jobid)
     asyncio.create_task(actuate_monitor(displaystring, None, None, \

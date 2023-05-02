@@ -338,41 +338,35 @@ variables that need to be tailored to your specific resources.
 ### Locally ###
 
 When running locally SongExplorer uses a custom job scheduler to manage the
-resources required by different commands.  This permits doing multiple things
-at once, as well as queueing a bunch of jobs for offline analysis.  By default,
-each task reserves all of your computer's CPU cores, GPU cards, and memory.  To
-tailor resources according to your particular data set, you need to specify for
-each kind of task how much it actually requires.  Here, for example, are the
-default settings for training a model locally:
+resources required by different tasks.  The scheduler permits doing multiple
+jobs at once, as well as queueing a bunch of jobs for offline analysis.  By
+default, each task reserves all of your computer's CPU cores, GPU cards, and
+memory, and so only one job can be run at a time.  To tailor resources according
+to your particular data set, and thereby permit multiple jobs to be run
+simultaneously, you need to specify for each kind of task how much of the
+system's resources are actually required.
 
-    $ grep train_ configuration.py | head -8
-    train_gpu=0
+Here, for example, are the default settings for training a model locally:
+
+    $ grep train_ configuration.py | head -4
     train_where=default_where
-    train_cpu_ncpu_cores=-1
-    train_cpu_ngpu_cards=-1
-    train_cpu_ngigabytes_memory=-1
-    train_gpu_ncpu_cores=-1
-    train_gpu_ngpu_cards=-1
-    train_gpu_ngigabytes_memory=-1
+    train_ncpu_cores=-1
+    train_ngpu_cards=-1
+    train_ngigabytes_memory=-1
 
-Let's break this down.  When training (as well as certain other tasks),
-SongExplorer provides the option to use a GPU or not with the `train_gpu` variable.
-Depending on the size of your model, the resources you have access to and their
-associated cost, and how many tasks you want to run in parallel, you might or
-might not want or be able to use a GPU.  The
-`train_{cpu,gpu}_{ncpu_cores,ngpu_cards,ngigabytes_memory}` variables specify
-the number of CPU cores, number of GPU cards, and number of gigabytes of memory
-needed respectively, with -1 reserving everything available.
-
-Training the model in the [Tutorial](#tutorial) below, for example, only needs
-two CPU cores and a megabyte of memory.  So in this case you could set
-`train_gpu` to 0 and `train_cpu_{ncpu_cores,ngpu_cards,ngigabytes_memory}` to
-2, 0, and 1, respectively.  Doing so would then permit you to train multiple
-models at once even on a not so fancy machine.  Alternatively, if you have a
-GPU, you could set `train_gpu` to 1 and
-`train_gpu_{ncpu_cores,ngpu_cards,ngigabytes_memory}` to 2, 1, and 1.  As it
-happens, for the network architecture used in the tutorial, training is quicker
-*without* a GPU.
+Let's break this down.  The variables ending in ncpu_cores, ngpu_cards, and
+ngigabytes_memory specify, respectively, the number of CPU cores, number of GPU
+cards, and number of gigabytes of memory needed, with -1 reserving everything
+available.  For the model in the [Tutorial](#tutorial) below, this is way
+overkill, even on the most humble computer, as training only uses two CPU cores
+and a gigabyte of memory.  So in this case you could set
+`train_{ncpu_cores,ngpu_cards,ngigabytes_memory}` to 2, 0, and 1, respectively.
+Doing so would then permit you to train multiple models at once.  Alternatively,
+if you have a GPU, you could set
+`train_{ncpu_cores,ngpu_cards,ngigabytes_memory}` to 2, 1, and 1 for this
+network architecture.  As it happens though, training is quicker *without* a GPU
+for this model.  Moreover, were these latter settings used on a machine with
+just one GPU, you could only train one model at a time.
 
 Note that these settings don't actually limit the job to that amount of
 resources, but rather they just limit how many jobs are running simultaneously.
@@ -462,7 +456,7 @@ Lastly, update "configuration.py" with the name of the user and IP
 address of the server.  As when doing compute locally, SongExplorer
 uses a job scheduler on the server to manage resources.  The per-task
 resources used are the same as specified for the local machine in
-`<task>_{gpu,cpu}_{ncpu_cores,ngpu_cards,ngigabytes_memory}`.
+`<task>_{ncpu_cores,ngpu_cards,ngigabytes_memory}`.
 
     $ grep -A2 \'server configuration.py
     # URL of the 'server' computer
@@ -505,15 +499,15 @@ The syntax used to specify the resources required is unique to the particular
 scheduler your cluster uses and how it is configured.  SongExplorer was developed
 and tested using the Load Sharing Facility (LSF) from IBM.  To support any
 cluster scheduler (e.g. SGE, PBS, Slurm, etc.), SongExplorer ignores
-`<task>_local_resources_{gpu,cpu}` when `<task_where>` is set to "cluster" and
-uses the variables `<task>_cluster_flags_{gpu,cpu}` instead to provide maximum
+`<task>_local_resources` when `<task_where>` is set to "cluster" and
+uses the variables `<task>_cluster_flags` instead to provide maximum
 flexibility.  Instead of specifying the cores, GPUs, and RAM needed explicitly,
 you give it the flags that the job submission command uses to allocate those
 same resources.
 
     $ grep -E train.*cluster configuration.py
-    train_gpu_cluster_flags="-n 2 -gpu 'num=1' -q gpu_rtx"
-    train_cpu_cluster_flags="-n 12"
+    train_cluster_flags="-n 2 -gpu 'num=1' -q gpu_rtx"
+    train_cluster_flags="-n 12"
 
 
 # Tutorial #
