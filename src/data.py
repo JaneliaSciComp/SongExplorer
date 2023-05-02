@@ -239,9 +239,9 @@ class AudioProcessor(object):
         if use_audio and wav_path not in audio_ntics:
           audio_tic_rate, audio_data = self.audio_read(wav_path)
           if audio_tic_rate != model_settings['audio_tic_rate']:
-            print('ERROR: audio_tic_rate is set to %d in configuration.pysh but is actually %d in %s' % (model_settings['audio_tic_rate'], audio_tic_rate, wav_path))
+            print('ERROR: audio_tic_rate is set to %d in configuration.py but is actually %d in %s' % (model_settings['audio_tic_rate'], audio_tic_rate, wav_path))
           if np.shape(audio_data)[1] != model_settings['audio_nchannels']:
-            print('ERROR: audio_nchannels is set to %d in configuration.pysh but is actually %d in %s' % (model_settings['audio_nchannels'], np.shape(audio_data)[1], wav_path))
+            print('ERROR: audio_nchannels is set to %d in configuration.py but is actually %d in %s' % (model_settings['audio_nchannels'], np.shape(audio_data)[1], wav_path))
           audio_ntics[wav_path] = len(audio_data)
         if use_audio:
           if ticks[0] < context_tics//2 + shiftby_tics or \
@@ -255,13 +255,13 @@ class AudioProcessor(object):
             print("ERROR: video file corresponding to "+wavfile+" not found")
           frame_rate, video_data = self.video_read(os.path.join(sound_dirname,vidfile))
           if video_frame_rate != frame_rate:
-            print('ERROR: video_frame_rate is set to %d in configuration.pysh but is actually %d in %s' % (video_frame_rate, frame_rate, vidfile))
+            print('ERROR: video_frame_rate is set to %d in configuration.py but is actually %d in %s' % (video_frame_rate, frame_rate, vidfile))
           if video_frame_width != video_data.shape[1]:
-            print('ERROR: video_frame_width is set to %d in configuration.pysh but is actually %d in %s' % (video_frame_width, video_data.shape[1], vidfile))
+            print('ERROR: video_frame_width is set to %d in configuration.py but is actually %d in %s' % (video_frame_width, video_data.shape[1], vidfile))
           if video_frame_height != video_data.shape[2]:
-            print('ERROR: video_frame_height is set to %d in configuration.pysh but is actually %d in %s' % (video_frame_height, video_data.shape[2], vidfile))
+            print('ERROR: video_frame_height is set to %d in configuration.py but is actually %d in %s' % (video_frame_height, video_data.shape[2], vidfile))
           if max(video_channels) > video_data.shape[3]:
-            print('ERROR: video_channels is set to %d in configuration.pysh but %s has only %d channels' % (video_channels, vidfile, video_data.shape[3]))
+            print('ERROR: video_channels is set to %d in configuration.py but %s has only %d channels' % (video_channels, vidfile, video_data.shape[3]))
           video_nframes[wav_path] = video_data.shape[0]
 
           tiffile = os.path.join(sound_dirname, os.path.splitext(vidfile)[0]+".tif")

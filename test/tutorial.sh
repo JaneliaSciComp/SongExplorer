@@ -27,9 +27,9 @@ count_lines() {
 repo_path=$(dirname $(dirname $(readlink -f $(which songexplorer))))
 
 mkdir -p $repo_path/test/scratch/tutorial-sh
-cp $repo_path/configuration.pysh $repo_path/test/scratch/tutorial-sh
+cp $repo_path/configuration.py $repo_path/test/scratch/tutorial-sh
 
-source $repo_path/test/scratch/tutorial-sh/configuration.pysh
+source $repo_path/test/scratch/tutorial-sh/configuration.py
 deterministic=1
 
 mkdir -p $repo_path/test/scratch/tutorial-sh/groundtruth-data/round1

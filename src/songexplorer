@@ -6,7 +6,7 @@
 # http://<hostname>:<port>/gui
 
 # e.g.
-# $SONGEXPLORER_BIN songexplorer `pwd`/configuration.pysh 5006
+# $SONGEXPLORER_BIN songexplorer `pwd`/configuration.py 5006
 
 import os
 import sys

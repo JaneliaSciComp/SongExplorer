@@ -170,12 +170,12 @@ In the meantime, build locally as described below in [Conda](#conda).
 And put these definitions in your .bashrc file:
 
     export SONGEXPLORER_BIN=
-    alias songexplorer="songexplorer <path-to-configuration.pysh> 5006"
+    alias songexplorer="songexplorer <path-to-configuration.py> 5006"
 
 In [System Configuration](#system-configuration) we'll make a copy of the default
 configuration file.  For now, you just need to decide where you're going to put it,
 and then specify the full path to that file in the alias definition (e.g.
-"$HOME/songexplorer/configuration.pysh").
+"$HOME/songexplorer/configuration.py").
 
 Each time you want to start SongExplorer, you'll need to first switch to
 its environment:
@@ -210,7 +210,7 @@ Put these definitions in your .bashrc (or .zshrc file on Mac OS Catalina and new
 
     export SONGEXPLORER_BIN="singularity exec [--nv] [-B <disk-drive>] \
         [--vm-cpu] [--vm-ram] <path-to-songexplorer_latest.sif>"
-    alias songexplorer="$SONGEXPLORER_BIN songexplorer <path-to-configuration.pysh> 5006"
+    alias songexplorer="$SONGEXPLORER_BIN songexplorer <path-to-configuration.py> 5006"
 
 Add to the SONGEXPLORER_BIN export any directories you want to access using the
 `-B` flag (e.g. `singularity exec -B /my/home/directory ...`).
@@ -218,7 +218,7 @@ Add to the SONGEXPLORER_BIN export any directories you want to access using the
 In [System Configuration](#system-configuration) we'll make a copy of the default
 configuration file.  For now, you just need to decide where you're going to put it,
 and then specify the full path to that file in the alias definition (e.g.
-"$HOME/songexplorer/configuration.pysh").
+"$HOME/songexplorer/configuration.py").
 
 ## Docker for Windows and Mac ##
 
@@ -251,7 +251,7 @@ and newer) file:
     alias songexplorer="docker run \
         [-v <disk-drive>] [-u <userid>] [-w <working-directory] \
         -e SONGEXPLORER_BIN -h=`hostname` -p 5006:5006 \
-        bjarthur/songexplorer songexplorer <path-to-configuration.pysh> 5006"
+        bjarthur/songexplorer songexplorer <path-to-configuration.py> 5006"
 
 Add to these definitions any directories you want to access using the `-v`
 flag.  You might also need to use the `-u` flag to specify your username
@@ -262,7 +262,7 @@ run -v /Users:/Users -w $HOME ...`.
 In [System Configuration](#system-configuration) we'll make a copy of the
 default configuration file.  For now, you just need to decide where you're
 going to put it, and then specify the full path to that file in the alias
-definition (e.g. "$HOME/songexplorer/configuration.pysh").
+definition (e.g. "$HOME/songexplorer/configuration.py").
 
 To quit out of SongExplorer you might need to open another terminal window and
 issue the `stop` command:
@@ -288,20 +288,20 @@ including the operating system.
 SongExplorer is capable of training a classifier and making predictions on
 recordings either locally on the host computer, or remotely on a workstation or
 a cluster.  You specify how you want this to work by editing
-"configuration.pysh".
+"configuration.py".
 
 Copy the exemplar configuration file out of the container and into your home
 directory:
 
-    $ cp $CONDA_PREFIX/songexplorer/configuration.pysh $PWD
+    $ cp $CONDA_PREFIX/songexplorer/configuration.py $PWD
 
 Note that if you're using a container, use this command instead:
 
-    $ $SONGEXPLORER_BIN cp /opt/songexplorer/configuration.pysh $PWD
+    $ $SONGEXPLORER_BIN cp /opt/songexplorer/configuration.py $PWD
 
 Inside you'll find many variables which control where SongExplorer does its work:
 
-    $ grep _where= configuration.pysh
+    $ grep _where= configuration.py
     default_where="local"
     detect_where=default_where
     misses_where=default_where
@@ -328,8 +328,7 @@ ones later in the file.  Other valid values for these variables are "server"
 for a remote workstation that you can `ssh` into, and "cluster" for an
 on-premise Beowulf-style cluster with a job scheduler.
 
-Note that "configuration.pysh" must be a valid Python *and* Bash file.  Hence
-the unusual ".pysh" extension.
+Note that "configuration.py" must be a valid Python file.
 
 ## Scheduling Jobs ##
 
@@ -346,7 +345,7 @@ tailor resources according to your particular data set, you need to specify for
 each kind of task how much it actually requires.  Here, for example, are the
 default settings for training a model locally:
 
-    $ grep train_ configuration.pysh | head -8
+    $ grep train_ configuration.py | head -8
     train_gpu=0
     train_where=default_where
     train_cpu_ncpu_cores=-1
@@ -437,7 +436,7 @@ The advantage here is that less compute intensive jobs (e.g. freeze, accuracy)
 can be run on your workstation.  In this case:
 
 * Store all SongExplorer related files on the share, including the container image,
-"configuration.pysh", and all of your data.
+"configuration.py", and all of your data.
 
 * Make the remote and local file paths match by creating a symbolic link.
 For example, if on a Mac you use SMB to mount as "/Volumes/MyLab" an NSF
@@ -453,19 +452,19 @@ your workstation and the server to point to this same image.
 ~/.ssh:/root/.ssh` to `SONGEXPLORER_BIN`.
 
 * You might need to use ssh flags `-i /ssh/id_rsa -o "StrictHostKeyChecking
-no"` in "configuration.pysh".
+no"` in "configuration.py".
 
 If you do not have a shared file system, the SongExplorer image and
 configuration file must be separately installed on both computers, and
 you'll need to do all of the compute jobs remotely.
 
-Lastly, update "configuration.pysh" with the name of the user and IP
+Lastly, update "configuration.py" with the name of the user and IP
 address of the server.  As when doing compute locally, SongExplorer
 uses a job scheduler on the server to manage resources.  The per-task
 resources used are the same as specified for the local machine in
 `<task>_{gpu,cpu}_{ncpu_cores,ngpu_cards,ngigabytes_memory}`.
 
-    $ grep -A2 \'server configuration.pysh
+    $ grep -A2 \'server configuration.py
     # URL of the 'server' computer
     server_username="arthurb"
     server_ipaddr="c03u14.int.janelia.org"
@@ -495,7 +494,7 @@ definitely need to specify the IP address of the head node and corresponding
 job submission command and its flags.  The best person to ask for help here is
 your system administrator.
 
-    $ grep -A4 \'cluster configuration.pysh
+    $ grep -A4 \'cluster configuration.py
     # specs of the 'cluster'
     cluster_username="arthurb"
     cluster_ipaddr="login1"
@@ -512,7 +511,7 @@ flexibility.  Instead of specifying the cores, GPUs, and RAM needed explicitly,
 you give it the flags that the job submission command uses to allocate those
 same resources.
 
-    $ grep -E train.*cluster configuration.pysh
+    $ grep -E train.*cluster configuration.py
     train_gpu_cluster_flags="-n 2 -gpu 'num=1' -q gpu_rtx"
     train_cpu_cluster_flags="-n 12"
 
@@ -589,7 +588,7 @@ On the left you'll see three empty panels (two large squares side by side and
 three wide rectangles underneath) in which the sound recordings are displayed and
 annotated.  In the middle are buttons and text boxes used to train the
 classifier and make predictions with it, as well as a file browser and a large
-editable text box with "configuration.pysh".  On the right is this instruction
+editable text box with "configuration.py".  On the right is this instruction
 manual for easy reference.
 
 Click on the `Label Sounds` button and then `Detect`.  All of the parameters
@@ -723,7 +722,7 @@ the `mini-batch` variable.  The rest of the fields, most of which specify
 the network architecture, are filled in with default values the first time
 you ever use SongExplorer, and any changes you make to them, along with all
 of the other text fields, are saved to a file named "songexplorer.state.yml"
-in the directory specified by "state_dir" in "configuration.pysh".
+in the directory specified by "state_dir" in "configuration.py".
 
 Now press `DoIt!`.  Output into the log directory are "train1.log",
 "train_1r.log", and "train_1r/".  The former two files contain error
@@ -964,7 +963,7 @@ a fuchsia circle (or sphere if the clustering was done in 3D) will appear.
 In the right panel are now displayed snippets of detected waveforms which are
 within that circle.  The size of the circle can be adjusted with the `Circle
 Radius` slider and the number of snippets displayed with `gui_snippet_n{x,y}`
-in "configuration.pysh".  The snippets should exhibit some similarity to one
+in "configuration.py".  The snippets should exhibit some similarity to one
 another since they are neighbors in the clustered space.  They will each be
 labeled "predicted mel-pulse", "predicted mel-sine", or "predicted ambient"
 to indicate which threshold criterion they passed and that they were detected
@@ -1126,7 +1125,7 @@ separate files and subdirectories that are suffixed with the letter "w".  Of
 course, training multiple classifiers is quickest when done simultaneously
 instead of sequentially.  If your model is small, you might be able to fit
 multiple on a single GPU (see the `models_per_job` variable in
-"configuration.pysh").  Otherwise, you'll need a machine with multiple GPUs,
+"configuration.py").  Otherwise, you'll need a machine with multiple GPUs,
 access to a cluster, or patience.
 
 A simple jitter plot of the accuracies on withheld recordings is included in
@@ -1284,7 +1283,7 @@ that its prefix will be shared across all of the hyperparameter values you plan
 to validate.  Suffix any additional hyperparameters of interest using
 underscores.  (For example, to search mini-batch and keep track of kernel size
 and feature maps, use "mb-64_ks129_fm64".)  If your model is small, use
-`models_per_job` in "configuration.pysh" to train multiple folds on a GPU.
+`models_per_job` in "configuration.py" to train multiple folds on a GPU.
 Click the `X-Validate` button and then `DoIt!`.  One classifier will be trained
 for each fold, using it as the validation set and the remaining folds for
 training.  Separate files and subdirectories are created in the `Logs Folder`
@@ -1637,7 +1636,7 @@ buttons:
     import controller as C
 
     # start the GUI
-    M.init("configuration.pysh")
+    M.init("configuration.py")
     V.init(None)
     C.init(None)
 
@@ -1717,7 +1716,7 @@ is `src/load-avi-mp4-mov.py` and a blank template is in
 `src/video-read-plugin.py`.
 
 To use an alternative plugin, change the "audio_read_plugin" variable in
-"configuration.pysh".  It should be a python 2-tuple, with the first element
+"configuration.py".  It should be a python 2-tuple, with the first element
 being the full path to the script, without the ".py" extension, and the
 second being a dictionary of keyword arguments.  The specific format for
 each plugin is documented in a comment at the top of each python script.
@@ -1730,7 +1729,7 @@ or MOV.  If this is not the case, one can provide a python function which
 inputs a directory and a WAV file and outputs the name of the video file
 to load.  The name and location of the python file containing this function
 is specified, without the ".py" extension, as the "video_findfile_plugin"
-parameter in "configuration.pysh".  For examples, see "src/same-basename.py"
+parameter in "configuration.py".  For examples, see "src/same-basename.py"
 (the default) and "src/maybe-1sec-off.py".
 
 ## Event Detection ##
@@ -1742,7 +1741,7 @@ supply your own code instead.  Simply put in a python file a list called
 `detect_parameters` that specifies the hyperparameters, a function called
 `detect_labels` which returns the strings used to annotate the sounds, and a
 script which uses those parameters to generate a "detected.csv" given a WAV
-file.  Then change the "detect_plugin" variable in your "configuration.pysh"
+file.  Then change the "detect_plugin" variable in your "configuration.py"
 file to point to the full path of this python file, without the ".py"
 extension.  See the minimal example in "src/detect-plugin.py" for a template,
 a pared down version of which is as follows:
@@ -1857,7 +1856,7 @@ In brief, two objects must be supplied in a python file:  (1) a list named
 `model_parameters` which defines the variable names, titles, and default
 values, etc. to appear in the GUI, and (2) a function `create_model` which
 builds and returns the network graph.  Specify as the `architecture_plugin` in
-"configuration.pysh" the full path to this file, without the ".py" extension.
+"configuration.py" the full path to this file, without the ".py" extension.
 The buttons immediately above the configuration textbox in the GUI will
 change to reflect the different hyperparameters used by this architecture.
 All the workflows described above (detecting sounds, making predicions, fixing
@@ -1964,7 +1963,7 @@ Then push the image to the cloud:
 
 To use a copy of the SongExplorer source code outside of the container, set
 SINGULARITYENV_PREPEND_PATH to the full path to SongExplorer's `src` directory in
-your shell environment.  `source_path` in "configuration.pysh" must be set
+your shell environment.  `source_path` in "configuration.py" must be set
 similarly if using a remote workstation or a cluster.
 
 ## Docker ##

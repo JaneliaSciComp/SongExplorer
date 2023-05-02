@@ -7,9 +7,9 @@
 repo_path=$(dirname $(dirname $(readlink -f $(which songexplorer))))
 
 mkdir -p $repo_path/test/scratch/shiftby
-cp $repo_path/configuration.pysh $repo_path/test/scratch/shiftby
+cp $repo_path/configuration.py $repo_path/test/scratch/shiftby
 
-source $repo_path/test/scratch/shiftby/configuration.pysh
+source $repo_path/test/scratch/shiftby/configuration.py
 
 mkdir -p $repo_path/test/scratch/shiftby/groundtruth-data/round1
 cp $repo_path/data/PS_20130625111709_ch3.wav \

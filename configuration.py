@@ -1,4 +1,4 @@
-# this file must be valid python and bash code, hence the .pysh extension
+# this file must be valid python code
 
 # SongExplorer must be restarted for changes to take effect
 

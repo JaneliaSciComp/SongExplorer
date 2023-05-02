@@ -24,10 +24,10 @@ import view as V
 import controller as C
 
 os.makedirs(os.path.join(repo_path, "test/scratch/seeds"))
-shutil.copy(os.path.join(repo_path, "configuration.pysh"),
+shutil.copy(os.path.join(repo_path, "configuration.py"),
             os.path.join(repo_path, "test/scratch/seeds"))
 
-M.init(None, os.path.join(repo_path, "test/scratch/seeds/configuration.pysh"))
+M.init(None, os.path.join(repo_path, "test/scratch/seeds/configuration.py"))
 V.init(None)
 C.init(None)
 

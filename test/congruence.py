@@ -37,10 +37,10 @@ for ethogramfile in filter(lambda x: x.endswith("ethogram.log"), os.listdir(dumm
       for line in lines:
           sources.write(line.replace('REPO_PATH', repo_path))
 
-shutil.copy(os.path.join(repo_path, "configuration.pysh"),
+shutil.copy(os.path.join(repo_path, "configuration.py"),
             os.path.join(repo_path, "test/scratch/congruence"))
 
-M.init(None, os.path.join(repo_path, "test/scratch/congruence/configuration.pysh"))
+M.init(None, os.path.join(repo_path, "test/scratch/congruence/configuration.py"))
 V.init(None)
 C.init(None)
 
