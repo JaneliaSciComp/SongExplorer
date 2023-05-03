@@ -33,6 +33,7 @@ import numpy as np
 
 import tifffile
 
+import signal
 from multiprocessing import Process, Queue, cpu_count
 import time
 
@@ -43,6 +44,12 @@ MAX_NUM_WAVS_PER_CLASS = 2**27 - 1  # ~134M
 queues = {}
 processes = {}
 offsets = {}
+
+def term(signum, frame):
+    for m in processes:
+        for p in processes[m]:
+            p.kill()
+    sys.exit()
 
 def which_set(filename, validation_percentage, validation_offset_percentage, testing_percentage):
   """Determines which data partition the file should belong to.
@@ -131,6 +138,8 @@ class AudioProcessor(object):
                             video_findfile, video_bkg_frames)
     self.queue_size = queue_size
     self.max_procs = max_procs
+
+    signal.signal(signal.SIGTERM, term)
 
   def audio_read(self, fullpath, start_tic=None, stop_tic=None):
       audio_read_module = importlib.import_module(self.audio_read_plugin)

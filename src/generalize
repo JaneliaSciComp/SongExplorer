@@ -45,11 +45,21 @@ import os
 import sys
 from subprocess import run, PIPE, STDOUT
 import asyncio
+import signal
 
 from datetime import datetime
 import socket
 
 FLAGS = None
+
+processes = []
+
+def term(signum, frame):
+    for p in processes:
+        p.terminate()
+    sys.exit()
+
+signal.signal(signal.SIGTERM, term)
 
 def main():
   flags = vars(FLAGS)
@@ -68,6 +78,7 @@ def main():
       proc = await asyncio.create_subprocess_exec(*cmd[:-1],
                                                   stderr=asyncio.subprocess.PIPE,
                                                   stdout=fid)
+      processes.append(proc)
       await proc.communicate()
 
   async def doit():
