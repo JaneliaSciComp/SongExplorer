@@ -1131,13 +1131,15 @@ Hyperparameters](#searching-hyperparameters))
 ## Searching Hyperparameters ##
 
 Achieving high accuracy is not just about annotating lots of data, it also
-depends on choosing the right model architecture.  SongExplorer by default
-uses convolutional neural networks, and there are many free parameters by
-which to tune its architecture.  You configure them by editing the variables
-itemized below, and then use cross-validation to compare different choices.
-[Customizing with Plug-ins](#customizing-with-plug-ins) describes how to
-use arbitrary custom networks of your choosing should convolutions not suit
-your task.
+depends on choosing the right model architecture.  While there is a lot of art
+in finding the best one, an intuition can be learned by
+[https://github.com/google-research/tuning_playbook](systematically searching)
+the space of hyperparameters.  SongExplorer by default uses convolutional neural
+networks, and there are many free parameters by which to tune its architecture.
+You configure them by editing the variables itemized below, and then use
+cross-validation to compare different choices.  [Customizing with
+Plug-ins](#customizing-with-plug-ins) describes how to use arbitrary custom
+networks of your choosing should convolutions not suit your task.
 
 * `context` is the temporal duration, in milliseconds, that the classifier
 inputs
