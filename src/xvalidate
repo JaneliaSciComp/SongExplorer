@@ -46,6 +46,7 @@ import sys
 from subprocess import run, PIPE, STDOUT
 import asyncio
 import signal
+import platform
 
 from datetime import datetime
 import socket
@@ -87,7 +88,7 @@ def main():
       model=ifold+'k'
       kpercent=100/FLAGS.kfold
       koffset=kpercent * (int(ifold) - 1)
-      expr=["loop",
+      expr=["loop" + (".bat" if platform.system()=='Windows' else ""),
             "--context_ms="+str(FLAGS.context_ms),
             "--shiftby_ms="+str(FLAGS.shiftby_ms),
             "--optimizer="+FLAGS.optimizer,

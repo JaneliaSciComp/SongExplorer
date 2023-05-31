@@ -46,6 +46,7 @@ import sys
 from subprocess import run, PIPE, STDOUT
 import asyncio
 import signal
+import platform
 
 from datetime import datetime
 import socket
@@ -85,7 +86,7 @@ def main():
     cmds = []
     for isubset,subset in enumerate(FLAGS.subsets):
       model=str(FLAGS.ioffset+isubset+1)+"w"
-      expr=["loop",
+      expr=["loop" + (".bat" if platform.system()=='Windows' else ""),
             "--context_ms="+str(FLAGS.context_ms),
             "--shiftby_ms="+str(FLAGS.shiftby_ms),
             "--optimizer="+FLAGS.optimizer,

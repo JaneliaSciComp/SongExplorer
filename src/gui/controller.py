@@ -13,6 +13,7 @@ import math
 import json
 import shutil
 import operator
+import platform
 
 bokehlog = logging.getLogger("songexplorer") 
 #class Object(object):
@@ -25,6 +26,9 @@ import view as V
 
 def generic_actuate(cmd, logfile, where,
                     ncpu_cores, ngpu_cards, ngigabyes_memory, clusterflags, *args):
+    # https://github.com/rust-lang/rust/issues/94743
+    if platform.system()=='Windows':
+        cmd += ".bat"
     args = ["\'\'" if x=="" else x for x in args]
     with open(logfile, 'w') as fid:
         fid.write(cmd+" "+' '.join(args)+'\n')
