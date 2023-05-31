@@ -684,8 +684,8 @@ def nparray2base64wav(data, tic_rate):
 def nparray2base64mp4(filename, start_sec, stop_sec):
     frame_rate, video_data = M.video_read(filename)
 
-    start_frame = np.ceil(start_sec * frame_rate).astype(np.int)
-    stop_frame = np.floor(stop_sec * frame_rate).astype(np.int)
+    start_frame = np.ceil(start_sec * frame_rate).astype(int)
+    stop_frame = np.floor(stop_sec * frame_rate).astype(int)
 
     fid=io.BytesIO()
     container = av.open(fid, mode='w', format='mp4')

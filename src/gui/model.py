@@ -206,7 +206,7 @@ def next_pow2_ms(x_ms):
     if x<=0:
         return True, 4/audio_tic_rate*1000
     if not (x & (x-1) == 0):
-        next_higher = max(4, np.power(2, np.ceil(np.log2(x))).astype(np.int))
+        next_higher = max(4, np.power(2, np.ceil(np.log2(x))).astype(int))
         return True, next_higher/audio_tic_rate*1000
     return False, x_ms
 
