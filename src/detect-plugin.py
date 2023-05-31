@@ -125,5 +125,6 @@ if __name__ == '__main__':
         print(e)
 
     finally:
-        os.sync()
+        if hasattr(os, 'sync'):
+            os.sync()
         print(str(datetime.now())+": finish time")
