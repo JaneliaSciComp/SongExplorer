@@ -19,38 +19,38 @@ from lib import wait_for_job, check_file_exists, count_lines_with_label, count_l
 
 repo_path = os.path.dirname(sys.path[0])
   
-sys.path.append(os.path.join(repo_path, "src/gui"))
+sys.path.append(os.path.join(repo_path, "src", "gui"))
 import model as M
 import view as V
 import controller as C
 
-os.makedirs(os.path.join(repo_path, "test/scratch/visualization"))
+os.makedirs(os.path.join(repo_path, "test", "scratch", "visualization"))
 shutil.copy(os.path.join(repo_path, "configuration.py"),
-            os.path.join(repo_path, "test/scratch/visualization"))
+            os.path.join(repo_path, "test", "scratch", "visualization"))
 
-M.init(None, os.path.join(repo_path, "test/scratch/visualization/configuration.py"))
+M.init(None, os.path.join(repo_path, "test", "scratch", "visualization", "configuration.py"))
 V.init(None)
 C.init(None)
 
 M.deterministic='1'
 
-os.makedirs(os.path.join(repo_path, "test/scratch/visualization/groundtruth-data/round1"))
-shutil.copy(os.path.join(repo_path, "data/PS_20130625111709_ch3.wav"), \
-            os.path.join(repo_path, "test/scratch/visualization/groundtruth-data/round1"))
-shutil.copy(os.path.join(repo_path, "data/PS_20130625111709_ch3-annotated-person1.csv"), \
-            os.path.join(repo_path, "test/scratch/visualization/groundtruth-data/round1"))
+os.makedirs(os.path.join(repo_path, "test", "scratch", "visualization", "groundtruth-data", "round1"))
+shutil.copy(os.path.join(repo_path, "data", "PS_20130625111709_ch3.wav"), \
+            os.path.join(repo_path, "test", "scratch", "visualization", "groundtruth-data", "round1"))
+shutil.copy(os.path.join(repo_path, "data", "PS_20130625111709_ch3-annotated-person1.csv"), \
+            os.path.join(repo_path, "test", "scratch", "visualization", "groundtruth-data", "round1"))
 
 run(["hstart", "1,0,1"])
 
-V.groundtruth_folder.value = os.path.join(repo_path, "test/scratch/visualization/groundtruth-data")
+V.groundtruth_folder.value = os.path.join(repo_path, "test", "scratch", "visualization", "groundtruth-data")
 V.kinds_touse.value = 'annotated'
 V.labels_touse.value = 'sine,pulse,ambient'
 V.groundtruth_update()
 
-if not V.recordings.options == ['', 'round1/PS_20130625111709_ch3.wav']:
+if not V.recordings.options == ['', os.path.join("round1", "PS_20130625111709_ch3.wav")]:
     print("ERROR: recordings pull down after changing groundtruth folder")
 
-V.recordings.value = "round1/PS_20130625111709_ch3.wav"
+V.recordings.value = os.path.join("round1", "PS_20130625111709_ch3.wav")
 C.recordings_callback(None,None,1)
 
 C.panright_callback()
@@ -80,7 +80,7 @@ V.model_parameters["window_ms"].value = "6.4"
 V.model_parameters["stride_ms"].value = "1.6"
 V.model_parameters["mel_dct"].value = "7,7"
 V.model_parameters["range_hz"].value = ""
-V.logs_folder.value = os.path.join(repo_path, "test/scratch/visualization/untrained-classifier")
+V.logs_folder.value = os.path.join(repo_path, "test", "scratch", "visualization", "untrained-classifier")
 V.labels_touse.value = "mel-pulse,mel-sine,ambient"
 V.kinds_touse.value = "annotated"
 V.nsteps.value = "0"
@@ -102,7 +102,7 @@ check_file_exists(os.path.join(V.logs_folder.value, "train_1r.log"))
 check_file_exists(os.path.join(V.logs_folder.value, "train_1r",
                                "ckpt-"+V.nsteps.value+".index"))
 
-V.model_file.value = os.path.join(repo_path, "test/scratch/visualization/untrained-classifier", \
+V.model_file.value = os.path.join(repo_path, "test", "scratch", "visualization", "untrained-classifier", \
                                   "train_"+V.nreplicates.value+"r", \
                                   "ckpt-"+V.nsteps.value+".index")
 V.kinds_touse.value = "annotated"

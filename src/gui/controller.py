@@ -29,7 +29,7 @@ def generic_actuate(cmd, logfile, where,
     # https://github.com/rust-lang/rust/issues/94743
     if platform.system()=='Windows':
         cmd += ".bat"
-    args = ["\'\'" if x=="" else x for x in args]
+    args = ["\'\'" if x=="" else "'"+x+"'" for x in args]
     with open(logfile, 'w') as fid:
         fid.write(cmd+" "+' '.join(args)+'\n')
     localdeps = []
@@ -921,7 +921,7 @@ async def _detect_actuate(i, wavfiles, threads, results):
                             M.detect_ngigabytes_memory,
                             M.detect_cluster_flags,
                             "--filename="+wavfile, \
-                            "--parameters='"+json.dumps({k:v.value for k,v in V.detect_parameters.items()})+"'", \
+                            "--parameters="+json.dumps({k:v.value for k,v in V.detect_parameters.items()}), \
                             "--audio_tic_rate="+str(M.audio_tic_rate), \
                             "--audio_nchannels="+str(M.audio_nchannels),
                             "--audio_read_plugin="+str(M.audio_read_plugin),
@@ -993,7 +993,7 @@ def isoldfile(x,subdir,basewavs):
         x == subdir+'.csv'
 
 def _validation_test_files(files_string, comma=True):
-    if files_string.rstrip('/') == V.groundtruth_folder.value.rstrip('/'):
+    if files_string.rstrip(os.sep) == V.groundtruth_folder.value.rstrip(os.sep):
         dfs = []
         for subdir in filter(lambda x: os.path.isdir(os.path.join(V.groundtruth_folder.value,x)), \
                              os.listdir(V.groundtruth_folder.value)):
@@ -1007,7 +1007,7 @@ def _validation_test_files(files_string, comma=True):
             df = pd.concat(dfs)
             wavfiles = sorted(list(set(df.loc[df[3]=="annotated"][0])))
             return [','.join(wavfiles)] if comma else list(wavfiles)
-    elif os.path.dirname(files_string.rstrip('/')) == V.groundtruth_folder.value.rstrip('/'):
+    elif os.path.dirname(files_string.rstrip(os.sep)) == V.groundtruth_folder.value.rstrip(os.sep):
         dfs = []
         for csvfile in filter(lambda x: x.endswith('.csv'), os.listdir(files_string)):
             filepath = os.path.join(files_string, csvfile)
@@ -1032,14 +1032,14 @@ def _train_succeeded(logdir, kind, model, reftime):
     if not logfile_succeeded(train_dir+".log", reftime):
         return False
     if not os.path.isdir(os.path.join(logdir, "summaries_"+model)):
-        bokehlog.info("ERROR: summaries_"+model+"/ does not exist.")
+        bokehlog.info("ERROR: summaries_"+model+os.sep+" does not exist.")
         return False
     if not os.path.isdir(train_dir):
-        bokehlog.info("ERROR: "+train_dir+"/ does not exist.")
+        bokehlog.info("ERROR: "+train_dir+os.sep+" does not exist.")
         return False
     train_files = os.listdir(train_dir)
     if "labels.txt" not in train_files:
-        bokehlog.info("ERROR: "+train_dir+"/labels.txt does not exist.")
+        bokehlog.info("ERROR: "+train_dir+os.sep+"labels.txt does not exist.")
         return False
     validate_step_period = save_step_period = how_many_training_steps = None
     with open(train_dir+".log") as fid:
@@ -1060,14 +1060,14 @@ def _train_succeeded(logdir, kind, model, reftime):
         nckpts = how_many_training_steps // save_step_period + 1
         if len(list(filter(lambda x: x.startswith("ckpt-"), \
                            train_files))) != 2*nckpts:
-            bokehlog.info("ERROR: "+train_dir+"/ should contain "+ \
+            bokehlog.info("ERROR: "+train_dir+os.sep+" should contain "+ \
                           str(2*nckpts)+" ckpt-* files.")
             return False
     if validate_step_period>0:
         nevals = how_many_training_steps // validate_step_period 
         if len(list(filter(lambda x: x.startswith("logits.validation.ckpt-"), \
                            train_files))) != nevals:
-            bokehlog.info("ERROR: "+train_dir+"/ should contain "+str(nevals)+\
+            bokehlog.info("ERROR: "+train_dir+os.sep+" should contain "+str(nevals)+\
                   " logits.validation.ckpt-* files.")
             return False
     return True
@@ -1133,15 +1133,15 @@ async def train_actuate():
                 "--optimizer="+V.optimizer.value, \
                 "--learning_rate="+V.learning_rate.value, \
                 "--audio_read_plugin="+str(M.audio_read_plugin), \
-                "--audio_read_plugin_kwargs='"+json.dumps(M.audio_read_plugin_kwargs)+"'", \
+                "--audio_read_plugin_kwargs="+json.dumps(M.audio_read_plugin_kwargs), \
                 "--video_read_plugin="+str(M.video_read_plugin), \
-                "--video_read_plugin_kwargs='"+json.dumps(M.video_read_plugin_kwargs)+"'", \
+                "--video_read_plugin_kwargs="+json.dumps(M.video_read_plugin_kwargs), \
                 "--video_findfile="+M.video_findfile_plugin, \
                 "--video_bkg_frames="+str(M.video_bkg_frames), \
                 "--data_loader_queuesize="+str(M.data_loader_queuesize), \
                 "--data_loader_maxprocs="+str(M.data_loader_maxprocs), \
                 "--model_architecture="+M.architecture_plugin, \
-                "--model_parameters='"+json.dumps({k:v.value for k,v in V.model_parameters.items()})+"'", \
+                "--model_parameters="+json.dumps({k:v.value for k,v in V.model_parameters.items()}), \
                 "--logdir="+V.logs_folder.value, \
                 "--data_dir="+V.groundtruth_folder.value, \
                 "--labels_touse="+V.labels_touse.value, \
@@ -1171,7 +1171,7 @@ async def train_actuate():
                                 M.train_cluster_flags,
                                 *args)
         jobids.append(jobid)
-    displaystring = "TRAIN "+os.path.basename(V.logs_folder.value.rstrip('/'))+ \
+    displaystring = "TRAIN "+os.path.basename(V.logs_folder.value.rstrip(os.sep))+ \
                     " ("+','.join([str(x) for x in jobids])+")"
     M.waitfor_job = jobids
     V.waitfor_update()
@@ -1218,15 +1218,15 @@ async def leaveout_actuate(comma):
                 "--optimizer="+V.optimizer.value, \
                 "--learning_rate="+V.learning_rate.value, \
                 "--audio_read_plugin="+str(M.audio_read_plugin), \
-                "--audio_read_plugin_kwargs='"+json.dumps(M.audio_read_plugin_kwargs)+"'", \
+                "--audio_read_plugin_kwargs="+json.dumps(M.audio_read_plugin_kwargs), \
                 "--video_read_plugin="+str(M.video_read_plugin), \
-                "--video_read_plugin_kwargs='"+json.dumps(M.video_read_plugin_kwargs)+"'", \
+                "--video_read_plugin_kwargs="+json.dumps(M.video_read_plugin_kwargs), \
                 "--video_findfile_plugin="+M.video_findfile_plugin, \
                 "--video_bkg_frames="+str(M.video_bkg_frames), \
                 "--data_loader_queuesize="+str(M.data_loader_queuesize), \
                 "--data_loader_maxprocs="+str(M.data_loader_maxprocs), \
                 "--model_architecture="+M.architecture_plugin, \
-                "--model_parameters='"+json.dumps({k:v.value for k,v in V.model_parameters.items()})+"'", \
+                "--model_parameters="+json.dumps({k:v.value for k,v in V.model_parameters.items()}), \
                 "--logdir="+V.logs_folder.value, \
                 "--data_dir="+V.groundtruth_folder.value, \
                 "--labels_touse="+V.labels_touse.value, \
@@ -1247,7 +1247,8 @@ async def leaveout_actuate(comma):
                 "--deterministic="+M.deterministic, \
                 "--ioffset="+str(ivalidation_file),
                 "--igpu=QUEUE1", \
-                "--subsets ", *validation_files[ivalidation_file:ivalidation_file+M.models_per_job]]
+                "--subsets",
+                *validation_files[ivalidation_file:ivalidation_file+M.models_per_job]]
         jobid = generic_actuate("generalize", logfile, M.generalize_where,
                                 M.generalize_ncpu_cores,
                                 M.generalize_ngpu_cards,
@@ -1255,7 +1256,7 @@ async def leaveout_actuate(comma):
                                 M.generalize_cluster_flags, \
                                 *args)
         jobids.append(jobid)
-    displaystring = "GENERALIZE "+os.path.basename(V.logs_folder.value.rstrip('/'))+ \
+    displaystring = "GENERALIZE "+os.path.basename(V.logs_folder.value.rstrip(os.sep))+ \
                     " ("+','.join([str(x) for x in jobids])+")"
     M.waitfor_job = jobids
     V.waitfor_update()
@@ -1281,15 +1282,15 @@ async def xvalidate_actuate():
                 "--optimizer="+V.optimizer.value, \
                 "--learning_rate="+V.learning_rate.value, \
                 "--audio_read_plugin="+str(M.audio_read_plugin), \
-                "--audio_read_plugin_kwargs='"+json.dumps(M.audio_read_plugin_kwargs)+"'", \
+                "--audio_read_plugin_kwargs="+json.dumps(M.audio_read_plugin_kwargs), \
                 "--video_read_plugin="+str(M.video_read_plugin), \
-                "--video_read_plugin_kwargs='"+json.dumps(M.video_read_plugin_kwargs)+"'", \
+                "--video_read_plugin_kwargs="+json.dumps(M.video_read_plugin_kwargs), \
                 "--video_findfile_plugin="+M.video_findfile_plugin, \
                 "--video_bkg_frames="+str(M.video_bkg_frames), \
                 "--data_loader_queuesize="+str(M.data_loader_queuesize), \
                 "--data_loader_maxprocs="+str(M.data_loader_maxprocs), \
                 "--model_architecture="+M.architecture_plugin, \
-                "--model_parameters='"+json.dumps({k:v.value for k,v in V.model_parameters.items()})+"'", \
+                "--model_parameters="+json.dumps({k:v.value for k,v in V.model_parameters.items()}), \
                 "--logdir="+V.logs_folder.value, \
                 "--data_dir="+V.groundtruth_folder.value, \
                 "--labels_touse="+V.labels_touse.value, \
@@ -1319,7 +1320,7 @@ async def xvalidate_actuate():
                                 *args)
         jobids.append(jobid)
 
-    displaystring = "XVALIDATE "+os.path.basename(V.logs_folder.value.rstrip('/'))+ \
+    displaystring = "XVALIDATE "+os.path.basename(V.logs_folder.value.rstrip(os.sep))+ \
                     " ("+','.join([str(x) for x in jobids])+")"
     M.waitfor_job = jobids
     V.waitfor_update()
@@ -1348,7 +1349,7 @@ async def mistakes_actuate():
                             M.mistakes_ngigabytes_memory,
                             M.mistakes_cluster_flags,
                             V.groundtruth_folder.value)
-    displaystring = "MISTAKES "+os.path.basename(V.groundtruth_folder.value.rstrip('/'))+ \
+    displaystring = "MISTAKES "+os.path.basename(V.groundtruth_folder.value.rstrip(os.sep))+ \
                     " ("+jobid+")"
     M.waitfor_job = [jobid]
     V.waitfor_update()
@@ -1380,7 +1381,7 @@ async def activations_actuate():
             "--data_loader_queuesize="+str(M.data_loader_queuesize), \
             "--data_loader_maxprocs="+str(M.data_loader_maxprocs), \
             "--model_architecture="+M.architecture_plugin, \
-            "--model_parameters='"+json.dumps({k:v.value for k,v in V.model_parameters.items()})+"'", \
+            "--model_parameters="+json.dumps({k:v.value for k,v in V.model_parameters.items()}), \
             "--start_checkpoint="+os.path.join(logdir,model,"ckpt-"+check_point),
             "--data_dir="+V.groundtruth_folder.value, \
             "--labels_touse="+V.labels_touse.value,
@@ -1391,12 +1392,12 @@ async def activations_actuate():
             "--audio_tic_rate="+str(M.audio_tic_rate),
             "--audio_nchannels="+str(M.audio_nchannels),
             "--audio_read_plugin="+M.audio_read_plugin,
-            "--audio_read_plugin_kwargs='"+json.dumps(M.audio_read_plugin_kwargs)+"'",
+            "--audio_read_plugin_kwargs="+json.dumps(M.audio_read_plugin_kwargs),
             "--video_frame_rate="+str(M.video_frame_rate),
             "--video_frame_height="+str(M.video_frame_height),
             "--video_frame_width="+str(M.video_frame_width),
             "--video_read_plugin="+M.video_read_plugin,
-            "--video_read_plugin_kwargs='"+json.dumps(M.video_read_plugin_kwargs)+"'",
+            "--video_read_plugin_kwargs="+json.dumps(M.video_read_plugin_kwargs),
             "--video_channels="+str(M.video_channels),
             "--validation_percentage=0.0",
             "--validation_offset_percentage=0.0",
@@ -1435,11 +1436,11 @@ async def cluster_actuate():
             "--ndims="+ndims, 
             "--parallelize="+str(M.cluster_parallelize)]
     if algorithm == "tSNE":
-        args.append('--kwargs={\\\"perplexity\\\":'+V.tsne_perplexity.value+
-                    ',\\\"exaggeration\\\":'+V.tsne_exaggeration.value+'}')
+        args.append('--kwargs={"perplexity":'+V.tsne_perplexity.value+
+                    ',"exaggeration":'+V.tsne_exaggeration.value+'}')
     elif algorithm == "UMAP":
-        args.append('--kwargs={\\\"n_neighbors\\\":'+V.umap_neighbors.value+
-                    ',\\\"min_distance\\\":'+V.umap_distance.value+'}')
+        args.append('--kwargs={"n_neighbors":'+V.umap_neighbors.value+
+                    ',"min_distance":'+V.umap_distance.value+'}')
     jobid = generic_actuate("cluster", logfile,
                             M.cluster_where,
                             M.cluster_ncpu_cores,
@@ -1448,7 +1449,7 @@ async def cluster_actuate():
                             M.cluster_cluster_flags,
                             *args)
 
-    displaystring = "CLUSTER "+os.path.basename(V.groundtruth_folder.value.rstrip('/'))+ \
+    displaystring = "CLUSTER "+os.path.basename(V.groundtruth_folder.value.rstrip(os.sep))+ \
                     " ("+jobid+")"
     M.waitfor_job = [jobid]
     V.waitfor_update()
@@ -1542,7 +1543,7 @@ async def accuracy_actuate():
                             M.accuracy_ngigabytes_memory,
                             M.accuracy_cluster_flags,
                             *args)
-    displaystring = "ACCURACY "+os.path.basename(V.logs_folder.value.rstrip('/'))+ \
+    displaystring = "ACCURACY "+os.path.basename(V.logs_folder.value.rstrip(os.sep))+ \
                     " ("+jobid+")"
     M.waitfor_job = [jobid]
     V.waitfor_update()
@@ -1582,7 +1583,7 @@ async def _freeze_actuate(ckpts):
                             "--labels_touse="+','.join(labels),
                             "--context_ms="+V.context_ms.value,
                             "--model_architecture="+M.architecture_plugin,
-                            "--model_parameters='"+json.dumps({k:v.value for k,v in V.model_parameters.items()})+"'",
+                            "--model_parameters="+json.dumps({k:v.value for k,v in V.model_parameters.items()}),
                             "--parallelize="+str(M.classify_parallelize),
                             "--audio_tic_rate="+str(M.audio_tic_rate),
                             "--audio_nchannels="+str(M.audio_nchannels),
@@ -1663,7 +1664,7 @@ async def ensemble_actuate():
                             "--labels_touse="+','.join(labels),
                             "--context_ms="+V.context_ms.value,
                             "--model_architecture="+M.architecture_plugin,
-                            "--model_parameters='"+json.dumps({k:v.value for k,v in V.model_parameters.items()})+"'",
+                            "--model_parameters="+json.dumps({k:v.value for k,v in V.model_parameters.items()}),
                             "--parallelize="+str(M.classify_parallelize),
                             "--audio_tic_rate="+str(M.audio_tic_rate),
                             "--audio_nchannels="+str(M.audio_nchannels),
@@ -1718,9 +1719,9 @@ async def _classify_actuate(wavfiles):
             "--video_frame_width="+str(M.video_frame_width),
             "--video_channels="+str(M.video_channels),
             "--audio_read_plugin="+M.audio_read_plugin,
-            "--audio_read_plugin_kwargs='"+json.dumps(M.audio_read_plugin_kwargs)+"'",
+            "--audio_read_plugin_kwargs="+json.dumps(M.audio_read_plugin_kwargs),
             "--video_read_plugin="+M.video_read_plugin,
-            "--video_read_plugin_kwargs='"+json.dumps(M.video_read_plugin_kwargs)+"'",
+            "--video_read_plugin_kwargs="+json.dumps(M.video_read_plugin_kwargs),
             "--igpu=QUEUE1", \
             "--deterministic="+str(M.deterministic)]
     if V.prevalences.value!='':
@@ -1826,7 +1827,7 @@ async def compare_actuate():
                             M.compare_ngigabytes_memory,
                             M.compare_cluster_flags,
                             V.logs_folder.value)
-    displaystring = "COMPARE "+os.path.basename(V.logs_folder.value.rstrip('/'))+ \
+    displaystring = "COMPARE "+os.path.basename(V.logs_folder.value.rstrip(os.sep))+ \
                     " ("+jobid+")"
     M.waitfor_job = jobid
     V.waitfor_update()
@@ -2154,11 +2155,11 @@ def file_dialog_callback(attr, old, new):
     if len(V.file_dialog_source.selected.indices)==1:
         iselected = V.file_dialog_source.selected.indices[0]
         selected_file = V.file_dialog_source.data['names'][iselected]
-        if selected_file=='./':
+        if selected_file=='.'+os.sep:
             V.file_dialog_source.selected.indices = []
             V.file_dialog_update()
-        elif selected_file=='../':
-            if M.file_dialog_root.endswith('/'):
+        elif selected_file=='..'+os.sep:
+            if M.file_dialog_root.endswith(os.sep):
                 M.file_dialog_root = M.file_dialog_root[:-1]
             M.file_dialog_root = os.path.dirname(M.file_dialog_root)
             V.file_dialog_string.value = M.file_dialog_root

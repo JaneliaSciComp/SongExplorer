@@ -121,7 +121,7 @@ def main():
   # Create the model and load its weights.
   thismodel = create_inference_graph()
 
-  tf.saved_model.save(thismodel, FLAGS.output_file+'/')
+  tf.saved_model.save(thismodel, FLAGS.output_file+os.sep)
   print('Saved frozen graph to %s' % FLAGS.output_file)
 
 

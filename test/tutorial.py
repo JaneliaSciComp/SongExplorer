@@ -16,29 +16,29 @@ from lib import wait_for_job, check_file_exists, count_lines_with_label, count_l
 
 repo_path = os.path.dirname(sys.path[0])
   
-sys.path.append(os.path.join(repo_path, "src/gui"))
+sys.path.append(os.path.join(repo_path, "src", "gui"))
 import model as M
 import view as V
 import controller as C
 
-os.makedirs(os.path.join(repo_path, "test/scratch/tutorial-py"))
+os.makedirs(os.path.join(repo_path, "test", "scratch", "tutorial-py"))
 shutil.copy(os.path.join(repo_path, "configuration.py"),
-            os.path.join(repo_path, "test/scratch/tutorial-py"))
+            os.path.join(repo_path, "test", "scratch", "tutorial-py"))
 
-M.init(None, os.path.join(repo_path, "test/scratch/tutorial-py/configuration.py"))
+M.init(None, os.path.join(repo_path, "test", "scratch", "tutorial-py", "configuration.py"))
 V.init(None)
 C.init(None)
 
 M.deterministic='1'
 
-os.makedirs(os.path.join(repo_path, "test/scratch/tutorial-py/groundtruth-data/round1"))
-shutil.copy(os.path.join(repo_path, "data/PS_20130625111709_ch3.wav"), \
-            os.path.join(repo_path, "test/scratch/tutorial-py/groundtruth-data/round1"))
+os.makedirs(os.path.join(repo_path, "test", "scratch", "tutorial-py", "groundtruth-data", "round1"))
+shutil.copy(os.path.join(repo_path, "data", "PS_20130625111709_ch3.wav"), \
+            os.path.join(repo_path, "test", "scratch", "tutorial-py", "groundtruth-data", "round1"))
 
 run(["hstart", "1,0,1"])
 
 wavpath_noext = os.path.join(repo_path,
-                             "test/scratch/tutorial-py/groundtruth-data/round1/PS_20130625111709_ch3")
+                             "test", "scratch", "tutorial-py", "groundtruth-data", "round1", "PS_20130625111709_ch3")
 V.wavcsv_files.value = wavpath_noext+".wav"
 V.detect_parameters["time_sigma"].value = "9,4"
 V.detect_parameters["time_smooth_ms"].value = "6.4"
@@ -57,8 +57,8 @@ count_lines_with_label(wavpath_noext+"-detected.csv", "time", 536, "ERROR")
 count_lines_with_label(wavpath_noext+"-detected.csv", "frequency", 45, "ERROR")
 count_lines_with_label(wavpath_noext+"-detected.csv", "neither", 1635, "ERROR")
 
-shutil.copy(os.path.join(repo_path, "data/PS_20130625111709_ch3-annotated-person1.csv"),
-            os.path.join(repo_path, "test/scratch/tutorial-py/groundtruth-data/round1"))
+shutil.copy(os.path.join(repo_path, "data", "PS_20130625111709_ch3-annotated-person1.csv"),
+            os.path.join(repo_path, "test", "scratch", "tutorial-py", "groundtruth-data", "round1"))
 
 V.context_ms.value = "204.8"
 V.shiftby_ms.value = "0.0"
@@ -85,8 +85,8 @@ V.model_parameters["window_ms"].value = "6.4"
 V.model_parameters["stride_ms"].value = "1.6"
 V.model_parameters["mel_dct"].value = "7,7"
 V.model_parameters["range_hz"].value = ""
-V.logs_folder.value = os.path.join(repo_path, "test/scratch/tutorial-py/trained-classifier1")
-V.groundtruth_folder.value = os.path.join(repo_path, "test/scratch/tutorial-py/groundtruth-data")
+V.logs_folder.value = os.path.join(repo_path, "test", "scratch", "tutorial-py", "trained-classifier1")
+V.groundtruth_folder.value = os.path.join(repo_path, "test", "scratch", "tutorial-py", "groundtruth-data")
 V.labels_touse.value = "mel-pulse,mel-sine,ambient"
 V.kinds_touse.value = "annotated"
 V.nsteps.value = "300"
@@ -140,12 +140,12 @@ check_file_exists(os.path.join(V.logs_folder.value, "train_1r",
                                "frozen-graph.ckpt-"+V.nsteps.value+".pb",
                                "saved_model.pb"))
 
-os.makedirs(os.path.join(repo_path, "test/scratch/tutorial-py/groundtruth-data/round2"))
-shutil.copy(os.path.join(repo_path, "data/20161207T102314_ch1.wav"),
-            os.path.join(repo_path, "test/scratch/tutorial-py/groundtruth-data/round2"))
+os.makedirs(os.path.join(repo_path, "test", "scratch", "tutorial-py", "groundtruth-data", "round2"))
+shutil.copy(os.path.join(repo_path, "data", "20161207T102314_ch1.wav"),
+            os.path.join(repo_path, "test", "scratch", "tutorial-py", "groundtruth-data", "round2"))
 
 V.wavcsv_files.value = os.path.join(repo_path,
-      "test/scratch/tutorial-py/groundtruth-data/round2/20161207T102314_ch1.wav")
+      "test", "scratch", "tutorial-py", "groundtruth-data", "round2", "20161207T102314_ch1.wav")
 V.prevalences.value = ""
 asyncio.run(C.classify_actuate())
 
@@ -186,7 +186,7 @@ check_file_exists(wavpath_noext+"-misses.log")
 check_file_exists(wavpath_noext+"-missed.csv")
 count_lines_with_label(wavpath_noext+"-missed.csv", "other", 1569, "WARNING")
 
-V.model_file.value = os.path.join(repo_path, "test/scratch/tutorial-py/trained-classifier1", \
+V.model_file.value = os.path.join(repo_path, "test", "scratch", "tutorial-py", "trained-classifier1", \
                                   "train_"+V.nreplicates.value+"r", \
                                   "ckpt-"+V.nsteps.value+".index")
 V.kinds_touse.value = "annotated,missed"
@@ -213,10 +213,10 @@ wait_for_job(M.status_ticker_queue)
 check_file_exists(os.path.join(V.groundtruth_folder.value, "cluster.log"))
 check_file_exists(os.path.join(V.groundtruth_folder.value, "cluster.npz"))
 
-shutil.copy(os.path.join(repo_path, "data/20161207T102314_ch1-annotated-person1.csv"),
-            os.path.join(repo_path, "test/scratch/tutorial-py/groundtruth-data/round2"))
+shutil.copy(os.path.join(repo_path, "data", "20161207T102314_ch1-annotated-person1.csv"),
+            os.path.join(repo_path, "test", "scratch", "tutorial-py", "groundtruth-data", "round2"))
 
-V.logs_folder.value = os.path.join(repo_path, "test/scratch/tutorial-py/omit-one")
+V.logs_folder.value = os.path.join(repo_path, "test", "scratch", "tutorial-py", "omit-one")
 V.validation_files.value = "PS_20130625111709_ch3.wav,20161207T102314_ch1.wav"
 asyncio.run(C.leaveout_actuate(False))
 
@@ -253,7 +253,7 @@ nfeaturess = ["32,32", "64,64"]
 
 for nfeatures in nfeaturess:
   V.logs_folder.value = os.path.join(repo_path,
-                                     "test/scratch/tutorial-py/nfeatures-"+nfeatures.split(',')[0])
+                                     "test", "scratch", "tutorial-py", "nfeatures-"+nfeatures.split(',')[0])
   V.model_parameters["nfeatures"].value = nfeatures
   V.kfold.value = "2"
   asyncio.run(C.xvalidate_actuate())
@@ -272,7 +272,7 @@ for nfeatures in nfeaturess:
 V.precision_recall_ratios.value = "1.0"
 for nfeatures in nfeaturess:
   V.logs_folder.value = os.path.join(repo_path,
-                                     "test/scratch/tutorial-py/nfeatures-"+nfeatures.split(',')[0])
+                                     "test", "scratch", "tutorial-py", "nfeatures-"+nfeatures.split(',')[0])
   asyncio.run(C.accuracy_actuate())
 
 wait_for_job(M.status_ticker_queue)
@@ -293,7 +293,7 @@ for nfeatures in nfeaturess:
   for label in V.labels_touse.value.split(','):
     check_file_exists(os.path.join(V.logs_folder.value, "validation-PvR-"+label+".pdf"))
 
-V.logs_folder.value = os.path.join(repo_path, "test/scratch/tutorial-py/nfeatures")
+V.logs_folder.value = os.path.join(repo_path, "test", "scratch", "tutorial-py", "nfeatures")
 asyncio.run(C.compare_actuate())
 
 wait_for_job(M.status_ticker_queue)
@@ -311,7 +311,7 @@ check_file_exists(os.path.join(V.groundtruth_folder.value, "mistakes.log"))
 check_file_exists(os.path.join(V.groundtruth_folder.value, "round1",
                                "PS_20130625111709_ch3-mistakes.csv"))
 
-V.logs_folder.value = os.path.join(repo_path, "test/scratch/tutorial-py/trained-classifier2")
+V.logs_folder.value = os.path.join(repo_path, "test", "scratch", "tutorial-py", "trained-classifier2")
 V.kinds_touse.value = "annotated"
 V.validate_percentage.value = "20"
 asyncio.run(C.train_actuate())
@@ -354,12 +354,12 @@ check_file_exists(os.path.join(V.logs_folder.value, "train_1r",
                                "frozen-graph.ckpt-"+V.nsteps.value+".pb",
                                "saved_model.pb"))
 
-os.mkdir(os.path.join(repo_path, "test/scratch/tutorial-py/groundtruth-data/congruence"))
-shutil.copy(os.path.join(repo_path, "data/20190122T093303a-7.wav"),
-            os.path.join(repo_path, "test/scratch/tutorial-py/groundtruth-data/congruence"))
+os.mkdir(os.path.join(repo_path, "test", "scratch", "tutorial-py", "groundtruth-data", "congruence"))
+shutil.copy(os.path.join(repo_path, "data", "20190122T093303a-7.wav"),
+            os.path.join(repo_path, "test", "scratch", "tutorial-py", "groundtruth-data", "congruence"))
 
 V.wavcsv_files.value = os.path.join(repo_path,
-      "test/scratch/tutorial-py/groundtruth-data/congruence/20190122T093303a-7.wav")
+      "test", "scratch", "tutorial-py", "groundtruth-data", "congruence", "20190122T093303a-7.wav")
 asyncio.run(C.classify_actuate())
 
 wait_for_job(M.status_ticker_queue)
@@ -377,10 +377,10 @@ check_file_exists(wavpath_noext+"-ethogram.log")
 for pr in V.precision_recall_ratios.value.split(','):
   check_file_exists(wavpath_noext+"-predicted-"+pr+"pr.csv")
 
-shutil.copy(os.path.join(repo_path, "data/20190122T093303a-7-annotated-person2.csv"),
-            os.path.join(repo_path, "test/scratch/tutorial-py/groundtruth-data/congruence"))
-shutil.copy(os.path.join(repo_path, "data/20190122T093303a-7-annotated-person3.csv"),
-            os.path.join(repo_path, "test/scratch/tutorial-py/groundtruth-data/congruence"))
+shutil.copy(os.path.join(repo_path, "data", "20190122T093303a-7-annotated-person2.csv"),
+            os.path.join(repo_path, "test", "scratch", "tutorial-py", "groundtruth-data", "congruence"))
+shutil.copy(os.path.join(repo_path, "data", "20190122T093303a-7-annotated-person3.csv"),
+            os.path.join(repo_path, "test", "scratch", "tutorial-py", "groundtruth-data", "congruence"))
 
 V.test_files.value = ""
 V.validation_files.value = "20190122T093303a-7.wav"
@@ -433,7 +433,7 @@ for kind in kinds:
     check_file_exists(os.path.join(V.groundtruth_folder.value, "congruence",
                                    wavpath_noext+"-disjoint-"+kind+"-only"+person+".csv"))
 
-V.logs_folder.value = os.path.join(repo_path, "test/scratch/tutorial-py/nfeatures-64")
+V.logs_folder.value = os.path.join(repo_path, "test", "scratch", "tutorial-py", "nfeatures-64")
 V.model_file.value = os.path.join(V.logs_folder.value, "xvalidate_1k", "ckpt-300")+','+ \
                      os.path.join(V.logs_folder.value, "xvalidate_2k", "ckpt-300")
 
@@ -445,14 +445,14 @@ check_file_exists(os.path.join(V.logs_folder.value, "xvalidate_1k,2k", "ensemble
 check_file_exists(os.path.join(V.logs_folder.value, "xvalidate_1k,2k",
                                "frozen-graph.ckpt-300,300.pb", "saved_model.pb"))
 
-os.mkdir(os.path.join(repo_path, "test/scratch/tutorial-py/groundtruth-data/congruence-ensemble"))
-shutil.copy(os.path.join(repo_path, "data/20190122T132554a-14.wav"),
-            os.path.join(repo_path, "test/scratch/tutorial-py/groundtruth-data/congruence-ensemble"))
+os.mkdir(os.path.join(repo_path, "test", "scratch", "tutorial-py", "groundtruth-data", "congruence-ensemble"))
+shutil.copy(os.path.join(repo_path, "data", "20190122T132554a-14.wav"),
+            os.path.join(repo_path, "test", "scratch", "tutorial-py", "groundtruth-data", "congruence-ensemble"))
 
 V.model_file.value = os.path.join(V.logs_folder.value, "xvalidate_1k,2k",
                                   "frozen-graph.ckpt-300,300.pb")
 V.wavcsv_files.value = os.path.join(repo_path,
-      "test/scratch/tutorial-py/groundtruth-data/congruence-ensemble/20190122T132554a-14.wav")
+      "test", "scratch", "tutorial-py", "groundtruth-data", "congruence-ensemble", "20190122T132554a-14.wav")
 asyncio.run(C.classify_actuate())
 
 wait_for_job(M.status_ticker_queue)
@@ -475,10 +475,10 @@ count_lines_with_label(wavpath_noext+"-predicted-1.0pr.csv", "mel-pulse", 56, "W
 count_lines_with_label(wavpath_noext+"-predicted-1.0pr.csv", "mel-sine", 140, "WARNING")
 count_lines_with_label(wavpath_noext+"-predicted-1.0pr.csv", "ambient", 70, "WARNING")
 
-shutil.copy(os.path.join(repo_path, "data/20190122T132554a-14-annotated-person2.csv"),
-            os.path.join(repo_path, "test/scratch/tutorial-py/groundtruth-data/congruence-ensemble"))
-shutil.copy(os.path.join(repo_path, "data/20190122T132554a-14-annotated-person3.csv"),
-            os.path.join(repo_path, "test/scratch/tutorial-py/groundtruth-data/congruence-ensemble"))
+shutil.copy(os.path.join(repo_path, "data", "20190122T132554a-14-annotated-person2.csv"),
+            os.path.join(repo_path, "test", "scratch", "tutorial-py", "groundtruth-data", "congruence-ensemble"))
+shutil.copy(os.path.join(repo_path, "data", "20190122T132554a-14-annotated-person3.csv"),
+            os.path.join(repo_path, "test", "scratch", "tutorial-py", "groundtruth-data", "congruence-ensemble"))
 
 V.validation_files.value = "20190122T132554a-14.wav"
 asyncio.run(C.congruence_actuate())
@@ -516,7 +516,7 @@ for kind in kinds:
 V.model_file.value = os.path.join(V.logs_folder.value, "xvalidate_1k,2k",
                                   "frozen-graph.ckpt-300,300.pb")
 V.wavcsv_files.value = os.path.join(repo_path,
-      "test/scratch/tutorial-py/groundtruth-data/round1/PS_20130625111709_ch3.wav")
+      "test", "scratch", "tutorial-py", "groundtruth-data", "round1", "PS_20130625111709_ch3.wav")
 asyncio.run(C.classify_actuate())
 
 wait_for_job(M.status_ticker_queue)

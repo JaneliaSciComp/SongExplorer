@@ -16,20 +16,20 @@ import pandas as pd
 from lib import wait_for_job, check_file_exists
 
 def check_value(dfrow, colname, shouldbe):
-  if int(dfrow[colname]) != shouldbe:
-    print("ERROR: "+colname+" is "+str(int(dfrow[colname]))+" but should be "+str(shouldbe))
+  if int(dfrow[colname].iloc[0]) != shouldbe:
+    print("ERROR: "+colname+" is "+str(int(dfrow[colname].iloc[0]))+" but should be "+str(shouldbe))
 
 repo_path = os.path.dirname(sys.path[0])
   
-sys.path.append(os.path.join(repo_path, "src/gui"))
+sys.path.append(os.path.join(repo_path, "src", "gui"))
 import model as M
 import view as V
 import controller as C
 
-with tarfile.open(os.path.join(repo_path, "test/congruence.tar.xz")) as fid:
-  fid.extractall(os.path.join(repo_path, "test/scratch"))
+with tarfile.open(os.path.join(repo_path, "test", "congruence.tar.xz")) as fid:
+  fid.extractall(os.path.join(repo_path, "test", "scratch"))
 
-dummydatadir = os.path.join(repo_path, "test/scratch/congruence/groundtruth-data/dummy-data")
+dummydatadir = os.path.join(repo_path, "test", "scratch", "congruence", "groundtruth-data", "dummy-data")
 for ethogramfile in filter(lambda x: x.endswith("ethogram.log"), os.listdir(dummydatadir)):
   with open(os.path.join(dummydatadir, ethogramfile), "r") as sources:
       lines = sources.readlines()
@@ -38,15 +38,15 @@ for ethogramfile in filter(lambda x: x.endswith("ethogram.log"), os.listdir(dumm
           sources.write(line.replace('REPO_PATH', repo_path))
 
 shutil.copy(os.path.join(repo_path, "configuration.py"),
-            os.path.join(repo_path, "test/scratch/congruence"))
+            os.path.join(repo_path, "test", "scratch", "congruence"))
 
-M.init(None, os.path.join(repo_path, "test/scratch/congruence/configuration.py"))
+M.init(None, os.path.join(repo_path, "test", "scratch", "congruence", "configuration.py"))
 V.init(None)
 C.init(None)
 
 run(["hstart", "1,0,1"])
 
-V.groundtruth_folder.value = os.path.join(repo_path, "test/scratch/congruence/groundtruth-data")
+V.groundtruth_folder.value = os.path.join(repo_path, "test", "scratch", "congruence", "groundtruth-data")
 
 V.test_files.value = ""
 V.validation_files.value = "recording1.wav,recording2.wav,recording3.wav,recording4.wav"

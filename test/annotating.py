@@ -48,24 +48,24 @@ def check_annotation_on_disk(csvfile, thissound, shouldexist):
 
 repo_path = os.path.dirname(sys.path[0])
   
-sys.path.append(os.path.join(repo_path, "src/gui"))
+sys.path.append(os.path.join(repo_path, "src", "gui"))
 import model as M
 import view as V
 import controller as C
 
-os.makedirs(os.path.join(repo_path, "test/scratch/annotating"))
+os.makedirs(os.path.join(repo_path, "test", "scratch", "annotating"))
 shutil.copy(os.path.join(repo_path, "configuration.py"),
-            os.path.join(repo_path, "test/scratch/annotating"))
+            os.path.join(repo_path, "test", "scratch", "annotating"))
 
-M.init(None, os.path.join(repo_path, "test/scratch/annotating/configuration.py"))
+M.init(None, os.path.join(repo_path, "test", "scratch", "annotating", "configuration.py"))
 V.init(None)
 C.init(None)
 
-groundtruth_folder = "test/scratch/annotating/groundtruth-data"
+groundtruth_folder = os.path.join("test", "scratch", "annotating", "groundtruth-data")
 round_folder = "round1"
 basepath = os.path.join(repo_path, groundtruth_folder, round_folder)
 os.makedirs(basepath)
-shutil.copy(os.path.join(repo_path, "data/PS_20130625111709_ch3.wav"), basepath)
+shutil.copy(os.path.join(repo_path, "data", "PS_20130625111709_ch3.wav"), basepath)
 
 V.groundtruth_folder.value = os.path.join(repo_path, groundtruth_folder)
 

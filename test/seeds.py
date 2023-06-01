@@ -18,27 +18,27 @@ from lib import wait_for_job, check_file_exists
 
 repo_path = os.path.dirname(sys.path[0])
   
-sys.path.append(os.path.join(repo_path, "src/gui"))
+sys.path.append(os.path.join(repo_path, "src", "gui"))
 import model as M
 import view as V
 import controller as C
 
-os.makedirs(os.path.join(repo_path, "test/scratch/seeds"))
+os.makedirs(os.path.join(repo_path, "test", "scratch", "seeds"))
 shutil.copy(os.path.join(repo_path, "configuration.py"),
-            os.path.join(repo_path, "test/scratch/seeds"))
+            os.path.join(repo_path, "test", "scratch", "seeds"))
 
-M.init(None, os.path.join(repo_path, "test/scratch/seeds/configuration.py"))
+M.init(None, os.path.join(repo_path, "test", "scratch", "seeds", "configuration.py"))
 V.init(None)
 C.init(None)
 
-os.makedirs(os.path.join(repo_path, "test/scratch/seeds/groundtruth-data/round1"))
-shutil.copy(os.path.join(repo_path, "data/PS_20130625111709_ch3.wav"),
-            os.path.join(repo_path, "test/scratch/seeds/groundtruth-data/round1"))
+os.makedirs(os.path.join(repo_path, "test", "scratch", "seeds", "groundtruth-data", "round1"))
+shutil.copy(os.path.join(repo_path, "data", "PS_20130625111709_ch3.wav"),
+            os.path.join(repo_path, "test", "scratch", "seeds", "groundtruth-data", "round1"))
 
 run(["hstart", "1,0,1"])
 
-shutil.copy(os.path.join(repo_path, "data/PS_20130625111709_ch3-annotated-person1.csv"),
-            os.path.join(repo_path, "test/scratch/seeds/groundtruth-data/round1"))
+shutil.copy(os.path.join(repo_path, "data", "PS_20130625111709_ch3-annotated-person1.csv"),
+            os.path.join(repo_path, "test", "scratch", "seeds", "groundtruth-data", "round1"))
 
 V.context_ms.value = "204.8"
 V.shiftby_ms.value = "0.0"
@@ -65,7 +65,7 @@ V.model_parameters["window_ms"].value = "6.4"
 V.model_parameters["stride_ms"].value = "1.6"
 V.model_parameters["mel_dct"].value = "7,7"
 V.model_parameters["range_hz"].value = ""
-V.groundtruth_folder.value = os.path.join(repo_path, "test/scratch/seeds/groundtruth-data")
+V.groundtruth_folder.value = os.path.join(repo_path, "test", "scratch", "seeds", "groundtruth-data")
 V.labels_touse.value = "mel-pulse,mel-sine,ambient"
 V.kinds_touse.value = "annotated"
 V.nsteps.value = "100"
@@ -81,7 +81,7 @@ for batch_seed in ["1", "-1"]:
   for weights_seed in ["1", "-1"]:
     V.weights_seed.value = weights_seed
     V.logs_folder.value = os.path.join(repo_path,
-          "test/scratch/seeds/trained-classifier-bs="+batch_seed+"-ws="+weights_seed)
+          "test", "scratch", "seeds", "trained-classifier-bs="+batch_seed+"-ws="+weights_seed)
     asyncio.run(C.train_actuate())
 
     wait_for_job(M.status_ticker_queue)
@@ -97,14 +97,14 @@ run(["hstop"], stdout=PIPE, stderr=STDOUT)
 import tensorflow as tf
 import numpy as np
 
-same_weights = ["trained-classifier-bs=1-ws=1/train_1r/ckpt-0",
-                "trained-classifier-bs=-1-ws=1/train_1r/ckpt-0"]
-diff_weights = ["trained-classifier-bs=1-ws=-1/train_1r/ckpt-0",
-                "trained-classifier-bs=-1-ws=-1/train_1r/ckpt-0"]
+same_weights = [os.path.join("trained-classifier-bs=1-ws=1", "train_1r", "ckpt-0"),
+                os.path.join("trained-classifier-bs=-1-ws=1", "train_1r", "ckpt-0")]
+diff_weights = [os.path.join("trained-classifier-bs=1-ws=-1", "train_1r", "ckpt-0"),
+                os.path.join("trained-classifier-bs=-1-ws=-1", "train_1r", "ckpt-0")]
 
 model0_var_names = None
 for model in [*same_weights, *diff_weights]:
-  model_path = os.path.join(repo_path, "test/scratch/seeds", model)
+  model_path = os.path.join(repo_path, "test", "scratch", "seeds", model)
   model_var_names = tf.train.list_variables(model_path)
   if not model0_var_names:
     model0_var_names = model_var_names
@@ -116,15 +116,15 @@ for model in [*same_weights, *diff_weights]:
 for var_name in model0_var_names:
   if len(var_name[1])<2:  # biases
     continue
-  model_path = os.path.join(repo_path, "test/scratch/seeds", same_weights[0])
+  model_path = os.path.join(repo_path, "test", "scratch", "seeds", same_weights[0])
   same0_var_value = tf.train.load_variable(model_path, var_name[0])
   for model in same_weights[1:]:
-    model_path = os.path.join(repo_path, "test/scratch/seeds", model)
+    model_path = os.path.join(repo_path, "test", "scratch", "seeds", model)
     same_var_value = tf.train.load_variable(model_path, var_name[0])
     if not np.all(same0_var_value == same_var_value):
       print("ERROR: "+model+" "+var_name[0]+" not the same")
   for model in diff_weights:
-    model_path = os.path.join(repo_path, "test/scratch/seeds", model)
+    model_path = os.path.join(repo_path, "test", "scratch", "seeds", model)
     diff_var_value = tf.train.load_variable(model_path, var_name[0])
     if not np.any(same0_var_value != diff_var_value):
       print("ERROR: "+model+" "+var_name[0]+" not different")

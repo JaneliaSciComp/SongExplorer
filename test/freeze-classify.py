@@ -21,27 +21,27 @@ from lib import wait_for_job, check_file_exists
 
 repo_path = os.path.dirname(sys.path[0])
   
-sys.path.append(os.path.join(repo_path, "src/gui"))
+sys.path.append(os.path.join(repo_path, "src", "gui"))
 import model as M
 import view as V
 import controller as C
 
-os.makedirs(os.path.join(repo_path, "test/scratch/freeze-classify"))
+os.makedirs(os.path.join(repo_path, "test", "scratch", "freeze-classify"))
 shutil.copy(os.path.join(repo_path, "configuration.py"),
-            os.path.join(repo_path, "test/scratch/freeze-classify"))
+            os.path.join(repo_path, "test", "scratch", "freeze-classify"))
 
-M.init(None, os.path.join(repo_path, "test/scratch/freeze-classify/configuration.py"))
+M.init(None, os.path.join(repo_path, "test", "scratch", "freeze-classify", "configuration.py"))
 V.init(None)
 C.init(None)
 
-os.makedirs(os.path.join(repo_path, "test/scratch/freeze-classify/groundtruth-data/round1"))
-shutil.copy(os.path.join(repo_path, "data/PS_20130625111709_ch3.wav"),
-            os.path.join(repo_path, "test/scratch/freeze-classify/groundtruth-data/round1"))
+os.makedirs(os.path.join(repo_path, "test", "scratch", "freeze-classify", "groundtruth-data", "round1"))
+shutil.copy(os.path.join(repo_path, "data", "PS_20130625111709_ch3.wav"),
+            os.path.join(repo_path, "test", "scratch", "freeze-classify", "groundtruth-data", "round1"))
 
 run(["hstart", "1,0,1"])
 
-shutil.copy(os.path.join(repo_path, "data/PS_20130625111709_ch3-annotated-person1.csv"),
-            os.path.join(repo_path, "test/scratch/freeze-classify/groundtruth-data/round1"))
+shutil.copy(os.path.join(repo_path, "data", "PS_20130625111709_ch3-annotated-person1.csv"),
+            os.path.join(repo_path, "test", "scratch", "freeze-classify", "groundtruth-data", "round1"))
 
 V.context_ms.value = "204.8"
 V.shiftby_ms.value = "0.0"
@@ -67,7 +67,7 @@ V.model_parameters["stride_ms"].value = "0.8"
 V.model_parameters["mel_dct"].value = "3,3"
 V.model_parameters["range_hz"].value = ""
 V.groundtruth_folder.value = os.path.join(repo_path,
-                                          "test/scratch/freeze-classify/groundtruth-data")
+                                          "test", "scratch", "freeze-classify", "groundtruth-data")
 V.labels_touse.value = "mel-pulse,mel-sine,ambient"
 V.kinds_touse.value = "annotated"
 V.nsteps.value = "100"
@@ -85,7 +85,7 @@ for representation in ["waveform", "spectrogram", "mel-cepstrum"]:
   for stride_time in ["2", ""]:
     V.model_parameters["stride_time"].value = stride_time
     V.logs_folder.value = os.path.join(repo_path,
-                                       "test/scratch/freeze-classify",
+                                       "test", "scratch", "freeze-classify",
                                        "trained-classifier-r="+representation+
                                        "-s="+stride_time)
     asyncio.run(C.train_actuate())
@@ -101,7 +101,7 @@ for representation in ["waveform", "spectrogram", "mel-cepstrum"]:
                                       "train_"+V.nreplicates.value+"r",
                                       "ckpt-"+V.nsteps.value+".index")
     V.wavcsv_files.value = os.path.join(repo_path,
-          "test/scratch/freeze-classify/groundtruth-data/round1/PS_20130625111709_ch3.wav")
+          "test", "scratch", "freeze-classify", "groundtruth-data", "round1", "PS_20130625111709_ch3.wav")
     V.prevalences.value = ""
 
     for parallelize in ["64", "16384"]:
@@ -120,7 +120,7 @@ for representation in ["waveform", "spectrogram", "mel-cepstrum"]:
       wait_for_job(M.status_ticker_queue)
 
       outpath = os.path.join(repo_path, 
-                             "test/scratch/freeze-classify",
+                             "test", "scratch", "freeze-classify",
                              "trained-classifier-r="+representation+
                              "-s="+stride_time,
                              parallelize)
@@ -134,7 +134,7 @@ for representation in ["waveform", "spectrogram", "mel-cepstrum"]:
         shutil.move(wavpath_noext+"-"+label+".wav", outpath)
 
     outpath = os.path.join(repo_path, 
-                           "test/scratch/freeze-classify",
+                           "test", "scratch", "freeze-classify",
                            "trained-classifier-r="+representation+
                            "-s="+stride_time)
     for label in V.labels_touse.value.split(','):

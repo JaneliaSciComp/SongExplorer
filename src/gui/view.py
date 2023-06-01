@@ -1320,9 +1320,9 @@ def file_dialog_update():
         except:
             pass
     if len(uniqdirnames)==1:
-        names=[os.path.basename(x) + ('/' if os.path.isdir(x) else '') for x in files]
+        names=[os.path.basename(x) + (os.sep if os.path.isdir(x) else '') for x in files]
     else:
-        names=[x + ('/' if os.path.isdir(x) else '') for x in files]
+        names=[x + (os.sep if os.path.isdir(x) else '') for x in files]
     file_dialog = dict(
         names=names,
         sizes=[os.path.getsize(f) for f in files],

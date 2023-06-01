@@ -9,10 +9,10 @@ import numpy as np
 repo_path = os.path.dirname(sys.path[0])
 
 fingerprints0 = np.load(os.path.join(repo_path,
-                                     "test/scratch/shiftby/shiftby-0.0/train_1r/fingerprints.validation.ckpt-10.npz"),
+                                     "test", "scratch", "shiftby", "shiftby-0.0", "train_1r", "fingerprints.validation.ckpt-10.npz"),
                         allow_pickle=True)
 fingerprints512 = np.load(os.path.join(repo_path,
-                                       "test/scratch/shiftby/shiftby-51.2/train_1r/fingerprints.validation.ckpt-10.npz"),
+                                       "test", "scratch", "shiftby", "shiftby-51.2", "train_1r", "fingerprints.validation.ckpt-10.npz"),
                           allow_pickle=True)
 
 shiftby = round(51.2/1000*2500)
