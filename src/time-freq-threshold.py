@@ -75,9 +75,9 @@ def detect_labels(audio_nchannels):
 FLAGS = None
 
 def main():
-  flags = vars(FLAGS)
-  for key in sorted(flags.keys()):
-    print('%s = %s' % (key, flags[key]))
+    flags = vars(FLAGS)
+    for key in sorted(flags.keys()):
+        print('%s = %s' % (key, flags[key]))
 
     sys.path.append(os.path.dirname(FLAGS.audio_read_plugin))
     audio_read_module = importlib.import_module(os.path.basename(FLAGS.audio_read_plugin))

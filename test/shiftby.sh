@@ -73,7 +73,7 @@ cmd="train \
      --weights_seed=$weights_seed \
      --deterministic=$deterministic \
      --ireplicates=$ireplicates \
-     --save_fingerprints=0"
+     --save_fingerprints=1"
 echo $cmd &> $logdir/train1.log
 eval $cmd &> $logdir/train1.log
 
@@ -116,6 +116,6 @@ cmd="train \
      --weights_seed=$weights_seed \
      --deterministic=$deterministic \
      --ireplicates=$ireplicates \
-     --save_fingerprints=0"
+     --save_fingerprints=1"
 echo $cmd &> $logdir/train1.log
 eval $cmd &> $logdir/train1.log
