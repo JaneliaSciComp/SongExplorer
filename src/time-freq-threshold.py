@@ -28,8 +28,7 @@ import socket
 import json
 import shutil
 
-repodir = os.path.dirname(os.path.dirname(os.path.realpath(shutil.which("songexplorer"))))
-
+repodir = os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
 sys.path.append(os.path.join(repodir, "src"))
 from lib import *
 
@@ -240,8 +239,7 @@ if __name__ == '__main__':
     FLAGS, unparsed = parser.parse_known_args()
   
     print(str(datetime.now())+": start time")
-    with open(os.path.join(repodir, "VERSION.txt"), 'r') as fid:
-        print('SongExplorer version = '+fid.read().strip().replace('\n',', '))
+    print('time-freq-threshold.py version = 0.1')
     print("hostname = "+socket.gethostname())
   
     try:

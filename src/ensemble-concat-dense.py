@@ -89,6 +89,7 @@ def create_model(model_settings, model_parameters):
         x = Conv1D(nunits, 1)(x)
         hidden_layers.append(x)
     
+    print('ensemble-concat-dense.py version = 0.1')
     return tf.keras.Model(inputs=[audio_model.input, video_model.input],
                           outputs=[hidden_layers, x],
-                          name="ensemble-concat-prob-dense")
+                          name="ensemble-concat-dense")

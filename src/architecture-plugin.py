@@ -84,4 +84,6 @@ def create_model(model_settings, model_parameters):
     # last layer must be convolutional with nlabels as the output size
     output_layer = Conv1D(model_settings['nlabels'], 1)(x)
 
-    return tf.keras.Model(inputs=input_layer, outputs=[hidden_layers, output_layer])
+    print('architecture-plugin.py version = 0.1')
+    return tf.keras.Model(inputs=input_layer, outputs=[hidden_layers, output_layer],
+                          name='architecture-plugin')

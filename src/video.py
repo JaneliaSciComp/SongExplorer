@@ -352,22 +352,23 @@ def get_model(PARAMS):
 
     outputs = network(PARAMS, x)
 
-    return tf.keras.Model(inputs, outputs = [hidden_layers, outputs])
+    print('video.py version = 0.1')
+    return tf.keras.Model(inputs, outputs = [hidden_layers, outputs], name="video")
 
 def create_model(model_settings, model_parameters):
-  downsample_by = 1
-  params = { **model_settings.copy(), **model_parameters.copy() }
-  params['context_frames'] = round(params['context_ms'] / 1000 * params['video_frame_rate'])
-  params['clip_frames'] = params['context_frames']+(params["parallelize"]-1)*downsample_by
-  params['spatial_height'] = int(params['video_frame_height'])
-  params['spatial_width'] = int(params['video_frame_width'])
-  params['num_labels'] = int(params['nlabels'])
-  params['nchannels'] = len(params['video_channels'])
-  params['use_bias'] = params['use_bias']=="yes"
-  params['data_format'] = 'channels_last'
-  params['dropout_rate'] = float(params['dropout_rate'])/100
-  params['num_blocks'] = [int(x) for x in params['num_blocks'].split(',')]
-  params['bn_momentum'] = float(params['bn_momentum'])
-  params['epsilon'] = float(params['epsilon'])
-
-  return get_model(params)
+    downsample_by = 1
+    params = { **model_settings.copy(), **model_parameters.copy() }
+    params['context_frames'] = round(params['context_ms'] / 1000 * params['video_frame_rate'])
+    params['clip_frames'] = params['context_frames']+(params["parallelize"]-1)*downsample_by
+    params['spatial_height'] = int(params['video_frame_height'])
+    params['spatial_width'] = int(params['video_frame_width'])
+    params['num_labels'] = int(params['nlabels'])
+    params['nchannels'] = len(params['video_channels'])
+    params['use_bias'] = params['use_bias']=="yes"
+    params['data_format'] = 'channels_last'
+    params['dropout_rate'] = float(params['dropout_rate'])/100
+    params['num_blocks'] = [int(x) for x in params['num_blocks'].split(',')]
+    params['bn_momentum'] = float(params['bn_momentum'])
+    params['epsilon'] = float(params['epsilon'])
+  
+    return get_model(params)
