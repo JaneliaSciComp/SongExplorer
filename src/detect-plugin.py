@@ -81,7 +81,7 @@ def main():
 
   basename = os.path.basename(FLAGS.filename)
   with open(os.path.splitext(FLAGS.filename)[0]+'-detected.csv', 'w') as fid:
-      csvwriter = csv.writer(fid)
+      csvwriter = csv.writer(fid, lineterminator='\n')
       for i in range(1,len(amplitude)-1):
           if amplitude[i] > hyperparameter1:
               if amplitude[i-1] < hyperparameter1):

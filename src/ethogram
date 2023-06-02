@@ -63,7 +63,7 @@ try:
                             wavname_noext+'-predicted-'+precision_recall_ratios[ithreshold]+'pr.csv')
     isort = np.argsort(start_tics)
     with open(filename,'w') as fid:
-      csvwriter = csv.writer(fid)
+      csvwriter = csv.writer(fid, lineterminator='\n')
       csvwriter.writerows(zip(cycle([wavname]), \
                               start_tics[isort], stop_tics[isort], \
                               cycle(['predicted']),

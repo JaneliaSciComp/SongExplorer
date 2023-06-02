@@ -44,7 +44,7 @@ try:
     if wavroot not in csvwriters:
       fids.append(open(os.path.join(groundtruth_directory, wavroot+'-mistakes.csv'),
                        'w', newline=''))
-      csvwriters[wavroot] = csv.writer(fids[-1])
+      csvwriters[wavroot] = csv.writer(fids[-1], lineterminator='\n')
     classified_as = np.argmax(logits[idx])
     annotated_as = labels.index(sounds[idx]['label'])
     csvwriters[wavroot].writerow([os.path.basename(sounds[idx]['file']),

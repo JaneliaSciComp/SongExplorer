@@ -160,7 +160,7 @@ def doit(logdir, key_to_plot, ckpt, labels, nprobabilities, error_ratios):
     with open(os.path.join(logdir, key_to_plot, 'predictions.ckpt-'+str(ckpt), \
                            subdir+'-mistakes.csv'), \
               'w', newline='') as csvfile:
-      csvwriter = csv.writer(csvfile)
+      csvwriter = csv.writer(csvfile, lineterminator='\n')
       for i in range(len(validation_ground_truth)):
         if os.path.basename(os.path.split(validation_sounds[i]['file'])[0]) != subdir:
           continue

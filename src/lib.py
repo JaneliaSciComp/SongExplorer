@@ -533,7 +533,7 @@ def save_thresholds(logdir, model, ckpt, thresholds, ratios, labels, dense=False
              ('-dense-'+datetime.strftime(datetime.now(),'%Y%m%dT%H%M%S') if dense else '')+\
              '.ckpt-'+str(ckpt)+'.csv'
   fid = open(os.path.join(logdir,model,filename),"w")
-  fidcsv = csv.writer(fid)
+  fidcsv = csv.writer(fid, lineterminator='\n')
   fidcsv.writerow(['precision/recall'] + ratios)
   for ilabel in range(len(labels)):
     fidcsv.writerow([labels[ilabel]] + thresholds[labels[ilabel]].tolist())

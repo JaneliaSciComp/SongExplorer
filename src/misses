@@ -68,7 +68,7 @@ try:
     basepath = os.path.dirname(csv_files[0])
     filename = os.path.join(basepath, noext+'-missed.csv')
     with open(filename,'w') as fid:
-      csvwriter = csv.writer(fid)
+      csvwriter = csv.writer(fid, lineterminator='\n')
       csvwriter.writerows(zip(cycle([wavfile]), \
                               start_times[:ifeature], stop_times[:ifeature], \
                               cycle(['missed']), cycle(['other'])))

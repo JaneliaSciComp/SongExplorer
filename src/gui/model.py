@@ -92,7 +92,7 @@ def save_annotations():
             csvfiles_current.add(csvfile)
             fids[wavfile] = open(os.path.join(V.groundtruth_folder.value, csvfile),
                                  "w", newline='')
-            csvwriters[wavfile] = csv.writer(fids[wavfile])
+            csvwriters[wavfile] = csv.writer(fids[wavfile], lineterminator='\n')
         for filename in annotated_csvfiles_all - csvfiles_current:
             filepath = os.path.join(V.groundtruth_folder.value, filename)
             if os.path.exists(filepath):

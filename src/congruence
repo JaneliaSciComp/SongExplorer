@@ -211,7 +211,7 @@ def main():
         temp_files.append(filename)
         isort = np.argsort(start_tics)
         with open(filename,'w') as fid:
-          csvwriter = csv.writer(fid)
+          csvwriter = csv.writer(fid, lineterminator='\n')
           csvwriter.writerows(zip(cycle([wavfile]), \
                                   start_tics[isort], stop_tics[isort], \
                                   cycle(['predicted']),
@@ -506,7 +506,7 @@ def main():
   def to_csv(intervals, csvbase, whichset):
     filename = os.path.splitext(csvbase)[0]+'-disjoint-'+whichset+'.csv'
     with open(os.path.join(FLAGS.basepath,filename), 'w') as fid:
-      csvwriter = csv.writer(fid)
+      csvwriter = csv.writer(fid, lineterminator='\n')
       for ilabel,label in enumerate(timestamps.keys()):
         for i in intervals[ilabel]:
           csvwriter.writerow([os.path.basename(csvbase),
@@ -652,7 +652,7 @@ def main():
           print(measure+' '+label+' area cannot be computed because recall is not monotonic')
 
       with open(os.path.join(FLAGS.basepath,'congruence.'+measure+'.'+label+'.csv'), 'w') as fid:
-        csvwriter = csv.writer(fid)
+        csvwriter = csv.writer(fid, lineterminator='\n')
         rows = roc_table[label].keys()
         cols = roc_table[label][next(iter(rows-thresholds))].keys()
         csvwriter.writerow([''] + list(cols) + ['Precision','Recall'] if len(thresholds)>0 else [])

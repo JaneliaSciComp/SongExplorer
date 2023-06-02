@@ -206,7 +206,7 @@ def main():
 
     basename = os.path.basename(FLAGS.filename)
     with open(os.path.splitext(FLAGS.filename)[0]+'-detected.csv', 'w') as fid:
-      csvwriter = csv.writer(fid)
+      csvwriter = csv.writer(fid, lineterminator='\n')
       for i in intervals_time_signal:
         csvwriter.writerow([basename,i[1],i[2],'detected','time'+i[3]])
       for i in intervals_freq_signal:
