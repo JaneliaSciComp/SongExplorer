@@ -164,9 +164,9 @@ def main():
                                                  FLAGS.kwargs)
 
   np.savez(os.path.join(FLAGS.data_dir, 'cluster'), \
-           sounds=sounds,
-           activations_clustered=activations_clustered,
-           fits_pca=fits_pca)
+           sounds = sounds,
+           activations_clustered = np.array(activations_clustered, dtype=object),
+           fits_pca = fits_pca)
   
 if __name__ == "__main__":
   parser = argparse.ArgumentParser()
