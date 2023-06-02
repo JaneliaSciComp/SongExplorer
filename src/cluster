@@ -158,6 +158,7 @@ def main():
       print('layer '+str(ilayer))
       activations_clustered[ilayer] = do_cluster(activations_tocluster, \
                                                  ilayer, \
+                                                 layers, \
                                                  FLAGS.algorithm, \
                                                  FLAGS.ndims, \
                                                  FLAGS.kwargs)
