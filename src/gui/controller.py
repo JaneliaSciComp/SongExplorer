@@ -43,9 +43,9 @@ def generic_actuate(cmd, logfile, where,
             clusterflags = clusterflags[:-2]
     if where == "local":
         p = Popen(["hsubmit",
-                   "-o", logfile, "-e", logfile,
-                   *localdeps,
                    str(ncpu_cores)+','+str(ngpu_cards)+','+str(ngigabyes_memory),
+                   "-o", logfile, "-e", logfile, "-a",
+                   *localdeps,
                    cmd+" "+' '.join(args)],
                   stdout=PIPE)
         jobid = p.stdout.readline().decode('ascii').rstrip()
@@ -53,9 +53,9 @@ def generic_actuate(cmd, logfile, where,
     elif where == "server":
         p = Popen(["ssh", "-l", M.server_username, M.server_ipaddr, "export SINGULARITYENV_PREPEND_PATH="+M.source_path+";",
                    "$SONGEXPLORER_BIN", "hsubmit",
-                   "-o", logfile, "-e", logfile,
-                   *localdeps,
                    str(ncpu_cores)+','+str(ngpu_cards)+','+str(ngigabyes_memory),
+                   "-o", logfile, "-e", logfile, "-a",
+                   *localdeps,
                    cmd+" "+' '.join(args).replace('"','\\"')],
                   stdout=PIPE)
         jobid = p.stdout.readline().decode('ascii').rstrip()

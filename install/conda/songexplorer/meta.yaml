@@ -31,7 +31,7 @@ requirements:
     - psutil
     - pims
     - nodejs >=10.13.10
-    - aitch
+    - aitch >=0.2.2
 
 about:
   summary: deep learning for acoustic signals
