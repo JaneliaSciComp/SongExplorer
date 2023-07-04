@@ -1,51 +1,71 @@
-#!/usr/bin/env bash
+#!/usr/bin/env python3
 
 # run all of the tests
 
-# ${SONGEXPLORER_BIN/-B/-B /tmp:/opt/songexplorer/test/scratch -B} bash -c "test/runtests"
+# ${SONGEXPLORER_BIN/-B/-B /tmp:/opt/songexplorer/test/scratch -B} python test/runtests"
 
-repo_path=$(dirname $(dirname $(readlink -f $(which songexplorer))))
+import os
+import sys
+from subprocess import run
+from filecmp import cmp, dircmp
 
-$repo_path/test/tutorial.sh
-$repo_path/test/tutorial.py
+repo_path = os.path.dirname(sys.path[0])
 
-if (( $(diff <(tree $repo_path/test/scratch/tutorial-sh | grep -v tfevents) \
-             <(tree $repo_path/test/scratch/tutorial-py | grep -v tfevents) | wc -l) > 12 )) ; then
-  echo ERROR directory hierarchies differ between tutorial-{py,sh}
-fi
-files=(groundtruth-data/round1/PS_20130625111709_ch3-detected.csv
-       trained-classifier1/train_1r/thresholds.ckpt-30.csv
-       trained-classifier1/train_1r/thresholds.ckpt-300.csv
-       groundtruth-data/round2/20161207T102314_ch1-predicted-1.0pr.csv
-       groundtruth-data/round2/20161207T102314_ch1-detected.csv
-       groundtruth-data/round2/20161207T102314_ch1-missed.csv
-       trained-classifier2/train_1r/thresholds.ckpt-30.csv
-       trained-classifier2/train_1r/thresholds.ckpt-300.csv
-       groundtruth-data/round1/PS_20130625111709_ch3-mistakes.csv
-       omit-one/generalize_1w/thresholds.ckpt-30.csv
-       omit-one/generalize_1w/thresholds.ckpt-300.csv
-       nfeatures-32/xvalidate_1k/thresholds.ckpt-30.csv
-       nfeatures-32/xvalidate_1k/thresholds.ckpt-300.csv
-       nfeatures-64/xvalidate_1k/thresholds.ckpt-30.csv
-       nfeatures-64/xvalidate_1k/thresholds.ckpt-300.csv
-       groundtruth-data/congruence.tic.ambient.csv
-       groundtruth-data/congruence.tic.mel-pulse.csv
-       groundtruth-data/congruence.tic.mel-sine.csv
-       groundtruth-data/congruence.label.ambient.csv
-       groundtruth-data/congruence.label.mel-pulse.csv
-       groundtruth-data/congruence.label.mel-sine.csv
-      )
-for file in ${files[*]} ; do
-  if [[ $(diff $repo_path/test/scratch/tutorial-sh/$file \
-               $repo_path/test/scratch/tutorial-py/$file) ]] ; then
-      echo WARNING $file in tutorial-sh/ and tutorial-py/ differ
-      echo WARNING it is normal that the numbers therein are close but not exact
-  fi
-done
+run(["python", os.path.join(repo_path, "test", "tutorial.py")])
 
-$repo_path/test/seeds.py
-$repo_path/test/freeze-classify.py
-$repo_path/test/annotating.py
-$repo_path/test/congruence.py
-$repo_path/test/shiftby.py
-$repo_path/test/visualization.py
+if os.name == "posix":
+    run(os.path.join(repo_path, "test", "tutorial.sh"))
+
+    def diff_tree(a, b):
+        awalk = os.walk(a)
+        bwalk = os.walk(b)
+        different = False
+        for arow,brow in zip(awalk, bwalk):
+            afilt = list(filter(lambda x: not x.startswith("thresholds-dense"), arow[2]))
+            bfilt = list(filter(lambda x: not x.startswith("thresholds-dense"), brow[2]))
+            if afilt != bfilt:
+                if "tfevents" in arow[2][0]:  continue
+                print(afilt)
+                print(bfilt)
+                different = True
+        return different
+
+    if diff_tree(os.path.join(repo_path, "test", "scratch", "tutorial-sh"),
+                 os.path.join(repo_path, "test", "scratch", "tutorial-py")):
+        print("ERROR directory hierarchies differ between tutorial-{py,sh}")
+
+    files = [os.path.join("groundtruth-data", "round1", "PS_20130625111709_ch3-detected.csv"),
+             os.path.join("trained-classifier1", "train_1r", "thresholds.ckpt-30.csv"),
+             os.path.join("trained-classifier1", "train_1r", "thresholds.ckpt-300.csv"),
+             os.path.join("groundtruth-data", "round2", "20161207T102314_ch1-predicted-1.0pr.csv"),
+             os.path.join("groundtruth-data", "round2", "20161207T102314_ch1-detected.csv"),
+             os.path.join("groundtruth-data", "round2", "20161207T102314_ch1-missed.csv"),
+             os.path.join("trained-classifier2", "train_1r", "thresholds.ckpt-30.csv"),
+             os.path.join("trained-classifier2", "train_1r", "thresholds.ckpt-300.csv"),
+             os.path.join("groundtruth-data", "round1", "PS_20130625111709_ch3-mistakes.csv"),
+             os.path.join("omit-one", "generalize_1w", "thresholds.ckpt-30.csv"),
+             os.path.join("omit-one", "generalize_1w", "thresholds.ckpt-300.csv"),
+             os.path.join("nfeatures-32", "xvalidate_1k", "thresholds.ckpt-30.csv"),
+             os.path.join("nfeatures-32", "xvalidate_1k", "thresholds.ckpt-300.csv"),
+             os.path.join("nfeatures-64", "xvalidate_1k", "thresholds.ckpt-30.csv"),
+             os.path.join("nfeatures-64", "xvalidate_1k", "thresholds.ckpt-300.csv"),
+             os.path.join("groundtruth-data", "congruence.tic.ambient.csv"),
+             os.path.join("groundtruth-data", "congruence.tic.mel-pulse.csv"),
+             os.path.join("groundtruth-data", "congruence.tic.mel-sine.csv"),
+             os.path.join("groundtruth-data", "congruence.label.ambient.csv"),
+             os.path.join("groundtruth-data", "congruence.label.mel-pulse.csv"),
+             os.path.join("groundtruth-data", "congruence.label.mel-sine.csv")
+             ]
+    for file in files:
+      if not cmp(os.path.join(repo_path, "test", "scratch", "tutorial-sh", file),
+                 os.path.join(repo_path, "test", "scratch", "tutorial-py", file),
+                 shallow=False):
+          print("WARNING "+file+" in tutorial-sh/ and tutorial-py/ differ")
+          print("WARNING it is normal that the numbers therein are close but not exact")
+
+run(["python", os.path.join(repo_path, "test", "seeds.py")])
+run(["python", os.path.join(repo_path, "test", "freeze-classify.py")])
+run(["python", os.path.join(repo_path, "test", "annotating.py")])
+run(["python", os.path.join(repo_path, "test", "congruence.py")])
+run(["python", os.path.join(repo_path, "test", "shiftby.py")])
+run(["python", os.path.join(repo_path, "test", "visualization.py")])
