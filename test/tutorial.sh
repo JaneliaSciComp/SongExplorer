@@ -24,7 +24,8 @@ count_lines() {
   (( "$count" == "$2" )) && return
   echo ERROR: $1 has $count lines when it should have $2; }
 
-repo_path=$(dirname $(dirname $(readlink -f $(which songexplorer))))
+DIR="$( cd "$( dirname "$(readlink -f ${BASH_SOURCE[0]})" )" >/dev/null 2>&1 && pwd )"
+repo_path=$(dirname $DIR)
 
 mkdir -p $repo_path/test/scratch/tutorial-sh
 cp $repo_path/configuration.py $repo_path/test/scratch/tutorial-sh
