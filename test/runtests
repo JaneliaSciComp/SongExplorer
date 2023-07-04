@@ -47,5 +47,5 @@ $repo_path/test/seeds.py
 $repo_path/test/freeze-classify.py
 $repo_path/test/annotating.py
 $repo_path/test/congruence.py
-$repo_path/test/shiftby.sh ; $repo_path/test/shiftby.py
+$repo_path/test/shiftby.py
 $repo_path/test/visualization.py
