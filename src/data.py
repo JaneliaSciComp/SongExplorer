@@ -22,7 +22,6 @@
 import hashlib
 import math
 import os.path
-import random
 import re
 import sys
 import tarfile
@@ -117,7 +116,6 @@ class AudioProcessor(object):
                audio_read_plugin, video_read_plugin,
                audio_read_plugin_kwargs, video_read_plugin_kwargs):
     self.data_dir = data_dir
-    random.seed(None if random_seed_batch==-1 else random_seed_batch)
     self.np_rng = np.random.default_rng(None if random_seed_batch==-1 else random_seed_batch)
 
     sys.path.append(os.path.dirname(audio_read_plugin))
@@ -207,7 +205,7 @@ class AudioProcessor(object):
       annotation_reader = csv.reader(open(csv_path))
       annotation_list = list(annotation_reader)
       if len(partition_labels)>0:
-        random.shuffle(annotation_list)
+        self.np_rng.shuffle(annotation_list)
       for (iannotation, annotation) in enumerate(annotation_list):
         wavfile=annotation[0]
         ticks=[int(annotation[1]),int(annotation[2])]
@@ -316,7 +314,7 @@ class AudioProcessor(object):
           sounds_have = len(label_indices[label])
           sounds_needed = sounds_largest - sounds_have
           for _ in range(sounds_needed):
-            add_this = label_indices[label][random.randrange(sounds_have)]
+            add_this = label_indices[label][self.np_rng.integers(sounds_have)]
             self.data_index[set_index].append(self.data_index[set_index][add_this])
       elif set_index == 'testing':
         if testing_equalize_ratio>0:
@@ -326,12 +324,12 @@ class AudioProcessor(object):
             sounds_have = len(label_indices[label])
             sounds_needed = min(sounds_have, testing_equalize_ratio * sounds_smallest)
             if sounds_needed<sounds_have:
-              del_these.extend(random.sample(label_indices[label], \
+              del_these.extend(self.np_rng.choice(label_indices[label], \
                                sounds_have-sounds_needed))
           for i in sorted(del_these, reverse=True):
             del self.data_index[set_index][i]
         if testing_max_sounds>0 and testing_max_sounds<len(self.data_index[set_index]):
-          self.data_index[set_index] = random.sample(self.data_index[set_index], \
+          self.data_index[set_index] = self.np_rng.choice(self.data_index[set_index], \
                                                      testing_max_sounds)
       if set_index == 'testing':
         labels = [sound['label'] for sound in self.data_index[set_index]]
@@ -339,7 +337,7 @@ class AudioProcessor(object):
           print('%7d %s' % (sum([label==uniqlabel for label in labels]), uniqlabel))
     # Make sure the ordering is random.
     for set_index in ['validation', 'testing', 'training']:
-      random.shuffle(self.data_index[set_index])
+      self.np_rng.shuffle(self.data_index[set_index])
     # Prepare the rest of the result data structure.
     self.labels_list = labels_touse
     self.label_to_index = {}
