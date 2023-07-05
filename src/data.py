@@ -358,6 +358,7 @@ class AudioProcessor(object):
 
   def _get_data(self, q, o, how_many, offset, model_settings,
                 shiftby_ms, mode, use_audio, use_video, video_findfile):
+    q.cancel_join_thread()
     while True:
       # Pick one of the partitions to choose sounds from.
       pick_deterministically = (mode != 'training')
