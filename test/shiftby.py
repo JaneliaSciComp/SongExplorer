@@ -7,6 +7,7 @@ import os
 import shutil
 from subprocess import run
 import numpy as np
+import platform
 
 repo_path = os.path.dirname(sys.path[0])
 
@@ -71,7 +72,7 @@ parameters = [
     "--video_channels=0",
     "--batch_seed=1",
     "--weights_seed=1",
-    "--deterministic=1",
+    "--deterministic=0",
     "--igpu=QUEUE1",
     "--ireplicates=1",
     "--save_fingerprints=1"]  # not hoised to GUI
@@ -80,7 +81,8 @@ shiftby = 0.0
 logdir = os.path.join(repo_path, "test", "scratch", "shiftby", "shiftby-"+str(shiftby))
 
 os.makedirs(logdir)
-cmd = ["train", *parameters, "--shiftby_ms="+str(shiftby), "--logdir="+logdir]
+cmd = ["train" + (".bat" if platform.system()=='Windows' else ""),
+        *parameters, "--shiftby_ms="+str(shiftby), "--logdir="+logdir]
 with open(os.path.join(logdir, "train1.log"), 'w') as f:
     f.write(str(cmd))
 p = run(cmd, capture_output=True)
@@ -92,7 +94,8 @@ shiftby = 51.2
 logdir = os.path.join(repo_path, "test", "scratch", "shiftby", "shiftby-"+str(shiftby))
 
 os.makedirs(logdir)
-cmd = ["train", *parameters, "--shiftby_ms="+str(shiftby), "--logdir="+logdir]
+cmd = ["train" + (".bat" if platform.system()=='Windows' else ""),
+        *parameters, "--shiftby_ms="+str(shiftby), "--logdir="+logdir]
 with open(os.path.join(logdir, "train1.log"), 'w') as f:
     f.write(str(cmd))
 p = run(cmd, capture_output=True)
