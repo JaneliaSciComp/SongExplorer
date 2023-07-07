@@ -318,7 +318,9 @@ class AudioProcessor(object):
             self.data_index[set_index].append(self.data_index[set_index][add_this])
       elif set_index == 'testing':
         if testing_equalize_ratio>0:
-          sounds_smallest = min([len(label_indices[x]) for x in label_indices.keys()])
+          sounds_smallest = min(filter(lambda x: x!=0,
+                                       [len(label_indices[x]) for x in label_indices.keys()]))
+
           del_these = []
           for label in sorted(list(label_indices.keys())):
             sounds_have = len(label_indices[label])
