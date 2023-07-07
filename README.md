@@ -142,14 +142,6 @@ for an account.  SongExplorer was tested and built with version 11.7.
 
 ## Conda for all Platforms ##
 
-On Windows, you'll need
-[WSL2](https://docs.microsoft.com/en-us/windows/wsl/install).  Choose to
-install the Ubuntu linux distribution, then follow the directions below,
-installing conda and SongExplorer inside WSL.  To copy the miniconda
-install script into WSL, use `curl -O <URL>`.  To mount a lettered Windows
-drive inside WSL, use `sudo mkdir /mnt/u; mount -t drvfs C: /mnt/u`.
-Or equivalently put "C: /mnt/u drvfs defaults 0 0" in /etc/fstab.
-
 Platform-specific installation instructions can be found at
 [Mamba](https://mamba.readthedocs.io/en/latest/installation.html).
 You can either add it to an existing installation of
@@ -163,11 +155,7 @@ Then, simply install Songexplorer its own environment:
 
     $ mamba install songexplorer -n songexplorer -c conda-forge -c apple -c nvidia
 
-NOTE:  The above command will work once a recipe is hosted on
-[conda-forge](see https://github.com/JaneliaSciComp/SongExplorer/issues/13).
-In the meantime, build locally as described below in [Conda](#conda).
-
-And put these definitions in your .bashrc file:
+Finally, put these definitions in your .bashrc file:
 
     export SONGEXPLORER_BIN=
     alias songexplorer="songexplorer <path-to-configuration.py> 5006"
@@ -1994,21 +1982,21 @@ To run a container interactively add "-i --tty".
 SongExplorer comes with a comprehensive set of tests to facilitate easy validation
 that everything works both after you've first installed it as well as after any
 changes have been made to the code.  The tests exercise both the Python GUI as
-well as the Linux Bash interfaces.  To run them, simply execute "runtests.sh":
+well as the Linux Bash interfaces.  To run them, simply execute "runtests":
 
-    $ runtests.sh
+    $ runtests
 
 or with singularity:
 
     $ singularity exec -B /tmp:/opt/songexplorer/test/scratch <songexplorer.sif> \
-            /opt/songexplorer/test/runtests.sh
+            /opt/songexplorer/test/runtests
 
 or with docker:
 
     $ docker run -v /tmp:/opt/songexplorer/test/scratch \
             [-v <other-disks>] [-u <userid>] [-w <working-directory] \
             -e SONGEXPLORER_BIN bjarthur/songexplorer:<tag> \
-            /opt/songexplorer/test/runtests.sh
+            /opt/songexplorer/test/runtests
 
 Tensorflow with a GPU is not completely deterministic, so don't use the
 `--nv` flag when exercising the tests.
