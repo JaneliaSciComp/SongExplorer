@@ -1144,9 +1144,6 @@ def recordings_update():
         M.cluster_dot_colors = { l:c for l,c in zip(M.clustered_labels,
                                                     cycle(cluster_dot_palette)) }
 
-        M.species = M.words = M.nohyphens = M.kinds = [""]
-        M.ispecies = M.iwords = M.inohyphens = M.ikinds = 0
-
         recordings.options = sorted(list(wavfiles))
         for recording in recordings.options:
             M.clustered_recording2firstsound[recording] = \
