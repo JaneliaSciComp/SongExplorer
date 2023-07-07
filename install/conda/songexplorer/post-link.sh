@@ -1,10 +1,16 @@
+cat << EOF >> ${PREFIX}/.messages.txt
+********** IMPORTANT !!! **********
+cut and paste the following into the command line to finish the installation:
+conda activate songexplorer
+pip3 install -e git+https://github.com/soft-matter/pims.git@7bd634015ecbfeb7d92f9f9d69f8b5bb4686a6b4#egg=pims -t $PREFIX/lib/python3.8/site-packages --upgrade --no-deps
+EOF
+
 if [ `uname -m` == arm64 ] ; then
-    python -m pip install –U pip
-    python -m pip install tensorflow-macos==2.9.2 # https://developer.apple.com/forums/thread/721619
-    python -m pip install tensorflow-metal==0.5.0
-    python -m pip install nitime # https://github.com/conda-forge/nitime-feedstock/issues/24
-    python -m pip install pyinterval # https://github.com/conda-forge/pycrlibm-feedstock/issues/6
+cat << EOF >> ${PREFIX}/.messages.txt
+pip3 install tensorflow-macos==2.9.2 tensorflow-metal==0.5.0 nitime pyinterval 
+EOF
 fi
 
-# https://github.com/soft-matter/pims/issues/425
-pip3 install -e git+https://github.com/soft-matter/pims.git@7bd634015ecbfeb7d92f9f9d69f8b5bb4686a6b4#egg=pims -t $PREFIX/lib/python3.8/site-packages --upgrade --no-deps
+cat << EOF >> ${PREFIX}/.messages.txt
+********** IMPORTANT !!! **********
+EOF
