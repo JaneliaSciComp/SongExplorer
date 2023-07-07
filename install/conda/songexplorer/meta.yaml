@@ -1,37 +1,70 @@
+{% set version = "v0.4.0" %}
+
 package:
   name: songexplorer
-  version: 0.4
+  version: {{ version }}
 
 source:
-  git_url: https://github.com/JaneliaSciComp/SongExplorer.git
-  git_rev: master
-  git_depth: 1
+  url: https://github.com/JaneliaSciComp/SongExplorer/archive/refs/tags/{{ version }}.tar.gz
+  sha256: ac51dd8a1b4bbac7dd88143048296d4aff1ad2aca3223bb56def61efecb41f0f
+
+build:
+  number: 0
 
 requirements:
   run:
-    - python =3.8  # pyinterval requires python <=3.8
+    - python =3.8
     - numpy
-    - tensorflow >=2.8 # [linux]
-    - tensorflow-deps =2.9 # [arm64]
-    - cudatoolkit # [not osx]
-    - cudnn # [not osx]
-    - cuda-nvcc # [not osx]
+    - tensorflow >=2.8  # [linux]
+    - tensorflow-deps =2.9  # [arm64]
+    - cudatoolkit  # [not osx]
+    - cudnn  # [not osx]
+    - cuda-nvcc  # [not osx]
     - bokeh >=2,<3
     - matplotlib
     - natsort 
     - scikit-image
-    - nitime  # [not arm64] https://github.com/conda-forge/nitime-feedstock/issues/24
+    - nitime  # [not arm64]
     - umap-learn
     - pandas
     - dictdiffer
-    - av=8.1  # https://github.com/soft-matter/pims/issues/425
-    - git     # https://github.com/soft-matter/pims/issues/425
-    - pyinterval  # [not arm64] https://github.com/conda-forge/pycrlibm-feedstock/issues/6
+    - av =8.1
+    - git
+    - pyinterval  # [not arm64]
     - matplotlib-venn
     - psutil
     - pims
     - nodejs >=10.13.10
     - aitch >=0.2.2
 
+test:
+  commands:
+    - test -f $PREFIX/bin/songexplorer  # [unix]
+    - if not exist "%PREFIX%\bin\songexplorer.bat" exit 1  # [win]
+
 about:
+  home: https://github.com/JaneliaSciComp/SongExplorer
   summary: deep learning for acoustic signals
+  description: |
+    You have an audio recording, and you want to know where certain classes of
+    sounds are.  SongExplorer is trained to recognize such words by manually
+    giving it a few examples.  It will then automatically calculate the
+    probability, over time, of when those words occur in all of your recordings.
+    Alternatively, you have two or more sets of audio recordings, and you want
+    to know if there are differences between them.  SongExplorer can
+    automatically detect sounds in those recordings and cluster them based on
+    how well it can distinguish between them.  Applications suitable for
+    SongExplorer include quantifying the rate or pattern of words emitted by a
+    particular species, distinguishing a recording of one species from another,
+    and discerning whether individuals of the same species produce different
+    song.  Underneath the hood is a deep convolutional neural network.  The
+    input is the raw audio stream, and the output is a set of mutually-exclusive
+    probability waveforms corresponding to each word of interest.
+  license: BSD-3-Clause
+  license_family: BSD
+  license_file:
+    - LICENSE.txt
+
+extra:
+  recipe-maintainers:
+    - bjarthur
