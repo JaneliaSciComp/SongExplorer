@@ -21,7 +21,7 @@ requirements:
     - cudnn  # [not osx]
     - cuda-nvcc  # [not osx]
     - bokeh >=2,<3
-    - matplotlib
+    - matplotlib-base
     - natsort 
     - scikit-image
     - nitime  # [not arm64]
