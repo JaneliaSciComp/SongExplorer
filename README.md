@@ -138,7 +138,7 @@ recommended on Mac and Windows as they do not support access to GPUs.
 
 On Linux and Windows you'll need to install the CUDA and CUDNN drivers
 from nvidia.com if you have a GPU.  The latter requires you to register
-for an account.  SongExplorer was tested and built with version 11.7.
+for an account.  SongExplorer was tested and built with version 12.1.
 
 ## Conda for all Platforms ##
 
@@ -155,21 +155,26 @@ Then, simply install Songexplorer its own environment:
 
     $ mamba install songexplorer -n songexplorer -c conda-forge -c apple -c nvidia
 
-Finally, put these definitions in your .bashrc file:
+Pay attention to the notice output at the end and demarcated with "*** IMPORTANT
+!!! ***".  Follow the directions therein to install platform-specific
+dependencies which are not in conda-forge.
 
-    export SONGEXPLORER_BIN=
-    alias songexplorer="songexplorer <path-to-configuration.py> 5006"
+If you have trouble using the GPU on Ubuntu 22.04, you might need to install
+cuda-nvcc and set XLA_FLAGS in your environment.  See the [Tensorflow
+installation](https://www.tensorflow.org/install/pip#step-by-step_instructions)
+directions for more details.
+
+Finally, put these definitions in your .bashrc file (or .zshrc file on Mac OS
+Catalina and newer):
+
+    export SONGEXPLORER_BIN='conda run -n songexplorer --no-capture-output'
+    alias songexplorer="$SONGEXPLORER_BIN songexplorer <path-to-configuration.py> 5006"
 
 In [System Configuration](#system-configuration) we'll make a copy of the default
 configuration file.  For now, you just need to decide where you're going to put it,
 and then specify the full path to that file in the alias definition (e.g.
 "$HOME/songexplorer/configuration.py").
 
-Each time you want to start SongExplorer, you'll need to first switch to
-its environment:
-
-    $ conda activate songexplorer
-  
 ## Singularity for Linux ##
 
 Platform-specific installation instructions can be found at
@@ -1571,24 +1576,19 @@ etc.) is backed by a Python script.  At the top of each script is
 documentation showing how to call it.  Here, for example, is the interface for
 `Detect`:
 
-    $ head -n 8 $CONDA_PREFIX/songexplorer/src/time-freq-threshold.py
-    #!/bin/bash
+    $ head -n 13 $CONDA_PREFIX/songexplorer/src/time-freq-threshold.py
+    #!/usr/bin/env python3
 
     # threshold an audio recording in both the time and frequency spaces
 
-    # time-freq-threshold.py <full-path-to-wavfile> {
-    #           <time-sigma-signal> <time-sigma-noise> <time-smooth-ms>
-    #           <frequency-n-ms> <frequency-nw> <frequency-p-signal>
-    #           <frequency-p-noise> <frequency-smooth-ms> <detect-time-sigma-robust> }
-    #           <audio-tic-rate> <audio-nchannels>
-
     # e.g.
-    # time-freq-threshold.py `pwd`/groundtruth-data/round2/20161207T102314_ch1_p1.wav 
-    #    {"time_sigma":"9,4", "time_smooth_ms":"6.4",
-    #     "frequency_n_ms":"25.6", "frequency_nw":"4", "frequency_p":"0.1,1.0",
-    #     "frequency_smooth_ms":"25.6", "time_sigma_robust":"median"}
-    #    2500 1
-
+    # $SONGEXPLORER_BIN time-freq-threshold.py \
+    #     --filename=`pwd`/groundtruth-data/round2/20161207T102314_ch1_p1.wav \
+    #     --parameters={"time_sigma":"9,4", "time_smooth_ms":"6.4", "frequency_n_ms":"25.6", "frequency_nw":"4", "frequency_p":"0.1,1.0", "frequency_smooth_ms":"25.6", "time_sigma_robust":"median"} \
+    #     --audio_tic_rate=2500 \
+    #     --audio_nchannels=1 \
+    #     --audio_read_plugin=load-wav \
+    #     --audio_read_plugin_kwargs={}
 
 The following Bash code directly calls this script to make predictions on a set
 of recordings in different folders:
@@ -1600,7 +1600,17 @@ of recordings in different folders:
                )
 
     $ for wavfile in ${wavfiles[@]} ; do
-          $SONGEXPLORER_BIN detect.sh $wavfile 4 2 6.4 25.6 4 0.1 1.0 25.6 2500 1
+          time-freq-threshold.py $wavfile 4 2 6.4 25.6 4 0.1 1.0 25.6 2500 1
+          $SONGEXPLORER_BIN time-freq-threshold.py \
+              --filename=$wavfile \
+              --parameters={"time_sigma":"9,4", "time_smooth_ms":"6.4", \
+                            "frequency_n_ms":"25.6", "frequency_nw":"4", \
+                            "frequency_p":"0.1,1.0", "frequency_smooth_ms":"25.6", \
+                            "time_sigma_robust":"median"} \
+              --audio_tic_rate=2500 \
+              --audio_nchannels=1 \
+              --audio_read_plugin=load-wav \
+              --audio_read_plugin_kwargs={}
       done
 
 The above workflow could also easily be performed in Julia, Python, Matlab, or
@@ -1614,7 +1624,7 @@ buttons:
     import os
 
     # load the GUI
-    sys.path.append(os.path.join(os.environ["CONDA_PREFIX"],"songexplorer/src/gui"))
+    sys.path.append(os.path.join(os.environ["CONDA_PREFIX"], "songexplorer", "src", "gui"))
     import model as M
     import view as V
     import controller as C
@@ -1625,8 +1635,8 @@ buttons:
     C.init(None)
 
     # start the job scheduler
-    run(["hetero", "start", str(M.local_ncpu_cores),
-         str(M.local_ngpu_cards), str(M.local_ngigabytes_memory)])
+    run(["hstart",
+          str(local_ncpu_cores)+','+str(local_ngpu_cards)+','+str(local_ngigabytes_memory)])
 
     # set the needed textbox variables
     V.detect_parameters["time_sigma"].value = "9,4"
@@ -1648,7 +1658,7 @@ buttons:
         C.detect_actuate()
 
     # stop the job scheduler
-    run(["hetero", "stop"], stdout=PIPE, stderr=STDOUT)
+    run(["hstop"], stdout=PIPE, stderr=STDOUT)
 
 For more details see the system tests in $CONDA_PREFIX/songexplorer/test/tutorial.{sh,py}.
 These two files implement, as Bash and Python scripts respectively, the entire
