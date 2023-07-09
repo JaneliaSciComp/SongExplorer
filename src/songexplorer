@@ -137,9 +137,13 @@ print("SongExplorer version: "+version)
 allow_websockets=["localhost:"+port]
 ipaddr="noIPv4s"
 
-thisip = socket.gethostbyname(socket.gethostname())
-allow_websockets.append(thisip+":"+port)
-ipaddr=thisip
+try:
+    thisip = socket.gethostbyname(socket.gethostname())
+except:
+    print('can not get host by name')
+else:
+    allow_websockets.append(thisip+":"+port)
+    ipaddr=thisip
 
 thisip = socket.gethostname()
 allow_websockets.append(thisip+":"+port)
