@@ -110,6 +110,8 @@ def main():
   os.environ['TF_DETERMINISTIC_OPS']=FLAGS.deterministic
   os.environ['TF_DISABLE_SPARSE_SOFTMAX_XENT_WITH_LOGITS_OP_DETERMINISM_EXCEPTIONS']=FLAGS.deterministic
 
+  np.set_printoptions(linewidth=np.inf)
+
   if FLAGS.igpu:
     physical_devices = tf.config.list_physical_devices('GPU')
     if re.search('[a-zA-Z]', FLAGS.igpu):
