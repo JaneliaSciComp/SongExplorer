@@ -38,7 +38,7 @@ cp $repo_path/data/PS_20130625111709_ch3.wav \
    $repo_path/test/scratch/tutorial-sh/groundtruth-data/round1
 
 wavpath_noext=$repo_path/test/scratch/tutorial-sh/groundtruth-data/round1/PS_20130625111709_ch3
-detect_parameters='{"time_sigma":"9,4","time_smooth_ms":"6.4","frequency_n_ms":"25.6","frequency_nw":"4","frequency_p":"0.1,1.0","frequency_smooth_ms":"25.6","time_sigma_robust":"median"}'
+detect_parameters='{"time_sigma":"9,4","time_smooth_ms":"6.4","frequency_n_ms":"25.6","frequency_nw":"4","frequency_p":"0.1,1.0","frequency_range":"0-","frequency_smooth_ms":"25.6","time_sigma_robust":"median"}'
 cmd="${detect_plugin}.py \
       --filename=${wavpath_noext}.wav \
       --parameters='$detect_parameters' \

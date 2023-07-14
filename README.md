@@ -586,20 +586,20 @@ in addition be enabled and turn red.
 The first time you use SongExplorer all of the parameters will need to be
 specified.  In the `File Browser`, navigate to the WAV file in the "round1/"
 directory and click on the `WAV Files` button.  Then specify the eight
-numeric parameters that control the algorithm used to find sounds:  In the time
-domain, subtract the median, take the absolute value, threshold by the median
-absolute deviation times the first number in `time σ`, and morphologically
-close gaps shorter than `time smooth` milliseconds.  Separately, use
-multi-taper harmonic analysis ([Thomson, 1982;
-IEEE](https://ieeexplore.ieee.org/document/1456701)) in the frequency domain to
-create a spectrogram using a window of length `freq N` milliseconds (`freq N` /
-1000 * `audio_tic_rate` should be a power of two) and twice `freq NW` Slepian
-tapers, multiply the default threshold of the F-test by the first number in
-`freq ρ`, and open islands and close gaps shorter than `freq smooth`
-milliseconds.  Sound events are considered to be periods of time which pass
-either of these two criteria.  Quiescent intervals are similarly defined as
-those which pass neither the time nor the frequency domain criteria using the
-second number in `time σ` and `freq ρ` text boxes.
+parameters that control the algorithm used to find sounds:  In the time domain,
+subtract the median, take the absolute value, threshold by the median absolute
+deviation times the first number in `time σ`, and morphologically close gaps
+shorter than `time smooth` milliseconds.  Separately, use multi-taper harmonic
+analysis ([Thomson, 1982; IEEE](https://ieeexplore.ieee.org/document/1456701))
+in the frequency domain to create a spectrogram using a window of length `freq
+N` milliseconds (`freq N` / 1000 * `audio_tic_rate` should be a power of two)
+and twice `freq NW` Slepian tapers, include sounds only within `freq range`,
+multiply the default threshold of the F-test by the first number in `freq ρ`,
+and open islands and close gaps shorter than `freq smooth` milliseconds.  Sound
+events are considered to be periods of time which pass either of these two
+criteria.  Quiescent intervals are similarly defined as those which pass neither
+the time nor the frequency domain criteria using the second number in `time σ`
+and `freq ρ` text boxes.
 
 [Customizing with Plug-ins](#customizing-with-plug-ins) describes how to
 use arbitrary custom code of your choosing to detect events should this

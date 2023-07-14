@@ -45,6 +45,7 @@ V.detect_parameters["time_smooth_ms"].value = "6.4"
 V.detect_parameters["frequency_n_ms"].value = "25.6"
 V.detect_parameters["frequency_nw"].value = "4"
 V.detect_parameters["frequency_p"].value = "0.1,1.0"
+V.detect_parameters["frequency_range"].value = "0-"
 V.detect_parameters["frequency_smooth_ms"].value = "25.6"
 V.detect_parameters["time_sigma_robust"].value = "median"
 asyncio.run(C.detect_actuate())

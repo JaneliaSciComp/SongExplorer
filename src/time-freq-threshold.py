@@ -5,7 +5,7 @@
 # e.g.
 # $SONGEXPLORER_BIN time-freq-threshold.py \
 #     --filename=`pwd`/groundtruth-data/round2/20161207T102314_ch1_p1.wav \
-#     --parameters={"time_sigma":"9,4", "time_smooth_ms":"6.4", "frequency_n_ms":"25.6", "frequency_nw":"4", "frequency_p":"0.1,1.0", "frequency_smooth_ms":"25.6", "time_sigma_robust":"median"} \
+#     --parameters={"time_sigma":"9,4", "time_smooth_ms":"6.4", "frequency_n_ms":"25.6", "frequency_nw":"4", "frequency_p":"0.1,1.0", "frequency_range":"0-", "frequency_smooth_ms":"25.6", "time_sigma_robust":"median"} \
 #     --audio_tic_rate=2500 \
 #     --audio_nchannels=1 \
 #     --audio_read_plugin=load-wav \
@@ -59,6 +59,7 @@ detect_parameters = [
     ["frequency_n_ms",      "freq N (msec)", '',        '25.6',    1, [], frequency_n_callback, True],
     ["frequency_nw",        "freq NW",       '',        '4',       1, [], None,                 True],
     ["frequency_p",         "freq ρ",        '',        '0.1,1.0', 1, [], None,                 True],
+    ["frequency_range",     "freq range",    '',        '0-',      1, [], None,                 True],
     ["frequency_smooth_ms", "freq smooth",   '',        '25.6',    1, [], None,                 True],
     ["time_sigma_robust",   "robust",        ['median',
                                               'mean'],  'median',  1, [], None,                 True],
@@ -91,6 +92,11 @@ def main():
     frequency_n = round(float(FLAGS.parameters['frequency_n_ms'])/1000*FLAGS.audio_tic_rate)
     frequency_nw = int(FLAGS.parameters['frequency_nw'])
     frequency_p_signal, frequency_p_noise = [float(x) for x in FLAGS.parameters['frequency_p'].split(',')]
+    frequency_range_lo, frequency_range_hi = FLAGS.parameters['frequency_range'].split('-')
+    frequency_range_lo = 0.0 if frequency_range_lo=='' else \
+                         float(frequency_range_lo) / FLAGS.audio_tic_rate
+    frequency_range_hi = 0.5 if frequency_range_hi=='' else \
+                         float(frequency_range_hi) / FLAGS.audio_tic_rate
     frequency_smooth = round(float(FLAGS.parameters['frequency_smooth_ms'])/1000*FLAGS.audio_tic_rate) // (frequency_n//2)
     time_sigma_robust = FLAGS.parameters['time_sigma_robust']
 
@@ -167,12 +173,14 @@ def main():
         ilast = min(nsounds, ioffset+chunk_size_tics)//N*N
         song_reshaped1 = np.reshape(song[ioffset : ilast, ichannel], (-1,N))
         f = utils.detect_lines(song_reshaped1, (NW, 2*NW), low_bias=True, NFFT=NFFT, p=p_signal)
-        intervals_f1 = [2*i+0 for (i,ii) in enumerate(f) if ii!=()]
+        intervals_f1 = [2*i+0 for (i,ii) in enumerate(f) if ii!=() and
+                any([frequency_range_lo <= f <= frequency_range_hi for f in ii[0]])]
 
         ilast -= N//2
         song_reshaped2 = np.reshape(song[ioffset+N//2 : ilast, ichannel], (-1,N))
         f = utils.detect_lines(song_reshaped2, (NW, 2*NW), low_bias=True, NFFT=NFFT, p=p_signal)
-        intervals_f2 = [2*i+1 for (i,ii) in enumerate(f) if ii!=()]
+        intervals_f2 = [2*i+1 for (i,ii) in enumerate(f) if ii!=() and
+                any([frequency_range_lo <= f <= frequency_range_hi for f in ii[0]])]
 
         song_thresholded = np.zeros((len(song_reshaped1)+len(song_reshaped2)), dtype=np.uint8)
         song_thresholded[np.concatenate((intervals_f1,intervals_f2)).astype(int)] = 1
@@ -183,12 +191,14 @@ def main():
         ilast = min(nsounds, ioffset+chunk_size_tics)//N*N
         song_reshaped1 = np.reshape(song[ioffset : ilast, ichannel], (-1,N))
         f = utils.detect_lines(song_reshaped1, (NW, 2*NW), low_bias=True, NFFT=NFFT, p=p_noise)
-        intervals_f1 = [2*i+0 for (i,ii) in enumerate(f) if ii!=()]
+        intervals_f1 = [2*i+0 for (i,ii) in enumerate(f) if ii!=() and
+                any([frequency_range_lo <= f <= frequency_range_hi for f in ii[0]])]
 
         ilast -= N//2
         song_reshaped2 = np.reshape(song[ioffset+N//2 : ilast, ichannel], (-1,N))
         f = utils.detect_lines(song_reshaped2, (NW, 2*NW), low_bias=True, NFFT=NFFT, p=p_noise)
-        intervals_f2 = [2*i+1 for (i,ii) in enumerate(f) if ii!=()]
+        intervals_f2 = [2*i+1 for (i,ii) in enumerate(f) if ii!=() and
+                any([frequency_range_lo <= f <= frequency_range_hi for f in ii[0]])]
 
         song_thresholded = np.zeros((len(song_reshaped1)+len(song_reshaped2)), dtype=np.uint8)
         song_thresholded[np.concatenate((intervals_f1,intervals_f2)).astype(int)] = 1
