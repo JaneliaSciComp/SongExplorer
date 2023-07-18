@@ -7,7 +7,7 @@ EOF
 
 if [ `uname -m` == arm64 ] ; then
 cat << EOF >> ${PREFIX}/.messages.txt
-pip3 install tensorflow-macos==2.9.2 tensorflow-metal==0.5.0 nitime pyinterval 
+pip3 install tensorflow-macos==2.9.2 tensorflow-metal==0.5.0 nitime
 EOF
 fi
 

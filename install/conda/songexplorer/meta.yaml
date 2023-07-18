@@ -13,7 +13,7 @@ build:
 
 requirements:
   run:
-    - python =3.8
+    - python
     - numpy
     - tensorflow >=2.8  # [linux]
     - tensorflow-deps =2.9  # [arm64]
@@ -29,10 +29,9 @@ requirements:
     - dictdiffer
     - av =8.1
     - git
-    - pyinterval  # [not arm64]
+    - portion
     - matplotlib-venn
     - psutil
-    - pims
     - nodejs >=10.13.10
     - aitch >=0.2.2
 
