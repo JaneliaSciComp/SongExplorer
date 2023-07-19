@@ -1,3 +1,4 @@
+import sys
 import math
 
 import tensorflow as tf
@@ -366,7 +367,7 @@ def dilation(iconv, dilate_time, dilate_freq):
   return [2**(sum([x<=iconv for x in dilate_time])),
           2**(sum([x<=iconv for x in dilate_freq]))]
 
-def create_model(model_settings, model_parameters):
+def create_model(model_settings, model_parameters, io=sys.stdout):
   audio_tic_rate = model_settings['audio_tic_rate']
   representation = model_parameters['representation']
   kernel_sizes = model_parameters['kernel_sizes'].split(',')
@@ -420,8 +421,8 @@ def create_model(model_settings, model_parameters):
 
   downsample_by = 2 ** len(stride_time)
   output_tic_rate = audio_tic_rate / stride_tics / downsample_by
-  print('downsample_by = '+str(downsample_by))
-  print('output_tic_rate = '+str(output_tic_rate))
+  print('downsample_by = '+str(downsample_by), file=io)
+  print('output_tic_rate = '+str(output_tic_rate), file=io)
   if output_tic_rate != round(output_tic_rate):
     raise Exception("ERROR: 1000 / 'stride (msec)' should be an integer multiple of the downsampling rate achieved by `stride after`")
 
@@ -528,8 +529,10 @@ def create_model(model_settings, model_parameters):
 
   receptive_field[0] *= stride_tics
   
-  print("receptive_field_time = %d tics = %f ms" % (receptive_field[0], receptive_field[0]/audio_tic_rate*1000))
-  print("receptive_field_freq = %d bins = %f Hz" % (receptive_field[1], receptive_field[1] * audio_tic_rate / window_tics))
+  print("receptive_field_time = %d tics = %f ms" % (receptive_field[0],
+      receptive_field[0]/audio_tic_rate*1000), file=io)
+  print("receptive_field_freq = %d bins = %f Hz" % (receptive_field[1],
+      receptive_field[1] * audio_tic_rate / window_tics), file=io)
 
   if pool_kind:
     x = pool_kind(pool_size=pool_size, strides=pool_size)(x)
@@ -546,5 +549,5 @@ def create_model(model_settings, model_parameters):
 
   final = Reshape((-1,model_settings['nlabels']))(x)
 
-  print('convolutional.py version = 0.1')
+  print('convolutional.py version = 0.1', file=io)
   return tf.keras.Model(inputs=inputs, outputs=[hidden_layers, final], name="convolutional")

@@ -82,6 +82,10 @@ def generic_parameters_callback(n):
     M.save_state_callback()
     V.buttons_update()
 
+def context_callback(n):
+    V.model_summary_update()
+    generic_parameters_callback(n)
+
 def layer_callback(new):
     M.ilayer=M.layers.index(new)
     V.cluster_circle_fuchsia.data.update(cx=[], cy=[], cz=[], cr=[], cc=[])

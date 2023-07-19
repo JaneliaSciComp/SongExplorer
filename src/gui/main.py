@@ -177,9 +177,11 @@ main_content = row(column(row(V.which_layer, V.which_species, V.which_word,
                                   V.file_dialog_table),
                            column(*[row([model_parameters[x] for x in p])
                                     for p in V.model_parameters_partitioned],
-                                  V.configuration_contents,
+                                  V.model_summary,
                                   width=M.gui_width_pix//2))),
-                   V.readme_contents)
+                   column(
+                       V.readme_contents,
+                       V.configuration_contents))
 
 doc.add_root(main_content)
 doc.add_periodic_callback(M.save_annotations, 5000)

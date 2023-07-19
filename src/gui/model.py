@@ -212,7 +212,7 @@ def next_pow2_ms(x_ms):
 
 def init(_bokeh_document, _configuration_file):
     global bokeh_document, configuration_file
-    global audio_tic_rate, audio_nchannels
+    global audio_tic_rate, audio_nchannels, video_channels
     global nlabels, gui_width_pix
     global cluster_circle_color, cluster_dot_palette
     global snippets_colormap, snippets_width_ms, snippets_nx, snippets_ny, snippets_waveform, snippets_spectrogram
@@ -223,7 +223,7 @@ def init(_bokeh_document, _configuration_file):
     global context_width_ms0, context_offset_ms0
     global xcluster, ycluster, zcluster, ndcluster, tic2pix_max, snippet_width_pix, ilayer, ispecies, iword, inohyphen, ikind, nlayers, layers, species, words, nohyphens, kinds, clustered_labels, snippets_gap_ms, snippets_tic, snippets_gap_tic, snippets_decimate_by, snippets_pix, snippets_gap_pix, context_decimate_by, context_width_tic, context_offset_tic, isnippet, xsnippet, ysnippet, file_nframes, context_midpoint_tic, ilabel, annotated_sounds, annotated_starts_sorted, annotated_stops, iannotated_stops_sorted, annotated_csvfiles_all, nrecent_annotations, clustered_sounds, clustered_activations, clustered_recording2firstsound, clustered_starts_sorted, clustered_stops, iclustered_stops_sorted, songexplorer_starttime, history_stack, history_idx, wizard, action, function, statepath, state, file_dialog_root, file_dialog_filter, nearest_sounds, status_ticker_queue, waitfor_job, dfs, remaining_isounds
     global user_changed_recording, user_copied_parameters
-    global audio_read, video_read, detect_parameters, detect_labels, doubleclick_parameters, doubleclick_annotation, context_data, context_data_istart, model_parameters, video_findfile
+    global audio_read, video_read, detect_parameters, detect_labels, doubleclick_parameters, doubleclick_annotation, context_data, context_data_istart, model, model_parameters, video_findfile
 
     bokeh_document = _bokeh_document
 
@@ -285,6 +285,9 @@ def init(_bokeh_document, _configuration_file):
     snippets_width_ms=float(gui_snippets_width_ms)
     snippets_nx=int(gui_snippets_nx)
     snippets_ny=int(gui_snippets_ny)
+
+    video_channels = video_channels if type(video_channels) is tuple else (video_channels,)
+    video_channels = ','.join([str(x) for x in video_channels])
 
     snippets_waveform=gui_snippets_waveform if type(gui_snippets_waveform) is tuple \
                       else [gui_snippets_waveform]

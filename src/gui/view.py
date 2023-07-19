@@ -30,6 +30,13 @@ from bokeh.util.compiler import TypeScript
 import asyncio
 from collections import OrderedDict
 
+import tensorflow as tf
+
+physical_devices = tf.config.list_physical_devices('GPU')
+if physical_devices:
+    tf.config.set_visible_devices(physical_devices[0], 'GPU')
+    tf.config.experimental.set_memory_growth(physical_devices[0], True)
+
 bokehlog = logging.getLogger("songexplorer") 
 
 import model as M
@@ -1402,6 +1409,28 @@ async def status_ticker_update():
         newtext = ''
     status_ticker.text = status_ticker_pre+newtext+status_ticker_post
 
+def model_summary_update():
+    model_settings = {'nlabels': len(labels_touse.value.split(',')),
+                      'audio_tic_rate': M.audio_tic_rate,
+                      'audio_nchannels': M.audio_nchannels,
+                      'video_frame_rate': M.video_frame_rate,
+                      'video_frame_width': M.video_frame_width,
+                      'video_frame_height': M.video_frame_height,
+                      'video_channels': [int(x)-1 for x in M.video_channels.split(',')],
+                      'parallelize': 1,
+                      'batch_size': int(mini_batch.value),
+                      'context_ms': float(context_ms.value) }
+    tf.keras.backend.clear_session()
+    out = io.StringIO()
+    thismodel = M.model.create_model(model_settings,
+                                     {k:v.value for k,v in model_parameters.items()},
+                                     out)
+    model_summary.value = out.getvalue()+'\n'
+    def update_model_summary(x):
+        if not x.isspace():
+            model_summary.value += x + '\n'
+    thismodel.summary(line_length = int(M.gui_width_pix/2/7), print_fn = update_model_summary)
+
 def init(_bokeh_document):
     global bokeh_document, configuration_file
     global p_cluster, cluster_dots, precomputed_dots, dot_size_cluster, dot_alpha_cluster, cluster_circle_fuchsia, cluster_dot_palette, circle_radius, dot_size, dot_alpha
@@ -1419,7 +1448,7 @@ def init(_bokeh_document):
     global detect, misses, train, leaveoneout, leaveallout, xvalidate, mistakes, activations, cluster, visualize, accuracy, freeze, ensemble, classify, ethogram, compare, congruence
     global status_ticker, waitfor, deletefailures
     global file_dialog_source, configuration_contents
-    global logs_folder_button, logs_folder, model_file_button, model_file, wavcsv_files_button, wavcsv_files, groundtruth_folder_button, groundtruth_folder, validation_files_button, test_files_button, validation_files, test_files, labels_touse_button, labels_touse, kinds_touse_button, kinds_touse, prevalences_button, prevalences, copy, labelsounds, makepredictions, fixfalsepositives, fixfalsenegatives, generalize, tunehyperparameters, findnovellabels, examineerrors, testdensely, doit, nsteps, restore_from, save_and_validate_period, validate_percentage, mini_batch, kfold, activations_equalize_ratio, activations_max_sounds, pca_fraction_variance_to_retain, tsne_perplexity, tsne_exaggeration, umap_neighbors, umap_distance, cluster_algorithm, cluster_these_layers, precision_recall_ratios, congruence_portion, congruence_convolve, congruence_measure, context_ms, shiftby_ms, optimizer, learning_rate, nreplicates, batch_seed, weights_seed, file_dialog_string, file_dialog_table, readme_contents, labelcounts, wizard_buttons, action_buttons, parameter_buttons, parameter_textinputs, wizard2actions, action2parameterbuttons, action2parametertextinputs, status_ticker_update, status_ticker_pre, status_ticker_post
+    global logs_folder_button, logs_folder, model_file_button, model_file, wavcsv_files_button, wavcsv_files, groundtruth_folder_button, groundtruth_folder, validation_files_button, test_files_button, validation_files, test_files, labels_touse_button, labels_touse, kinds_touse_button, kinds_touse, prevalences_button, prevalences, copy, labelsounds, makepredictions, fixfalsepositives, fixfalsenegatives, generalize, tunehyperparameters, findnovellabels, examineerrors, testdensely, doit, nsteps, restore_from, save_and_validate_period, validate_percentage, mini_batch, kfold, activations_equalize_ratio, activations_max_sounds, pca_fraction_variance_to_retain, tsne_perplexity, tsne_exaggeration, umap_neighbors, umap_distance, cluster_algorithm, cluster_these_layers, precision_recall_ratios, congruence_portion, congruence_convolve, congruence_measure, context_ms, shiftby_ms, optimizer, learning_rate, nreplicates, batch_seed, weights_seed, file_dialog_string, file_dialog_table, readme_contents, model_summary, labelcounts, wizard_buttons, action_buttons, parameter_buttons, parameter_textinputs, wizard2actions, action2parameterbuttons, action2parametertextinputs, status_ticker_update, status_ticker_pre, status_ticker_post
     global detect_parameters, detect_parameters_enable_logic, detect_parameters_required, detect_parameters_partitioned
     global doubleclick_parameters, doubleclick_parameters_enable_logic, doubleclick_parameters_required
     global model_parameters, model_parameters_enable_logic, model_parameters_required, model_parameters_partitioned
@@ -1860,22 +1889,6 @@ def init(_bokeh_document):
     status_ticker_post="</div>"
     status_ticker = Div(text=status_ticker_pre+status_ticker_post)
 
-    file_dialog_source = ColumnDataSource(data=dict(names=[], sizes=[], dates=[]))
-    file_dialog_source.selected.on_change('indices', C.file_dialog_callback)
-
-    file_dialog_columns = [
-        TableColumn(field="names", title="Name", width=M.gui_width_pix//2-50-115-30),
-        TableColumn(field="sizes", title="Size", width=50, \
-                    formatter=NumberFormatter(format="0 b")),
-        TableColumn(field="dates", title="Date", width=115, \
-                    formatter=DateFormatter(format="%Y-%m-%d %H:%M:%S")),
-    ]
-    file_dialog_table = DataTable(source=file_dialog_source, \
-                                  columns=file_dialog_columns, \
-                                  height=727, width=M.gui_width_pix//2-11, \
-                                  index_position=None,
-                                  fit_columns=False)
-
     deletefailures = Toggle(label='delete failures', active=False, disabled=True)
     deletefailures.on_click(C.deletefailures_callback)
 
@@ -2041,7 +2054,7 @@ def init(_bokeh_document):
     context_ms = TextInput(value=M.state['context_ms'], \
                                   title="context (msec)", \
                                   disabled=False)
-    context_ms.on_change('value', lambda a,o,n: C.generic_parameters_callback(n))
+    context_ms.on_change('value', lambda a,o,n: C.context_callback(n))
 
     shiftby_ms = TextInput(value=M.state['shiftby_ms'], \
                                   title="shift by (msec)", \
@@ -2060,12 +2073,13 @@ def init(_bokeh_document):
 
     V = sys.modules[__name__]
 
-    def get_callback(f):
+    def get_callback(f, msu):
         def callback(a,o,n):
             f(n,M,V,C) if f else C.generic_parameters_callback(n)
+            if msu:  model_summary_update()
         return callback
 
-    def parse_plugin_parameters(Mparameters, width):
+    def parse_plugin_parameters(Mparameters, width, msu=False):
         parameters = OrderedDict()
         parameters_enable_logic = {}
         parameters_required = {}
@@ -2079,7 +2093,7 @@ def init(_bokeh_document):
                                        title=parameter[1], \
                                        options=parameter[2], \
                                        height=50, width=parameter[4]*104-10)
-            thisparameter.on_change('value', get_callback(parameter[6]))
+            thisparameter.on_change('value', get_callback(parameter[6], msu))
             parameters[parameter[0]] = thisparameter
             parameters_enable_logic[thisparameter] = parameter[5]
             parameters_required[thisparameter] = parameter[7]
@@ -2098,10 +2112,26 @@ def init(_bokeh_document):
 
     detect_parameters, detect_parameters_enable_logic, detect_parameters_required, detect_parameters_partitioned = parse_plugin_parameters(M.detect_parameters, 8)
     doubleclick_parameters, doubleclick_parameters_enable_logic, doubleclick_parameters_required, _ = parse_plugin_parameters(M.doubleclick_parameters, 1)
-    model_parameters, model_parameters_enable_logic, model_parameters_required, model_parameters_partitioned = parse_plugin_parameters(M.model_parameters, 6)
+    model_parameters, model_parameters_enable_logic, model_parameters_required, model_parameters_partitioned = parse_plugin_parameters(M.model_parameters, 6, True)
 
-    configuration_contents = TextAreaInput(rows=49-3*len(model_parameters_partitioned),
-                                           max_length=50000, \
+    file_dialog_source = ColumnDataSource(data=dict(names=[], sizes=[], dates=[]))
+    file_dialog_source.selected.on_change('indices', C.file_dialog_callback)
+
+    file_dialog_columns = [
+        TableColumn(field="names", title="Name", width=M.gui_width_pix//2-50-115-30),
+        TableColumn(field="sizes", title="Size", width=50, \
+                    formatter=NumberFormatter(format="0 b")),
+        TableColumn(field="dates", title="Date", width=115, \
+                    formatter=DateFormatter(format="%Y-%m-%d %H:%M:%S")),
+    ]
+    file_dialog_table = DataTable(source=file_dialog_source, \
+                                  columns=file_dialog_columns, \
+                                  height=800-20*len(detect_parameters_partitioned),
+                                  width=M.gui_width_pix//2-11, \
+                                  index_position=None,
+                                  fit_columns=False)
+
+    configuration_contents = TextAreaInput(rows=20, max_length=50000, \
                                            disabled=True, css_classes=['fixedwidth'])
     if M.configuration_file:
         with open(M.configuration_file, 'r') as fid:
@@ -2144,7 +2174,11 @@ def init(_bokeh_document):
     with open(os.path.join(os.path.dirname(os.path.realpath(__file__)),'..','..','README.md'), 'r', encoding='utf-8') as fid:
         contents = fid.read()
     html = markdown.markdown(contents, extensions=['tables','toc'])
-    readme_contents = Div(text=html, style={'overflow':'scroll','width':'600px','height':'1440px'})
+    readme_contents = Div(text=html, style={'overflow':'scroll','width':'600px','height':'1140px'})
+
+    model_summary = TextAreaInput(rows=49-3*len(model_parameters_partitioned),
+                                  max_length=50000, \
+                                  disabled=True, css_classes=['fixedwidth'])
 
     labelcounts = Div(text="",
                       style={'overflow-y':'hidden', 'overflow-x':'scroll',
@@ -2285,3 +2319,4 @@ def init(_bokeh_document):
             None: parameter_textinputs }
 
     groundtruth_update()
+    model_summary_update()

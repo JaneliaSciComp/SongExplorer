@@ -290,7 +290,7 @@ def network(PARAMS, inputs):
                 stride_idx=tf.constant(1))
 
     # https://distill.pub/2019/computing-receptive-fields/
-    print("receptive_field = %d" % int(1+np.sum((np.array(kernels)-1)*np.cumprod(strides[:-1]))))
+    print("receptive_field = %d" % int(1+np.sum((np.array(kernels)-1)*np.cumprod(strides[:-1]))), file=io)
 
     pool_size_stride = int(PARAMS['pool_size_stride'])
     if pool_size_stride>0:
@@ -352,10 +352,10 @@ def get_model(PARAMS):
 
     outputs = network(PARAMS, x)
 
-    print('video.py version = 0.1')
+    print('video.py version = 0.1', file=io)
     return tf.keras.Model(inputs, outputs = [hidden_layers, outputs], name="video")
 
-def create_model(model_settings, model_parameters):
+def create_model(model_settings, model_parameters, io=sys.stdout):
     downsample_by = 1
     params = { **model_settings.copy(), **model_parameters.copy() }
     params['context_frames'] = round(params['context_ms'] / 1000 * params['video_frame_rate'])

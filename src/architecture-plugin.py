@@ -1,3 +1,5 @@
+import sys
+
 # all imported packages must be in the container
 import tensorflow as tf
 from tensorflow.keras.layers import *
@@ -54,7 +56,7 @@ model_parameters = [
 #         return tf.some_tensorflow_function(inputs, self.arg1, self.arg2)
 
 # a function which returns a keras model
-def create_model(model_settings, model_parameters):
+def create_model(model_settings, model_parameters, io=sys.stdout):
     # `model_settings` is a dictionary of additional hyperparameters
     hyperparameter1 = int(model_parameters["my-simple-textbox"])
     nonnegative = int(model_parameters["a-bounded-value"])
@@ -84,6 +86,6 @@ def create_model(model_settings, model_parameters):
     # last layer must be convolutional with nlabels as the output size
     output_layer = Conv1D(model_settings['nlabels'], 1)(x)
 
-    print('architecture-plugin.py version = 0.1')
+    print('architecture-plugin.py version = 0.1', file=io)
     return tf.keras.Model(inputs=input_layer, outputs=[hidden_layers, output_layer],
                           name='architecture-plugin')
