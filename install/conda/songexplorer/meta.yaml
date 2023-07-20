@@ -16,7 +16,6 @@ requirements:
     - python
     - numpy
     - tensorflow >=2.8  # [linux]
-    - tensorflow-deps =2.9  # [arm64]
     - cudatoolkit  # [not osx]
     - cudnn  # [not osx]
     - bokeh >=2,<3
