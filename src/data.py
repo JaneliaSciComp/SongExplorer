@@ -327,12 +327,12 @@ class AudioProcessor(object):
             sounds_needed = min(sounds_have, testing_equalize_ratio * sounds_smallest)
             if sounds_needed<sounds_have:
               del_these.extend(self.np_rng.choice(label_indices[label], \
-                               sounds_have-sounds_needed))
+                               sounds_have-sounds_needed, replace=False))
           for i in sorted(del_these, reverse=True):
             del self.data_index[set_index][i]
         if testing_max_sounds>0 and testing_max_sounds<len(self.data_index[set_index]):
           self.data_index[set_index] = self.np_rng.choice(self.data_index[set_index], \
-                                                     testing_max_sounds)
+                                       testing_max_sounds, replace=False)
       if set_index == 'testing':
         labels = [sound['label'] for sound in self.data_index[set_index]]
         for uniqlabel in sorted(set(labels)):
