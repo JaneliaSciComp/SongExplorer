@@ -459,6 +459,7 @@ def create_model(model_settings, model_parameters, io=sys.stdout):
   x_shape = x.get_shape().as_list()
 
   receptive_field = [1,1]
+  sum_of_strides = [0,0]
   iconv=0
   dilation_rate = dilation(iconv+1, dilate_time, dilate_freq)
 
@@ -474,8 +475,10 @@ def create_model(model_settings, model_parameters, io=sys.stdout):
     strides=[1+(iconv+1 in stride_time), 1+(iconv+1 in stride_freq)]
     conv = Conv2D(nfeatures[0], kernel_sizes[0],
                   strides=strides, dilation_rate=dilation_rate)(x)
-    receptive_field[0] += (dilated_kernel_size[0] - 1) * strides[0]
-    receptive_field[1] += (dilated_kernel_size[1] - 1) * strides[1]
+    receptive_field[0] += (dilated_kernel_size[0] - 1) * 2**sum_of_strides[0]
+    receptive_field[1] += (dilated_kernel_size[1] - 1) * 2**sum_of_strides[1]
+    sum_of_strides[0] += strides[0] - 1
+    sum_of_strides[1] += strides[1] - 1
     if use_residual and iconv%2==0 and iconv>1:
       bypass_shape = bypass.get_shape().as_list()
       conv_shape = conv.get_shape().as_list()
@@ -507,7 +510,8 @@ def create_model(model_settings, model_parameters, io=sys.stdout):
     strides=[1+(iconv+1 in stride_time), 1]
     conv = Conv2D(nfeatures[1], (kernel_sizes[1], x_shape[2]),
                   strides=strides, dilation_rate=[dilation_rate[0], 1])(x)
-    receptive_field[0] += (dilated_kernel_size - 1) * strides[0]
+    receptive_field[0] += (dilated_kernel_size - 1) * 2**sum_of_strides[0]
+    sum_of_strides[0] += strides[0] - 1
     if use_residual and iconv%2==0 and iconv>1:
       bypass_shape = bypass.get_shape().as_list()
       conv_shape = conv.get_shape().as_list()
