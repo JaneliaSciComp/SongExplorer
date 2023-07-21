@@ -1,10 +1,6 @@
 # video_read_plugin="load-avi-mp4-mov"
 # video_read_plugin_kwargs={}
 
-# use agg here as otherwise pims tries to open gtk
-# see https://github.com/soft-matter/pims/issues/351
-import matplotlib as mpl
-mpl.use('Agg')
 import pims
 
 def video_read(avi_path, start_frame, stop_frame, **kw):

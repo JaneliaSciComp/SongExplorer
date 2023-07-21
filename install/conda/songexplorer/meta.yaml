@@ -26,8 +26,6 @@ requirements:
     - umap-learn
     - pandas
     - dictdiffer
-    - av =8.1
-    - git
     - portion
     - matplotlib-venn
     - psutil

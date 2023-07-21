@@ -21,7 +21,11 @@ import base64
 import io
 from natsort import natsorted
 
-import av
+try:
+    import av
+except:
+    pass
+
 from bokeh import palettes
 from itertools import cycle, product
 import ast

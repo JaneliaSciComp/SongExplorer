@@ -6,11 +6,6 @@ from subprocess import check_output
 import ast
 from natsort import natsorted
 
-# use agg here as otherwise pims tries to open gtk
-# see https://github.com/soft-matter/pims/issues/351
-import matplotlib as mpl
-mpl.use('Agg')
-
 import matplotlib.pyplot as plt
 import numpy as np
 from matplotlib.collections import PatchCollection

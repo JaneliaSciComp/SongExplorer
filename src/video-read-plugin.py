@@ -5,4 +5,6 @@ def video_read(fullpath, start_frame, stop_frame, **kw):
 
     # load data, determine frame rate, and do any special processing
 
+    # see load-avi-mp4-mov.py for a working example
+
     return frame, data

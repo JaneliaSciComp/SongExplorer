@@ -54,12 +54,6 @@ import tensorflow as tf
 
 from scipy.io import wavfile
 
-# use agg here as otherwise pims tries to open gtk
-# see https://github.com/soft-matter/pims/issues/351
-import matplotlib as mpl
-mpl.use('Agg')
-import pims
-
 import importlib
 
 import tifffile
