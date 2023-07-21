@@ -301,32 +301,32 @@ class AudioProcessor(object):
           print('%8d %s' % (sum([label==uniqlabel for label in labels]), uniqlabel))
       if set_index == 'validation' or len(self.data_index[set_index])==0:
         continue
-      label_indices = {}
+      label_kind_indices = {}
       for isound in range(len(self.data_index[set_index])):
         sound = self.data_index[set_index][isound]
-        if sound['label'] in label_indices:
-          label_indices[sound['label']].append(isound)
+        if (sound['label'], sound['kind']) in label_kind_indices:
+          label_kind_indices[(sound['label'], sound['kind'])].append(isound)
         else:
-          label_indices[sound['label']]=[isound]
+          label_kind_indices[(sound['label'], sound['kind'])]=[isound]
       if set_index == 'training':
-        sounds_largest = max([len(label_indices[x]) for x in label_indices.keys()])
-        for label in sorted(list(label_indices.keys())):
-          sounds_have = len(label_indices[label])
+        sounds_largest = max([len(label_kind_indices[x]) for x in label_kind_indices.keys()])
+        for label in sorted(list(label_kind_indices.keys())):
+          sounds_have = len(label_kind_indices[label])
           sounds_needed = sounds_largest - sounds_have
           for _ in range(sounds_needed):
-            add_this = label_indices[label][self.np_rng.integers(sounds_have)]
+            add_this = label_kind_indices[label][self.np_rng.integers(sounds_have)]
             self.data_index[set_index].append(self.data_index[set_index][add_this])
       elif set_index == 'testing':
         if testing_equalize_ratio>0:
           sounds_smallest = min(filter(lambda x: x!=0,
-                                       [len(label_indices[x]) for x in label_indices.keys()]))
+                                       [len(label_kind_indices[x]) for x in label_kind_indices.keys()]))
 
           del_these = []
-          for label in sorted(list(label_indices.keys())):
-            sounds_have = len(label_indices[label])
+          for label in sorted(list(label_kind_indices.keys())):
+            sounds_have = len(label_kind_indices[label])
             sounds_needed = min(sounds_have, testing_equalize_ratio * sounds_smallest)
             if sounds_needed<sounds_have:
-              del_these.extend(self.np_rng.choice(label_indices[label], \
+              del_these.extend(self.np_rng.choice(label_kind_indices[label], \
                                sounds_have-sounds_needed, replace=False))
           for i in sorted(del_these, reverse=True):
             del self.data_index[set_index][i]
