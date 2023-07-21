@@ -362,9 +362,9 @@ if __name__ == '__main__':
   with open(os.path.join(repodir, "VERSION.txt"), 'r') as fid:
     print('SongExplorer version = '+fid.read().strip().replace('\n',', '))
   print("hostname = "+socket.gethostname())
-  print("CUDA_VISIBLE_DEVICES = "+os.environ.get('CUDA_VISIBLE_DEVICES',''))
-  p = run('which nvidia-smi && nvidia-smi', shell=True, stdout=PIPE, stderr=STDOUT)
-  print(p.stdout.decode('ascii').rstrip())
+  if FLAGS.igpu:
+      p = run('which nvidia-smi && nvidia-smi -i '+FLAGS.igpu, shell=True, stdout=PIPE, stderr=STDOUT)
+      print(p.stdout.decode('ascii').rstrip())
 
   try:
     main()
