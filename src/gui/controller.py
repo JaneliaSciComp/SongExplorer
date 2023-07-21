@@ -14,6 +14,7 @@ import json
 import shutil
 import operator
 import platform
+import sys
 
 bokehlog = logging.getLogger("songexplorer") 
 #class Object(object):
@@ -42,12 +43,13 @@ def generic_actuate(cmd, logfile, where,
                clusterflags += "\"done("+job+")\"&&"
             clusterflags = clusterflags[:-2]
     if where == "local":
+        kwargs = {"process_group": 0} if sys.version_info.major == 3 and sys.version_info.minor >= 11 else {}
         p = Popen(["hsubmit",
                    str(ncpu_cores)+','+str(ngpu_cards)+','+str(ngigabyes_memory),
                    "-o", logfile, "-e", logfile, "-a",
                    *localdeps,
                    cmd+" "+' '.join(args)],
-                  stdout=PIPE)
+                  stdout=PIPE, **kwargs)
         jobid = p.stdout.readline().decode('ascii').rstrip()
         bokehlog.info(jobid)
     elif where == "server":
