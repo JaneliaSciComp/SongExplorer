@@ -22,7 +22,7 @@ requirements:
     - matplotlib-base
     - natsort 
     - scikit-image
-    - nitime  # [not arm64]
+    - nitime
     - umap-learn
     - pandas
     - dictdiffer

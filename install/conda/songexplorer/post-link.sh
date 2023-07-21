@@ -6,7 +6,7 @@ if [ `uname -m` == arm64 ] ; then
 cat << EOF >> ${PREFIX}/.messages.txt
 cut and paste the following into the command line to finish the installation:
 conda activate songexplorer
-pip3 install tensorflow tensorflow-metal nitime
+pip3 install tensorflow tensorflow-metal
 optionally, to use video in songexplorer cut and paste the following too:
 EOF
 else
