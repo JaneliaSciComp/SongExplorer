@@ -6,7 +6,7 @@ package:
 
 source:
   url: https://github.com/JaneliaSciComp/SongExplorer/archive/refs/tags/{{ version }}.tar.gz
-  sha256: caf08ed31450b562b25a5d6ef261a219011996569ead65f749ef6b4c1105e54d
+  sha256: 04d6e853624c7600df9af7e1d292bb417dd973442c126fa42f7a08683d1cc4cf
 
 build:
   number: 0
