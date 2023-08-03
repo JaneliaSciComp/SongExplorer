@@ -13,7 +13,8 @@ build:
 
 requirements:
   run:
-    - python
+    - python  # [not win]
+    - python <=3.10  # [win]
     - numpy
     - tensorflow >=2.8  # [linux]
     - cudatoolkit  # [not osx]
