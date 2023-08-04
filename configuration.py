@@ -62,7 +62,7 @@ gui_spectrogram_low_hz=0
 gui_spectrogram_high_hz=1250
 
 # neural network architecture to use
-architecture_plugin="convolutional"
+architecture_plugin="convolutional2"
 
 # on what computer to do the computation
 default_where="local"
