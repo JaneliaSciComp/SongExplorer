@@ -2116,24 +2116,19 @@ def wizard_callback(wizard):
         V.save_and_validate_period.value="0"
         V.validate_percentage.value="0"
     elif M.wizard==V.makepredictions:
-        V.labels_touse_update_other()
         V.kinds_touse.value="annotated"
     elif M.wizard==V.fixfalsepositives:
-        V.labels_touse_update_other()
         V.kinds_touse.value="annotated,predicted"
     elif M.wizard==V.fixfalsenegatives:
         V.labels_touse_update_other()
         V.kinds_touse.value="annotated,missed"
     elif M.wizard==V.generalize:
-        V.labels_touse_update_other()
         V.kinds_touse.value="annotated"
     elif M.wizard==V.tunehyperparameters:
-        V.labels_touse_update_other()
         V.kinds_touse.value="annotated"
     elif M.wizard==V.examineerrors:
         V.kinds_touse.value="detected,mistaken"
     elif M.wizard==V.testdensely:
-        V.labels_touse_update_other()
         V.kinds_touse.value="annotated"
     elif M.wizard==V.findnovellabels:
         labels_touse = [x.value for x in V.label_texts if x.value!='']
