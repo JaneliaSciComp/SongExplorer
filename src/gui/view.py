@@ -912,7 +912,7 @@ def context_update():
                     npad = round(M.context_width_tic*tic_rate_ratio)+1-len(probi)
                     if istart<0:
                         probi = np.concatenate((np.full((npad,),0), probi))
-                    if istart+round(M.context_width_tic*tic_rate_ratio)>M.file_nframes:
+                    else:
                         probi = np.concatenate((probi, np.full((npad,),0)))
                 probi_trimmed = probi[:prob_pix]
                 yprob[ilabel] = probi_trimmed / np.iinfo(np.int16).max
