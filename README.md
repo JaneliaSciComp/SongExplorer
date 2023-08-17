@@ -153,7 +153,7 @@ and mamba.
 
 Then, simply install Songexplorer its own environment:
 
-    $ mamba install songexplorer -n songexplorer -c conda-forge -c apple -c nvidia
+    $ mamba install songexplorer -n songexplorer -c janelia
 
 Pay attention to the notice output at the end and demarcated with "*** IMPORTANT
 !!! ***".  Follow the directions therein to install platform-specific
