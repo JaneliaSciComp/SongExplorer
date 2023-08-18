@@ -19,7 +19,7 @@ import numpy as np
 import sys
 from sklearn.decomposition import PCA, IncrementalPCA
 from umap import UMAP
-from sklearn.manifold import TSNE
+from openTSNE import TSNE
 from natsort import natsorted
 from datetime import datetime
 import socket
@@ -33,21 +33,23 @@ def do_cluster(activations_tocluster, ilayer, layers, algorithm, ndims, kwargs):
   elif algorithm=="tSNE":
     print("reducing dimensionality with t-SNE...")
     if ilayer in layers:
-      return TSNE(n_components=ndims, verbose=3, \
-                        perplexity=kwargs["perplexity"], \
-                        early_exaggeration=kwargs["exaggeration"] \
-                       ).fit_transform(activations_tocluster[ilayer])
+      fit = TSNE(n_components=ndims, verbose=3, \
+                 perplexity=kwargs["perplexity"], \
+                 early_exaggeration=kwargs["exaggeration"] \
+                ).fit(activations_tocluster[ilayer])
+      return fit, np.array(fit)
     else:
-      return None
+      return None, None
   elif algorithm=="UMAP":
     print("reducing dimensionality with UMAP...")
     if ilayer in layers:
-      return UMAP(n_components=ndims, verbose=3, \
-                  n_neighbors=kwargs["n_neighbors"], \
-                  min_dist=kwargs["min_distance"] \
-                 ).fit_transform(activations_tocluster[ilayer])
+      fit = UMAP(n_components=ndims, verbose=3, \
+                 n_neighbors=kwargs["n_neighbors"], \
+                 min_dist=kwargs["min_distance"] \
+                ).fit(activations_tocluster[ilayer])
+      return fit, fit.embedding_
     else:
-      return None
+      return None, None
 
 FLAGS = None
 
@@ -145,29 +147,39 @@ def main():
     from multiprocessing import Pool
     nprocs = os.cpu_count() if FLAGS.parallelize==-1 else FLAGS.parallelize
     with Pool(min(nprocs,nlayers)) as p:
-      activations_clustered = p.starmap(do_cluster,
-                                        zip(repeat(activations_tocluster),
-                                            range(len(activations_tocluster)),
-                                            repeat(layers),
-                                            repeat(FLAGS.algorithm),
-                                            repeat(FLAGS.ndims),
-                                            repeat(FLAGS.kwargs)))
+      fits, activations_clustered = zip(*p.starmap(do_cluster,
+                                                   zip(repeat(activations_tocluster),
+                                                       range(len(activations_tocluster)),
+                                                       repeat(layers),
+                                                       repeat(FLAGS.algorithm),
+                                                       repeat(FLAGS.ndims),
+                                                       repeat(FLAGS.kwargs))))
   else:
+    fits = [None]*nlayers
     activations_clustered = [None]*nlayers
     for ilayer in layers:
       print('layer '+str(ilayer))
-      activations_clustered[ilayer] = do_cluster(activations_tocluster, \
-                                                 ilayer, \
-                                                 layers, \
-                                                 FLAGS.algorithm, \
-                                                 FLAGS.ndims, \
-                                                 FLAGS.kwargs)
+      fits[ilayer], activations_clustered[ilayer] = do_cluster(activations_tocluster, \
+                                                               ilayer, \
+                                                               layers, \
+                                                               FLAGS.algorithm, \
+                                                               FLAGS.ndims, \
+                                                               FLAGS.kwargs)
 
   np.savez(os.path.join(FLAGS.data_dir, 'cluster'), \
            sounds = sounds,
            activations_clustered = np.array(activations_clustered, dtype=object),
-           fits_pca = fits_pca)
+           fits_pca = fits_pca if FLAGS.save_fits else None,
+           fits = np.array(fits, dtype=object) if FLAGS.save_fits else None)
   
+def str2bool(v):
+    if v.lower() in ('yes', 'true', 't', 'y', '1'):
+        return True
+    elif v.lower() in ('no', 'false', 'f', 'n', '0'):
+        return False
+    else:
+        raise argparse.ArgumentTypeError('Boolean value expected.')
+
 if __name__ == "__main__":
   parser = argparse.ArgumentParser()
   parser.add_argument(
@@ -198,6 +210,11 @@ if __name__ == "__main__":
       '--kwargs',
       type=json.loads,
       default='{"n_neighbors": 10, "min_distance": 0.1}')
+  parser.add_argument(
+      '--save_fits',
+      type=str2bool,
+      default=False,
+      help='Whether to save the cluster models')
 
   FLAGS, unparsed = parser.parse_known_args()
 
