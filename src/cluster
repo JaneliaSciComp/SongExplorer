@@ -170,7 +170,9 @@ def main():
            sounds = sounds,
            activations_clustered = np.array(activations_clustered, dtype=object),
            fits_pca = fits_pca if FLAGS.save_fits else None,
-           fits = np.array(fits, dtype=object) if FLAGS.save_fits else None)
+           fits = np.array(fits, dtype=object) if FLAGS.save_fits else None,
+           labels_touse = npzfile['labels_touse'],
+           kinds_touse = npzfile['kinds_touse'])
   
 def str2bool(v):
     if v.lower() in ('yes', 'true', 't', 'y', '1'):

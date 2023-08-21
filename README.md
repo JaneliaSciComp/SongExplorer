@@ -916,7 +916,7 @@ Use the `Activations` button to save the input to the neural network as
 well as its hidden state activations and output logits by classifying the
 predicted sounds with the trained network.  The time and amount of memory
 this takes depends directly on the number and dimensionality of detected
-sounds.  To limit the problem to a manageable size one can use `max samples`
+sounds.  To limit the problem to a manageable size one can use `max sounds`
 to randomly choose a subset of samples to cluster.  So that words with few
 samples are not obscured by those with many, one can randomly subsample the
 latter by setting `equalize ratio` to a small integer.  Output are three files
@@ -974,13 +974,11 @@ strictly false positives.
 
 ## Correcting Misses ##
 
-It's important that false negatives are corrected as well.  One way find
-them is to click on random snippets and look in the surrounding context in
-the window below for sounds that have not been predicted.  This only works
-though if all predicted sounds have been clustered, which is not the case
-if their number exceeds `max samples`.  This method is also cumbersome in
-that you have to scan through the recording.  A better way is to directly
-home in on detected sounds that don't exceed the probability threshold.
+It's important that false negatives are corrected as well.  One way find them is
+to click on random snippets and look in the surrounding context in the window
+below for sounds that have not been predicted.  This method is cumbersome in
+that you have to scan through the recording.  A better way is to directly home
+in on detected sounds that don't exceed the probability threshold.
 
 To systematically label missed sounds, first click on the `Fix False Negatives`
 button.  Then detect sounds in the recording you just classified, using the

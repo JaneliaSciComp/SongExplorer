@@ -186,7 +186,9 @@ def main():
     isound += this_batch_size
   if FLAGS.save_activations:
     np.savez(os.path.join(FLAGS.data_dir,'activations.npz'), \
-             *activations, sounds=sounds_data, labels=labels)
+             *activations, sounds=sounds_data, model_labels=labels,
+             labels_touse=FLAGS.labels_touse.split(','),
+             kinds_touse=FLAGS.kinds_touse.split(','))
   if FLAGS.save_fingerprints:
     np.save(os.path.join(FLAGS.data_dir,'fingerprints.npy'), input_layer)
 

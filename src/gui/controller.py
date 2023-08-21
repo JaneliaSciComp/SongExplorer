@@ -94,6 +94,7 @@ def layer_callback(new):
     V.cluster_update()
     M.xcluster = M.ycluster = M.zcluster = np.nan
     M.isnippet = -1
+    M.context_sound = None
     if V.recordings.value != '':
         M.user_changed_recording=False
     V.recordings.value = ''
@@ -110,6 +111,7 @@ def species_callback(new):
         V.color_picker.disabled=True
     V.cluster_update()
     M.isnippet = -1
+    M.context_sound = None
     if V.recordings.value != '':
         M.user_changed_recording=False
     V.recordings.value = ''
@@ -126,6 +128,7 @@ def word_callback(new):
         V.color_picker.disabled=True
     V.cluster_update()
     M.isnippet = -1
+    M.context_sound = None
     if V.recordings.value != '':
         M.user_changed_recording=False
     V.recordings.value = ''
@@ -142,6 +145,7 @@ def nohyphen_callback(new):
         V.color_picker.disabled=True
     V.cluster_update()
     M.isnippet = -1
+    M.context_sound = None
     if V.recordings.value != '':
         M.user_changed_recording=False
     V.recordings.value = ''
@@ -152,6 +156,7 @@ def kind_callback(new):
     M.ikind=M.kinds.index(new)
     V.cluster_update()
     M.isnippet = -1
+    M.context_sound = None
     if V.recordings.value != '':
         M.user_changed_recording=False
     V.recordings.value = ''
@@ -161,24 +166,24 @@ def kind_callback(new):
 def color_picker_callback(new):
     if M.inohyphen>0:
         if new.lower()=='#ffffff':
-            del M.cluster_dot_colors[M.nohyphens[M.inohyphen]]
+            del M.label_colors[M.nohyphens[M.inohyphen]]
         else:
-            M.cluster_dot_colors[M.nohyphens[M.inohyphen]]=new
+            M.label_colors[M.nohyphens[M.inohyphen]]=new
     elif M.ispecies>0 and M.iword>0:
         if new.lower()=='#ffffff':
-            del M.cluster_dot_colors[M.species[M.ispecies][:-1]+M.words[M.iword]]
+            del M.label_colors[M.species[M.ispecies][:-1]+M.words[M.iword]]
         else:
-            M.cluster_dot_colors[M.species[M.ispecies][:-1]+M.words[M.iword]]=new
+            M.label_colors[M.species[M.ispecies][:-1]+M.words[M.iword]]=new
     #elif M.ispecies>0:
     #    if new.lower()=='#ffffff':
-    #        del M.cluster_dot_colors[M.species[M.ispecies]]
+    #        del M.label_colors[M.species[M.ispecies]]
     #    else:
-    #        M.cluster_dot_colors[M.species[M.ispecies]]=new
+    #        M.label_colors[M.species[M.ispecies]]=new
     #elif M.iword>0:
     #    if new.lower()=='#ffffff':
-    #        del M.cluster_dot_colors[M.words[M.iword]]
+    #        del M.label_colors[M.words[M.iword]]
     #    else:
-    #        M.cluster_dot_colors[M.words[M.iword]]=new
+    #        M.label_colors[M.words[M.iword]]=new
     if not V.cluster_initialize():
         return
     V.cluster_update()
@@ -190,6 +195,7 @@ def circle_radius_callback(attr, old, new):
     M.save_state_callback()
     V.snippets_update(True)
     M.isnippet = -1
+    M.context_sound = None
     V.context_update()
 
 def dot_size_callback(attr, old, new):
@@ -244,19 +250,37 @@ spectrogram_span_red.location = parseFloat(cb_obj.value)
 probability_span_red.location = parseFloat(cb_obj.value)
 """
 
+def isnippet2contextsound():
+    if M.used_sounds and M.clustered_sounds[M.isnippet] in M.used_sounds:
+        M.context_sound = M.clustered_sounds[M.isnippet]
+    else:
+        M.context_sound = None
+
+def contextsound2isnippet():
+    if M.clustered_sounds and M.context_sound in M.clustered_sounds:
+        M.isnippet = M.clustered_sounds.index(M.context_sound)
+    else:
+        M.isnippet = -1
+
 def _recordings_callback(n):
     if M.clustered_activations is None:
-        M.isnippet = -1 if n=="" else M.clustered_recording2firstsound[V.recordings.value]
+        M.context_sound = None if n=="" else \
+                M.used_sounds[M.used_recording2firstsound[V.recordings.value]]
     else:
         if n=="":
             M.isnippet = -1
+            M.context_sound = None
             M.xcluster = M.ycluster = M.zcluster = np.nan
         else:
-            M.isnippet = M.clustered_recording2firstsound[V.recordings.value]
-            coordinates = M.clustered_activations[M.ilayer][M.isnippet,:]
-            M.xcluster, M.ycluster = coordinates[0], coordinates[1]
-            if M.ndcluster==3:
-                M.zcluster = coordinates[2]
+            M.context_sound = M.used_sounds[M.used_recording2firstsound[V.recordings.value]]
+            contextsound2isnippet()
+            if M.isnippet>=0:
+                coordinates = M.clustered_activations[M.ilayer][M.isnippet,:]
+                M.xcluster, M.ycluster = coordinates[0], coordinates[1]
+                if M.ndcluster==3:
+                    M.zcluster = coordinates[2]
+            else:
+                M.xcluster = M.ycluster = M.zcluster = np.nan
         V.cluster_circle_fuchsia.data.update(cx=[M.xcluster],
                                              cy=[M.ycluster],
                                              cz=[M.zcluster],
@@ -288,6 +312,7 @@ def cluster_tap_callback(event):
                                          cr=[M.state["circle_radius"]],
                                          cc=[M.cluster_circle_color])
     M.isnippet = -1
+    M.context_sound = None
     M.user_changed_recording=False
     V.recordings.value = ''
     V.snippets_update(True)
@@ -300,25 +325,26 @@ def snippets_tap_callback(event):
                      max(0, int(np.rint(event.x/(M.snippets_gap_pix+M.snippets_pix)-0.5))))
     M.ysnippet = min(M.snippets_ny-1, max(0, int(np.floor(-(event.y-1)/V.snippets_dy))))
     M.isnippet = M.nearest_sounds[M.ysnippet*M.snippets_nx + M.xsnippet]
+    isnippet2contextsound()
     V.snippets_update(False)
     V.context_update()
 
 def get_shortest_tapped_sound(x_tic, currfile):
-    ileft = np.searchsorted(M.clustered_starts_sorted, x_tic)
+    ileft = np.searchsorted(M.used_starts_sorted, x_tic)
     sounds_righthere = set(range(0,ileft))
-    iright = np.searchsorted(M.clustered_stops, x_tic,
-                             sorter=M.iclustered_stops_sorted)
-    sounds_righthere &= set([M.iclustered_stops_sorted[i] for i in \
-            range(iright, len(M.iclustered_stops_sorted))])
-    sounds_inthisfile = filter(lambda x: M.clustered_sounds[x]['file'] == currfile,
+    iright = np.searchsorted(M.used_stops, x_tic,
+                             sorter=M.iused_stops_sorted)
+    sounds_righthere &= set([M.iused_stops_sorted[i] for i in \
+            range(iright, len(M.iused_stops_sorted))])
+    sounds_inthisfile = filter(lambda x: M.used_sounds[x]['file'] == currfile,
                                 sounds_righthere)
     return sorted(sounds_inthisfile, key=lambda x: \
-                  M.clustered_sounds[x]['ticks'][1]-M.clustered_sounds[x]['ticks'][0])
+                  M.used_sounds[x]['ticks'][1]-M.used_sounds[x]['ticks'][0])
 
 def context_doubletap_callback(event, midpoint):
     if not event.x:  return
     x_tic = int(np.rint(event.x*M.audio_tic_rate))
-    currfile = M.clustered_sounds[M.isnippet]['file']
+    currfile = V.recordings.value
     if event.y<midpoint:
         idouble_tapped_sound=-1
         if len(M.annotated_starts_sorted)>0:
@@ -344,7 +370,7 @@ def context_doubletap_callback(event, midpoint):
             return
         isounds_shortest = get_shortest_tapped_sound(x_tic, currfile)
         if len(isounds_shortest)>0:
-            toggle_annotation(isounds_shortest[0])
+            M.toggle_annotation(M.used_sounds[isounds_shortest[0]])
 
 pan_start_x = pan_start_y = pan_start_sx = pan_start_sy = None
 
@@ -399,7 +425,7 @@ def waveform_pan_end_callback(event):
     elif pan_start_y<0 and M.state['labels'][M.ilabel]!='':
         x_tic0 = int(np.rint(event.x*M.audio_tic_rate))
         x_tic1 = int(np.rint(pan_start_x*M.audio_tic_rate))
-        M.add_annotation({'file':M.clustered_sounds[M.isnippet]['file'],
+        M.add_annotation({'file':V.recordings.value,
                           'ticks':sorted([x_tic0,x_tic1]),
                           'label':M.state['labels'][M.ilabel]})
     V.waveform_quad_grey_pan.data.update(left=[], right=[], top=[], bottom=[])
@@ -408,13 +434,14 @@ def waveform_pan_end_callback(event):
 def waveform_tap_callback(event):
     if not event.x:  return
     x_tic = int(np.rint(event.x*M.audio_tic_rate))
-    currfile = M.clustered_sounds[M.isnippet]['file']
-    isounds_shortest = get_shortest_tapped_sound(x_tic, currfile)
-    if event.sy<0 or len(isounds_shortest)==0:
+    isounds_shortest = get_shortest_tapped_sound(x_tic, V.recordings.value)
+    if event.y<0 or len(isounds_shortest)==0 or M.clustered_activations is None:
         M.context_waveform_low = [-1]*M.audio_nchannels
         M.context_waveform_high = [1]*M.audio_nchannels
-    elif M.clustered_activations is not None:
-        coordinates = M.clustered_activations[M.ilayer][isounds_shortest[0],:]
+    elif M.used_sounds[isounds_shortest[0]] in M.clustered_sounds:
+        M.context_sound = M.used_sounds[isounds_shortest[0]]
+        contextsound2isnippet()
+        coordinates = M.clustered_activations[M.ilayer][M.isnippet,:]
         M.xcluster, M.ycluster = coordinates[0], coordinates[1]
         if M.ndcluster==3:
             M.zcluster = coordinates[2]
@@ -424,7 +451,6 @@ def waveform_tap_callback(event):
                                              cr=[M.state["circle_radius"]],
                                              cc=[M.cluster_circle_color])
         M.xsnippet = M.ysnippet = 0
-        M.isnippet = isounds_shortest[0]
         V.snippets_update(True)
     V.context_update()
 
@@ -525,33 +551,28 @@ def allright_callback():
     V.zoom_offset.value = str(M.context_offset_ms)
 
 def _label_callback(inequality_fun, idx, button):
-    tapped_start = M.clustered_sounds[M.isnippet]['ticks'][0]
-    if M.clustered_activations is not None:
-        snippets = np.nonzero([inequality_fun(x['ticks'][0], tapped_start) and
-                               V.recordings.value == x['file'] and
-                               M.species[M.ispecies] in x['label'] and
-                               M.words[M.iword] in x['label'] and
-                               (M.nohyphens[M.inohyphen]=="" or \
-                                M.nohyphens[M.inohyphen]==x['label']) and
-                               (M.kinds[M.ikind]=="" or \
-                                M.kinds[M.ikind]==x['kind']) for x in M.clustered_sounds])[0]
-    else:
-        snippets = np.nonzero([inequality_fun(x['ticks'][0], tapped_start) and
-                               V.recordings.value == x['file'] for x in M.clustered_sounds])[0]
+    tapped_start = M.context_sound['ticks'][0]
+    snippets = np.nonzero([inequality_fun(x['ticks'][0], tapped_start) and
+                           V.recordings.value == x['file'] for x in M.used_sounds])[0]
     if len(snippets)>0:
-        M.isnippet = snippets[idx]
+        M.context_sound = M.used_sounds[snippets[idx]]
+        contextsound2isnippet()
         if M.clustered_activations is not None:
-            M.xcluster = M.clustered_activations[M.ilayer][M.isnippet,0]
-            M.ycluster = M.clustered_activations[M.ilayer][M.isnippet,1]
-            if M.ndcluster==3:
-                M.zcluster = M.clustered_activations[M.ilayer][M.isnippet,2]
-            V.cluster_circle_fuchsia.data.update(cx=[M.xcluster],
-                                                 cy=[M.ycluster],
-                                                 cz=[M.zcluster],
-                                                 cr=[M.state["circle_radius"]],
-                                                 cc=[M.cluster_circle_color])
-            M.xsnippet = M.ysnippet = 0
-            V.snippets_update(True)
+            if M.isnippet>=0:
+                M.xcluster = M.clustered_activations[M.ilayer][M.isnippet,0]
+                M.ycluster = M.clustered_activations[M.ilayer][M.isnippet,1]
+                if M.ndcluster==3:
+                    M.zcluster = M.clustered_activations[M.ilayer][M.isnippet,2]
+                V.cluster_circle_fuchsia.data.update(cx=[M.xcluster],
+                                                     cy=[M.ycluster],
+                                                     cz=[M.zcluster],
+                                                     cr=[M.state["circle_radius"]],
+                                                     cc=[M.cluster_circle_color])
+                M.xsnippet = M.ysnippet = 0
+            else:
+                M.xcluster = M.ycluster = M.zcluster = np.nan
+                V.cluster_circle_fuchsia.data.update(cx=[], cy=[], cz=[], cr=[], cc=[])
+        V.snippets_update(True)
         V.context_update()
     button.button_type="default"
  
@@ -663,7 +684,7 @@ def spectrogram_pan_end_callback(event):
     elif M.state['labels'][M.ilabel]!='':
       x_tic0 = int(np.rint(event.x*M.audio_tic_rate))
       x_tic1 = int(np.rint(pan_start_x*M.audio_tic_rate))
-      M.add_annotation({'file':M.clustered_sounds[M.isnippet]['file'],
+      M.add_annotation({'file':V.recordings.value,
                         'ticks':sorted([x_tic0,x_tic1]),
                         'label':M.state['labels'][M.ilabel]})
     V.spectrogram_quad_grey_pan.data.update(left=[], right=[], top=[], bottom=[])
@@ -671,15 +692,16 @@ def spectrogram_pan_end_callback(event):
     
 def spectrogram_tap_callback(event):
     x_tic = int(np.rint(event.x*M.audio_tic_rate))
-    currfile = M.clustered_sounds[M.isnippet]['file']
-    isounds_shortest = get_shortest_tapped_sound(x_tic, currfile)
+    isounds_shortest = get_shortest_tapped_sound(x_tic, V.recordings.value)
     if np.modf(event.y)[0]<0.5 or len(isounds_shortest)==0 or M.clustered_activations is None:
         idx = len(M.context_spectrogram) - 1 - int(np.floor(event.y))
         ichannel = M.context_spectrogram[idx] - 1
         M.spectrogram_low_hz[ichannel] = 0
         M.spectrogram_high_hz[ichannel] = M.audio_tic_rate/2
-    else:
-        coordinates = M.clustered_activations[M.ilayer][isounds_shortest[0],:]
+    elif M.used_sounds[isounds_shortest[0]] in M.clustered_sounds:
+        M.context_sound = M.used_sounds[isounds_shortest[0]]
+        contextsound2isnippet()
+        coordinates = M.clustered_activations[M.ilayer][M.isnippet,:]
         M.xcluster, M.ycluster = coordinates[0], coordinates[1]
         if M.ndcluster==3:
             M.zcluster = coordinates[2]
@@ -688,47 +710,37 @@ def spectrogram_tap_callback(event):
                                              cz=[M.zcluster],
                                              cr=[M.state["circle_radius"]],
                                              cc=[M.cluster_circle_color])
-        M.isnippet = isounds_shortest[0]
         V.snippets_update(True)
     V.context_update()
     
-def toggle_annotation(idouble_tapped_sound):
-    iannotated = M.isannotated(M.clustered_sounds[idouble_tapped_sound])
-    if len(iannotated)>0:
-        M.delete_annotation(iannotated[0])
-    else:
-        thissound = M.clustered_sounds[idouble_tapped_sound].copy()
-        thissound['label'] = M.state['labels'][M.ilabel]
-        thissound.pop('kind', None)
-        M.add_annotation(thissound)
-
 def snippets_doubletap_callback(event):
     x_tic = int(np.rint(event.x/(M.snippets_gap_pix+M.snippets_pix)-0.5))
     y_tic = int(np.floor(-(event.y-1)/V.snippets_dy))
     idouble_tapped_sound = M.nearest_sounds[y_tic*M.snippets_nx + x_tic]
     if idouble_tapped_sound!=-1:
-        toggle_annotation(idouble_tapped_sound)
+        M.toggle_annotation(M.clustered_sounds[idouble_tapped_sound])
 
-def _find_nearest_clustered_sound(history_idx):
-    M.isnippet = np.searchsorted(M.clustered_starts_sorted, \
+def _find_nearest_used_sound(history_idx):
+    icontext_sound = np.searchsorted(M.used_starts_sorted, \
                                  M.history_stack[history_idx][1]['ticks'][0])
     delta=0
     while True:
-        if M.isnippet+delta < len(M.clustered_sounds) and \
-                  M.clustered_sounds[M.isnippet+delta]['file'] == \
+        if icontext_sound+delta < len(M.used_sounds) and \
+                  M.used_sounds[icontext_sound+delta]['file'] == \
                   M.history_stack[history_idx][1]['file']:
-            M.isnippet += delta
+            icontext_sound += delta
             break
-        elif M.isnippet-delta >= 0 and \
-                  M.clustered_sounds[M.isnippet-delta]['file'] == \
+        elif icontext_sound-delta >= 0 and \
+                  M.used_sounds[icontext_sound-delta]['file'] == \
                   M.history_stack[history_idx][1]['file']:
-            M.isnippet -= delta
+            icontext_sound -= delta
             break
-        if M.isnippet+delta >= len(M.clustered_sounds) and M.isnippet-delta < 0:
+        if icontext_sound+delta >= len(M.used_sounds) and icontext_sound-delta < 0:
             break
         delta += 1
-    if M.clustered_sounds[M.isnippet]['file'] != \
-            M.history_stack[history_idx][1]['file']:
+    M.context_sound = M.used_sounds[icontext_sound]
+    contextsound2isnippet()
+    if V.recordings.value != M.history_stack[history_idx][1]['file']:
         bokehlog.info("WARNING: can't jump to undone annotation")
 
 def _undo_callback():
@@ -749,9 +761,9 @@ def undo_callback():
         M.xcluster = M.ycluster = M.zcluster = np.nan
         M.isnippet = -1
         V.snippets_update(True)
-        _find_nearest_clustered_sound(M.history_idx)
+        _find_nearest_used_sound(M.history_idx)
         M.context_offset_tic = M.history_stack[M.history_idx][1]['ticks'][0] - \
-                               M.clustered_starts_sorted[M.isnippet]
+                               M.context_sound['ticks'][0]
         M.context_offset_ms = M.context_offset_tic/M.audio_tic_rate*1000
         V.zoom_offset.value = str(M.context_offset_ms)
         V.context_update()
@@ -778,9 +790,9 @@ def redo_callback():
         M.xcluster = M.ycluster = M.zcluster = np.nan
         M.isnippet = -1
         V.snippets_update(True)
-        _find_nearest_clustered_sound(M.history_idx-1)
+        _find_nearest_used_sound(M.history_idx-1)
         M.context_offset_tic = M.history_stack[M.history_idx-1][1]['ticks'][0] - \
-                             M.clustered_starts_sorted[M.isnippet]
+                             M.context_sound['ticks'][0]
         M.context_offset_ms = M.context_offset_tic/M.audio_tic_rate*1000
         V.zoom_offset.value = str(M.context_offset_ms)
         V.context_update()
@@ -1477,6 +1489,7 @@ async def visualize_actuate():
     V.cluster_update()
     M.xcluster = M.ycluster = M.zcluster = np.nan
     M.isnippet = -1
+    M.context_sound = None
     V.snippets_update(True)
     V.context_update()
 

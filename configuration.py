@@ -34,9 +34,9 @@ cluster_logfile_flag=""
 # GUI
 gui_nlabels=7
 gui_gui_width_pix=1250
-#gui_cluster_dot_palette="Category10_10"
+#gui_label_palette="Category10_10"
 # https://graphicdesign.stackexchange.com/questions/3682/where-can-i-find-a-large-palette-set-of-contrasting-colors-for-coloring-many-d
-gui_cluster_dot_palette="('#0075dc','#993f00','#4c005c','#191919','#005c31','#2bce48','#ffcc99','#808080','#94ffb5','#8f7c00','#9dcc00','#c20088','#003380','#ffa405','#ffa8bb','#426600','#ff0010','#5ef1f2','#00998f','#e0ff66','#740aff','#990000','#ffff80','#ffff00','#ff5005')"
+gui_label_palette="('#0075dc','#993f00','#4c005c','#191919','#005c31','#2bce48','#ffcc99','#808080','#94ffb5','#8f7c00','#9dcc00','#c20088','#003380','#ffa405','#ffa8bb','#426600','#ff0010','#5ef1f2','#00998f','#e0ff66','#740aff','#990000','#ffff80','#ffff00','#ff5005')"
 gui_cluster_circle_color="#f0a3ff"
 gui_snippets_colormap="Viridis256"
 gui_snippets_width_ms=40

@@ -76,9 +76,9 @@ def isannotated(sound):
     return np.where([x['file']==sound['file'] and x['ticks']==sound['ticks'] \
                      for x in annotated_sounds])[0]
 
-def isclustered(sound):
+def isused(sound):
     return np.where([x['file']==sound['file'] and x['ticks']==sound['ticks'] \
-                     for x in clustered_sounds])[0]
+                     for x in used_sounds])[0]
 
 def save_annotations():
     global nrecent_annotations
@@ -104,8 +104,8 @@ def save_annotations():
                         [os.path.basename(annotation['file']),
                         annotation['ticks'][0], annotation['ticks'][1],
                         'annotated', annotation['label']])
-            iclustered = isclustered(annotation)
-            if len(iclustered)>0 and clustered_sounds[iclustered[0]]['kind']=='annotated':
+            iused = isused(annotation)
+            if len(iused)>0 and used_sounds[iused[0]]['kind']=='annotated':
                 corrected_sounds.append(annotation)
         if corrected_sounds:
             df_corrected = pd.DataFrame([[os.path.basename(x['file']), x['ticks'][0], \
@@ -175,15 +175,25 @@ def delete_annotation(isound, addto_history=True):
         thislabel = state['labels'].index(annotated_sounds[isound]['label'])
         count = int(V.nsounds_per_label_buttons[thislabel].label)
         V.nsounds_per_label_buttons[thislabel].label = str(count-1)
-    iclustered = isclustered(annotated_sounds[isound])
-    if len(iclustered)>0 and clustered_sounds[iclustered[0]]['kind']=='annotated':
-        annotated_sounds[isound]['label'] = clustered_sounds[iclustered[0]]['label']
+    iused = isused(annotated_sounds[isound])
+    if len(iused)>0 and used_sounds[iused[0]]['kind']=='annotated':
+        annotated_sounds[isound]['label'] = used_sounds[iused[0]]['label']
     else:
         del annotated_sounds[isound]
         annotated_starts_sorted = [x['ticks'][0] for x in annotated_sounds]
         annotated_stops = [x['ticks'][1] for x in annotated_sounds]
         iannotated_stops_sorted = np.argsort(annotated_stops)
     finalize_annotation(addto_history)
+
+def toggle_annotation(double_tapped_sound):
+    iannotated = isannotated(double_tapped_sound)
+    if len(iannotated)>0:
+        delete_annotation(iannotated[0])
+    else:
+        thissound = double_tapped_sound.copy()
+        thissound['label'] = state['labels'][ilabel]
+        thissound.pop('kind', None)
+        add_annotation(thissound)
 
 def finalize_annotation(redraw_snippets=True):
     global nrecent_annotations
@@ -214,14 +224,14 @@ def init(_bokeh_document, _configuration_file):
     global bokeh_document, configuration_file
     global audio_tic_rate, audio_nchannels, video_channels
     global nlabels, gui_width_pix
-    global cluster_circle_color, cluster_dot_palette
+    global cluster_circle_color, label_palette
     global snippets_colormap, snippets_width_ms, snippets_nx, snippets_ny, snippets_waveform, snippets_spectrogram
     global context_width_ms, context_offset_ms, context_waveform, context_waveform_height_pix, context_spectrogram, context_spectrogram_height_pix, context_spectrogram_units, context_probability_height_pix, context_undo_proximity_pix
-    global context_waveform_low, context_waveform_high, context_spectrogram_freq_scale, cluster_dot_colors
+    global context_waveform_low, context_waveform_high, context_spectrogram_freq_scale, label_colors
     global spectrogram_colormap, spectrogram_window, spectrogram_length_ms, spectrogram_overlap, spectrogram_low_hz, spectrogram_high_hz
     global deterministic
     global context_width_ms0, context_offset_ms0
-    global xcluster, ycluster, zcluster, ndcluster, tic2pix_max, snippet_width_pix, ilayer, ispecies, iword, inohyphen, ikind, nlayers, layers, species, words, nohyphens, kinds, clustered_labels, snippets_gap_ms, snippets_tic, snippets_gap_tic, snippets_decimate_by, snippets_pix, snippets_gap_pix, context_decimate_by, context_width_tic, context_offset_tic, isnippet, xsnippet, ysnippet, file_nframes, context_midpoint_tic, ilabel, annotated_sounds, annotated_starts_sorted, annotated_stops, iannotated_stops_sorted, annotated_csvfiles_all, nrecent_annotations, clustered_sounds, clustered_activations, clustered_recording2firstsound, clustered_starts_sorted, clustered_stops, iclustered_stops_sorted, songexplorer_starttime, history_stack, history_idx, wizard, action, function, statepath, state, file_dialog_root, file_dialog_filter, nearest_sounds, status_ticker_queue, waitfor_job, dfs, remaining_isounds
+    global xcluster, ycluster, zcluster, ndcluster, tic2pix_max, snippet_width_pix, ilayer, ispecies, iword, inohyphen, ikind, nlayers, layers, species, words, nohyphens, kinds, used_labels, snippets_gap_ms, snippets_tic, snippets_gap_tic, snippets_decimate_by, snippets_pix, snippets_gap_pix, context_decimate_by, context_width_tic, context_offset_tic, context_sound, isnippet, xsnippet, ysnippet, file_nframes, context_midpoint_tic, ilabel, used_sounds, used_starts_sorted, used_stops, iused_stops_sorted, annotated_sounds, annotated_starts_sorted, annotated_stops, iannotated_stops_sorted, annotated_csvfiles_all, nrecent_annotations, clustered_sounds, clustered_activations, used_recording2firstsound, clustered_starts_sorted, clustered_stops, iclustered_stops_sorted, songexplorer_starttime, history_stack, history_idx, wizard, action, function, statepath, state, file_dialog_root, file_dialog_filter, nearest_sounds, status_ticker_queue, waitfor_job, dfs, remaining_isounds
     global user_changed_recording, user_copied_parameters
     global audio_read, video_read, detect_parameters, detect_labels, doubleclick_parameters, doubleclick_annotation, context_data, context_data_istart, model, model_parameters, video_findfile
 
@@ -349,10 +359,10 @@ def init(_bokeh_document, _configuration_file):
     context_data = [None]*audio_nchannels
     context_data_istart = None
 
-    cluster_dot_palette = gui_cluster_dot_palette
+    label_palette = gui_label_palette
     snippets_colormap = gui_snippets_colormap
     cluster_circle_color = gui_cluster_circle_color
-    cluster_dot_colors = {}
+    label_colors = {}
 
     user_changed_recording=True
     user_copied_parameters=0
@@ -375,7 +385,7 @@ def init(_bokeh_document, _configuration_file):
     nohyphens = []
     kinds = []
 
-    clustered_labels = []
+    used_labels = []
 
     snippets_gap_ms=snippets_width_ms/10
 
@@ -389,6 +399,8 @@ def init(_bokeh_document, _configuration_file):
     context_width_tic = int(np.rint(context_width_ms/1000*audio_tic_rate))
     context_offset_tic = int(np.rint(context_offset_ms/1000*audio_tic_rate))
 
+    context_sound = None
+
     isnippet = -1
     xsnippet = -1
     ysnippet = -1
@@ -398,6 +410,11 @@ def init(_bokeh_document, _configuration_file):
     context_decimate_by = -1
 
     ilabel=0
+
+    used_sounds=[]
+    used_starts_sorted=[]
+    used_stops=[]
+    iused_stops_sorted=[]
 
     annotated_sounds=[]
     annotated_starts_sorted=[]

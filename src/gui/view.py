@@ -359,7 +359,7 @@ export class ScatterNd extends LayoutDOM {
     dot_size_source = Instance(ColumnDataSource)
     dot_alpha_source = Instance(ColumnDataSource)
 
-def cluster_initialize(newcolors=True):
+def cluster_initialize():
     global precomputed_dots
     global p_cluster_xmax, p_cluster_ymax, p_cluster_zmax
     global p_cluster_xmin, p_cluster_ymin, p_cluster_zmin
@@ -386,7 +386,7 @@ def cluster_initialize(newcolors=True):
 
     recordings.options = sorted(list(set([x['file'] for x in M.clustered_sounds])))
     for recording in recordings.options:
-        M.clustered_recording2firstsound[recording] = \
+        M.used_recording2firstsound[recording] = \
               next(filter(lambda x: x[1]['file']==recording, enumerate(M.clustered_sounds)))[0]
     recordings.options = [""] + recordings.options
 
@@ -399,26 +399,22 @@ def cluster_initialize(newcolors=True):
     cluster_circle_fuchsia.data.update(cx=[], cy=[], cz=[], cr=[], cc=[])
 
     M.layers = ["input"]+["hidden #"+str(i) for i in range(1,M.nlayers-1)]+["output"]
-    M.species = set([x['label'].split('-')[0]+'-' \
-                     for x in M.clustered_sounds if '-' in x['label']])
+    M.species = set([x.split('-')[0]+'-' for x in npzfile['labels_touse'] if '-' in x])
     M.species |= set([''])
     M.species = natsorted(list(M.species))
-    M.words = set(['-'+x['label'].split('-')[1] \
-                   for x in M.clustered_sounds if '-' in x['label']])
+    M.words = set(['-'+x.split('-')[1] for x in npzfile['labels_touse'] if '-' in x])
     M.words |= set([''])
     M.words = natsorted(list(M.words))
-    M.nohyphens = set([x['label'] for x in M.clustered_sounds if '-' not in x['label']])
+    M.nohyphens = set([x for x in npzfile['labels_touse'] if '-' not in x])
     M.nohyphens |= set([''])
     M.nohyphens = natsorted(list(M.nohyphens))
     M.kinds = set([x['kind'] for x in M.clustered_sounds])
     M.kinds |= set([''])
     M.kinds = natsorted(list(M.kinds))
 
-    if newcolors:
-        allcombos = [x[0][:-1]+x[1] for x in product(M.species[1:], M.words[1:])]
-        M.cluster_dot_colors = { l:c for l,c in zip(allcombos+ M.nohyphens[1:],
-                                                    cycle(cluster_dot_palette)) }
-    M.clustered_labels = set([x['label'] for x in M.clustered_sounds])
+    allcombos = [x[0][:-1]+x[1] for x in product(M.species[1:], M.words[1:])]
+    M.label_colors = { l:c for l,c in zip(allcombos+ M.nohyphens[1:],
+                                                cycle(label_palette)) }
 
     p_cluster_xmin, p_cluster_xmax = [0]*M.nlayers, [0]*M.nlayers
     p_cluster_ymin, p_cluster_ymax = [0]*M.nlayers, [0]*M.nlayers
@@ -456,10 +452,10 @@ def cluster_initialize(newcolors=True):
                         if not any(bidx):
                             continue
                         if inohyphen>0:
-                            colors = [M.cluster_dot_colors[nohyphen] for b in bidx if b]
+                            colors = [M.label_colors[nohyphen] for b in bidx if b]
                         else:
-                            colors = [M.cluster_dot_colors[x['label']] \
-                                      if x['label'] in M.cluster_dot_colors else "black" \
+                            colors = [M.label_colors[x['label']] \
+                                      if x['label'] in M.label_colors else "black" \
                                       for x,b in zip(M.clustered_sounds,bidx) if b]
                         data = {'x': M.clustered_activations[ilayer][bidx,0], \
                                 'y': M.clustered_activations[ilayer][bidx,1], \
@@ -482,7 +478,10 @@ def cluster_initialize(newcolors=True):
     dot_alpha.disabled=False
 
     M.ispecies = M.iword = M.inohyphen = M.ikind = 0
-
+    
+    labels_touse.value = ','.join(npzfile['labels_touse'])
+    kinds_touse.value = ','.join(npzfile['kinds_touse'])
+    recordings_update()
     return True
 
 def cluster_update():
@@ -728,13 +727,13 @@ def reset_video():
     load_multimedia_callback.code = C.load_multimedia_callback_code % ("", "")
     load_multimedia.text = ""
 
-def ___context_update(start_sec, stop_sec, frame_rate, tapped_sound):
+def ___context_update(start_sec, stop_sec, frame_rate, context_sound):
     if video_toggle.active:
         video_slider.visible = True
         video_slider.start = np.ceil(start_sec * frame_rate) / frame_rate
         video_slider.end = np.floor(stop_sec * frame_rate) / frame_rate
         video_slider.step = 1/frame_rate
-        midpoint_tics = (tapped_sound['ticks'][0] + tapped_sound['ticks'][1]) / 2
+        midpoint_tics = (context_sound['ticks'][0] + context_sound['ticks'][1]) / 2
         midpoint_frames = np.round(midpoint_tics / M.audio_tic_rate * frame_rate) / frame_rate
         video_slider.value = np.clip(midpoint_frames, video_slider.start, video_slider.end)
         waveform_span_red.location = video_slider.value
@@ -747,17 +746,17 @@ def ___context_update(start_sec, stop_sec, frame_rate, tapped_sound):
         spectrogram_span_red.location = start_sec
         probability_span_red.location = start_sec
 
-def __context_update(wavi, tapped_sound, istart_bounded, ilength):
+def __context_update(wavi, context_sound, istart_bounded, ilength):
     start_sec = istart_bounded / M.audio_tic_rate
     stop_sec = (istart_bounded+ilength) / M.audio_tic_rate
 
     if video_toggle.active:
         video_toggle.button_type="default"
-        sound_basename=os.path.basename(tapped_sound['file'])
-        sound_dirname=os.path.join(groundtruth_folder.value, os.path.dirname(tapped_sound['file']))
+        sound_basename=os.path.basename(context_sound['file'])
+        sound_dirname=os.path.join(groundtruth_folder.value, os.path.dirname(context_sound['file']))
         vidfile = M.video_findfile(sound_dirname, sound_basename)
         if not vidfile:
-            bokehlog.info("ERROR: video file corresponding to "+tapped_sound['file']+" not found")
+            bokehlog.info("ERROR: video file corresponding to "+context_sound['file']+" not found")
             return
         base64vid, height, width, frame_rate = nparray2base64mp4(os.path.join(sound_dirname,
                                                                               vidfile),
@@ -777,16 +776,15 @@ def __context_update(wavi, tapped_sound, istart_bounded, ilength):
     load_multimedia.text = str(np.random.random())
 
     bokeh_document.add_next_tick_callback(lambda: \
-            ___context_update(start_sec, stop_sec, frame_rate, tapped_sound))
+            ___context_update(start_sec, stop_sec, frame_rate, context_sound))
 
-def _context_update(wavi, tapped_sound, istart_bounded, ilength):
+def _context_update(wavi, context_sound, istart_bounded, ilength):
     if video_toggle.active:
         video_toggle.button_type="warning"
     bokeh_document.add_next_tick_callback(lambda: \
-            __context_update(wavi, tapped_sound, istart_bounded, ilength))
+            __context_update(wavi, context_sound, istart_bounded, ilength))
 
 def context_update():
-    tapped_ticks = [np.nan, np.nan]
     istart = np.nan
     scales = [0]*len(M.context_waveform)
     ywav = [np.full(1,np.nan)]*len(M.context_waveform)
@@ -794,16 +792,16 @@ def context_update():
     gram_freq = [np.full(1,np.nan)]*len(M.context_spectrogram)
     gram_time = [np.full(1,np.nan)]*len(M.context_spectrogram)
     gram_image = [np.full((1,1),np.nan)]*len(M.context_spectrogram)
-    yprob = [np.full(1,np.nan)]*len(M.clustered_labels)
-    xprob = [np.full(1,np.nan)]*len(M.clustered_labels)
+    yprob = [np.full(1,np.nan)]*len(M.used_labels)
+    xprob = [np.full(1,np.nan)]*len(M.used_labels)
     ilow = [0]*len(M.context_spectrogram)
     ihigh = [1]*len(M.context_spectrogram)
-    xlabel_clustered, tlabel_clustered = [], []
+    xlabel_used, tlabel_used = [], []
     xlabel_annotated, tlabel_annotated = [], []
-    left_clustered, right_clustered = [], []
+    left_used, right_used = [], []
     left_annotated, right_annotated = [], []
 
-    if M.isnippet>=0:
+    if M.context_sound:
         play.disabled=False
         video_toggle.disabled=False
         zoom_width.disabled=False
@@ -820,19 +818,17 @@ def context_update():
         nextlabel.disabled=False
         prevlabel.disabled=False
         lastlabel.disabled=False
-        tapped_sound = M.clustered_sounds[M.isnippet]
-        tapped_ticks = tapped_sound['ticks']
-        M.context_midpoint_tic = np.mean(tapped_ticks, dtype=int)
+        M.context_midpoint_tic = np.mean(M.context_sound['ticks'], dtype=int)
         istart = M.context_midpoint_tic-M.context_width_tic//2 + M.context_offset_tic
-        if recordings.value != tapped_sound['file']:
+        if recordings.value != M.context_sound['file']:
             M.user_changed_recording=False
-        recordings.value = tapped_sound['file']
-        _, wavs = M.audio_read(os.path.join(groundtruth_folder.value, tapped_sound['file']))
+        recordings.value = M.context_sound['file']
+        _, wavs = M.audio_read(os.path.join(groundtruth_folder.value, M.context_sound['file']))
         M.file_nframes = np.shape(wavs)[0]
-        probs = [None]*len(M.clustered_labels)
-        for ilabel,label in enumerate(M.clustered_labels):
+        probs = [None]*len(M.used_labels)
+        for ilabel,label in enumerate(M.used_labels):
             prob_wavfile = os.path.join(groundtruth_folder.value,
-                                        tapped_sound['file'][:-4]+'-'+label+'.wav')
+                                        M.context_sound['file'][:-4]+'-'+label+'.wav')
             if os.path.isfile(prob_wavfile):
                 prob_tic_rate, probs[ilabel] = spiowav.read(prob_wavfile, mmap=True)
         if istart+M.context_width_tic>0 and istart<M.file_nframes:
@@ -865,7 +861,7 @@ def context_update():
                     if bokeh_document: 
                         bokeh_document.add_next_tick_callback(lambda: \
                                 _context_update(wavi,
-                                                tapped_sound,
+                                                M.context_sound,
                                                 istart_bounded,
                                                 ilength))
 
@@ -903,7 +899,7 @@ def context_update():
                     ihigh[idx] = np.argmin(np.abs(gram_freq[idx] - \
                                                   M.spectrogram_high_hz[ichannel]))
 
-            for ilabel in range(len(M.clustered_labels)):
+            for ilabel in range(len(M.used_labels)):
                 if not isinstance(probs[ilabel], np.ndarray):  continue
                 prob_istart = int(np.rint(istart_bounded*tic_rate_ratio))
                 prob_istop = int(np.rint((istart_bounded+ilength)*tic_rate_ratio))
@@ -934,30 +930,36 @@ def context_update():
                              return low_hz[low_hz.length-tick-1] + "," + high_hz[high_hz.length-tick] }
                          """)
 
-            ileft = np.searchsorted(M.clustered_starts_sorted, istart+M.context_width_tic)
+            ileft = np.searchsorted(M.used_starts_sorted, istart+M.context_width_tic)
             sounds_to_plot = set(range(0,ileft))
-            iright = np.searchsorted(M.clustered_stops, istart,
-                                    sorter=M.iclustered_stops_sorted)
-            sounds_to_plot &= set([M.iclustered_stops_sorted[i] for i in \
-                    range(iright, len(M.iclustered_stops_sorted))])
+            iright = np.searchsorted(M.used_stops, istart, sorter=M.iused_stops_sorted)
+            sounds_to_plot &= set([M.iused_stops_sorted[i] for i in \
+                    range(iright, len(M.iused_stops_sorted))])
+            delete_tapped_sound = False
+            if M.context_sound not in M.used_sounds and \
+                    M.context_sound['ticks'][0]<istart+M.context_width_tic and \
+                    M.context_sound['ticks'][1]>istart:
+                M.used_sounds.append(M.context_sound)
+                sounds_to_plot |= set([len(M.used_sounds)-1])
+                delete_tapped_sound = True
 
             tapped_wav_in_view = False
             M.remaining_isounds = []
             for isound in sounds_to_plot:
-                if tapped_sound['file']!=M.clustered_sounds[isound]['file']:
+                if M.context_sound['file']!=M.used_sounds[isound]['file']:
                     continue
-                L = np.max([istart, M.clustered_sounds[isound]['ticks'][0]])
+                L = np.max([istart, M.used_sounds[isound]['ticks'][0]])
                 R = np.min([istart+M.context_width_tic,
-                            M.clustered_sounds[isound]['ticks'][1]])
+                            M.used_sounds[isound]['ticks'][1]])
                 if L>istart and R<istart+M.context_width_tic and \
-                        M.clustered_sounds[isound]['label'] in M.state['labels']:
+                        M.used_sounds[isound]['label'] in M.state['labels']:
                     M.remaining_isounds.append(isound)
-                xlabel_clustered.append((L+R)/2/M.audio_tic_rate)
-                tlabel_clustered.append(M.clustered_sounds[isound]['kind']+'\n'+\
-                              M.clustered_sounds[isound]['label'])
-                left_clustered.append(L/M.audio_tic_rate)
-                right_clustered.append(R/M.audio_tic_rate)
-                if tapped_sound==M.clustered_sounds[isound] and not np.isnan(M.xcluster):
+                xlabel_used.append((L+R)/2/M.audio_tic_rate)
+                tlabel_used.append(M.used_sounds[isound]['kind']+'\n'+\
+                              M.used_sounds[isound]['label'])
+                left_used.append(L/M.audio_tic_rate)
+                right_used.append(R/M.audio_tic_rate)
+                if M.context_sound==M.used_sounds[isound] and not np.isnan(M.xcluster):
                     if M.context_waveform:
                         waveform_quad_fuchsia.data.update(left=[L/M.audio_tic_rate],
                                                           right=[R/M.audio_tic_rate],
@@ -969,11 +971,13 @@ def context_update():
                                                              top=[len(M.context_spectrogram)],
                                                              bottom=[len(M.context_spectrogram)/2])
                     tapped_wav_in_view = True
+            if delete_tapped_sound:
+                M.used_sounds.pop()
 
             M.remaining_isounds = [i for i in M.remaining_isounds \
                                    if all([i==j or \
-                                           M.clustered_sounds[i]['ticks'][0] > M.clustered_sounds[j]['ticks'][1] or \
-                                           M.clustered_sounds[i]['ticks'][1] < M.clustered_sounds[j]['ticks'][0] \
+                                           M.used_sounds[i]['ticks'][0] > M.used_sounds[j]['ticks'][1] or \
+                                           M.used_sounds[i]['ticks'][1] < M.used_sounds[j]['ticks'][0] \
                                            for j in M.remaining_isounds])]
 
             if M.context_waveform:
@@ -995,15 +999,15 @@ def context_update():
                 iright = np.searchsorted(M.annotated_stops, istart,
                                          sorter=M.iannotated_stops_sorted)
                 sounds_to_plot &= set([M.iannotated_stops_sorted[i] for i in \
-                        range(iright, len(M.iannotated_stops_sorted))])
+                                       range(iright, len(M.iannotated_stops_sorted))])
 
                 for isound in sounds_to_plot:
-                    if tapped_sound['file']!=M.annotated_sounds[isound]['file']:
+                    if M.context_sound['file']!=M.annotated_sounds[isound]['file']:
                         continue
 
                     M.remaining_isounds = [i for i in M.remaining_isounds \
-                                           if M.annotated_sounds[isound]['ticks'][0] > M.clustered_sounds[i]['ticks'][1] or \
-                                              M.annotated_sounds[isound]['ticks'][1] < M.clustered_sounds[i]['ticks'][0]]
+                                           if M.annotated_sounds[isound]['ticks'][0] > M.used_sounds[i]['ticks'][1] or \
+                                              M.annotated_sounds[isound]['ticks'][1] < M.used_sounds[i]['ticks'][0]]
                         
                     L = np.max([istart, M.annotated_sounds[isound]['ticks'][0]])
                     R = np.min([istart+M.context_width_tic,
@@ -1063,36 +1067,36 @@ def context_update():
                 spectrogram_source[idx].data.update(image=[])
 
     probability_source.data.update(xs=xprob, ys=yprob,
-                                   colors=[M.cluster_dot_colors[x] for x in M.clustered_labels],
-                                   labels=list(M.clustered_labels))
+                                   colors=[M.label_colors[x] for x in M.used_labels],
+                                   labels=list(M.used_labels))
 
     if M.context_waveform:
-        waveform_quad_grey_clustered.data.update(left=left_clustered,
-                                                 right=right_clustered,
-                                                 top=[1]*len(left_clustered),
-                                                 bottom=[0]*len(left_clustered))
+        waveform_quad_grey_used.data.update(left=left_used,
+                                            right=right_used,
+                                            top=[1]*len(left_used),
+                                            bottom=[0]*len(left_used))
         waveform_quad_grey_annotated.data.update(left=left_annotated,
                                                  right=right_annotated,
                                                  top=[0]*len(left_annotated),
                                                  bottom=[-1]*len(left_annotated))
-        waveform_label_source_clustered.data.update(x=xlabel_clustered,
-                                                    y=[1]*len(xlabel_clustered),
-                                                    text=tlabel_clustered)
+        waveform_label_source_used.data.update(x=xlabel_used,
+                                               y=[1]*len(xlabel_used),
+                                               text=tlabel_used)
         waveform_label_source_annotated.data.update(x=xlabel_annotated,
                                                     y=[-1]*len(xlabel_annotated),
                                                     text=tlabel_annotated)
     if M.context_spectrogram:
-        spectrogram_quad_grey_clustered.data.update(left=left_clustered,
-                                                    right=right_clustered,
-                                                    top=[len(M.context_spectrogram)]*len(left_clustered),
-                                                    bottom=[len(M.context_spectrogram)/2]*len(left_clustered))
+        spectrogram_quad_grey_used.data.update(left=left_used,
+                                               right=right_used,
+                                               top=[len(M.context_spectrogram)]*len(left_used),
+                                               bottom=[len(M.context_spectrogram)/2]*len(left_used))
         spectrogram_quad_grey_annotated.data.update(left=left_annotated,
                                                     right=right_annotated,
                                                     top=[len(M.context_spectrogram)/2]*len(left_annotated),
                                                     bottom=[0]*len(left_annotated))
-        spectrogram_label_source_clustered.data.update(x=xlabel_clustered,
-                                                       y=[len(M.context_spectrogram)]*len(xlabel_clustered),
-                                                       text=tlabel_clustered)
+        spectrogram_label_source_used.data.update(x=xlabel_used,
+                                                  y=[len(M.context_spectrogram)]*len(xlabel_used),
+                                                  text=tlabel_used)
         spectrogram_label_source_annotated.data.update(x=xlabel_annotated,
                                                        y=[0]*len(xlabel_annotated),
                                                        text=tlabel_annotated)
@@ -1126,53 +1130,59 @@ def cluster_these_layers_update():
         cluster_these_layers.options = []
 
 def recordings_update():
-    M.clustered_activations = None
     if M.dfs:
         kinds = kinds_touse.value.split(',')
         labels = labels_touse.value.split(',')
         wavfiles = set()
-        M.clustered_sounds = []
-        M.clustered_recording2firstsound = {}
+        M.used_sounds = []
+        M.used_recording2firstsound = {}
         for df,subdir in zip(M.dfs,M.subdirs):
             bidx = np.logical_and(np.array(df[3].apply(lambda x: x in kinds)),
                                   np.array(df[4].apply(lambda x: x in labels)))
             if any(bidx):
-                M.clustered_sounds.extend(list(df[bidx].apply(lambda x:
-                                                              {"file": os.path.join(subdir,x[0]),
-                                                               "ticks": [x[1],x[2]],
-                                                               "kind": x[3],
-                                                               "label": x[4]},
-                                                              1)))
+                M.used_sounds.extend(list(df[bidx].apply(lambda x:
+                                                         {"file": os.path.join(subdir,x[0]),
+                                                          "ticks": [x[1],x[2]],
+                                                          "kind": x[3],
+                                                          "label": x[4]},
+                                                         1)))
                 wavfiles |= set(df[bidx].apply(lambda x: os.path.join(subdir,x[0]), 1))
 
-        M.clustered_starts_sorted = [x['ticks'][0] for x in M.clustered_sounds]
-        isort = np.argsort(M.clustered_starts_sorted)
-        M.clustered_sounds = [M.clustered_sounds[x] for x in isort]
-        M.clustered_starts_sorted = [M.clustered_starts_sorted[x] for x in isort]
-        M.clustered_stops = [x['ticks'][1] for x in M.clustered_sounds]
-        M.iclustered_stops_sorted = np.argsort(M.clustered_stops)
-        M.clustered_labels = set([x['label'] for x in M.clustered_sounds])
-        M.cluster_dot_colors = { l:c for l,c in zip(M.clustered_labels,
-                                                    cycle(cluster_dot_palette)) }
+        M.used_starts_sorted = [x['ticks'][0] for x in M.used_sounds]
+        isort = np.argsort(M.used_starts_sorted)
+        M.used_sounds = [M.used_sounds[x] for x in isort]
+        M.used_starts_sorted = [M.used_starts_sorted[x] for x in isort]
+        M.used_stops = [x['ticks'][1] for x in M.used_sounds]
+        M.iused_stops_sorted = np.argsort(M.used_stops)
+        M.used_labels = set([x['label'] for x in M.used_sounds])
+        if M.clustered_activations is None:
+            M.label_colors = { l:c for l,c in zip(M.used_labels, cycle(label_palette)) }
 
         recordings.options = sorted(list(wavfiles))
         for recording in recordings.options:
-            M.clustered_recording2firstsound[recording] = \
-                  next(filter(lambda x: x[1]['file']==recording, enumerate(M.clustered_sounds)))[0]
+            M.used_recording2firstsound[recording] = \
+                  next(filter(lambda x: x[1]['file']==recording, enumerate(M.used_sounds)))[0]
         recordings.options = [""] + recordings.options
         if recordings.value != "":
             M.user_changed_recording=False
         recordings.value = ""
     else:
-        M.clustered_sounds = None
-        M.clustered_starts_sorted = M.clustered_stops = M.iclustered_stops_sorted = None
-        M.clustered_recording2firstsound = {}
+        M.used_sounds = None
+        M.used_starts_sorted = M.used_stops = M.iused_stops_sorted = None
+        M.used_recording2firstsound = {}
         recordings.options = []
 
-    M.isnippet = -1
+    M.ispecies = M.iword = M.inohyphen = M.ikind = 0
     M.xcluster = M.ycluster = M.zcluster = np.nan
-    M.xsnippet=M.ysnippet=0
+    M.isnippet = -1
+    cluster_circle_fuchsia.data.update(cx=[], cy=[], cz=[], cr=[], cc=[])
+    cluster_update()
     snippets_update(True)
+    context_update()
+
+def _groundtruth_update():
+    M.dfs, M.subdirs = labelcounts_update()
+    cluster_these_layers_update()
 
     M.layers, M.species, M.words, M.nohyphens, M.kinds = [], [], [], [], []
     M.ilayer = M.ispecies = M.iword = M.inohyphen = M.ikind = M.nlayers = 0
@@ -1195,11 +1205,6 @@ def recordings_update():
                       '#ffffff00', '#ffffff00', '#ffffff00', '#ffffff00'])
     cluster_dots.data.update(**kwargs)
 
-    context_update()
-
-def _groundtruth_update():
-    M.dfs, M.subdirs = labelcounts_update()
-    cluster_these_layers_update()
     recordings_update()
     M.save_state_callback()
     recordings.disabled=False
@@ -1437,10 +1442,10 @@ def model_summary_update():
 
 def init(_bokeh_document):
     global bokeh_document, configuration_file
-    global p_cluster, cluster_dots, precomputed_dots, dot_size_cluster, dot_alpha_cluster, cluster_circle_fuchsia, cluster_dot_palette, circle_radius, dot_size, dot_alpha
+    global p_cluster, cluster_dots, precomputed_dots, dot_size_cluster, dot_alpha_cluster, cluster_circle_fuchsia, label_palette, circle_radius, dot_size, dot_alpha
     global p_snippets, snippet_palette, snippets_dy, snippets_both, snippets_label_sources_clustered, snippets_label_sources_annotated, snippets_wave_sources, snippets_wave_glyphs, snippets_gram_sources, snippets_gram_glyphs, snippets_quad_grey, snippets_quad_fuchsia
-    global p_waveform, waveform_span_red, waveform_quad_grey_clustered, waveform_quad_grey_annotated, waveform_quad_grey_pan, waveform_quad_fuchsia, waveform_source, waveform_glyph, waveform_label_source_clustered, waveform_label_source_annotated
-    global p_spectrogram, spectrogram_span_red, spectrogram_quad_grey_clustered, spectrogram_quad_grey_annotated, spectrogram_quad_grey_pan, spectrogram_quad_fuchsia, spectrogram_source, spectrogram_glyph, spectrogram_label_source_clustered, spectrogram_label_source_annotated, spectrogram_length
+    global p_waveform, waveform_span_red, waveform_quad_grey_used, waveform_quad_grey_annotated, waveform_quad_grey_pan, waveform_quad_fuchsia, waveform_source, waveform_glyph, waveform_label_source_used, waveform_label_source_annotated
+    global p_spectrogram, spectrogram_span_red, spectrogram_quad_grey_used, spectrogram_quad_grey_annotated, spectrogram_quad_grey_pan, spectrogram_quad_fuchsia, spectrogram_source, spectrogram_glyph, spectrogram_label_source_used, spectrogram_label_source_annotated, spectrogram_length
     global p_probability, probability_span_red, probability_source, probability_glyph
     global which_layer, which_species, which_word, which_nohyphen, which_kind
     global color_picker
@@ -1461,10 +1466,10 @@ def init(_bokeh_document):
 
     M.cluster_circle_color = M.cluster_circle_color
 
-    if '#' in M.cluster_dot_palette:
-      cluster_dot_palette = ast.literal_eval(M.cluster_dot_palette)
+    if '#' in M.label_palette:
+      label_palette = ast.literal_eval(M.label_palette)
     else:
-      cluster_dot_palette = getattr(palettes, M.cluster_dot_palette)
+      label_palette = getattr(palettes, M.label_palette)
 
     snippet_palette = getattr(palettes, M.snippets_colormap)
 
@@ -1568,8 +1573,8 @@ def init(_bokeh_document):
     p_waveform.add_layout(waveform_span_red)
     waveform_span_red.visible=False
 
-    waveform_quad_grey_clustered = ColumnDataSource(data=dict(left=[], right=[], top=[], bottom=[]))
-    p_waveform.quad('left','right','top','bottom',source=waveform_quad_grey_clustered,
+    waveform_quad_grey_used = ColumnDataSource(data=dict(left=[], right=[], top=[], bottom=[]))
+    p_waveform.quad('left','right','top','bottom',source=waveform_quad_grey_used,
                 fill_color="lightgrey", fill_alpha=0.5, line_color="lightgrey",
                 level='underlay')
     waveform_quad_grey_annotated = ColumnDataSource(data=dict(left=[], right=[], top=[], bottom=[]))
@@ -1590,8 +1595,8 @@ def init(_bokeh_document):
         waveform_source[idx] = ColumnDataSource(data=dict(x=[], y=[]))
         waveform_glyph[idx] = p_waveform.line('x', 'y', source=waveform_source[idx])
 
-    waveform_label_source_clustered = ColumnDataSource(data=dict(x=[], y=[], text=[]))
-    p_waveform.text('x', 'y', source=waveform_label_source_clustered,
+    waveform_label_source_used = ColumnDataSource(data=dict(x=[], y=[], text=[]))
+    p_waveform.text('x', 'y', source=waveform_label_source_used,
                    text_font_size='6pt', text_align='center', text_baseline='top',
                    text_line_height=0.8, level='underlay')
     waveform_label_source_annotated = ColumnDataSource(data=dict(x=[], y=[], text=[]))
@@ -1640,8 +1645,8 @@ def init(_bokeh_document):
     p_spectrogram.add_layout(spectrogram_span_red)
     spectrogram_span_red.visible=False
 
-    spectrogram_quad_grey_clustered = ColumnDataSource(data=dict(left=[], right=[], top=[], bottom=[]))
-    p_spectrogram.quad('left','right','top','bottom',source=spectrogram_quad_grey_clustered,
+    spectrogram_quad_grey_used = ColumnDataSource(data=dict(left=[], right=[], top=[], bottom=[]))
+    p_spectrogram.quad('left','right','top','bottom',source=spectrogram_quad_grey_used,
                 fill_color="lightgrey", fill_alpha=0.5, line_color="lightgrey",
                 level='underlay')
     spectrogram_quad_grey_annotated = ColumnDataSource(data=dict(left=[], right=[], top=[], bottom=[]))
@@ -1656,8 +1661,8 @@ def init(_bokeh_document):
     p_spectrogram.quad('left','right','top','bottom',source=spectrogram_quad_fuchsia,
                 fill_color=None, line_color="fuchsia", level='underlay')
 
-    spectrogram_label_source_clustered = ColumnDataSource(data=dict(x=[], y=[], text=[]))
-    p_spectrogram.text('x', 'y', source=spectrogram_label_source_clustered,
+    spectrogram_label_source_used = ColumnDataSource(data=dict(x=[], y=[], text=[]))
+    p_spectrogram.text('x', 'y', source=spectrogram_label_source_used,
                    text_font_size='6pt', text_align='center', text_baseline='top',
                    text_line_height=0.8, level='underlay', text_color='white')
     spectrogram_label_source_annotated = ColumnDataSource(data=dict(x=[], y=[], text=[]))

@@ -70,14 +70,14 @@ shutil.copy(os.path.join(repo_path, "data", "PS_20130625111709_ch3.wav"), basepa
 V.groundtruth_folder.value = os.path.join(repo_path, groundtruth_folder)
 
 wavfile = os.path.join(round_folder, 'PS_20130625111709_ch3.wav')
-M.clustered_sounds = [
+M.used_sounds = [
   {'label': 'time', 'file': wavfile, 'ticks': [2, 5], 'kind': 'detected'},
   {'label': 'frequency', 'file': wavfile, 'ticks': [10, 15], 'kind': 'detected'},
   {'label': 'neither', 'file': wavfile, 'ticks': [20, 30], 'kind': 'detected'},
   ]
-M.clustered_starts_sorted = [x['ticks'][0] for x in M.clustered_sounds]
-M.clustered_stops = [x['ticks'][1] for x in M.clustered_sounds]
-M.iclustered_stops_sorted = np.argsort(M.clustered_stops)
+M.used_starts_sorted = [x['ticks'][0] for x in M.used_sounds]
+M.used_stops = [x['ticks'][1] for x in M.used_sounds]
+M.iused_stops_sorted = np.argsort(M.used_stops)
 M.state['labels'] = ['pulse', 'sine', 'ambient', '']
 
 # add pulse
@@ -169,7 +169,7 @@ if len(files)!=1: print("ERROR: wrong number of files")
 # toggle in time
 M.ilabel=0
 C.toggle_annotation(0)
-thissound = M.clustered_sounds[0].copy()
+thissound = M.used_sounds[0].copy()
 thissound.pop('kind', None)
 thissound['label']=M.state['labels'][M.ilabel]
 check_annotation_in_memory(thissound, True)
@@ -220,7 +220,7 @@ check_annotation_on_disk(csvfile, thissound, True)
 # toggle in frequency
 M.ilabel=1
 C.toggle_annotation(1)
-thissound = M.clustered_sounds[1].copy()
+thissound = M.used_sounds[1].copy()
 thissound.pop('kind', None)
 thissound['label']=M.state['labels'][M.ilabel]
 check_annotation_in_memory(thissound, True)
@@ -235,7 +235,7 @@ check_annotation_on_disk(csvfile, thissound, True)
 # toggle in ambient
 M.ilabel=2
 C.toggle_annotation(2)
-thissound = M.clustered_sounds[2].copy()
+thissound = M.used_sounds[2].copy()
 thissound.pop('kind', None)
 thissound['label']=M.state['labels'][M.ilabel]
 check_annotation_in_memory(thissound, True)
@@ -283,7 +283,7 @@ check_annotation_on_disk(csvfile, thissound, False)
 # toggle in ambient
 M.ilabel=2
 C.toggle_annotation(2)
-thissound = M.clustered_sounds[2].copy()
+thissound = M.used_sounds[2].copy()
 thissound.pop('kind', None)
 thissound['label']=M.state['labels'][M.ilabel]
 check_annotation_in_memory(thissound, True)
@@ -308,18 +308,18 @@ files = os.listdir(basepath)
 if len(files)!=1: print("ERROR: wrong number of files")
 
 ##
-M.clustered_sounds = [
+M.used_sounds = [
   {'label': 'pulse', 'file': wavfile, 'ticks': [2, 5], 'kind': 'annotated'},
   {'label': 'sine', 'file': wavfile, 'ticks': [10, 15], 'kind': 'annotated'},
   {'label': 'ambient', 'file': wavfile, 'ticks': [20, 30], 'kind': 'annotated'},
   ]
-M.clustered_starts_sorted = [x['ticks'][0] for x in M.clustered_sounds]
-M.clustered_stops = [x['ticks'][1] for x in M.clustered_sounds]
-M.iclustered_stops_sorted = np.argsort(M.clustered_stops)
+M.used_starts_sorted = [x['ticks'][0] for x in M.used_sounds]
+M.used_stops = [x['ticks'][1] for x in M.used_sounds]
+M.iused_stops_sorted = np.argsort(M.used_stops)
 csvfile = os.path.join(basepath, 'PS_20130625111709_ch3-annotated-original.csv')
 with open(csvfile, 'w') as fid:
   csvwriter = csv.writer(fid)
-  for sound in M.clustered_sounds:
+  for sound in M.used_sounds:
     csvwriter.writerow([os.path.basename(sound['file']),
                         sound['ticks'][0], sound['ticks'][1],
                         sound['kind'],
@@ -328,7 +328,7 @@ with open(csvfile, 'w') as fid:
 # pulse to ambient
 M.ilabel=2
 C.toggle_annotation(0)
-thissound = M.clustered_sounds[0].copy()
+thissound = M.used_sounds[0].copy()
 thissound.pop('kind', None)
 thissound['label']=M.state['labels'][M.ilabel]
 check_annotation_in_memory(thissound, True)
@@ -336,7 +336,7 @@ M.save_annotations()
 files = os.listdir(basepath)
 if len(files)!=3: print("ERROR: wrong number of files")
 
-thissound = M.clustered_sounds[0].copy()
+thissound = M.used_sounds[0].copy()
 thissound.pop('kind', None)
 csvfile = os.path.join(basepath,
                        next(filter(lambda x: x.endswith('.csv') and 'original' in x,
@@ -353,7 +353,7 @@ check_annotation_on_disk(csvfile, thissound, True)
 
 #undo
 C.undo_callback()
-thissound = M.clustered_sounds[0].copy()
+thissound = M.used_sounds[0].copy()
 thissound.pop('kind', None)
 check_annotation_in_memory(thissound, True)
 M.save_annotations()
@@ -374,7 +374,7 @@ check_annotation_on_disk(csvfile, thissound, True)
 
 #redo
 C.redo_callback()
-thissound = M.clustered_sounds[0].copy()
+thissound = M.used_sounds[0].copy()
 thissound.pop('kind', None)
 thissound['label']=M.state['labels'][M.ilabel]
 check_annotation_in_memory(thissound, True)
@@ -382,7 +382,7 @@ M.save_annotations()
 files = os.listdir(basepath)
 if len(files)!=3: print("ERROR: wrong number of files")
 
-thissound = M.clustered_sounds[0].copy()
+thissound = M.used_sounds[0].copy()
 thissound.pop('kind', None)
 csvfile = os.path.join(basepath,
                        next(filter(lambda x: x.endswith('.csv') and 'original' in x,
@@ -400,7 +400,7 @@ check_annotation_on_disk(csvfile, thissound, True)
 # delete sine
 M.ilabel=3
 C.toggle_annotation(1)
-thissound = M.clustered_sounds[1].copy()
+thissound = M.used_sounds[1].copy()
 thissound.pop('kind', None)
 thissound['label']=M.state['labels'][M.ilabel]
 check_annotation_in_memory(thissound, True)
@@ -408,7 +408,7 @@ M.save_annotations()
 files = os.listdir(basepath)
 if len(files)!=3: print("ERROR: wrong number of files")
 
-thissound = M.clustered_sounds[1].copy()
+thissound = M.used_sounds[1].copy()
 thissound.pop('kind', None)
 csvfile = os.path.join(basepath,
                        next(filter(lambda x: x.endswith('.csv') and 'original' in x,
@@ -424,7 +424,7 @@ check_annotation_on_disk(csvfile, thissound, False)
 
 #undo
 C.undo_callback()
-thissound = M.clustered_sounds[1].copy()
+thissound = M.used_sounds[1].copy()
 thissound.pop('kind', None)
 check_annotation_in_memory(thissound, True)
 M.save_annotations()
@@ -445,7 +445,7 @@ check_annotation_on_disk(csvfile, thissound, True)
 
 #redo
 C.redo_callback()
-thissound = M.clustered_sounds[1].copy()
+thissound = M.used_sounds[1].copy()
 thissound.pop('kind', None)
 thissound['label']=M.state['labels'][M.ilabel]
 check_annotation_in_memory(thissound, True)
@@ -453,7 +453,7 @@ M.save_annotations()
 files = os.listdir(basepath)
 if len(files)!=3: print("ERROR: wrong number of files")
 
-thissound = M.clustered_sounds[1].copy()
+thissound = M.used_sounds[1].copy()
 thissound.pop('kind', None)
 csvfile = os.path.join(basepath,
                        next(filter(lambda x: x.endswith('.csv') and 'original' in x,
@@ -470,7 +470,7 @@ check_annotation_on_disk(csvfile, thissound, False)
 # ambient to pulse
 M.ilabel=0
 C.toggle_annotation(2)
-thissound = M.clustered_sounds[2].copy()
+thissound = M.used_sounds[2].copy()
 thissound.pop('kind', None)
 thissound['label']=M.state['labels'][M.ilabel]
 check_annotation_in_memory(thissound, True)
@@ -487,7 +487,7 @@ check_annotation_on_disk(csvfile, thissound, True)
 
 #undo
 C.undo_callback()
-thissound = M.clustered_sounds[2].copy()
+thissound = M.used_sounds[2].copy()
 thissound.pop('kind', None)
 check_annotation_in_memory(thissound, True)
 M.save_annotations()
@@ -502,7 +502,7 @@ check_annotation_on_disk(csvfile, thissound, True)
 
 #redo
 C.redo_callback()
-thissound = M.clustered_sounds[2].copy()
+thissound = M.used_sounds[2].copy()
 thissound.pop('kind', None)
 thissound['label']=M.state['labels'][M.ilabel]
 check_annotation_in_memory(thissound, True)
