@@ -502,7 +502,7 @@ def main():
     ax.plot(accuracies_ordered, keys_to_plot, 'k.')
     ax.set_xlabel('Overall accuracy (%)')
     ax.set_ylabel('Model')
-    ax.set_title(str(round(y,1))+"%")
+    ax.set_title(str(round(y,1))+"+/-"+str(round(h,1))+"%")
   
     fig.tight_layout()
     plt.savefig(os.path.join(FLAGS.logdir,'accuracy.pdf'))
