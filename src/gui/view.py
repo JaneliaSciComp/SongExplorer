@@ -804,6 +804,8 @@ def context_update():
     if M.context_sound:
         play.disabled=False
         video_toggle.disabled=False
+        if M.gui_snippets_spectrogram or M.gui_context_spectrogram:
+            spectrogram_length.disabled=False
         zoom_width.disabled=False
         zoom_offset.disabled=False
         zoomin.disabled=False
@@ -865,7 +867,6 @@ def context_update():
                                                 istart_bounded,
                                                 ilength))
 
-                xwav0 = istart_bounded/M.audio_tic_rate
                 if ichannel+1 in M.context_waveform:
                     idx = M.context_waveform.index(ichannel+1)
                     wavi_downsampled = wavi[0::context_decimate_by]
@@ -1019,6 +1020,8 @@ def context_update():
     else:
         play.disabled=True
         video_toggle.disabled=True
+        if M.gui_snippets_spectrogram or M.gui_context_spectrogram:
+            spectrogram_length.disabled=True
         zoom_width.disabled=True
         zoom_offset.disabled=True
         zoomin.disabled=True
@@ -1057,7 +1060,7 @@ def context_update():
         if ichannel+1 in M.context_spectrogram:
             idx = M.context_spectrogram.index(ichannel+1)
             if not np.isnan(gram_time[idx][0]):
-                spectrogram_glyph[idx].glyph.x = xwav0 + gram_time[idx][0]
+                spectrogram_glyph[idx].glyph.x = istart/M.audio_tic_rate + gram_time[idx][0]
                 spectrogram_glyph[idx].glyph.y = len(M.context_spectrogram) - 1 - idx
                 spectrogram_glyph[idx].glyph.dw = gram_time[idx][-1] - gram_time[idx][0]
                 spectrogram_glyph[idx].glyph.dh = 1
