@@ -1060,14 +1060,16 @@ def context_update():
         if ichannel+1 in M.context_spectrogram:
             idx = M.context_spectrogram.index(ichannel+1)
             if not np.isnan(gram_time[idx][0]):
-                spectrogram_glyph[idx].glyph.x = istart/M.audio_tic_rate + gram_time[idx][0]
+                spectrogram_glyph[idx].glyph.x = istart/M.audio_tic_rate
                 spectrogram_glyph[idx].glyph.y = len(M.context_spectrogram) - 1 - idx
-                spectrogram_glyph[idx].glyph.dw = gram_time[idx][-1] - gram_time[idx][0]
+                spectrogram_glyph[idx].glyph.dw = gram_time[idx][-1] + M.spectrogram_length_ms[ichannel]/1000/2
                 spectrogram_glyph[idx].glyph.dh = 1
                 spectrogram_source[idx].data.update(image=[np.log10(1e-15+ \
                         gram_image[idx][ilow[idx]:1+ihigh[idx],:])])
             else:
                 spectrogram_source[idx].data.update(image=[])
+        if not np.isnan(xwav[0][-1]):
+            spectrogram_range_source.data.update(x=[xwav[0][-1]])
 
     probability_source.data.update(xs=xprob, ys=yprob,
                                    colors=[M.label_colors[x] for x in M.used_labels],
@@ -1448,7 +1450,7 @@ def init(_bokeh_document):
     global p_cluster, cluster_dots, precomputed_dots, dot_size_cluster, dot_alpha_cluster, cluster_circle_fuchsia, label_palette, circle_radius, dot_size, dot_alpha
     global p_snippets, snippet_palette, snippets_dy, snippets_both, snippets_label_sources_clustered, snippets_label_sources_annotated, snippets_wave_sources, snippets_wave_glyphs, snippets_gram_sources, snippets_gram_glyphs, snippets_quad_grey, snippets_quad_fuchsia
     global p_waveform, waveform_span_red, waveform_quad_grey_used, waveform_quad_grey_annotated, waveform_quad_grey_pan, waveform_quad_fuchsia, waveform_source, waveform_glyph, waveform_label_source_used, waveform_label_source_annotated
-    global p_spectrogram, spectrogram_span_red, spectrogram_quad_grey_used, spectrogram_quad_grey_annotated, spectrogram_quad_grey_pan, spectrogram_quad_fuchsia, spectrogram_source, spectrogram_glyph, spectrogram_label_source_used, spectrogram_label_source_annotated, spectrogram_length
+    global p_spectrogram, spectrogram_span_red, spectrogram_quad_grey_used, spectrogram_quad_grey_annotated, spectrogram_quad_grey_pan, spectrogram_quad_fuchsia, spectrogram_source, spectrogram_glyph, spectrogram_label_source_used, spectrogram_label_source_annotated, spectrogram_range_source, spectrogram_length
     global p_probability, probability_span_red, probability_source, probability_glyph
     global which_layer, which_species, which_word, which_nohyphen, which_kind
     global color_picker
@@ -1633,6 +1635,9 @@ def init(_bokeh_document):
                                                      source=spectrogram_source[idx],
                                                      palette=M.spectrogram_colormap,
                                                      level="image")
+    spectrogram_range_source = ColumnDataSource(data=dict(x=[]))
+    spectrogram_range_glyph = p_spectrogram.square('x', y=0, size=1, alpha=0,
+                                                   source=spectrogram_range_source)
 
     p_spectrogram.on_event(MouseWheel, C.spectrogram_mousewheel_callback)
 
