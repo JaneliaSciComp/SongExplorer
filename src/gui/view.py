@@ -1232,10 +1232,14 @@ def groundtruth_update():
         else:
             _groundtruth_update()
 
-def labels_touse_update_other():
+def labels_touse_update(other=False, detect=False):
     theselabels_touse = [x.value for x in label_texts if x.value!='']
-    if 'other' not in theselabels_touse:
+    if other and 'other' not in theselabels_touse:
         theselabels_touse.append('other')
+    if detect:
+        for detect_label in M.detect_labels:
+            if detect_label not in theselabels_touse:
+                theselabels_touse.append(detect_label)
     labels_touse.value=str.join(',',theselabels_touse)
 
 def buttons_update():
