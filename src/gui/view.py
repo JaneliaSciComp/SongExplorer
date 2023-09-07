@@ -1186,8 +1186,12 @@ def recordings_update():
     context_update()
 
 def _groundtruth_update():
+    global precomputed_dots
+
     M.dfs, M.subdirs = labelcounts_update()
     cluster_these_layers_update()
+
+    precomputed_dots = None
 
     M.layers, M.species, M.words, M.nohyphens, M.kinds = [], [], [], [], []
     M.ilayer = M.ispecies = M.iword = M.inohyphen = M.ikind = M.nlayers = 0
