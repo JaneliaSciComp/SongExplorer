@@ -528,6 +528,32 @@ def cluster_update():
     #npoints = np.shape(M.clustered_activations[M.ilayer])[0]
     #dot_size.value = max(1, round(100 * extent / np.sqrt(npoints)))
 
+def cluster_reset():
+    global precomputed_dots
+    precomputed_dots = None
+    M.clustered_activations = None
+
+    M.layers, M.species, M.words, M.nohyphens, M.kinds = [], [], [], [], []
+    M.ilayer = M.ispecies = M.iword = M.inohyphen = M.ikind = M.nlayers = 0
+
+    which_layer.options = M.layers
+    which_species.options = M.species
+    which_word.options = M.words
+    which_nohyphen.options = M.nohyphens
+    which_kind.options = M.kinds
+
+    circle_radius.disabled=False
+    dot_size.disabled=False
+    dot_alpha.disabled=False
+
+    kwargs = dict(dx=[0,0,0,0,0,0,0,0],
+                  dy=[0,0,0,0,0,0,0,0],
+                  dz=[0,0,0,0,0,0,0,0],
+                  dl=['', '', '', '', '', '', '', ''],
+                  dc=['#ffffff00', '#ffffff00', '#ffffff00', '#ffffff00',
+                      '#ffffff00', '#ffffff00', '#ffffff00', '#ffffff00'])
+    cluster_dots.data.update(**kwargs)
+
 def within_an_annotation(sound):
     if len(M.annotated_starts_sorted)>0:
         ifrom = np.searchsorted(M.annotated_starts_sorted, sound['ticks'][0],
@@ -1160,8 +1186,9 @@ def recordings_update():
         M.used_stops = [x['ticks'][1] for x in M.used_sounds]
         M.iused_stops_sorted = np.argsort(M.used_stops)
         M.used_labels = set([x['label'] for x in M.used_sounds])
-        if M.clustered_activations is None:
+        if M.label_colors.keys() < M.used_labels:
             M.label_colors = { l:c for l,c in zip(M.used_labels, cycle(label_palette)) }
+            cluster_reset()
 
         recordings.options = sorted(list(wavfiles))
         for recording in recordings.options:
@@ -1186,34 +1213,9 @@ def recordings_update():
     context_update()
 
 def _groundtruth_update():
-    global precomputed_dots
-
     M.dfs, M.subdirs = labelcounts_update()
     cluster_these_layers_update()
-
-    precomputed_dots = None
-
-    M.layers, M.species, M.words, M.nohyphens, M.kinds = [], [], [], [], []
-    M.ilayer = M.ispecies = M.iword = M.inohyphen = M.ikind = M.nlayers = 0
-
-    which_layer.options = M.layers
-    which_species.options = M.species
-    which_word.options = M.words
-    which_nohyphen.options = M.nohyphens
-    which_kind.options = M.kinds
-
-    circle_radius.disabled=False
-    dot_size.disabled=False
-    dot_alpha.disabled=False
-
-    kwargs = dict(dx=[0,0,0,0,0,0,0,0],
-                  dy=[0,0,0,0,0,0,0,0],
-                  dz=[0,0,0,0,0,0,0,0],
-                  dl=['', '', '', '', '', '', '', ''],
-                  dc=['#ffffff00', '#ffffff00', '#ffffff00', '#ffffff00',
-                      '#ffffff00', '#ffffff00', '#ffffff00', '#ffffff00'])
-    cluster_dots.data.update(**kwargs)
-
+    cluster_reset()
     recordings_update()
     M.save_state_callback()
     recordings.disabled=False
