@@ -1007,7 +1007,7 @@ def isoldfile(x,subdir,basewavs):
         '-predicted' in x or \
         x.endswith('-ethogram.log') or \
         '-missed' in x or \
-        x.endswith('-missed.log') or \
+        x.endswith('-misses.log') or \
         x == subdir+'.csv'
 
 def _validation_test_files(files_string, comma=True):
