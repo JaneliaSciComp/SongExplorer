@@ -1609,7 +1609,8 @@ async def _freeze_actuate(ckpts):
                             "--video_frame_rate="+str(M.video_frame_rate),
                             "--video_frame_height="+str(M.video_frame_height),
                             "--video_frame_width="+str(M.video_frame_width),
-                            "--video_channels="+str(M.video_channels))
+                            "--video_channels="+str(M.video_channels),
+                            "--igpu=QUEUE1")
     displaystring = "FREEZE " + \
                     os.path.join(os.path.basename(logdir), model, "ckpt-"+check_point) + \
                     " ("+jobid+")"
