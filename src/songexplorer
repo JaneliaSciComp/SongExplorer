@@ -159,7 +159,7 @@ if p.returncode==1:
 else:
     nslots = [int(x) for x in p.stdout.decode('ascii').rstrip().split(',')]
     if nslots != [local_ncpu_cores, local_ngpu_cards, local_ngigabytes_memory]:
-        print("WARNING: SongExplorer's scheduler is already running with local_ncpu_cores, local_ngpu_cards, and local_ngigabytes_memory set to "+str(nslots)+" respectively, which is different than specified in the configuration file.  To use the latter instead, quit SongExplorer, execute `$SONGEXPLORER_BIN hstop`, and restart SongExplorer.")
+        print("WARNING: SongExplorer's scheduler is already running with local_ncpu_cores, local_ngpu_cards, and local_ngigabytes_memory set to "+str(nslots)+" respectively, which is different than what seems to be the specifications of this machine: "+str([local_ncpu_cores, local_ngpu_cards, local_ngigabytes_memory])+".  To use the latter instead, quit SongExplorer, execute `$SONGEXPLORER_BIN hstop`, and restart SongExplorer.")
 
 if server_ipaddr:
     p = Popen(["ssh", "-l", server_username, server_ipaddr,
@@ -173,7 +173,7 @@ if server_ipaddr:
     else:
         nslots = [int(x) for x in p.stdout.decode('ascii').rstrip().split(',')]
         if nslots != [server_ncpu_cores, server_ngpu_cards, server_ngigabytes_memory]:
-            print("WARNING: SongExplorer's scheduler is already running with server_ncpu_cores, server_ngpu_cards, and server_ngigabytes_memory set to "+str(nslots)+" respectively, which is different than specified in the configuration file.  To use the latter instead, quit SongExplorer, execute `ssh -l "+server_username+" "+server_ipaddr+" $SONGEXPLORER_BIN hstop`, and restart SongExplorer.")
+            print("WARNING: SongExplorer's scheduler is already running with server_ncpu_cores, server_ngpu_cards, and server_ngigabytes_memory set to "+str(nslots)+" respectively, which is different than what seems to be the specifications of this machine: "+str([server_ncpu_cores, server_ngpu_cards, server_ngigabytes_memory])+".  To use the latter instead, quit SongExplorer, execute `ssh -l "+server_username+" "+server_ipaddr+" $SONGEXPLORER_BIN hstop`, and restart SongExplorer.")
 
 try:
     run(["bokeh", "serve", \
