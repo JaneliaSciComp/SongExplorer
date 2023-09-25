@@ -223,8 +223,8 @@ count_lines_with_label ${wavpath_noext}-detected.csv frequency 179 ERROR
 
 csvfiles=${wavpath_noext}-detected.csv,${wavpath_noext}-predicted-1.0pr.csv
 cmd="misses $csvfiles"
-echo $cmd &> ${wavpath_noext}-misses.log
-eval $cmd &> ${wavpath_noext}-misses.log
+echo $cmd &>> ${wavpath_noext}-misses.log
+eval $cmd &>> ${wavpath_noext}-misses.log
 
 check_file_exists ${wavpath_noext}-misses.log
 check_file_exists ${wavpath_noext}-missed.csv
@@ -443,8 +443,8 @@ done
 
 logdirs_prefix=$repo_path/test/scratch/tutorial-sh/nfeatures
 cmd="compare $logdirs_prefix"
-echo $cmd &> ${logdirs_prefix}-compare.log
-eval $cmd &> ${logdirs_prefix}-compare.log
+echo $cmd &>> ${logdirs_prefix}-compare.log
+eval $cmd &>> ${logdirs_prefix}-compare.log
 
 check_file_exists ${logdirs_prefix}-compare.log
 check_file_exists ${logdirs_prefix}-compare-precision-recall.pdf
@@ -452,8 +452,8 @@ check_file_exists ${logdirs_prefix}-compare-confusion-matrices.pdf
 check_file_exists ${logdirs_prefix}-compare-overall-params-speed.pdf
 
 cmd="mistakes $data_dir"
-echo $cmd &> $data_dir/mistakes.log
-eval $cmd &> $data_dir/mistakes.log
+echo $cmd &>> $data_dir/mistakes.log
+eval $cmd &>> $data_dir/mistakes.log
 
 check_file_exists $data_dir/mistakes.log
 check_file_exists $data_dir/round1/PS_20130625111709_ch3-mistakes.csv
@@ -650,8 +650,8 @@ cmd="ensemble \
       --parallelize=$classify_parallelize \
       --audio_tic_rate=$audio_tic_rate \
       --nchannels=$audio_nchannels"
-echo $cmd &> ${logdir}/xvalidate_1k,2k/ensemble.log
-eval $cmd &> ${logdir}/xvalidate_1k,2k/ensemble.log
+echo $cmd &>> ${logdir}/xvalidate_1k,2k/ensemble.log
+eval $cmd &>> ${logdir}/xvalidate_1k,2k/ensemble.log
 
 check_file_exists ${logdir}/xvalidate_1k,2k/ensemble.log
 check_file_exists ${logdir}/xvalidate_1k,2k/frozen-graph.ckpt-${check_point},${check_point}.pb/saved_model.pb 
