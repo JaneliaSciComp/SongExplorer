@@ -19,6 +19,7 @@ from natsort import natsorted
 from functools import reduce
 from datetime import datetime
 import socket
+import statistics
 
 repodir = os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
 
@@ -42,7 +43,8 @@ try:
   outlier_criteria=50
 
   train_time={}
-  validation_accuracy={}
+  validation_precision={}
+  validation_recall={}
   validation_time={}
   validation_step={}
   labels_touse={}
@@ -57,10 +59,11 @@ try:
 
   for logdir in logdirs:
     print(logdir)
-    hyperparameters[logdir] = set(logdir.split('-')[1].split('_'))
+    hyperparameters[logdir] = set(logdir.split('-')[-1].split('_'))
     _, _, train_time[logdir], _, \
-            _, _, validation_accuracy[logdir], validation_time[logdir], validation_step[logdir], \
-            _, _, _, \
+            _, _, validation_precision[logdir], validation_recall[logdir], \
+            validation_time[logdir], validation_step[logdir], \
+            _, _, _, _, \
             labels_touse[logdir], _, \
             nparameters_total[logdir], nparameters_finallayer[logdir], \
             batch_size[logdir], nlayers[logdir] = \
@@ -75,7 +78,7 @@ try:
       print('WARNING: not all batch_size are the same')
     if len(set(nlayers[logdir].values()))>1:
       print('WARNING: not all nlayers are the same')
-    if len(validation_accuracy)>0:
+    if len(validation_recall)>0:
       if set([tuple(x) for x in labels_touse[logdirs[0]].values()])!=set([tuple(x) for x in labels_touse[logdir].values()]):
         print('WARNING: not all labels_touse are the same')
       if set(nparameters_total[logdirs[0]].values())!=set(nparameters_total[logdir].values()):
@@ -94,25 +97,48 @@ try:
   fig = plt.figure(figsize=(8,10*2/3))
 
   ax = fig.add_subplot(2,2,1)
-  min_time, max_time, idx_time = \
-          plot_final_accuracies(ax, validation_accuracy, \
-                                dirname, 'Overall accuracy', outlier_criteria, \
-                                llabels=differentparameters, \
-                                times=validation_time if same_time else None)
+  minprecision, minrecall = 100, 100
+  for logdir in logdirs:
+    for model in validation_recall[logdir].keys():
+      minprecision = min(minprecision, validation_precision[logdir][model][-1])
+      minrecall = min(minrecall, validation_recall[logdir][model][-1])
 
-  if same_time:
-    for model in validation_time.keys():
-      this_min_time = min([f[-1] for f in validation_time[model].values()])
-      this_min_step = next(iter(validation_step[model].values()))[-1]
-      need_total_steps = max_time / this_min_time * this_min_step
-      need_more_steps = (max_time-this_min_time) / this_min_time * this_min_step
-      print(model+" needs "+str(round(need_more_steps))+" more steps for "+
-            str(round(need_total_steps))+" steps total")
+  for (ilogdir,logdir) in enumerate(natsorted(logdirs)):
+    color = cm.viridis(ilogdir/max(1,len(validation_recall)-1))
+    model0=list(validation_recall[logdir].keys())[0]
+    precisions, recalls = [], []
+    for model in validation_recall[logdir].keys():
+      precisions.append(validation_precision[logdir][model][-1])
+      recalls.append(validation_recall[logdir][model][-1])
+      ax.plot(recalls[-1], precisions[-1], 'o', markeredgecolor='k', color=color)
+    y = statistics.mean(precisions)
+    ax.plot([minrecall,100],[y,y],color=color)
+    x = statistics.mean(recalls)
+    ax.plot([x,x],[minprecision,100],color=color)
+  ax.set_xlim(left=minrecall, right=100)
+  ax.set_ylim(bottom=minprecision, top=100)
+  ax.set_xlabel('Recall (%)')
+  ax.set_ylabel('Precision (%)')
 
   ax = fig.add_subplot(2,2,2)
-  plot_time_traces(ax, validation_time, validation_accuracy, 'Overall accuracy', dirname, \
-                   outlier_crit=outlier_criteria, llabels=differentparameters, \
-                   min_time=min_time)
+  bottom=100
+  for (iexpt,expt) in enumerate(natsorted(validation_recall.keys())):
+    color = cm.viridis(iexpt/max(1,len(validation_recall)-1))
+    validation_recall_average = np.zeros(len(next(iter(validation_recall[expt].values()))))
+    for model in validation_time[expt].keys():
+      ax.plot(np.array(validation_time[expt][model])/60,
+              validation_recall[expt][model], \
+              color=color, zorder=iexpt, linewidth=1)
+      bottom = min([bottom]+[x for x in validation_recall[expt][model] if x>outlier_criteria])
+      validation_recall_average += validation_recall[expt][model]
+    line, = ax.plot(np.array(next(iter(validation_time[expt].values())))/60,
+                    validation_recall_average / len(validation_time[expt].keys()),
+                    color=color, zorder=len(validation_recall)+iexpt, linewidth=3)
+    line.set_label(differentparameters[expt])
+  ax.set_ylim(bottom=bottom-5, top=100)
+  ax.set_xlabel('Training time (min)')
+  ax.set_ylabel('Overall recall')
+  ax.legend(loc='lower right', title=dirname, ncol=2 if "Annotations" in dirname else 1)
 
   ax = fig.add_subplot(2,2,3)
   ldata = natsorted(nparameters_total.keys())
@@ -149,7 +175,8 @@ try:
   precision_confusion_matrices={}
   recall_summed_matrices={}
   precision_summed_matrices={}
-  summed_accuracies={}
+  summed_precisions={}
+  summed_recalls={}
   labels=[]
 
   for logdir in logdirs:
@@ -173,61 +200,65 @@ try:
     recall_confusion_matrices[logdir]={}
     precision_confusion_matrices[logdir]={}
     for model in confusion_matrices[logdir].keys():
-      recall_confusion_matrices[logdir][model], \
-                precision_confusion_matrices[logdir][model], _ = \
+      precision_confusion_matrices[logdir][model], recall_confusion_matrices[logdir][model], _, _ = \
             normalize_confusion_matrix(confusion_matrices[logdir][model])
 
-    recall_summed_matrices[logdir], \
-                precision_summed_matrices[logdir], _ = \
+    precision_summed_matrices[logdir], recall_summed_matrices[logdir], _, _ = \
             normalize_confusion_matrix(summed_confusion_matrices[logdir])
-    summed_accuracies[logdir] = 100 * np.trace(recall_summed_matrices[logdir]) / \
+    summed_precisions[logdir] = 100 * np.trace(precision_summed_matrices[logdir]) / \
+                      len(recall_summed_matrices[logdir])
+    summed_recalls[logdir] = 100 * np.trace(recall_summed_matrices[logdir]) / \
                       len(recall_summed_matrices[logdir])
 
   plot_confusion_matrices(summed_confusion_matrices,
                           precision_summed_matrices, recall_summed_matrices,
-                          labels, summed_accuracies, natsorted(logdirs),
+                          labels, summed_precisions, summed_recalls, natsorted(logdirs),
                           numbers=len(labels)<10)
   plt.savefig(logdirs_prefix+'-compare-confusion-matrices.pdf')
   plt.close()
 
 
-  nrows, ncols = layout(len(logdirs))
+  nrows, ncols = layout(len(labels))
   scale=6.4
   fig = plt.figure(figsize=(scale*ncols, scale*3/4*nrows))
 
-  minprecision=1.0
-  minrecall=1.0
+  minprecision, minrecall = 100, 100
   for logdir in logdirs:
     for model in recall_confusion_matrices[logdir].keys():
       for ilabel in range(len(labels)):
         minprecision = min(minprecision,
-                           precision_confusion_matrices[logdir][model][ilabel][ilabel])
+                           100*precision_confusion_matrices[logdir][model][ilabel][ilabel])
         minrecall = min(minrecall,
-                        recall_confusion_matrices[logdir][model][ilabel][ilabel])
+                        100*recall_confusion_matrices[logdir][model][ilabel][ilabel])
 
-  for (ilogdir,logdir) in enumerate(natsorted(logdirs)):
-    ax = fig.add_subplot(nrows, ncols, ilogdir+1)
-    model0=list(recall_confusion_matrices[logdir].keys())[0]
-    for model in recall_confusion_matrices[logdir].keys():
-      ax.set_prop_cycle(None)
-      for (ilabel,label) in enumerate(labels):
-        line, = ax.plot(recall_confusion_matrices[logdir][model][ilabel][ilabel],
-                        precision_confusion_matrices[logdir][model][ilabel][ilabel],
-                        'o', markeredgecolor='k')
-        if ilogdir==0 and model==model0:
-          line.set_label(label)
-    ax.set_xlim(left=minrecall, right=1)
-    ax.set_ylim(bottom=minprecision, top=1)
-    if ilogdir//ncols==nrows-1:
-      ax.set_xlabel('Recall')
-    if ilogdir%ncols==0:
-      ax.set_ylabel('Precision')
-    if ilogdir==len(logdirs)-1:
-      lgd = fig.legend(bbox_to_anchor=(1.0,0.0), loc='lower left')
-    ax.set_title(logdir+"   "+str(round(summed_accuracies[logdir],1))+"%")
+  for (ilabel,label) in enumerate(labels):
+    ax = fig.add_subplot(nrows, ncols, ilabel+1)
+    for (ilogdir,logdir) in enumerate(natsorted(logdirs)):
+      color = cm.viridis(ilogdir/max(1,len(validation_recall)-1))
+      model0=list(recall_confusion_matrices[logdir].keys())[0]
+      precisions, recalls = [], []
+      for model in recall_confusion_matrices[logdir].keys():
+        precisions.append(100*precision_confusion_matrices[logdir][model][ilabel][ilabel])
+        recalls.append(100*recall_confusion_matrices[logdir][model][ilabel][ilabel])
+        line, = ax.plot(recalls[-1], precisions[-1], 'o', markeredgecolor='k', color=color)
+        if ilabel==0 and model==model0:
+          line.set_label(differentparameters[logdir])
+      y = statistics.mean(precisions)
+      ax.plot([minrecall,100],[y,y],color=color)
+      x = statistics.mean(recalls)
+      ax.plot([x,x],[minprecision,100],color=color)
+    ax.set_xlim(left=minrecall, right=100)
+    ax.set_ylim(bottom=minprecision, top=100)
+    if ilabel//ncols==nrows-1:
+      ax.set_xlabel('Recall (%)')
+    if ilabel%ncols==0:
+      ax.set_ylabel('Precision (%)')
+    if ilabel==len(labels)-1:
+      lgd = fig.legend(bbox_to_anchor=(1.0,0.0), loc='lower left', title=dirname)
+    ax.set_title(label)
 
   fig.tight_layout()
-  plt.savefig(logdirs_prefix+'-compare-precision-recall.pdf',
+  plt.savefig(logdirs_prefix+'-compare-PR-classes.pdf',
               bbox_extra_artists=(lgd,), bbox_inches='tight')
   plt.close()
 

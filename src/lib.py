@@ -21,7 +21,6 @@ from datetime import datetime
 import tifffile
 
 sys.path.append(os.path.dirname(os.path.realpath(__file__)))
-from jitter import *
 
 def compute_background(vidfile, video_bkg_frames, video_data, tiffile):
     print("INFO: calculating median background for "+vidfile)
@@ -122,8 +121,9 @@ def normalize_confusion_matrix(matrix):
   norm_transposed_matrix = [[np.nan if np.nansum(x)==0.0 else y/np.nansum(x) for y in x]
                             for x in transposed_matrix]
   col_norm_matrix = list(zip(*norm_transposed_matrix))
-  accuracy = 100 * np.mean([x[i] for (i,x) in enumerate(row_norm_matrix) if not np.isnan(x[i])])
-  return row_norm_matrix, col_norm_matrix, accuracy
+  recall = 100 * np.mean([x[i] for (i,x) in enumerate(row_norm_matrix) if not np.isnan(x[i])])
+  precision = 100 * np.mean([x[i] for (i,x) in enumerate(col_norm_matrix) if not np.isnan(x[i])])
+  return col_norm_matrix, row_norm_matrix, precision, recall
 
 
 def plot_confusion_matrix(ax, abs_matrix, col_matrix, row_matrix, numbers):
@@ -174,7 +174,7 @@ def layout(nplots):
   return nrows, ncols
 
 
-def plot_confusion_matrices(abs_matrices, col_matrices, row_matrices, labels, accuracies, \
+def plot_confusion_matrices(abs_matrices, col_matrices, row_matrices, labels, precisions, recalls, \
                             models, numbers=True, scale=6.4):
   nrows, ncols = layout(len(models))
   fig = plt.figure(figsize=(scale*ncols, scale*3/4*nrows))
@@ -188,15 +188,18 @@ def plot_confusion_matrices(abs_matrices, col_matrices, row_matrices, labels, ac
       ax.set_xlabel('classification')
     if imodel%ncols==0:
       ax.set_ylabel('annotation')
-    ax.set_title(model+"   "+str(round(accuracies[model],1))+"%")
+    ax.set_title(model+"   P="+str(round(precisions[model],1))+"%"+
+                       "   R="+str(round(recalls[model],1))+"%")
   fig.tight_layout()
 
 
 def read_log(frompath, logfile):
   train_accuracy=[]; train_loss=[]; train_time=[]; train_step=[]
   validation_time=[]; validation_step=[]
-  validation_precision=[]; validation_recall=[]; validation_accuracy=[]
-  test_precision=[]; test_recall=[]; test_accuracy=[]
+  validation_precision=[]; validation_recall=[]
+  validation_precision_mean=[]; validation_recall_mean=[]
+  test_precision=[]; test_recall=[]
+  test_precision_mean=[]; test_recall_mean=[]
   nlayers=0
   with open(os.path.join(frompath,logfile),'r') as fid:
     train_restart_correction=0.0
@@ -249,14 +252,15 @@ def read_log(frompath, logfile):
           confusion_string+=line
         if "]]" in line:
           confusion_matrix = confusion_string2matrix(confusion_string)
-          row_normalized_confusion_matrix, column_normalized_confusion_matrix, accuracy = \
+          column_normalized_confusion_matrix, row_normalized_confusion_matrix, precision_mean, recall_mean = \
                   normalize_confusion_matrix(confusion_matrix)
           precision = [x[i] for (i,x) in enumerate(column_normalized_confusion_matrix)]
           recall = [x[i] for (i,x) in enumerate(row_normalized_confusion_matrix)]
       elif "Validation\n" in line:
         validation_precision.append(precision)
         validation_recall.append(recall)
-        validation_accuracy.append(accuracy)
+        validation_precision_mean.append(precision_mean)
+        validation_recall_mean.append(recall_mean)
         m=re.search('^([0-9.]+),([0-9]+),[0-9.]+ Validation$',line)
         validation_time_value = float(m.group(1))
         if len(validation_time)>0 and \
@@ -267,7 +271,8 @@ def read_log(frompath, logfile):
       elif "Testing\n" in line:
         test_precision.append(precision)
         test_recall.append(recall)
-        test_accuracy.append(accuracy)
+        test_precision_mean.append(precision_mean)
+        test_recall_mean.append(recall_mean)
       else:
         m=re.search('^([0-9.]+),([0-9]+),([0-9.]+),([0-9.]+)$', line)
         if m:
@@ -281,9 +286,10 @@ def read_log(frompath, logfile):
           train_loss.append(float(m.group(4)))
 
   return train_accuracy, train_loss, train_time, train_step, \
-         validation_precision, validation_recall, validation_accuracy, \
+         validation_precision, validation_recall, \
+         validation_precision_mean, validation_recall_mean, \
          validation_time, validation_step, \
-         test_precision, test_recall, test_accuracy, \
+         test_precision, test_recall, test_precision_mean, test_recall_mean, \
          labels_touse, label_counts, \
          nparameters_total, nparameters_finallayer, \
          batch_size, nlayers
@@ -292,9 +298,11 @@ def read_log(frompath, logfile):
 
 def read_logs(frompath):
   train_accuracy={}; train_loss={}; train_time={}; train_step={}
-  validation_precision={}; validation_recall={}; validation_accuracy={}
+  validation_precision={}; validation_recall={}
+  validation_precision_mean={}; validation_recall_mean={}
   validation_time={}; validation_step={}
-  test_precision={}; test_recall={}; test_accuracy={}
+  test_precision={}; test_recall={}
+  test_precision_mean={}; test_recall_mean={}
   labels_touse={}
   label_counts={}
   nparameters_total={}
@@ -305,9 +313,11 @@ def read_logs(frompath):
                         os.listdir(frompath)):
     model=logfile[:-4]
     train_accuracy[model], train_loss[model], train_time[model], train_step[model], \
-          validation_precision[model], validation_recall[model], validation_accuracy[model], \
+          validation_precision[model], validation_recall[model], \
+          validation_precision_mean[model], validation_recall_mean[model], \
           validation_time[model], validation_step[model], \
-          test_precision[model], test_recall[model], test_accuracy[model], \
+          test_precision[model], test_recall[model], \
+          test_precision_mean[model], test_recall_mean[model], \
           labels_touse[model], label_counts[model], \
           nparameters_total[model], nparameters_finallayer[model], \
           batch_size[model], nlayers[model] = \
@@ -315,9 +325,11 @@ def read_logs(frompath):
           #test_accuracy[model], \
 
   return train_accuracy, train_loss, train_time, train_step, \
-         validation_precision, validation_recall, validation_accuracy, \
+         validation_precision, validation_recall, \
+         validation_precision_mean, validation_recall_mean, \
          validation_time, validation_step, \
-         test_precision, test_recall, test_accuracy, \
+         test_precision, test_recall, \
+         test_precision_mean, test_recall_mean, \
          labels_touse, label_counts, \
          nparameters_total, nparameters_finallayer, \
          batch_size, nlayers
@@ -336,56 +348,6 @@ def read_logits(frompath, logdir, ckpt=None):
   npzfile = np.load(os.path.join(frompath,logdir,logit_file), allow_pickle=True)
   return npzfile['sounds'], npzfile['groundtruth'], npzfile['logits']
  
-
-def plot_time_traces(ax, validation_time, accuracy, ylabel, ltitle, \
-                     outlier_crit=0, real=False, llabels=None, reverse=False, \
-                     min_time=None):
-  bottom=100
-  sortfun = realsorted if real else natsorted
-  for (iexpt,expt) in enumerate(sortfun(accuracy.keys(), reverse=reverse)):
-    color = cm.viridis(iexpt/max(1,len(accuracy)-1))
-    for model in validation_time[expt].keys():
-      line, = ax.plot(np.array(validation_time[expt][model])/60, accuracy[expt][model], \
-                      color=color, zorder=iexpt, linewidth=1)
-      bottom = min([bottom]+[x for x in accuracy[expt][model] if x>outlier_crit])
-    line.set_label(llabels[expt] if llabels else expt.split('-')[1])
-  if min_time:
-    ax.axvline(min_time/60, color='k', linestyle=':')
-  ax.set_ylim(bottom=bottom-5, top=min(100, ax.get_ylim()[1]))
-  ax.set_xlabel('Training time (min)')
-  ax.set_ylabel(ylabel)
-  ax.legend(loc='lower right', title=ltitle, ncol=2 if "Annotations" in ltitle else 1)
-
-def plot_final_accuracies(ax, accuracy, xlabel, ylabel, \
-                          outlier_crit=0, real=False, llabels=None, reverse=False, \
-                          times=None):
-  if times:
-    min_time = np.inf
-    max_time = 0
-    for model in times.keys():
-      for fold in times[model].keys():
-        min_time = min(min_time, times[model][fold][-1])
-        max_time = max(max_time, times[model][fold][-1])
-    data = {}
-    idx_time = {}
-    for model in times.keys():
-      data[model] = []
-      idx_time[model] = {}
-      for fold in times[model].keys():
-        i = np.where(np.array(times[model][fold]) >= min_time)
-        idx_time[model][fold]=i[0][0]
-        data[model].append(accuracy[model][fold][idx_time[model][fold]])
-  else:
-    min_time = max_time = idx_time = None
-    data = {k:list([v[-1] for v in accuracy[k].values()]) for k in accuracy}
-  ldata = jitter_plot(ax, data, outlier_crit=outlier_crit, real=real, reverse=reverse)
-  ax.set_ylabel(ylabel)
-  ax.set_xlabel(xlabel)
-  ax.set_xticks(range(len(ldata)))
-  ax.set_xticklabels([llabels[x] if llabels else x.split('-')[1] for x in ldata])
-  #if llabels:
-  ax.set_xticklabels(ax.get_xticklabels(), rotation=40, ha='right')
-  return min_time, max_time, idx_time
 
 def choose_units(data):
   if data[-1]<60:

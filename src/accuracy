@@ -21,8 +21,10 @@ import matplotlib.pyplot as plt
 import csv
 from natsort import natsorted, index_natsorted
 import matplotlib.cm as cm
+from matplotlib.patches import Rectangle
 from datetime import datetime
 import socket
+import statistics
 
 repodir = os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
 
@@ -193,9 +195,10 @@ def main():
     error_ratios = [float(x) for x in FLAGS.error_ratios.split(',')]
   
     train_accuracy, train_loss, train_time, train_step, \
-          validation_precision, validation_recall, validation_accuracy, \
+          validation_precision, validation_recall, \
+          validation_precision_mean, validation_recall_mean, \
           validation_time, validation_step, \
-          _, _, _, \
+          _, _, _, _, \
           labels_touse, label_counts, _, _, batch_size, _ = \
           read_logs(FLAGS.logdir)
     training_set_size = {k: len(label_counts[k]["training"]) * \
@@ -231,12 +234,12 @@ def main():
                                                   train_step[model].index(y)]) \
                             for (x,y) in validation_intervals]
       ax4.plot([(x+y)/2 for (x,y) in validation_intervals], train_loss_ave, 'm', label='Loss mean')
-      if validation_accuracy[model]:
-        ax1.plot(validation_step[model], validation_accuracy[model], 'r', label='Validation')
-        ax1.set_title(model+"   "+str(round(validation_accuracy[model][-1],1))+'%')
-        ax1.set_ylim(bottom=min(validation_accuracy[model]))
+      if validation_recall_mean[model]:
+        ax1.plot(validation_step[model], validation_recall_mean[model], 'r', label='Validation')
+        ax1.set_title(model+"   "+str(round(validation_recall_mean[model][-1],1))+'%')
+        ax1.set_ylim(bottom=min(validation_recall_mean[model]))
       ax1.set_ylim(top=100)
-      ax1.set_ylabel('Overall accuracy')
+      ax1.set_ylabel('Overall recall')
       ax1.set_xlim(0,1+len(train_step[model]))
       if imodel==len(keys_to_plot)-1:
         handles1, labels1 = ax1.get_legend_handles_labels()
@@ -269,7 +272,7 @@ def main():
       ax3.set_xlabel('Epoch')
   
     fig.tight_layout()
-    plt.savefig(os.path.join(FLAGS.logdir,'train-loss.pdf'))
+    plt.savefig(os.path.join(FLAGS.logdir,'train-validation-loss.pdf'))
     plt.close()
   
     nrows, ncols = layout(len(keys_to_plot))
@@ -348,7 +351,7 @@ def main():
                 bbox_extra_artists=(lgd,), bbox_inches='tight')
     plt.close()
   
-    if not len(validation_accuracy[keys_to_plot[0]]):
+    if not len(validation_recall_mean[keys_to_plot[0]]):
         sys.exit()
   
     if len(keys_to_plot)>1:
@@ -358,29 +361,29 @@ def main():
       for model in keys_to_plot:
         scaled_validation_time, units = choose_units(validation_time[model])
   
-        line, = ax.plot(validation_step[model], validation_accuracy[model])
+        line, = ax.plot(validation_step[model], validation_recall_mean[model])
         line.set_label(model)
       ax.set_ylim(top=100)
       ax.set_xlabel('Step')
-      ax.set_ylabel('Overall accuracy')
+      ax.set_ylabel('Overall recall')
       #ax.legend(loc='lower right')
   
       ax = fig.add_subplot(2,3,2)
       for model in keys_to_plot:
         ax.plot([x*batch_size[model]/training_set_size[model] \
-                 for x in validation_step[model]], validation_accuracy[model])
+                 for x in validation_step[model]], validation_recall_mean[model])
       ax.set_ylim(top=100)
       ax.set_xlabel('Epoch')
-      ax.set_ylabel('Overall accuracy')
+      ax.set_ylabel('Overall recall')
   
       ax = fig.add_subplot(2,3,3)
       for model in keys_to_plot:
-        idx = min(len(scaled_validation_time), len(validation_accuracy[model]))
-        line, = ax.plot(scaled_validation_time[:idx], validation_accuracy[model][:idx])
+        idx = min(len(scaled_validation_time), len(validation_recall_mean[model]))
+        line, = ax.plot(scaled_validation_time[:idx], validation_recall_mean[model][:idx])
         line.set_label(model)
       ax.set_ylim(top=100)
       ax.set_xlabel('Time ('+units+')')
-      ax.set_ylabel('Overall accuracy')
+      ax.set_ylabel('Overall recall')
   
       ax = fig.add_subplot(2,3,4)
       for model in keys_to_plot:
@@ -409,32 +412,32 @@ def main():
   
       fig.tight_layout()
   
-      plt.savefig(os.path.join(FLAGS.logdir,'train-overlay.pdf'))
+      plt.savefig(os.path.join(FLAGS.logdir,'validation-overlay.pdf'))
       plt.close()
 
       fig = plt.figure(figsize=(6.4, 4.8))
   
-      model_validation_accuracy = np.zeros(len(validation_accuracy[keys_to_plot[0]]))
+      model_validation_recall = np.zeros(len(validation_recall_mean[keys_to_plot[0]]))
       nmodels = 0
       for model in keys_to_plot:
         if validation_step[model] != validation_step[keys_to_plot[0]]:
           print("WARNING: not all checkpoint steps are the same for "+model)
           continue
-        model_validation_accuracy += validation_accuracy[model]
+        model_validation_recall += validation_recall_mean[model]
         model_validation_step = validation_step[model]
         nmodels += 1
       ax = fig.add_subplot(1,1,1)
-      line, = ax.plot(model_validation_step, model_validation_accuracy / nmodels)
+      line, = ax.plot(model_validation_step, model_validation_recall / nmodels)
       line.set_label("model average")
       ax.set_ylim(top=100)
       ax.set_xlabel('Step')
-      ax.set_ylabel('Overall accuracy')
+      ax.set_ylabel('Overall recall')
       ax.legend(loc=(1.05, 0.0))
       ax.grid(True)
   
       fig.tight_layout()
   
-      plt.savefig(os.path.join(FLAGS.logdir,'train-summed.pdf'))
+      plt.savefig(os.path.join(FLAGS.logdir,'validation-average.pdf'))
       plt.close()
   
     summed_confusion_matrix, confusion_matrices, labels = \
@@ -442,12 +445,13 @@ def main():
   
     recall_matrices={}
     precision_matrices={}
-    accuracies={}
+    precisions_mean={}
+    recalls_mean={}
     for model in keys_to_plot:
-      recall_matrices[model], precision_matrices[model], accuracies[model] = \
+      precision_matrices[model], recall_matrices[model], precisions_mean[model], recalls_mean[model] = \
             normalize_confusion_matrix(confusion_matrices[model])
   
-    recall_summed_matrix, precision_summed_matrix, accuracy_summed = \
+    precision_summed_matrix, recall_summed_matrix, precision_summed, recall_summed = \
           normalize_confusion_matrix(summed_confusion_matrix)
   
     from mpl_toolkits.axes_grid1 import make_axes_locatable
@@ -468,41 +472,90 @@ def main():
     ax.invert_yaxis()
     ax.set_xlabel('Classification')
     ax.set_ylabel('Annotation')
-    ax.set_title(str(round(accuracy_summed,1))+"%")
+    ax.set_title("P="+str(round(precision_summed,1))+"%   "+
+                 "R="+str(round(recall_summed,1))+"%")
   
     ax = plt.subplot(1,3,2)
+    precisions_all = []
+    recalls_all = []
     for model in keys_to_plot:
       ax.set_prop_cycle(None)
       for (ilabel,label) in enumerate(labels):
-        line, = ax.plot(100*recall_matrices[model][ilabel][ilabel],
-                        100*precision_matrices[model][ilabel][ilabel],
-                        'o', markeredgecolor='k')
+        precisions_all.append(100*precision_matrices[model][ilabel][ilabel])
+        recalls_all.append(100*recall_matrices[model][ilabel][ilabel])
+        line, = ax.plot(recalls_all[-1], precisions_all[-1], 'o', markeredgecolor='k')
         if model==keys_to_plot[0]:
           line.set_label(label)
-  
+
+    if len(recalls_all)>1:
+      ax.autoscale_view()
+      ax.set_autoscale_on(False)
+      miny = ax.get_ylim()[0]
+      minx = ax.get_xlim()[0]
+      x = statistics.mean(recalls_all)
+      w = statistics.stdev(recalls_all)
+      avebox = Rectangle((x-w,miny),2*w,100)
+      ax.plot([x,x],[miny,100],'w-')
+      pc = PatchCollection([avebox], facecolor='lightgray', alpha=0.5)
+      ax.add_collection(pc)
+      y = statistics.mean(precisions_all)
+      h = statistics.stdev(precisions_all)
+      avebox = Rectangle((minx,y-h),100,2*h)
+      ax.plot([minx,100],[y,y],'w-')
+      pc = PatchCollection([avebox], facecolor='lightgray', alpha=0.5)
+      ax.add_collection(pc)
+    else:
+      x,y,w,h = recalls_all[0], precisions_all[0], 0, 0
+
     ax.set_xlim(right=100)
     ax.set_ylim(top=100)
     ax.set_xlabel('Recall (%)')
     ax.set_ylabel('Precision (%)')
+    ax.set_title("P="+str(round(y,1))+"+/-"+str(round(h,1))+"%   "+
+                 "R="+str(round(x,1))+"+/-"+str(round(w,1))+"%")
     ax.legend(loc=(1.05, 0.0))
   
     ax = fig.add_subplot(1,3,3)
-    accuracies_ordered = [accuracies[k] for k in keys_to_plot]
+    precisions_mean_ordered = [precisions_mean[k] for k in keys_to_plot]
+    recalls_mean_ordered = [recalls_mean[k] for k in keys_to_plot]
     print('models=', keys_to_plot)
-    print('accuracies=', accuracies_ordered)
+    print('precisions=', precisions_mean_ordered)
+    print('recalls=', recalls_mean_ordered)
+
+    for model in keys_to_plot:
+      ax.set_prop_cycle(None)
+      line, = ax.plot(recalls_mean[model],
+                      precisions_mean[model],
+                      'o', markeredgecolor='k')
+      line.set_label(model)
   
-    x = 1
-    y = statistics.mean(accuracies_ordered)
-    h = statistics.stdev(accuracies_ordered) if len(accuracies)>1 else 0
-    avebox = Rectangle((y-h,-0.25),2*h,len(accuracies)-1+0.5)
-    ax.plot([y,y],[-0.25,len(accuracies)-1+0.25],'w-')
-    pc = PatchCollection([avebox], facecolor='lightgray')
-    ax.add_collection(pc)
-  
-    ax.plot(accuracies_ordered, keys_to_plot, 'k.')
-    ax.set_xlabel('Overall accuracy (%)')
-    ax.set_ylabel('Model')
-    ax.set_title(str(round(y,1))+"+/-"+str(round(h,1))+"%")
+    if len(recalls_mean_ordered)>1:
+      ax.autoscale_view()
+      ax.set_autoscale_on(False)
+      miny = ax.get_ylim()[0]
+      minx = ax.get_xlim()[0]
+      x = statistics.mean(recalls_mean_ordered)
+      w = statistics.stdev(recalls_mean_ordered)
+      avebox = Rectangle((x-w,miny),2*w,100)
+      ax.plot([x,x],[miny,100],'w-')
+      pc = PatchCollection([avebox], facecolor='lightgray', alpha=0.5)
+      ax.add_collection(pc)
+      y = statistics.mean(precisions_mean_ordered)
+      h = statistics.stdev(precisions_mean_ordered)
+      avebox = Rectangle((minx,y-h),100,2*h)
+      ax.plot([minx,100],[y,y],'w-')
+      pc = PatchCollection([avebox], facecolor='lightgray', alpha=0.5)
+      ax.add_collection(pc)
+    else:
+      x,y,w,h - recalls_mean_ordered[0], precisions_mean_ordered[0], 0, 0
+
+    ax.set_xlim(right=100)
+    ax.set_ylim(top=100)
+    ax.set_xlabel('Recall (%)')
+    ax.set_ylabel('Precision (%)')
+    ax.set_title("P="+str(round(y,1))+"+/-"+str(round(h,1))+"%   "+
+                 "R="+str(round(x,1))+"+/-"+str(round(w,1))+"%")
+    ax.legend(loc=(1.05, 0.0))
   
     fig.tight_layout()
     plt.savefig(os.path.join(FLAGS.logdir,'accuracy.pdf'))
@@ -512,7 +565,7 @@ def main():
       plot_confusion_matrices(confusion_matrices,
                               precision_matrices,
                               recall_matrices,
-                              labels, accuracies, keys_to_plot,
+                              labels, precisions_mean, recalls_mean, keys_to_plot,
                               numbers=len(labels)<10)
       plt.savefig(os.path.join(FLAGS.logdir,'confusion-matrices.pdf'))
       plt.close()
@@ -523,15 +576,15 @@ def main():
       pool = Pool(nprocs)
       results = []
   
-    for key_to_plot in accuracies:
+    for model in recalls_mean:
       for ckpt in [int(x.split('-')[1][:-4]) for x in \
                    filter(lambda x: 'validation' in x and x.endswith('.npz'), \
-                          os.listdir(os.path.join(FLAGS.logdir,key_to_plot)))]:
+                          os.listdir(os.path.join(FLAGS.logdir,model)))]:
   
         if FLAGS.parallelize!=0:
-          results.append(pool.apply_async(doit, (FLAGS.logdir,key_to_plot,ckpt,labels,FLAGS.nprobabilities,error_ratios)))
+          results.append(pool.apply_async(doit, (FLAGS.logdir,model,ckpt,labels,FLAGS.nprobabilities,error_ratios)))
         else:
-          doit(FLAGS.logdir, key_to_plot, ckpt, labels, FLAGS.nprobabilities, error_ratios)
+          doit(FLAGS.logdir, model, ckpt, labels, FLAGS.nprobabilities, error_ratios)
   
     if FLAGS.parallelize!=0:
       for result in results:

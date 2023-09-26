@@ -1499,7 +1499,7 @@ def accuracy_succeeded(logdir, reftime):
         return False
     traindirs = list(filter(lambda x: os.path.isdir(os.path.join(logdir,x)) and \
                             not x.startswith('summaries_'), os.listdir(logdir)))
-    toplevelfiles = ["accuracy.pdf", "train-loss.pdf", "validation-F1.pdf"]
+    toplevelfiles = ["accuracy.pdf", "train-validation-loss.pdf", "validation-F1.pdf"]
     if len(traindirs)>1:
         toplevelfiles.append("train-overlay.pdf")
         toplevelfiles.append("confusion-matrices.pdf")
