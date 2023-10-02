@@ -86,10 +86,10 @@ def create_inference_graph():
           return self.use_video
 
       if model.use_audio and model.use_video:
-          signature = [[tf.TensorSpec(shape=None, dtype=tf.float32),
-                        tf.TensorSpec(shape=None, dtype=tf.float32)]]
+          signature = [[tf.TensorSpec(shape=thesemodels[0].input_shape[0], dtype=tf.float32),
+                        tf.TensorSpec(shape=thesemodels[0].input_shape[1], dtype=tf.float32)]]
       else:
-          signature = [tf.TensorSpec(shape=None, dtype=tf.float32)]
+          signature = [tf.TensorSpec(shape=thesemodels[0].input_shape, dtype=tf.float32)]
 
       @tf.function(input_signature=signature)
       def inference_step(self, data):
