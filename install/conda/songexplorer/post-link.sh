@@ -17,7 +17,7 @@ EOF
 fi
 
 cat << EOF >> ${PREFIX}/.messages.txt
-mamba install python==3.10 av=8.1 git
+mamba install av=8.1 git
 pip3 install -e git+https://github.com/soft-matter/pims.git@7bd634015ecbfeb7d92f9f9d69f8b5bb4686a6b4#egg=pims
 ********** IMPORTANT !!! **********
 EOF
