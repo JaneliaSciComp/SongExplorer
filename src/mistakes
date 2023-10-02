@@ -33,7 +33,7 @@ try:
   sounds = npzfile['sounds']
   arr_ = natsorted(filter(lambda x: x.startswith('arr_'), npzfile.files))
   logits = npzfile[arr_[-1]]
-  labels = list(npzfile['labels'])
+  labels = list(npzfile['model_labels'])
 
   isort = [x for x,y in sorted(enumerate(sounds), key = lambda x: x[1]['ticks'][0])]
 

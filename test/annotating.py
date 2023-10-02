@@ -168,7 +168,7 @@ if len(files)!=1: print("ERROR: wrong number of files")
 
 # toggle in time
 M.ilabel=0
-C.toggle_annotation(0)
+M.toggle_annotation(M.used_sounds[0])
 thissound = M.used_sounds[0].copy()
 thissound.pop('kind', None)
 thissound['label']=M.state['labels'][M.ilabel]
@@ -200,14 +200,14 @@ count_lines(csvfile, 1)
 check_annotation_on_disk(csvfile, thissound, True)
 
 # toggle out time
-C.toggle_annotation(0)
+M.toggle_annotation(M.used_sounds[0])
 check_annotation_in_memory(thissound, False)
 M.save_annotations()
 files = os.listdir(basepath)
 if len(files)!=1: print("ERROR: wrong number of files")
 
 # toggle in time
-C.toggle_annotation(0)
+M.toggle_annotation(M.used_sounds[0])
 check_annotation_in_memory(thissound, True)
 M.save_annotations()
 files = os.listdir(basepath)
@@ -219,7 +219,7 @@ check_annotation_on_disk(csvfile, thissound, True)
 
 # toggle in frequency
 M.ilabel=1
-C.toggle_annotation(1)
+M.toggle_annotation(M.used_sounds[1])
 thissound = M.used_sounds[1].copy()
 thissound.pop('kind', None)
 thissound['label']=M.state['labels'][M.ilabel]
@@ -234,7 +234,7 @@ check_annotation_on_disk(csvfile, thissound, True)
 
 # toggle in ambient
 M.ilabel=2
-C.toggle_annotation(2)
+M.toggle_annotation(M.used_sounds[2])
 thissound = M.used_sounds[2].copy()
 thissound.pop('kind', None)
 thissound['label']=M.state['labels'][M.ilabel]
@@ -270,7 +270,7 @@ count_lines(csvfile, 3)
 check_annotation_on_disk(csvfile, thissound, True)
 
 # toggle out ambient
-C.toggle_annotation(2)
+M.toggle_annotation(M.used_sounds[2])
 check_annotation_in_memory(thissound, False)
 M.save_annotations()
 files = os.listdir(basepath)
@@ -282,7 +282,7 @@ check_annotation_on_disk(csvfile, thissound, False)
 
 # toggle in ambient
 M.ilabel=2
-C.toggle_annotation(2)
+M.toggle_annotation(M.used_sounds[2])
 thissound = M.used_sounds[2].copy()
 thissound.pop('kind', None)
 thissound['label']=M.state['labels'][M.ilabel]
@@ -327,7 +327,7 @@ with open(csvfile, 'w') as fid:
 
 # pulse to ambient
 M.ilabel=2
-C.toggle_annotation(0)
+M.toggle_annotation(M.used_sounds[0])
 thissound = M.used_sounds[0].copy()
 thissound.pop('kind', None)
 thissound['label']=M.state['labels'][M.ilabel]
@@ -399,7 +399,7 @@ check_annotation_on_disk(csvfile, thissound, True)
 
 # delete sine
 M.ilabel=3
-C.toggle_annotation(1)
+M.toggle_annotation(M.used_sounds[1])
 thissound = M.used_sounds[1].copy()
 thissound.pop('kind', None)
 thissound['label']=M.state['labels'][M.ilabel]
@@ -469,7 +469,7 @@ check_annotation_on_disk(csvfile, thissound, False)
 
 # ambient to pulse
 M.ilabel=0
-C.toggle_annotation(2)
+M.toggle_annotation(M.used_sounds[2])
 thissound = M.used_sounds[2].copy()
 thissound.pop('kind', None)
 thissound['label']=M.state['labels'][M.ilabel]
