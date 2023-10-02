@@ -595,8 +595,7 @@ def main():
         for (ipr,pr) in enumerate(precision_recalls_sparse):
           th = float([x[1:] for x in thresholds_sparse if x[0]==label][0][ipr])
           if 0<=th<=1 and not np.isnan(th):
-            ax1.axvline(x=th, label='sparse P/R='+pr,
-                       color=next(ax1._get_lines.prop_cycler)['color'])
+            ax1.axvline(x=th, label='sparse P/R='+pr, linestyle=':', color='black')
         ax1.set_ylabel('# Annotations')
         ax1.set_xlabel('Threshold')
         ax1.set_xlim(0,1)
@@ -622,7 +621,7 @@ def main():
           if 0<=th<=1 and not np.isnan(th):
             ax2.plot(fR(th), fP(th), '.', label='dense P/R='+str(precision_recalls_sparse[ith]))
             ax1.axvline(x=th, label='dense P/R='+str(precision_recalls_sparse[ith]),
-                       color=next(ax1._get_lines.prop_cycler)['color'])
+                       linestyle='--', color='black')
         ax2.set_xlim(0,1)
         ax2.set_ylim(0,1)
         ax2.set_xlabel('Recall = TP/(TP+FN)')
