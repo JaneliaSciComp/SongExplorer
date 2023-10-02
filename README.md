@@ -142,7 +142,7 @@ for an account.  SongExplorer was tested and built with version 12.1.
 
 ## Conda for all Platforms ##
 
-Platform-specific installation instructions can be found at
+Platform-specific installation conda instructions can be found at
 [Mamba](https://mamba.readthedocs.io/en/latest/installation.html).
 You can either add it to an existing installation of
 [Conda](https://conda.io/projects/conda/en/latest/user-guide/install),
@@ -151,11 +151,11 @@ or install a fresh copy.  If the latter, consider using
 On Macs you can also use [Homebrew](https://brew.sh/) to install conda
 and mamba.
 
-Then, simply install Songexplorer its own environment:
+Then, simply install Songexplorer into its own environment:
 
     $ mamba install songexplorer -n songexplorer -c janelia
 
-Pay attention to the notice output at the end and demarcated with "*** IMPORTANT
+Pay attention to the notice at the end demarcated with "*** IMPORTANT
 !!! ***".  Follow the directions therein to install platform-specific
 dependencies which are not in conda-forge.
 
@@ -164,7 +164,7 @@ cuda-nvcc and set XLA_FLAGS in your environment.  See the [Tensorflow
 installation](https://www.tensorflow.org/install/pip#step-by-step_instructions)
 directions for more details.
 
-Finally, put these definitions in your .bashrc file (or .zshrc file on Mac OS
+Optionally, put these definitions in your .bashrc file (or .zshrc file on Mac OS
 Catalina and newer):
 
     export SONGEXPLORER_BIN='conda run -n songexplorer --no-capture-output'
@@ -330,8 +330,9 @@ variables that need to be tailored to your specific resources.
 
 ### Locally ###
 
-When running locally SongExplorer uses a custom job scheduler to manage the
-resources required by different tasks.  The scheduler permits doing multiple
+When running locally SongExplorer uses a custom job scheduler,
+[aitch](https://github.com/JaneliaSciComp/aitch), to manage the
+resources required by different tasks.  Scheduling permits doing multiple
 jobs at once, as well as queueing a bunch of jobs for offline analysis.  By
 default, each task reserves all of your computer's CPU cores, GPU cards, and
 memory, and so only one job can be run at a time.  To tailor resources according
@@ -612,7 +613,7 @@ PS_20130625111709_ch3.wav (<jobid>)" will appear in the status bar.  It's font
 will initially be grey to indicate that it is pending, then turn black when it
 is running, and finally either blue if it successfully finished or red if it
 failed.  Upon success you'll also see the wide pull-down menu to the left
-labelled "recording" briefly turn orange, and below that will appear a table
+labeled "recording" briefly turn orange, and below that will appear a table
 showing how many sounds met each criterion.
 
 The result is a file of comma-separated values with the start and stop times
@@ -1386,7 +1387,7 @@ folder and sub-folders therein:
 which SongExplorer and the anotator(s) agreed upon for each WAV file.
 
 * "<sub-folder\>/\*-disjoint-{label,tic}-only<annotator\>.csv" contains the
-intervals which only one of them labelled.  There is a separate file for each
+intervals which only one of them labeled.  There is a separate file for each
 annotator, with SongExplorer's file name containing the precision-recall
 ratio used when making the ethograms (e.g. "only1.0pr").  The difference
 between the "label" and "tic" files is that for the former any overlap in
@@ -1410,7 +1411,7 @@ diagrams the "pr" row of the corresponding CSV file.
 
 * "congruence-{tic,label}-<word\>.pdf plots the congruence versus
 threshold data contained in the corresponding CSV file.  The vertical
-line in the left panel labelled "sparse P/R" corresponds to the
+line in the left panel labeled "sparse P/R" corresponds to the
 threshold calculated by `Accuracy` on just the annotated points in time.
 "dense P/R" is the threshold at which the "only SongExplorer" and "only
 <Annotator\>" lines cross (or "not SongExplorer" if there are multiple
@@ -1454,8 +1455,8 @@ and a densely annotated test set by using
 The Congruence button generates a bunch of "disjoint.csv" files:
 "disjoint-everyone.csv" contains the intersection of intervals that SongExplorer
 and all annotators agreed upon; "disjoint-only\*.csv" files contain the intervals
-which only SongExplorer or one particular annotator labelled; "disjoint-not\*.csv"
-contains those which were labelled by everyone except SongExplorer or a given
+which only SongExplorer or one particular annotator labeled; "disjoint-not\*.csv"
+contains those which were labeled by everyone except SongExplorer or a given
 annotator.  Choose one or all of these kinds and then use the
 `Activations`, `Cluster`, and `Visualize` buttons as before.
 
@@ -1472,7 +1473,7 @@ The probability of relatively rare words will then be decreased in comparison
 to more common ones, and vice versa, thereby adjusting the precision-to-recall
 ratio accordingly.
 
-The alternative to adusting probabilities is to adjust thresholds.
+The alternative to adjusting probabilities is to adjust thresholds.
 While this can be done by changing the `P/Rs` variable, doing so in this
 way changes them equally for all words.  A word-specific re-balancing of
 false negatives and false positives can be achieved using thresholds derived
@@ -1504,7 +1505,7 @@ A new subfolder will be created in the `Logs Folder` with a graph folder
 therein called "frozen-graph.ensemble.pb".  To create a corresponding
 thresholds file, follow the steps for measuring congruence as described
 in the previous section ([Testing Densely](#testing-densely)):  (1) use this
-model to classify a densely labelled recording, (2) make an ethogram using
+model to classify a densely labeled recording, (2) make an ethogram using
 the thresholds file of one of the constituent models, and (3) calculate the
 `Congruence`.  A new thresholds file suffixed with "-dense" will be created.
 Manually copy this file into the newly created ensemble folder, and use
@@ -1556,7 +1557,7 @@ model with the `Activations`, `Cluster`, and `Visualize` buttons as before.
 Any non-overlapping clumps are evidence of unique vocalizations.
 
 Finally it should be noted that large amounts of ambient and "other"
-annotations can be in some cases be automatically labelled.  If you can
+annotations can be in some cases be automatically labeled.  If you can
 devise a way to position your microphone in a place and time for which no
 natural sounds are made but for which the "room tone" is otherwise the
 same, then the entire recording can be considered ambient.  Similarly,
@@ -1909,6 +1910,12 @@ local build, and then execute the above commands again:
     $ git -C <path-to-songexplorer-repo> pull
     $ conda env remove --name songexplorer
     $ conda build purge-all
+
+To update the conda recipe, tag a new version and make a github release, then
+update "meta.yaml" with the new version number and new hash for the tar.gz
+asset:
+
+    $ openssl sha256 <github-tar-gz-file>
 
 Currently, there is a [bug](https://github.com/mamba-org/mamba/issues/1826)
 in mamba on apple silicon.  The workaround is:
