@@ -124,7 +124,7 @@ check_file_exists(os.path.join(V.logs_folder.value, "train_1r",
                                "probability-density.ckpt-"+V.nsteps.value+".pdf"))
 check_file_exists(os.path.join(V.logs_folder.value, "train_1r",
                                "thresholds.ckpt-"+V.nsteps.value+".csv"))
-check_file_exists(os.path.join(V.logs_folder.value, "train-loss.pdf"))
+check_file_exists(os.path.join(V.logs_folder.value, "train-validation-loss.pdf"))
 check_file_exists(os.path.join(V.logs_folder.value, "validation-F1.pdf"))
 for label in V.labels_touse.value.split(','):
   check_file_exists(os.path.join(V.logs_folder.value, "validation-PvR-"+label+".pdf"))
@@ -245,7 +245,7 @@ for ifile in range(1,1+len(V.validation_files.value.split(','))):
                                  "probability-density.ckpt-"+V.nsteps.value+".pdf"))
   check_file_exists(os.path.join(V.logs_folder.value, "generalize_"+str(ifile)+"w",
                                  "thresholds.ckpt-"+V.nsteps.value+".csv"))
-check_file_exists(os.path.join(V.logs_folder.value, "train-loss.pdf"))
+check_file_exists(os.path.join(V.logs_folder.value, "train-validation-loss.pdf"))
 check_file_exists(os.path.join(V.logs_folder.value, "validation-F1.pdf"))
 for label in V.labels_touse.value.split(','):
   check_file_exists(os.path.join(V.logs_folder.value, "validation-PvR-"+label+".pdf"))
@@ -289,7 +289,7 @@ for nfeatures in nfeaturess:
                                    "probability-density.ckpt-"+V.nsteps.value+".pdf"))
     check_file_exists(os.path.join(V.logs_folder.value, "xvalidate_"+str(ifold)+"k",
                                    "thresholds.ckpt-"+V.nsteps.value+".csv"))
-  check_file_exists(os.path.join(V.logs_folder.value, "train-loss.pdf"))
+  check_file_exists(os.path.join(V.logs_folder.value, "train-validation-loss.pdf"))
   check_file_exists(os.path.join(V.logs_folder.value, "validation-F1.pdf"))
   for label in V.labels_touse.value.split(','):
     check_file_exists(os.path.join(V.logs_folder.value, "validation-PvR-"+label+".pdf"))
@@ -300,7 +300,7 @@ asyncio.run(C.compare_actuate())
 wait_for_job(M.status_ticker_queue)
 
 check_file_exists(V.logs_folder.value+"-compare.log")
-check_file_exists(V.logs_folder.value+"-compare-precision-recall.pdf")
+check_file_exists(V.logs_folder.value+"-compare-PR-classes.pdf")
 check_file_exists(V.logs_folder.value+"-compare-confusion-matrices.pdf")
 check_file_exists(V.logs_folder.value+"-compare-overall-params-speed.pdf")
 
@@ -338,7 +338,7 @@ check_file_exists(os.path.join(V.logs_folder.value, "train_1r",
                                "probability-density.ckpt-"+V.nsteps.value+".pdf"))
 check_file_exists(os.path.join(V.logs_folder.value, "train_1r",
                                "thresholds.ckpt-"+V.nsteps.value+".csv"))
-check_file_exists(os.path.join(V.logs_folder.value, "train-loss.pdf"))
+check_file_exists(os.path.join(V.logs_folder.value, "train-validation-loss.pdf"))
 check_file_exists(os.path.join(V.logs_folder.value, "validation-F1.pdf"))
 for label in V.labels_touse.value.split(','):
   check_file_exists(os.path.join(V.logs_folder.value, "validation-PvR-"+label+".pdf"))

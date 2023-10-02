@@ -135,7 +135,7 @@ check_file_exists $logdir/accuracy.pdf
 check_file_exists $logdir/train_1r/precision-recall.ckpt-$nsteps.pdf
 check_file_exists $logdir/train_1r/probability-density.ckpt-$nsteps.pdf
 check_file_exists $logdir/train_1r/thresholds.ckpt-$nsteps.csv
-check_file_exists $logdir/train-loss.pdf
+check_file_exists $logdir/train-validation-loss.pdf
 check_file_exists $logdir/validation-F1.pdf
 for label in $(echo $labels_touse | sed "s/,/ /g") ; do
   check_file_exists $logdir/validation-PvR-$label.pdf
@@ -364,7 +364,7 @@ for ioffset in $ioffsets ; do
   check_file_exists $logdir/generalize_${ioffset1}w/probability-density.ckpt-$nsteps.pdf
   check_file_exists $logdir/generalize_${ioffset1}w/thresholds.ckpt-$nsteps.csv
 done
-check_file_exists $logdir/train-loss.pdf
+check_file_exists $logdir/train-validation-loss.pdf
 check_file_exists $logdir/validation-F1.pdf
 for label in $(echo $labels_touse | sed "s/,/ /g") ; do
   check_file_exists $logdir/validation-PvR-$label.pdf
@@ -440,7 +440,7 @@ for nfeatures in ${nfeaturess[@]} ; do
     check_file_exists $logdir/xvalidate_${ifold}k/probability-density.ckpt-$nsteps.pdf
     check_file_exists $logdir/xvalidate_${ifold}k/thresholds.ckpt-$nsteps.csv
   done
-  check_file_exists $logdir/train-loss.pdf
+  check_file_exists $logdir/train-validation-loss.pdf
   check_file_exists $logdir/validation-F1.pdf
   for label in $(echo $labels_touse | sed "s/,/ /g") ; do
     check_file_exists $logdir/validation-PvR-$label.pdf
@@ -453,7 +453,7 @@ echo $cmd &>> ${logdirs_prefix}-compare.log
 eval $cmd &>> ${logdirs_prefix}-compare.log
 
 check_file_exists ${logdirs_prefix}-compare.log
-check_file_exists ${logdirs_prefix}-compare-precision-recall.pdf
+check_file_exists ${logdirs_prefix}-compare-PR-classes.pdf
 check_file_exists ${logdirs_prefix}-compare-confusion-matrices.pdf
 check_file_exists ${logdirs_prefix}-compare-overall-params-speed.pdf
 
@@ -524,7 +524,7 @@ check_file_exists $logdir/accuracy.pdf
 check_file_exists $logdir/train_1r/precision-recall.ckpt-$nsteps.pdf
 check_file_exists $logdir/train_1r/probability-density.ckpt-$nsteps.pdf
 check_file_exists $logdir/train_1r/thresholds.ckpt-$nsteps.csv
-check_file_exists $logdir/train-loss.pdf
+check_file_exists $logdir/train-validation-loss.pdf
 check_file_exists $logdir/validation-F1.pdf
 for label in $(echo $labels_touse | sed "s/,/ /g") ; do
   check_file_exists $logdir/validation-PvR-$label.pdf
