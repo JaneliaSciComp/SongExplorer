@@ -312,7 +312,7 @@ if __name__ == '__main__':
   parser.add_argument(
       '--video_read_plugin',
       type=str,
-      default="load-avi-mp4-mov",
+      default="video-read-plugin",
       help='What function to use to read video files')
   parser.add_argument(
       '--video_read_plugin_kwargs',
