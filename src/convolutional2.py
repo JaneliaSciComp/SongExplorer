@@ -366,23 +366,6 @@ def dilation(iconv, dilate_time, dilate_freq):
   return [2**(sum([x<=iconv for x in dilate_time])),
           2**(sum([x<=iconv for x in dilate_freq]))]
 
-#pip install tensorflow-probability 
-#import tensorflow_probability as tfp
-#class Sparsify(tf.keras.layers.Layer):
-#    def __init__(self, prctile, **kwargs):
-#        super(Sparsify, self).__init__(**kwargs)
-#        self.prctile = prctile
-#    def get_config(self):
-#        config = super().get_config().copy()
-#        config.update({
-#            'prctile': self.prctile,
-#        })
-#        return config
-#    def call(self, inputs):
-#        return tf.where(inputs < tfp.stats.percentile(inputs, q=self.prctile),
-#                        tf.zeros_like(inputs),
-#                        inputs)
-
 def create_model(model_settings, model_parameters, io=sys.stdout):
   audio_tic_rate = model_settings['audio_tic_rate']
   representation = model_parameters['representation']
@@ -466,8 +449,6 @@ def create_model(model_settings, model_parameters, io=sys.stdout):
       nfreqs = x.get_shape().as_list()[2]
       x = Slice([0, 0, round(nfreqs * float(lo) / nyquist), 0],
                 [-1, -1, round(nfreqs * (float(hi) - float(lo)) / nyquist), -1])(x)
-    #x = Slice([0,0,round(x.get_shape().as_list()[2]/5),0], [-1,-1,-1,-1])(x)
-    #x = Sparsify(70.)(x)
   elif representation == "mel-cepstrum":
     filterbank_nchannels, dct_ncoefficients = model_parameters['mel_dct'].split(',')
     x = MelCepstrum(window_tics, stride_tics, audio_tic_rate,
