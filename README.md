@@ -153,6 +153,7 @@ and mamba.
 
 Then, simply install Songexplorer into its own environment:
 
+    $ conda create --name songexplorer
     $ mamba install songexplorer -n songexplorer -c janelia
 
 Pay attention to the notice at the end demarcated with "*** IMPORTANT
@@ -1898,11 +1899,18 @@ build command.  These only need to be done once:
     $ git clone https://github.com/JaneliaSciComp/SongExplorer
     $ conda install conda-build
 
-Then build and install into a clean environment:
+Then build:
+
+    $ mamba build <path-to-songexplorer-repo>/install/conda/songexplorer -c conda-forge -c apple -c nvidia
+
+To install directly from this build:
 
     $ conda create --name songexplorer
-    $ mamba build <path-to-songexplorer-repo>/install/conda/songexplorer -c conda-forge -c apple -c nvidia
     $ mamba install -n songexplorer --use-local songexplorer -c conda-forge -c apple -c nvidia
+
+To upload to the Janelia forge:
+
+    $ anaconda upload -u janelia $CONDA_PREFIX/conda-bld/<architecture>/songexplorer-<version>-0.tar.bz2
 
 To upgrade to the latest version, first get the new version and delete the
 local build, and then execute the above commands again:
