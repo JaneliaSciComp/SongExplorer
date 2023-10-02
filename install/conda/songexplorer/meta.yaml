@@ -1,4 +1,4 @@
-{% set version = "0.4.2" %}
+{% set version = "0.5.0" %}
 
 package:
   name: songexplorer
@@ -6,7 +6,7 @@ package:
 
 source:
   url: https://github.com/JaneliaSciComp/SongExplorer/archive/refs/tags/{{ version }}.tar.gz
-  sha256: 04d6e853624c7600df9af7e1d292bb417dd973442c126fa42f7a08683d1cc4cf
+  sha256: 6b9317b6e579986ab328b9bc83e229387ff6ae53e904073cef37c5530347d387
 
 build:
   number: 0
