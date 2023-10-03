@@ -1908,7 +1908,7 @@ To install directly from this build:
     $ conda create --name songexplorer
     $ mamba install -n songexplorer --use-local songexplorer -c conda-forge -c apple -c nvidia
 
-To upload to the Janelia forge:
+To upload to the [Janelia forge](https://anaconda.org/janelia):
 
     $ anaconda upload -u janelia $CONDA_PREFIX/conda-bld/<architecture>/songexplorer-<version>-0.tar.bz2
 
