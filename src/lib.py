@@ -71,18 +71,23 @@ def confusion_string2matrix(arg):
   arg = re.sub("(?P<P>[0-9]) ","\g<P>,", arg)
   return ast.literal_eval(arg)
 
+
 def parse_confusion_matrix(logfile, nlabels_touse, which_one=0, test=False):
-  max_count = '-m'+str(which_one) if which_one>0 else ''
   kind = "Testing" if test else "Validation"
-  cmd = "grep -B"+str(nlabels_touse+1)+" "+kind+"$ "+logfile+" "+max_count+ \
-        " | tail -"+str(nlabels_touse+2)+" | head -1"
-  labels_string = check_output(cmd, shell=True)
-  labels_string = labels_string.decode("ascii")
-  labels_string = labels_string[1:-1]
-  cmd = "grep -B"+str(nlabels_touse+0)+" "+kind+"$ "+logfile+" "+max_count+ \
-        " | tail -"+str(nlabels_touse+1)+" | head -"+str(nlabels_touse+0)
-  confusion_string = check_output(cmd, shell=True)
-  confusion_string = confusion_string.decode("ascii")
+
+  count = 0
+  recent_lines = []
+  with open(logfile, 'r') as fid:
+    for line in fid:
+      recent_lines.append(line)
+      if len(recent_lines)>nlabels_touse+2:
+        recent_lines.pop(0)
+      if line.rstrip().endswith(kind):
+        labels_string = recent_lines[0]
+        confusion_string = ''.join(recent_lines[1:-1])
+        count += 1
+        if count==which_one:
+          break
   confusion_matrix = confusion_string2matrix(confusion_string)
   nannotations = [sum(x) for x in confusion_matrix]
   return confusion_matrix, ast.literal_eval(labels_string), nannotations
