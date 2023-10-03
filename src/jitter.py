@@ -1,6 +1,5 @@
 from natsort import natsorted, realsorted
 import matplotlib.cm as cm
-import statistics
 from matplotlib.patches import Rectangle
 from matplotlib.collections import PatchCollection
 import numpy as np
@@ -22,8 +21,8 @@ def jitter_plot(ax, data, orientation='vertical', reverse=False, \
     o = [x for x in data[l] if x<=outlier_crit]
     if len(d)<3:
       continue
-    y = statistics.mean(d)
-    h = statistics.stdev(d)
+    y = np.nanmean(d)
+    h = np.nanstdev(d)
     if orientation=='vertical':
       aveboxes.append(Rectangle((x-0.25,y-h),0.5,2*h))
       ax.plot([x-0.25,x+0.25],[y,y],'w-')

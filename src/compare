@@ -19,7 +19,6 @@ from natsort import natsorted
 from functools import reduce
 from datetime import datetime
 import socket
-import statistics
 
 repodir = os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
 
@@ -111,9 +110,9 @@ try:
       precisions.append(validation_precision[logdir][model][-1])
       recalls.append(validation_recall[logdir][model][-1])
       ax.plot(recalls[-1], precisions[-1], 'o', markeredgecolor='k', color=color)
-    y = statistics.mean(precisions)
+    y = np.nanmean(precisions)
     ax.plot([minrecall,100],[y,y],color=color)
-    x = statistics.mean(recalls)
+    x = np.nanmean(recalls)
     ax.plot([x,x],[minprecision,100],color=color)
   ax.set_xlim(left=minrecall, right=100)
   ax.set_ylim(bottom=minprecision, top=100)
@@ -243,9 +242,9 @@ try:
         line, = ax.plot(recalls[-1], precisions[-1], 'o', markeredgecolor='k', color=color)
         if ilabel==0 and model==model0:
           line.set_label(differentparameters[logdir])
-      y = statistics.mean(precisions)
+      y = np.nanmean(precisions)
       ax.plot([minrecall,100],[y,y],color=color)
-      x = statistics.mean(recalls)
+      x = np.nanmean(recalls)
       ax.plot([x,x],[minprecision,100],color=color)
     ax.set_xlim(left=minrecall, right=100)
     ax.set_ylim(bottom=minprecision, top=100)

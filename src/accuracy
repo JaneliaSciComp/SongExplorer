@@ -24,7 +24,6 @@ import matplotlib.cm as cm
 from matplotlib.patches import Rectangle
 from datetime import datetime
 import socket
-import statistics
 
 repodir = os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
 
@@ -492,14 +491,14 @@ def main():
       ax.set_autoscale_on(False)
       miny = ax.get_ylim()[0]
       minx = ax.get_xlim()[0]
-      x = statistics.mean(recalls_all)
-      w = statistics.stdev(recalls_all)
+      x = np.nanmean(recalls_all)
+      w = np.nanstd(recalls_all)
       avebox = Rectangle((x-w,miny),2*w,100)
       ax.plot([x,x],[miny,100],'w-')
       pc = PatchCollection([avebox], facecolor='lightgray', alpha=0.5)
       ax.add_collection(pc)
-      y = statistics.mean(precisions_all)
-      h = statistics.stdev(precisions_all)
+      y = np.nanmean(precisions_all)
+      h = np.nanstd(precisions_all)
       avebox = Rectangle((minx,y-h),100,2*h)
       ax.plot([minx,100],[y,y],'w-')
       pc = PatchCollection([avebox], facecolor='lightgray', alpha=0.5)
@@ -534,14 +533,14 @@ def main():
       ax.set_autoscale_on(False)
       miny = ax.get_ylim()[0]
       minx = ax.get_xlim()[0]
-      x = statistics.mean(recalls_mean_ordered)
-      w = statistics.stdev(recalls_mean_ordered)
+      x = np.nanmean(recalls_mean_ordered)
+      w = np.nanstd(recalls_mean_ordered)
       avebox = Rectangle((x-w,miny),2*w,100)
       ax.plot([x,x],[miny,100],'w-')
       pc = PatchCollection([avebox], facecolor='lightgray', alpha=0.5)
       ax.add_collection(pc)
-      y = statistics.mean(precisions_mean_ordered)
-      h = statistics.stdev(precisions_mean_ordered)
+      y = np.nanmean(precisions_mean_ordered)
+      h = np.nanstd(precisions_mean_ordered)
       avebox = Rectangle((minx,y-h),100,2*h)
       ax.plot([minx,100],[y,y],'w-')
       pc = PatchCollection([avebox], facecolor='lightgray', alpha=0.5)
