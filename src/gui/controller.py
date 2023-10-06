@@ -1501,7 +1501,7 @@ def accuracy_succeeded(logdir, reftime):
                             not x.startswith('summaries_'), os.listdir(logdir)))
     toplevelfiles = ["accuracy.pdf", "train-validation-loss.pdf", "validation-F1.pdf"]
     if len(traindirs)>1:
-        toplevelfiles.append("train-overlay.pdf")
+        toplevelfiles.append("validation-overlay.pdf")
         toplevelfiles.append("confusion-matrices.pdf")
     with open(os.path.join(logdir, traindirs[0], 'labels.txt'), 'r') as fid:
         labels = fid.read().splitlines()
