@@ -100,7 +100,7 @@ def main():
             "--data_loader_queuesize="+str(FLAGS.data_loader_queuesize),
             "--data_loader_maxprocs="+str(FLAGS.data_loader_maxprocs),
             "--model_architecture="+FLAGS.model_architecture,
-            "--model_parameters="+FLAGS.model_parameters,
+            "--model_parameters="+FLAGS.model_parameters.replace('<','^^^<').replace('>','^^^>'),
             "--data_dir="+FLAGS.data_dir,
             "--labels_touse="+FLAGS.labels_touse,
             "--kinds_touse="+FLAGS.kinds_touse,
