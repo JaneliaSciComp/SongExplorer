@@ -1094,7 +1094,7 @@ def context_update():
                         gram_image[idx][ilow[idx]:1+ihigh[idx],:])])
             else:
                 spectrogram_source[idx].data.update(image=[])
-        if not np.isnan(xwav[0][-1]):
+        if xwav and not np.isnan(xwav[0][-1]):
             spectrogram_range_source.data.update(x=[xwav[0][-1]])
 
     probability_source.data.update(xs=xprob, ys=yprob,
