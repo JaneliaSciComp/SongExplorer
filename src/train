@@ -44,6 +44,7 @@
 import argparse
 import os
 import sys
+import platform
 from subprocess import run, PIPE, STDOUT
 import asyncio
 import signal
@@ -339,7 +340,10 @@ if __name__ == '__main__':
     print('SongExplorer version = '+fid.read().strip().replace('\n',', '))
   print("hostname = "+socket.gethostname())
   if FLAGS.igpu:
-      cmd = 'which nvidia-smi && nvidia-smi'
+      if platform.system()=='Windows':
+          cmd = 'where nvidia-smi.exe && nvidia-smi.exe'
+      else:
+          cmd = 'which nvidia-smi && nvidia-smi'
       if FLAGS.igpu and FLAGS.igpu in os.environ:
           cmd += ' -i '+os.environ[FLAGS.igpu]
       p = run(cmd, shell=True, stdout=PIPE, stderr=STDOUT)
