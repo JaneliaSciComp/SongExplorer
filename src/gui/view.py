@@ -777,7 +777,7 @@ def __context_update(wavi, context_sound, istart_bounded, ilength):
     stop_sec = (istart_bounded+ilength) / M.audio_tic_rate
 
     if video_toggle.active:
-        video_toggle.button_type="default"
+        video_toggle.button_type="primary"
         sound_basename=os.path.basename(context_sound['file'])
         sound_dirname=os.path.join(groundtruth_folder.value, os.path.dirname(context_sound['file']))
         vidfile = M.video_findfile(sound_dirname, sound_basename)
@@ -810,6 +810,8 @@ def __context_update(wavi, context_sound, istart_bounded, ilength):
 def _context_update(wavi, context_sound, istart_bounded, ilength):
     if video_toggle.active:
         video_toggle.button_type="warning"
+    else:
+        video_toggle.button_type="default"
     bokeh_document.add_next_tick_callback(lambda: \
             __context_update(wavi, context_sound, istart_bounded, ilength))
 
