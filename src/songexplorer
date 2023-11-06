@@ -14,6 +14,7 @@ import tensorflow as tf
 import psutil
 from subprocess import run, PIPE, DEVNULL
 import socket
+import webbrowser
 
 _, configuration_file, port = sys.argv
 
@@ -176,12 +177,18 @@ if server_ipaddr:
             print("WARNING: SongExplorer's scheduler is already running with server_ncpu_cores, server_ngpu_cards, and server_ngigabytes_memory set to "+str(nslots)+" respectively, which is different than what seems to be the specifications of this machine: "+str([server_ncpu_cores, server_ngpu_cards, server_ngigabytes_memory])+".  To use the latter instead, quit SongExplorer, execute `ssh -l "+server_username+" "+server_ipaddr+" $SONGEXPLORER_BIN hstop`, and restart SongExplorer.")
 
 try:
-    run(["bokeh", "serve", \
+    try:
+        defaultbrowser = webbrowser.get()
+    except:
+        defaultbrowser = None
+    maybeshow = () if isinstance(defaultbrowser, webbrowser.GenericBrowser) else ("--show",)
+    run(["bokeh", "serve",
+         os.path.join(repodir, "src", "gui"),
          *[x for y in [["--allow-websocket-origin", x] for x in allow_websockets] for x in y],
-          "--show", os.path.join(repodir, "src", "gui"), \
-          "--port", port, \
-          "--args", version, \
-      configuration_file])
+         *maybeshow,
+         "--port", port,
+         "--args", version,
+         configuration_file])
 
 except KeyboardInterrupt:
     p = run(["hjobs"], stdout=PIPE, stderr=DEVNULL)
