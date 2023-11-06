@@ -68,9 +68,13 @@ def generic_actuate(cmd, logfile, where,
                     "export SINGULARITYENV_PREPEND_PATH="+M.source_path+";",
                     "$SONGEXPLORER_BIN "+cmd+" "+' '.join(args)],
                    stdout=PIPE)
-        ps = Popen(["ssh", "-l", M.cluster_username, M.cluster_ipaddr, M.cluster_cmd,
-                    clusterflags,
-                    M.cluster_logfile_flag+" "+logfile],
+        if M.cluster_ipaddr:
+            ssh_cmd = ["ssh", M.cluster_ipaddr]
+            if M.cluster_username:
+                ssh_cmd = [*ssh_cmd, "-l", M.cluster_username]
+        else:
+            ssh_cmd = ["bash", "-c"]
+        ps = Popen([*ssh_cmd, M.cluster_cmd, clusterflags, M.cluster_logfile_flag+" "+logfile],
                    stdin=pe.stdout, stdout=PIPE)
         pe.stdout.close()
         jobinfo = ps.communicate()[0].decode('ascii').rstrip()
