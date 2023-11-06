@@ -783,7 +783,9 @@ def __context_update(wavi, context_sound, istart_bounded, ilength):
         vidfile = M.video_findfile(sound_dirname, sound_basename)
         if not vidfile:
             bokehlog.info("ERROR: video file corresponding to "+context_sound['file']+" not found")
-            return
+    else:
+        vidfile = None
+    if vidfile:
         base64vid, height, width, frame_rate = nparray2base64mp4(os.path.join(sound_dirname,
                                                                               vidfile),
                                                                  start_sec, stop_sec)
@@ -801,8 +803,9 @@ def __context_update(wavi, context_sound, istart_bounded, ilength):
     load_multimedia_callback.code = C.load_multimedia_callback_code % (base64wav, base64vid)
     load_multimedia.text = str(np.random.random())
 
-    bokeh_document.add_next_tick_callback(lambda: \
-            ___context_update(start_sec, stop_sec, frame_rate, context_sound))
+    if vidfile:
+        bokeh_document.add_next_tick_callback(lambda: \
+                ___context_update(start_sec, stop_sec, frame_rate, context_sound))
 
 def _context_update(wavi, context_sound, istart_bounded, ilength):
     if video_toggle.active:
