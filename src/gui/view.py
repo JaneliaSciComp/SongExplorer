@@ -1446,9 +1446,13 @@ def model_summary_update():
                       'context_ms': float(context_ms.value) }
     tf.keras.backend.clear_session()
     out = io.StringIO()
-    thismodel = M.model.create_model(model_settings,
-                                     {k:v.value for k,v in model_parameters.items()},
-                                     out)
+    try:
+        thismodel = M.model.create_model(model_settings,
+                                         {k:v.value for k,v in model_parameters.items()},
+                                         out)
+    except Exception as e:
+        print(e, file=out)
+        thismodel =  tf.keras.Model(inputs=[], outputs=[], name="error")
     model_summary.value = out.getvalue()+'\n'
     def update_model_summary(x):
         if not x.isspace():
