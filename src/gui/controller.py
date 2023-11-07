@@ -371,8 +371,6 @@ def context_doubletap_callback(event, midpoint):
             thissound = {'file':currfile, 'ticks':ticks, 'label':M.state['labels'][M.ilabel]}
             M.add_annotation(thissound)
     else:
-        if M.state['labels'][M.ilabel]=='':
-            return
         isounds_shortest = get_shortest_tapped_sound(x_tic, currfile)
         if len(isounds_shortest)>0:
             M.toggle_annotation(M.used_sounds[isounds_shortest[0]])
