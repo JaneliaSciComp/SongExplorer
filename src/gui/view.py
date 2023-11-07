@@ -884,9 +884,9 @@ def context_update():
                 if len(wavi)<M.context_width_tic+1:
                     npad = M.context_width_tic+1-len(wavi)
                     if istart<0:
-                        wavi = np.concatenate((np.full((npad,),0), wavi))
+                        wavi = np.concatenate((np.full((npad,),0, dtype=np.int16), wavi))
                     if istart+M.context_width_tic>M.file_nframes:
-                        wavi = np.concatenate((wavi, np.full((npad,),0)))
+                        wavi = np.concatenate((wavi, np.full((npad,),0, dtype=np.int16)))
                 M.context_data[ichannel] = wavi
                 M.context_data_istart = istart_bounded
 
