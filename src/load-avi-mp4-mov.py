@@ -13,8 +13,7 @@ def video_read(avi_path, start_frame, stop_frame, **kw):
     stop_frame_clamped = min(len(data)+1, stop_frame)
 
     data_sliced = data[start_frame_clamped:stop_frame_clamped]
-    data_sliced.shape = [len(data_sliced), *data_sliced[0].shape]
 
     # data is indexed as data[iframe][iheight,iwidth,ichannel]
 
-    return data.frame_rate, data_sliced
+    return data.frame_rate, [len(data_sliced), *data_sliced[0].shape], data.dtype, data_sliced

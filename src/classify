@@ -146,7 +146,7 @@ def main():
     sound_basename = os.path.basename(FLAGS.wav)
     sound_dirname =  os.path.dirname(FLAGS.wav)
     vidfile = video_findfile(sound_dirname, sound_basename)
-    frame_rate, video_data = video_read(os.path.join(sound_dirname, vidfile))
+    frame_rate, video_shape, _, video_data = video_read(os.path.join(sound_dirname, vidfile))
     tiffile = os.path.join(sound_dirname, os.path.splitext(vidfile)[0]+".tif")
     if not os.path.exists(tiffile):
       compute_background(vidfile, FLAGS.video_bkg_frames, video_data, tiffile)
@@ -156,14 +156,14 @@ def main():
     if frame_rate != video_frame_rate:
       print('ERROR: frame_rate of video file is %d when %d is expected' % (frame_rate, video_frame_rate))
       exit()
-    if video_data.shape[1] != FLAGS.video_frame_width:
-      print('ERROR: frame_width of video file is %d when %d is expected' % (video_data.shape[1], FLAGS.video_frame_width))
+    if video_shape[1] != FLAGS.video_frame_width:
+      print('ERROR: frame_width of video file is %d when %d is expected' % (video_shape[1], FLAGS.video_frame_width))
       exit()
-    if video_data.shape[2] != FLAGS.video_frame_height:
-      print('ERROR: frame_height of video file is %d when %d is expected' % (video_data.shape[2], FLAGS.video_frame_height))
+    if video_shape[2] != FLAGS.video_frame_height:
+      print('ERROR: frame_height of video file is %d when %d is expected' % (video_shape[2], FLAGS.video_frame_height))
       exit()
-    if video_data.shape[3] < max(video_channels):
-      print('ERROR: nchannels of video file is %d when channel(s) %s is/are expected' % (video_data.shape[3], FLAGS.video_channels))
+    if video_shape[3] < max(video_channels):
+      print('ERROR: nchannels of video file is %d when channel(s) %s is/are expected' % (video_shape[3], FLAGS.video_channels))
       exit()
 
   if FLAGS.parallelize==1:
@@ -176,7 +176,7 @@ def main():
     data_sample_rate = audio_tic_rate
   elif use_video:
     clip_window_samples = input_shape[1].numpy()
-    data_len_samples = video_data.shape[0]
+    data_len_samples = video_shape[0]
     data_sample_rate = video_frame_rate
 
   if use_video:
@@ -212,7 +212,7 @@ def main():
       else:
         start_frame, stop_frame = start_sample, stop_sample
       for iframe in range(start_frame, stop_frame):
-        if iframe < video_data.shape[0]:
+        if iframe < video_shape[0]:
           video_slice[iframe-start_frame,:,:,:] = video_data[iframe][:,:,video_channels] - bkg[:,:,video_channels]
         else:
           video_slice[iframe-start_frame,:,:,:] = bkg[:,:,video_channels]

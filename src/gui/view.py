@@ -717,22 +717,34 @@ def nparray2base64wav(data, tic_rate):
     fid.close()
     return ret_val
 
-def nparray2base64mp4(filename, start_sec, stop_sec):
-    frame_rate, video_data = M.video_read(filename)
+def nparray2base64mp4(filename, start_sec, stop_sec, npad_sec):
+    frame_rate, video_shape, video_dtype, video_data = M.video_read(filename)
 
     start_frame = np.ceil(start_sec * frame_rate).astype(int)
     stop_frame = np.floor(stop_sec * frame_rate).astype(int)
+    npad_frame = np.round(npad_sec * frame_rate).astype(int)
 
     fid=io.BytesIO()
     container = av.open(fid, mode='w', format='mp4')
 
     stream = container.add_stream('h264', rate=frame_rate)
-    stream.width = video_data.shape[1]
-    stream.height = video_data.shape[2]
+    stream.width = video_shape[1]
+    stream.height = video_shape[2]
     stream.pix_fmt = 'yuv420p'
+
+    black_frame = np.zeros(video_shape[1:], dtype=video_dtype)
+    for iframe in range(npad_frame, 0):
+        frame = av.VideoFrame.from_ndarray(black_frame, format='rgb24')
+        for packet in stream.encode(frame):
+            container.mux(packet)
 
     for iframe in range(start_frame, stop_frame):
         frame = av.VideoFrame.from_ndarray(np.array(video_data[iframe]), format='rgb24')
+        for packet in stream.encode(frame):
+            container.mux(packet)
+
+    for iframe in range(npad_frame):
+        frame = av.VideoFrame.from_ndarray(black_frame, format='rgb24')
         for packet in stream.encode(frame):
             container.mux(packet)
 
@@ -772,7 +784,7 @@ def ___context_update(start_sec, stop_sec, frame_rate, context_sound):
         spectrogram_span_red.location = start_sec
         probability_span_red.location = start_sec
 
-def __context_update(wavi, context_sound, istart_bounded, ilength):
+def __context_update(wavi, context_sound, istart_bounded, ilength, npad_sec):
     start_sec = istart_bounded / M.audio_tic_rate
     stop_sec = (istart_bounded+ilength) / M.audio_tic_rate
 
@@ -788,7 +800,7 @@ def __context_update(wavi, context_sound, istart_bounded, ilength):
     if vidfile:
         base64vid, height, width, frame_rate = nparray2base64mp4(os.path.join(sound_dirname,
                                                                               vidfile),
-                                                                 start_sec, stop_sec)
+                                                                 start_sec, stop_sec, npad_sec)
         labelcounts.style = {'overflow-y':'hidden', 'overflow-x':'scroll',
                              'width':str(max(100,M.gui_width_pix-450-width))+'px'}
         video_div.style = {'width':str(width)+'px', 'height':str(height)+'px'}
@@ -807,13 +819,13 @@ def __context_update(wavi, context_sound, istart_bounded, ilength):
         bokeh_document.add_next_tick_callback(lambda: \
                 ___context_update(start_sec, stop_sec, frame_rate, context_sound))
 
-def _context_update(wavi, context_sound, istart_bounded, ilength):
+def _context_update(wavi, context_sound, istart_bounded, ilength, npad_sec):
     if video_toggle.active:
         video_toggle.button_type="warning"
     else:
         video_toggle.button_type="default"
     bokeh_document.add_next_tick_callback(lambda: \
-            __context_update(wavi, context_sound, istart_bounded, ilength))
+            __context_update(wavi, context_sound, istart_bounded, ilength, npad_sec))
 
 def context_update():
     istart = np.nan
@@ -881,12 +893,15 @@ def context_update():
 
             for ichannel in range(M.audio_nchannels):
                 wavi = wavs[istart_bounded : istart_bounded+ilength, ichannel]
+                npad_sec = 0
                 if len(wavi)<M.context_width_tic+1:
                     npad = M.context_width_tic+1-len(wavi)
                     if istart<0:
                         wavi = np.concatenate((np.full((npad,),0, dtype=np.int16), wavi))
+                        npad_sec = -npad / M.audio_tic_rate
                     if istart+M.context_width_tic>M.file_nframes:
                         wavi = np.concatenate((wavi, np.full((npad,),0, dtype=np.int16)))
+                        npad_sec = +npad / M.audio_tic_rate
                 M.context_data[ichannel] = wavi
                 M.context_data_istart = istart_bounded
 
@@ -896,7 +911,8 @@ def context_update():
                                 _context_update(wavi,
                                                 M.context_sound,
                                                 istart_bounded,
-                                                ilength))
+                                                ilength,
+                                                npad_sec))
 
                 if ichannel+1 in M.context_waveform:
                     idx = M.context_waveform.index(ichannel+1)
