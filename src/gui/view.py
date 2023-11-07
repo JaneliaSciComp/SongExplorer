@@ -566,7 +566,7 @@ def within_an_annotation(sound):
 def snippets_update(redraw_wavs):
     if len(M.species)==0:
         return
-    if M.isnippet>0 and not np.isnan(M.xcluster) and not np.isnan(M.ycluster) \
+    if M.isnippet>=0 and not np.isnan(M.xcluster) and not np.isnan(M.ycluster) \
                 and (M.ndcluster==2 or not np.isnan(M.zcluster)):
         snippets_quad_fuchsia.data.update(
                 left=[M.xsnippet*(M.snippets_gap_pix+M.snippets_pix)],
