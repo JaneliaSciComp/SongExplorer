@@ -99,16 +99,16 @@ try:
   minprecision, minrecall = 100, 100
   for logdir in logdirs:
     for model in validation_recall[logdir].keys():
-      minprecision = min(minprecision, validation_precision[logdir][model][-1])
-      minrecall = min(minrecall, validation_recall[logdir][model][-1])
+      minprecision = min(minprecision, max(validation_precision[logdir][model]))
+      minrecall = min(minrecall, max(validation_recall[logdir][model]))
 
   for (ilogdir,logdir) in enumerate(natsorted(logdirs)):
     color = cm.viridis(ilogdir/max(1,len(validation_recall)-1))
     model0=list(validation_recall[logdir].keys())[0]
     precisions, recalls = [], []
     for model in validation_recall[logdir].keys():
-      precisions.append(validation_precision[logdir][model][-1])
-      recalls.append(validation_recall[logdir][model][-1])
+      precisions.append(max(validation_precision[logdir][model]))
+      recalls.append(max(validation_recall[logdir][model]))
       ax.plot(recalls[-1], precisions[-1], 'o', markeredgecolor='k', color=color)
     y = np.nanmean(precisions)
     ax.plot([minrecall,100],[y,y],color=color)
@@ -168,51 +168,76 @@ try:
   plt.close()
 
 
-  summed_confusion_matrices={}
   confusion_matrices={}
   recall_confusion_matrices={}
   precision_confusion_matrices={}
+  summed_confusion_matrices={}
   recall_summed_matrices={}
   precision_summed_matrices={}
-  summed_precisions={}
-  summed_recalls={}
-  labels=[]
+  recall_summed={}
+  precision_summed={}
+  labels=None
 
   for logdir in logdirs:
     kind = next(iter(validation_time[logdir].keys())).split('_')[0]
-    summed_confusion_matrices[logdir], confusion_matrices[logdir], theselabels = \
+    confusion_matrices[logdir], theselabels = \
             parse_confusion_matrices(os.path.join(basename,logdir), kind, \
                                      idx_time=idx_time[logdir] if same_time else None)
-    if labels:
-      assert set(labels)==set(theselabels)
-    else:
+
+    recall_confusion_matrices[logdir]={}
+    precision_confusion_matrices[logdir]={}
+    best_F1={}
+    for model in confusion_matrices[logdir].keys():
+      best_F1[model]=("",0)
+      for ckpt in confusion_matrices[logdir][model].keys():
+        _precision_confusion_matrix, _recall_confusion_matrix, _precisions_mean, _recalls_mean = \
+              normalize_confusion_matrix(confusion_matrices[logdir][model][ckpt])
+        P=_precisions_mean
+        R=_recalls_mean
+        if 2*P*R/(P+R) > best_F1[model][1]:
+          best_F1[model] = (ckpt, 2*P*R/(P+R))
+          precision_confusion_matrices[logdir][model] = _precision_confusion_matrix
+          recall_confusion_matrices[logdir][model] = _recall_confusion_matrix
+      ckpt = best_F1[model][0]
+      confusion_matrices[logdir][model] = np.array(confusion_matrices[logdir][model][ckpt])
+
+    if not labels:
       labels=theselabels
+    assert set(labels)==set(theselabels)
     if labels!=theselabels:
       idx = [labels.index(x) for x in theselabels]
-      print(idx)
-      summed_confusion_matrices[logdir] = [[summed_confusion_matrices[logdir][i][j] \
-                                            for j in idx] for i in idx]
       confusion_matrices[logdir] = {k: [[confusion_matrices[logdir][k][i][j] \
                                         for j in idx] for i in idx] \
                                     for k in confusion_matrices[logdir].keys()}
 
-    recall_confusion_matrices[logdir]={}
-    precision_confusion_matrices[logdir]={}
+    summed_confusion_matrices[logdir] = None
     for model in confusion_matrices[logdir].keys():
-      precision_confusion_matrices[logdir][model], recall_confusion_matrices[logdir][model], _, _ = \
-            normalize_confusion_matrix(confusion_matrices[logdir][model])
-
-    precision_summed_matrices[logdir], recall_summed_matrices[logdir], _, _ = \
-            normalize_confusion_matrix(summed_confusion_matrices[logdir])
-    summed_precisions[logdir] = 100 * np.trace(precision_summed_matrices[logdir]) / \
-                      len(recall_summed_matrices[logdir])
-    summed_recalls[logdir] = 100 * np.trace(recall_summed_matrices[logdir]) / \
-                      len(recall_summed_matrices[logdir])
-
-  plot_confusion_matrices(summed_confusion_matrices,
-                          precision_summed_matrices, recall_summed_matrices,
-                          labels, summed_precisions, summed_recalls, natsorted(logdirs),
-                          numbers=len(labels)<10)
+      if summed_confusion_matrices[logdir] is None:
+          summed_confusion_matrices[logdir] = np.array(confusion_matrices[logdir][model])
+      else:
+          summed_confusion_matrices[logdir] += confusion_matrices[logdir][model]
+  
+    precision_summed_matrices[logdir], recall_summed_matrices[logdir], precision_summed[logdir], recall_summed[logdir] = \
+          normalize_confusion_matrix(summed_confusion_matrices[logdir])
+  
+  scale=6.4
+  nrows, ncols = layout(len(natsorted(logdirs)))
+  fig = plt.figure(figsize=(scale*ncols, scale*3/4*nrows))
+  for (ilogdir, logdir) in enumerate(natsorted(logdirs)):
+    ax = fig.add_subplot(nrows, ncols, ilogdir+1)
+    plot_confusion_matrix(ax, summed_confusion_matrices[logdir],
+                          precision_summed_matrices[logdir], recall_summed_matrices[logdir],
+                          len(labels)<10)
+    ax.set_xticklabels(labels, rotation=40, ha='right')
+    ax.set_yticklabels(labels)
+    ax.invert_yaxis()
+    if ilogdir//ncols==nrows-1:
+      ax.set_xlabel('classification')
+    if ilogdir%ncols==0:
+      ax.set_ylabel('annotation')
+    ax.set_title(logdir+"   P="+str(round(precision_summed[logdir],1))+"%"+
+                       "   R="+str(round(recall_summed[logdir],1))+"%")
+  fig.tight_layout()
   plt.savefig(logdirs_prefix+'-compare-confusion-matrices.pdf')
   plt.close()
 

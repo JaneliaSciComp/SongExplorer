@@ -439,16 +439,51 @@ def main():
       plt.savefig(os.path.join(FLAGS.logdir,'validation-average.pdf'))
       plt.close()
   
-    summed_confusion_matrix, confusion_matrices, labels = \
+    confusion_matrices, labels = \
         parse_confusion_matrices(FLAGS.logdir, next(iter(keys_to_plot)).split('_')[0])
   
     recall_matrices={}
     precision_matrices={}
     precisions_mean={}
     recalls_mean={}
+    best_F1={}
     for model in keys_to_plot:
-      precision_matrices[model], recall_matrices[model], precisions_mean[model], recalls_mean[model] = \
-            normalize_confusion_matrix(confusion_matrices[model])
+        recall_matrices[model]={}
+        precision_matrices[model]={}
+        precisions_mean[model]={}
+        recalls_mean[model]={}
+        best_F1[model]=("",0)
+        for ckpt in confusion_matrices[model].keys():
+          precision_matrices[model][ckpt], recall_matrices[model][ckpt], precisions_mean[model][ckpt], recalls_mean[model][ckpt] = \
+                normalize_confusion_matrix(confusion_matrices[model][ckpt])
+  
+          fig = plt.figure(figsize=(6.4, 4.8))
+          ax = plt.subplot(1,1,1)
+          plot_confusion_matrix(ax,
+                                confusion_matrices[model][ckpt],
+                                precision_matrices[model][ckpt],
+                                recall_matrices[model][ckpt],
+                                numbers=len(labels)<10)
+          ax.set_xticklabels(labels, rotation=40, ha='right')
+          ax.set_yticklabels(labels)
+          ax.invert_yaxis()
+          ax.set_xlabel('classification')
+          ax.set_ylabel('annotation')
+          P=precisions_mean[model][ckpt]
+          R=recalls_mean[model][ckpt]
+          ax.set_title(model+"   P="+str(round(P,1))+"%"+"   R="+str(round(R,1))+"%")
+          if 2*P*R/(P+R) > best_F1[model][1]:
+            best_F1[model] = (ckpt, 2*P*R/(P+R))
+          plt.savefig(os.path.join(FLAGS.logdir,model,'confusion-matrices-'+ckpt+'.pdf'))
+          plt.close()
+
+    summed_confusion_matrix = None
+    for model in best_F1.keys():
+      ckpt = best_F1[model][0]
+      if summed_confusion_matrix is None:
+          summed_confusion_matrix = np.array(confusion_matrices[model][ckpt])
+      else:
+          summed_confusion_matrix += confusion_matrices[model][ckpt]
   
     precision_summed_matrix, recall_summed_matrix, precision_summed, recall_summed = \
           normalize_confusion_matrix(summed_confusion_matrix)
@@ -479,9 +514,10 @@ def main():
     recalls_all = []
     for model in keys_to_plot:
       ax.set_prop_cycle(None)
+      ckpt = best_F1[model][0]
       for (ilabel,label) in enumerate(labels):
-        precisions_all.append(100*precision_matrices[model][ilabel][ilabel])
-        recalls_all.append(100*recall_matrices[model][ilabel][ilabel])
+        precisions_all.append(100*precision_matrices[model][ckpt][ilabel][ilabel])
+        recalls_all.append(100*recall_matrices[model][ckpt][ilabel][ilabel])
         line, = ax.plot(recalls_all[-1], precisions_all[-1], 'o', markeredgecolor='k')
         if model==keys_to_plot[0]:
           line.set_label(label)
@@ -515,18 +551,20 @@ def main():
     ax.legend(loc=(1.05, 0.0))
   
     ax = fig.add_subplot(1,3,3)
-    precisions_mean_ordered = [precisions_mean[k] for k in keys_to_plot]
-    recalls_mean_ordered = [recalls_mean[k] for k in keys_to_plot]
+    precisions_mean_ordered = [precisions_mean[k][best_F1[k][0]] for k in keys_to_plot]
+    recalls_mean_ordered = [recalls_mean[k][best_F1[k][0]] for k in keys_to_plot]
     print('models=', keys_to_plot)
+    print('ckpts=', [best_F1[k][0] for k in keys_to_plot])
     print('precisions=', precisions_mean_ordered)
     print('recalls=', recalls_mean_ordered)
 
     for model in keys_to_plot:
       ax.set_prop_cycle(None)
-      line, = ax.plot(recalls_mean[model],
-                      precisions_mean[model],
+      ckpt = best_F1[model][0]
+      line, = ax.plot(recalls_mean[model][ckpt],
+                      precisions_mean[model][ckpt],
                       'o', markeredgecolor='k')
-      line.set_label(model)
+      line.set_label(model+'/ckpt-'+ckpt)
   
     if len(recalls_mean_ordered)>1:
       ax.autoscale_view()
@@ -559,15 +597,6 @@ def main():
     fig.tight_layout()
     plt.savefig(os.path.join(FLAGS.logdir,'accuracy.pdf'))
     plt.close()
-  
-    if len(keys_to_plot)>1:
-      plot_confusion_matrices(confusion_matrices,
-                              precision_matrices,
-                              recall_matrices,
-                              labels, precisions_mean, recalls_mean, keys_to_plot,
-                              numbers=len(labels)<10)
-      plt.savefig(os.path.join(FLAGS.logdir,'confusion-matrices.pdf'))
-      plt.close()
   
     if FLAGS.parallelize!=0:
       from multiprocessing import Pool

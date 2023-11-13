@@ -72,51 +72,41 @@ def confusion_string2matrix(arg):
   return ast.literal_eval(arg)
 
 
-def parse_confusion_matrix(logfile, nlabels_touse, which_one=0, test=False):
-  kind = "Testing" if test else "Validation"
-
-  count = 0
+def _parse_confusion_matrices(logfile, nlabels_touse):
+  confusion_matrices = {}
+  labels_string = None
   recent_lines = []
   with open(logfile, 'r') as fid:
     for line in fid:
       recent_lines.append(line)
       if len(recent_lines)>nlabels_touse+2:
         recent_lines.pop(0)
-      if line.rstrip().endswith(kind):
-        labels_string = recent_lines[0]
+      if line.rstrip().endswith("Validation"):
+        if not labels_string:
+          labels_string = recent_lines[0].strip()
+        assert labels_string == recent_lines[0].strip()
+        ckpt = line.split(',')[1]
         confusion_string = ''.join(recent_lines[1:-1])
-        count += 1
-        if count==which_one:
-          break
-  confusion_matrix = confusion_string2matrix(confusion_string)
-  nannotations = [sum(x) for x in confusion_matrix]
-  return confusion_matrix, ast.literal_eval(labels_string), nannotations
+        confusion_matrices[ckpt] = confusion_string2matrix(confusion_string)
+        recent_lines = []
+  return confusion_matrices, ast.literal_eval(labels_string)
 
-
-def parse_confusion_matrices(logdir, kind, idx_time=None, test=False):
+def parse_confusion_matrices(logdir, kind, idx_time=None):
   models = list(filter(lambda x: x.startswith(kind+'_') and \
                           os.path.isdir(os.path.join(logdir,x)), os.listdir(logdir)))
   labels_path = os.path.join(logdir,list(models)[0],'labels.txt')
   nlabels_touse = sum(1 for line in open(labels_path))
 
   confusion_matrices={}
-  labels=[]
+  labels=None
   for model in models:
     logfile = os.path.join(logdir, model+'.log')
-    confusion_matrices[model], theselabels, _ = \
-            parse_confusion_matrix(logfile, \
-                                   nlabels_touse, \
-                                   which_one=1+idx_time[model] if idx_time else 0, \
-                                   test=test)
-    if labels:
-      assert labels==theselabels
-    else:
+    confusion_matrices[model], theselabels = _parse_confusion_matrices(logfile, nlabels_touse)
+    if not labels:
       labels=theselabels
+    assert labels==theselabels
       
-  summed_confusion_matrix = np.zeros((np.shape(confusion_matrices[models[0]])))
-  for model in models:
-    summed_confusion_matrix += confusion_matrices[model]
-  return summed_confusion_matrix, confusion_matrices, labels
+  return confusion_matrices, labels
 
 
 def normalize_confusion_matrix(matrix):
@@ -177,25 +167,6 @@ def layout(nplots):
   nrows = 1 if nplots==1 else np.floor(np.sqrt(nplots)).astype(int)
   ncols = math.ceil(nplots / nrows)
   return nrows, ncols
-
-
-def plot_confusion_matrices(abs_matrices, col_matrices, row_matrices, labels, precisions, recalls, \
-                            models, numbers=True, scale=6.4):
-  nrows, ncols = layout(len(models))
-  fig = plt.figure(figsize=(scale*ncols, scale*3/4*nrows))
-  for (imodel, model) in enumerate(models):
-    ax = fig.add_subplot(nrows, ncols, imodel+1)
-    plot_confusion_matrix(ax, abs_matrices[model], col_matrices[model], row_matrices[model], numbers)
-    ax.set_xticklabels(labels, rotation=40, ha='right')
-    ax.set_yticklabels(labels)
-    ax.invert_yaxis()
-    if imodel//ncols==nrows-1:
-      ax.set_xlabel('classification')
-    if imodel%ncols==0:
-      ax.set_ylabel('annotation')
-    ax.set_title(model+"   P="+str(round(precisions[model],1))+"%"+
-                       "   R="+str(round(recalls[model],1))+"%")
-  fig.tight_layout()
 
 
 def read_log(frompath, logfile):
