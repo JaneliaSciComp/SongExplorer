@@ -477,6 +477,16 @@ def main():
           plt.savefig(os.path.join(FLAGS.logdir,model,'confusion-matrices-'+ckpt+'.pdf'))
           plt.close()
 
+    print('models =', keys_to_plot)
+    print('ckpts =', [best_F1[k][0] for k in keys_to_plot])
+    print('labels =', labels)
+    print('precisions =', [[100*precision_matrices[model][ckpt][ilabel][ilabel]
+                            for ilabel in range(len(labels))]
+                           for model in keys_to_plot])
+    print('recalls =', [[100*recall_matrices[model][ckpt][ilabel][ilabel]
+                         for ilabel in range(len(labels))]
+                        for model in keys_to_plot])
+
     summed_confusion_matrix = None
     for model in best_F1.keys():
       ckpt = best_F1[model][0]
@@ -510,37 +520,46 @@ def main():
                  "R="+str(round(recall_summed,1))+"%")
   
     ax = plt.subplot(1,3,2)
-    precisions_all = []
-    recalls_all = []
-    for model in keys_to_plot:
-      ax.set_prop_cycle(None)
-      ckpt = best_F1[model][0]
-      for (ilabel,label) in enumerate(labels):
+    colors = plt.rcParams["axes.prop_cycle"].by_key()["color"]
+    precisions_model_mean = []
+    recalls_model_mean = []
+    for (ilabel,label) in enumerate(labels):
+      precisions_all = []
+      recalls_all = []
+      for model in keys_to_plot:
+        ckpt = best_F1[model][0]
         precisions_all.append(100*precision_matrices[model][ckpt][ilabel][ilabel])
         recalls_all.append(100*recall_matrices[model][ckpt][ilabel][ilabel])
-        line, = ax.plot(recalls_all[-1], precisions_all[-1], 'o', markeredgecolor='k')
+        line, = ax.plot(recalls_all[-1], precisions_all[-1], 'o',
+                        markeredgecolor='w', color=colors[ilabel])
         if model==keys_to_plot[0]:
           line.set_label(label)
+      precisions_model_mean.append(np.mean(precisions_all))
+      recalls_model_mean.append(np.mean(recalls_all))
+      ax.plot(recalls_model_mean[-1], precisions_model_mean[-1], 'o',
+              markeredgecolor='k', color=colors[ilabel])
 
-    if len(recalls_all)>1:
-      ax.autoscale_view()
-      ax.set_autoscale_on(False)
-      miny = ax.get_ylim()[0]
-      minx = ax.get_xlim()[0]
-      x = np.nanmean(recalls_all)
-      w = np.nanstd(recalls_all)
+    ax.autoscale_view()
+    ax.set_autoscale_on(False)
+    miny = ax.get_ylim()[0]
+    minx = ax.get_xlim()[0]
+    if len(recalls_model_mean)>1:
+      x = np.nanmean(recalls_model_mean)
+      w = np.nanstd(recalls_model_mean)
       avebox = Rectangle((x-w,miny),2*w,100)
       ax.plot([x,x],[miny,100],'w-')
       pc = PatchCollection([avebox], facecolor='lightgray', alpha=0.5)
       ax.add_collection(pc)
-      y = np.nanmean(precisions_all)
-      h = np.nanstd(precisions_all)
+      y = np.nanmean(precisions_model_mean)
+      h = np.nanstd(precisions_model_mean)
       avebox = Rectangle((minx,y-h),100,2*h)
       ax.plot([minx,100],[y,y],'w-')
       pc = PatchCollection([avebox], facecolor='lightgray', alpha=0.5)
       ax.add_collection(pc)
     else:
-      x,y,w,h = recalls_all[0], precisions_all[0], 0, 0
+      x,y,w,h = recalls_model_mean[0], precisions_model_mean[0], 0, 0
+      ax.plot([x,x],[miny,100], 'lightgray', zorder=0)
+      ax.plot([minx,100],[y,y], 'lightgray', zorder=0)
 
     ax.set_xlim(right=100)
     ax.set_ylim(top=100)
@@ -551,40 +570,46 @@ def main():
     ax.legend(loc=(1.05, 0.0))
   
     ax = fig.add_subplot(1,3,3)
-    precisions_mean_ordered = [precisions_mean[k][best_F1[k][0]] for k in keys_to_plot]
-    recalls_mean_ordered = [recalls_mean[k][best_F1[k][0]] for k in keys_to_plot]
-    print('models=', keys_to_plot)
-    print('ckpts=', [best_F1[k][0] for k in keys_to_plot])
-    print('precisions=', precisions_mean_ordered)
-    print('recalls=', recalls_mean_ordered)
+    colors = plt.rcParams["axes.prop_cycle"].by_key()["color"]
+    precisions_label_mean = []
+    recalls_label_mean = []
+    for (imodel,model) in enumerate(keys_to_plot):
+      precisions_all = []
+      recalls_all = []
+      for (ilabel,label) in enumerate(labels):
+        ckpt = best_F1[model][0]
+        precisions_all.append(100*precision_matrices[model][ckpt][ilabel][ilabel])
+        recalls_all.append(100*recall_matrices[model][ckpt][ilabel][ilabel])
+        line, = ax.plot(recalls_all[-1], precisions_all[-1], 'o',
+                        markeredgecolor='w', color=colors[imodel])
+        if label==labels[0]:
+          line.set_label(model+'/ckpt-'+best_F1[model][0])
+      precisions_label_mean.append(np.mean(precisions_all))
+      recalls_label_mean.append(np.mean(recalls_all))
+      ax.plot(recalls_label_mean[-1], precisions_label_mean[-1], 'o',
+              markeredgecolor='k', color=colors[imodel])
 
-    for model in keys_to_plot:
-      ax.set_prop_cycle(None)
-      ckpt = best_F1[model][0]
-      line, = ax.plot(recalls_mean[model][ckpt],
-                      precisions_mean[model][ckpt],
-                      'o', markeredgecolor='k')
-      line.set_label(model+'/ckpt-'+ckpt)
-  
-    if len(recalls_mean_ordered)>1:
-      ax.autoscale_view()
-      ax.set_autoscale_on(False)
-      miny = ax.get_ylim()[0]
-      minx = ax.get_xlim()[0]
-      x = np.nanmean(recalls_mean_ordered)
-      w = np.nanstd(recalls_mean_ordered)
+    ax.autoscale_view()
+    ax.set_autoscale_on(False)
+    miny = ax.get_ylim()[0]
+    minx = ax.get_xlim()[0]
+    if len(recalls_label_mean)>1:
+      x = np.nanmean(recalls_label_mean)
+      w = np.nanstd(recalls_label_mean)
       avebox = Rectangle((x-w,miny),2*w,100)
       ax.plot([x,x],[miny,100],'w-')
       pc = PatchCollection([avebox], facecolor='lightgray', alpha=0.5)
       ax.add_collection(pc)
-      y = np.nanmean(precisions_mean_ordered)
-      h = np.nanstd(precisions_mean_ordered)
+      y = np.nanmean(precisions_label_mean)
+      h = np.nanstd(precisions_label_mean)
       avebox = Rectangle((minx,y-h),100,2*h)
       ax.plot([minx,100],[y,y],'w-')
       pc = PatchCollection([avebox], facecolor='lightgray', alpha=0.5)
       ax.add_collection(pc)
     else:
-      x,y,w,h - recalls_mean_ordered[0], precisions_mean_ordered[0], 0, 0
+      x,y,w,h = recalls_label_mean[0], precisions_label_mean[0], 0, 0
+      ax.plot([x,x],[miny,100], 'lightgray', zorder=0)
+      ax.plot([minx,100],[y,y], 'lightgray', zorder=0)
 
     ax.set_xlim(right=100)
     ax.set_ylim(top=100)
