@@ -274,42 +274,82 @@ def main():
     plt.savefig(os.path.join(FLAGS.logdir,'train-validation-loss.pdf'))
     plt.close()
   
-    nrows, ncols = layout(len(keys_to_plot))
-    for (ilabel,label) in enumerate(labels_touse[keys_to_plot[0]]):
-      fig = plt.figure(figsize=(6.4*ncols, 4.8*nrows))
-      ax = []
-      minp=100
-      minr=100
-      for (imodel,model) in enumerate(keys_to_plot):
-        ax.append(fig.add_subplot(nrows, ncols, imodel+1))
-        precision = [100*x[ilabel] for x in validation_precision[model]]
-        recall = [100*x[ilabel] for x in validation_recall[model]]
+
+    def PvR(ax, precision, recall, validation_step, minp, minr):
         minp = min(minp, min(precision))
         minr = min(minr, min(recall))
-        ax[imodel].set_prop_cycle(color=[cm.viridis(1.*i/max(1,len(recall)-2)) \
+        ax.set_prop_cycle(color=[cm.viridis(1.*i/max(1,len(recall)-2)) \
                                          for i in range(len(recall)-1)])
         for i in range(len(recall)-1):
-          ax[imodel].plot(recall[i:i+2], precision[i:i+2])
-        ax[imodel].annotate(str(validation_step[model][0]),
+          ax.plot(recall[i:i+2], precision[i:i+2])
+        ax.annotate(str(validation_step[0]),
                     xy=(recall[0], precision[0]),
                     color="r", verticalalignment='center', horizontalalignment='center')
-        ax[imodel].annotate(str(validation_step[model][-1]),
+        ax.annotate(str(validation_step[-1]),
                     xy=(recall[-1], precision[-1]),
                     color="r", verticalalignment='center', horizontalalignment='center')
         ibestF1 = np.argmax([2*p*r/(p+r) if (p+r)>0 else np.nan \
                              for (p,r) in zip(precision,recall)])
-        ax[imodel].annotate(str(validation_step[model][ibestF1]),
+        ax.annotate(str(validation_step[ibestF1]),
                     xy=(recall[ibestF1], precision[ibestF1]),
                     color="r", verticalalignment='center', horizontalalignment='center')
-        ax[imodel].set_xlabel('Recall')
-        ax[imodel].set_ylabel('Precision')
-        ax[imodel].set_title(model)
-      for imodel in range(len(keys_to_plot)):
-        ax[imodel].set_ylim([minp,100])
-        ax[imodel].set_xlim([minr,100])
-      fig.tight_layout()
-      plt.savefig(os.path.join(FLAGS.logdir,'validation-PvR-'+label+'.pdf'))
-      plt.close()
+        ax.yaxis.tick_right()
+        return minp, minr
+
+    nrows, ncols = 1+len(labels_touse[keys_to_plot[0]]), 1+len(keys_to_plot)
+    fig = plt.figure(figsize=(6.4*ncols, 4.8*nrows))
+    minp, minr = 100, 100
+    axs = []
+    precision_all, recall_all = [], []
+    ilabel_all, imodel_all = [], []
+    for (ilabel,label) in enumerate(labels_touse[keys_to_plot[0]]):
+      for (imodel,model) in enumerate(keys_to_plot):
+        axs.append(fig.add_subplot(nrows, ncols, (ilabel+1)*ncols+imodel+2))
+        precision = [100*x[ilabel] for x in validation_precision[model]]
+        recall = [100*x[ilabel] for x in validation_recall[model]]
+        precision_all.append(precision)
+        recall_all.append(recall)
+        ilabel_all.append(ilabel)
+        imodel_all.append(imodel)
+        minp, minr = PvR(axs[-1], precision, recall, validation_step[model], minp, minr)
+        if imodel==len(keys_to_plot)-1:
+            axs[-1].yaxis.set_label_position("right")
+            axs[-1].set_ylabel("Precision")
+        if ilabel==len(labels_touse[keys_to_plot[0]])-1:
+            axs[-1].set_xlabel("Recall")
+    for (imodel,model) in enumerate(keys_to_plot):
+        axs.append(fig.add_subplot(nrows, ncols, imodel+2))
+        precision = np.mean([precision_all[i] for (i,idx) in enumerate(imodel_all) if idx==imodel],
+                            axis=0)
+        recall = np.mean([recall_all[i] for (i,idx) in enumerate(imodel_all) if idx==imodel],
+                         axis=0)
+        minp, minr = PvR(axs[-1], precision, recall, validation_step[model], minp, minr)
+        axs[-1].set_title(model)
+        if imodel==len(keys_to_plot)-1:
+            axs[-1].yaxis.set_label_position("right")
+            axs[-1].set_ylabel("Precision")
+    for (ilabel,label) in enumerate(labels_touse[keys_to_plot[0]]):
+        axs.append(fig.add_subplot(nrows, ncols, (ilabel+1)*ncols+1))
+        precision = np.mean([precision_all[i] for (i,idx) in enumerate(ilabel_all) if idx==ilabel],
+                            axis=0)
+        recall = np.mean([recall_all[i] for (i,idx) in enumerate(ilabel_all) if idx==ilabel],
+                         axis=0)
+        minp, minr = PvR(axs[-1], precision, recall, validation_step[model], minp, minr)
+        axs[-1].set_ylabel(label)
+        if ilabel==len(labels_touse[keys_to_plot[0]])-1:
+            axs[-1].set_xlabel("Recall")
+    axs.append(fig.add_subplot(nrows, ncols, 1))
+    precision = np.mean(precision_all, axis=0)
+    recall = np.mean(recall_all, axis=0)
+    minp, minr = PvR(axs[-1], precision, recall, validation_step[model], minp, minr)
+    axs[-1].set_ylabel('average')
+    axs[-1].set_title('average')
+    for ax in axs:
+      ax.set_ylim([minp,100])
+      ax.set_xlim([minr,100])
+    fig.tight_layout()
+    plt.savefig(os.path.join(FLAGS.logdir,'validation-PvR.pdf'))
+    plt.close()
   
   
     def epoch_axis(ax, batch_size, training_set_size, validation_step):
