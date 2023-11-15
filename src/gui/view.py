@@ -1109,7 +1109,8 @@ def context_update():
             if not np.isnan(gram_time[idx][0]):
                 spectrogram_glyph[idx].glyph.x = istart/M.audio_tic_rate
                 spectrogram_glyph[idx].glyph.y = len(M.context_spectrogram) - 1 - idx
-                spectrogram_glyph[idx].glyph.dw = gram_time[idx][-1] + M.spectrogram_length_ms[ichannel]/1000/2
+                spectrogram_glyph[idx].glyph.dw = gram_time[idx][-1] + \
+                        M.spectrogram_length_ms[ichannel] / 1000 * M.gui_spectrogram_overlap
                 spectrogram_glyph[idx].glyph.dh = 1
                 spectrogram_source[idx].data.update(image=[np.log10(1e-15+ \
                         gram_image[idx][ilow[idx]:1+ihigh[idx],:])])
