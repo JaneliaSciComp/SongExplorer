@@ -319,9 +319,9 @@ def main():
             axs[-1].set_xlabel("Recall")
     for (imodel,model) in enumerate(keys_to_plot):
         axs.append(fig.add_subplot(nrows, ncols, imodel+2))
-        precision = np.mean([precision_all[i] for (i,idx) in enumerate(imodel_all) if idx==imodel],
+        precision = np.nanmean([precision_all[i] for (i,idx) in enumerate(imodel_all) if idx==imodel],
                             axis=0)
-        recall = np.mean([recall_all[i] for (i,idx) in enumerate(imodel_all) if idx==imodel],
+        recall = np.nanmean([recall_all[i] for (i,idx) in enumerate(imodel_all) if idx==imodel],
                          axis=0)
         minp, minr = PvR(axs[-1], precision, recall, validation_step[model], minp, minr)
         axs[-1].set_title(model)
@@ -330,17 +330,17 @@ def main():
             axs[-1].set_ylabel("Precision")
     for (ilabel,label) in enumerate(labels_touse[keys_to_plot[0]]):
         axs.append(fig.add_subplot(nrows, ncols, (ilabel+1)*ncols+1))
-        precision = np.mean([precision_all[i] for (i,idx) in enumerate(ilabel_all) if idx==ilabel],
+        precision = np.nanmean([precision_all[i] for (i,idx) in enumerate(ilabel_all) if idx==ilabel],
                             axis=0)
-        recall = np.mean([recall_all[i] for (i,idx) in enumerate(ilabel_all) if idx==ilabel],
+        recall = np.nanmean([recall_all[i] for (i,idx) in enumerate(ilabel_all) if idx==ilabel],
                          axis=0)
         minp, minr = PvR(axs[-1], precision, recall, validation_step[model], minp, minr)
         axs[-1].set_ylabel(label)
         if ilabel==len(labels_touse[keys_to_plot[0]])-1:
             axs[-1].set_xlabel("Recall")
     axs.append(fig.add_subplot(nrows, ncols, 1))
-    precision = np.mean(precision_all, axis=0)
-    recall = np.mean(recall_all, axis=0)
+    precision = np.nanmean(precision_all, axis=0)
+    recall = np.nanmean(recall_all, axis=0)
     minp, minr = PvR(axs[-1], precision, recall, validation_step[model], minp, minr)
     axs[-1].set_ylabel('average')
     axs[-1].set_title('average')
@@ -393,9 +393,9 @@ def main():
       ax_r.set_ylabel('Recall')
       ax_f1.set_ylabel('F1 = 2PR/(P+R)')
       ax_p.set_title(labels_touse[keys_to_plot[0]][isort[ilabel]])
-      ax_p.plot(validation_step[model], np.mean(P_all, axis=0), color='k', linewidth=3)
-      ax_r.plot(validation_step[model], np.mean(R_all, axis=0), color='k', linewidth=3)
-      line, = ax_f1.plot(validation_step[model], np.mean(F1_all, axis=0), color='k', linewidth=3)
+      ax_p.plot(validation_step[model], np.nanmean(P_all, axis=0), color='k', linewidth=3)
+      ax_r.plot(validation_step[model], np.nanmean(R_all, axis=0), color='k', linewidth=3)
+      line, = ax_f1.plot(validation_step[model], np.nanmean(F1_all, axis=0), color='k', linewidth=3)
       if ilabel==0:
         lines.append(line)
       epoch_axis(ax_f1, batch_size[model], training_set_size[model], validation_step[model])
@@ -433,9 +433,9 @@ def main():
       ax_r.set_ylabel('Recall')
       ax_f1.set_ylabel('F1 = 2PR/(P+R)')
       ax_p.set_title(model)
-      ax_p.plot(validation_step[model], np.mean(P_all, axis=0), color='k', linewidth=3)
-      ax_r.plot(validation_step[model], np.mean(R_all, axis=0), color='k', linewidth=3)
-      line, = ax_f1.plot(validation_step[model], np.mean(F1_all, axis=0), color='k', linewidth=3)
+      ax_p.plot(validation_step[model], np.nanmean(P_all, axis=0), color='k', linewidth=3)
+      ax_r.plot(validation_step[model], np.nanmean(R_all, axis=0), color='k', linewidth=3)
+      line, = ax_f1.plot(validation_step[model], np.nanmean(F1_all, axis=0), color='k', linewidth=3)
       if imodel==0:
         lines.append(line)
       epoch_axis(ax_f1, batch_size[model], training_set_size[model], validation_step[model])
@@ -472,9 +472,9 @@ def main():
     ax_p.set_ylabel('Precision')
     ax_r.set_ylabel('Recall')
     ax_f1.set_ylabel('F1 = 2PR/(P+R)')
-    ax_p.plot(validation_step[model], np.mean(P_all, axis=0), color='k', linewidth=3)
-    ax_r.plot(validation_step[model], np.mean(R_all, axis=0), color='k', linewidth=3)
-    ax_f1.plot(validation_step[model], np.mean(F1_all, axis=0), color='k', linewidth=3)
+    ax_p.plot(validation_step[model], np.nanmean(P_all, axis=0), color='k', linewidth=3)
+    ax_r.plot(validation_step[model], np.nanmean(R_all, axis=0), color='k', linewidth=3)
+    ax_f1.plot(validation_step[model], np.nanmean(F1_all, axis=0), color='k', linewidth=3)
     epoch_axis(ax_p, batch_size[model], training_set_size[model], validation_step[model])
     epoch_axis(ax_r, batch_size[model], training_set_size[model], validation_step[model])
     epoch_axis(ax_f1, batch_size[model], training_set_size[model], validation_step[model])
@@ -584,8 +584,8 @@ def main():
                         markeredgecolor='w', color=colors[ilabel])
         if model==keys_to_plot[0]:
           line.set_label(label)
-      precisions_model_mean.append(np.mean(precisions_all))
-      recalls_model_mean.append(np.mean(recalls_all))
+      precisions_model_mean.append(np.nanmean(precisions_all))
+      recalls_model_mean.append(np.nanmean(recalls_all))
       ax.plot(recalls_model_mean[-1], precisions_model_mean[-1], 'o',
               markeredgecolor='k', color=colors[ilabel])
 
@@ -634,8 +634,8 @@ def main():
                         markeredgecolor='w', color=colors[imodel])
         if label==labels[0]:
           line.set_label(model+'/ckpt-'+best_F1[model][0])
-      precisions_label_mean.append(np.mean(precisions_all))
-      recalls_label_mean.append(np.mean(recalls_all))
+      precisions_label_mean.append(np.nanmean(precisions_all))
+      recalls_label_mean.append(np.nanmean(recalls_all))
       ax.plot(recalls_label_mean[-1], precisions_label_mean[-1], 'o',
               markeredgecolor='k', color=colors[imodel])
 
