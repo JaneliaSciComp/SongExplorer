@@ -454,15 +454,17 @@ def main():
     ax_r = fig.add_subplot(nrows, ncols, 2)
     ax_f1 = fig.add_subplot(nrows, ncols, 3)
     P_all, R_all, F1_all = [], [], []
+    errorbars = len(keys_to_plot) * len(isort) > 10
     for (imodel,model) in enumerate(keys_to_plot):
       isort = index_natsorted(labels_touse[model])
       for ilabel in range(len(isort)):
         P_all.append([100*p[isort[ilabel]] for p in validation_precision[model]])
         R_all.append([100*r[isort[ilabel]] for r in validation_recall[model]])
         F1_all.append([2*p*r/(p+r) if (p+r)>0 else np.nan for (p,r) in zip(P_all[-1],R_all[-1])])
-        ax_p.plot(validation_step[model], P_all[-1], color='grey')
-        ax_r.plot(validation_step[model], R_all[-1], color='grey')
-        ax_f1.plot(validation_step[model], F1_all[-1], color='grey')
+        if not errorbars:
+            ax_p.plot(validation_step[model], P_all[-1], color='grey')
+            ax_r.plot(validation_step[model], R_all[-1], color='grey')
+            ax_f1.plot(validation_step[model], F1_all[-1], color='grey')
     ax_p.set_ylim(top=100)
     ax_r.set_ylim(top=100)
     ax_f1.set_ylim(top=100)
@@ -472,9 +474,20 @@ def main():
     ax_p.set_ylabel('Precision')
     ax_r.set_ylabel('Recall')
     ax_f1.set_ylabel('F1 = 2PR/(P+R)')
-    ax_p.plot(validation_step[model], np.nanmean(P_all, axis=0), color='k', linewidth=3)
-    ax_r.plot(validation_step[model], np.nanmean(R_all, axis=0), color='k', linewidth=3)
-    ax_f1.plot(validation_step[model], np.nanmean(F1_all, axis=0), color='k', linewidth=3)
+    if errorbars:
+        y, e = np.nanmean(P_all, axis=0), np.nanstd(P_all, axis=0)
+        ax_p.errorbar(validation_step[model], y, e, color='k')
+        ax_p.set_ylim(bottom=min(y-e))
+        y, e = np.nanmean(R_all, axis=0), np.nanstd(R_all, axis=0)
+        ax_r.errorbar(validation_step[model], y, e, color='k')
+        ax_r.set_ylim(bottom=min(y-e))
+        y, e = np.nanmean(F1_all, axis=0), np.nanstd(F1_all, axis=0),
+        ax_f1.errorbar(validation_step[model], y, e, color='k')
+        ax_f1.set_ylim(bottom=min(y-e))
+    else:
+        ax_p.plot(validation_step[model], np.nanmean(P_all, axis=0), color='k', linewidth=3)
+        ax_r.plot(validation_step[model], np.nanmean(R_all, axis=0), color='k', linewidth=3)
+        ax_f1.plot(validation_step[model], np.nanmean(F1_all, axis=0), color='k', linewidth=3)
     epoch_axis(ax_p, batch_size[model], training_set_size[model], validation_step[model])
     epoch_axis(ax_r, batch_size[model], training_set_size[model], validation_step[model])
     epoch_axis(ax_f1, batch_size[model], training_set_size[model], validation_step[model])
