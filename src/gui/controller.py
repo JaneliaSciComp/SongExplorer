@@ -598,6 +598,7 @@ def lastlabel_callback():
 def _touse_callback(n,button):
     if ' ' in n:
         bokehlog.info('ERROR: textboxes should not contain spaces')
+    V.cluster_reset()
     V.recordings_update()
     M.save_state_callback()
     V.recordings.disabled=False
@@ -1481,18 +1482,22 @@ async def cluster_actuate():
                                activations_cluster_succeeded("cluster", g, t)))
 
 async def visualize_actuate():
-    if not V.cluster_initialize():
-        return
+    if V.cluster_initialize():
+        if bokeh_document:
+            bokeh_document.add_next_tick_callback(lambda: _visualize_actuate())
+        else:
+            _visualize_actuate()
+
+def _visualize_actuate():
     V.which_layer.value = M.layers[M.ilayer]
     V.which_species.value = M.species[M.ispecies]
     V.which_word.value = M.words[M.iword]
     V.which_nohyphen.value = M.nohyphens[M.inohyphen]
     V.which_kind.value = M.kinds[M.ikind]
-    V.cluster_circle_fuchsia.data.update(cx=[], cy=[], cz=[], cr=[], cc=[])
-    V.cluster_update()
     M.xcluster = M.ycluster = M.zcluster = np.nan
     M.isnippet = -1
     M.context_sound = None
+    V.cluster_update()
     V.snippets_update(True)
     V.context_update()
 

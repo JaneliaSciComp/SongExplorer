@@ -360,18 +360,31 @@ export class ScatterNd extends LayoutDOM {
     dot_alpha_source = Instance(ColumnDataSource)
 
 def cluster_initialize():
-    global precomputed_dots
-    global p_cluster_xmax, p_cluster_ymax, p_cluster_zmax
-    global p_cluster_xmin, p_cluster_ymin, p_cluster_zmin
-
     cluster_file = os.path.join(groundtruth_folder.value,'cluster.npz')
     if not os.path.isfile(cluster_file):
         bokehlog.info("ERROR: "+cluster_file+" not found")
         return False
     npzfile = np.load(cluster_file, allow_pickle=True)
+
+    labels_touse.value = ','.join(npzfile['labels_touse'])
+    kinds_touse.value = ','.join(npzfile['kinds_touse'])
+    if bokeh_document:
+        bokeh_document.add_next_tick_callback(lambda: _cluster_initialize())
+    else:
+        _cluster_initialize()
+    
+    return True
+
+def _cluster_initialize():
+    global precomputed_dots
+    global p_cluster_xmax, p_cluster_ymax, p_cluster_zmax
+    global p_cluster_xmin, p_cluster_ymin, p_cluster_zmin
+
+    cluster_file = os.path.join(groundtruth_folder.value,'cluster.npz')
+    npzfile = np.load(cluster_file, allow_pickle=True)
+
     M.clustered_sounds = npzfile['sounds']
     M.clustered_activations = npzfile['activations_clustered']
-
     M.clustered_starts_sorted = [x['ticks'][0] for x in M.clustered_sounds]
     isort = np.argsort(M.clustered_starts_sorted)
     for i in range(len(M.clustered_activations)):
@@ -383,12 +396,6 @@ def cluster_initialize():
 
     M.clustered_stops = [x['ticks'][1] for x in M.clustered_sounds]
     M.iclustered_stops_sorted = np.argsort(M.clustered_stops)
-
-    recordings.options = sorted(list(set([x['file'] for x in M.clustered_sounds])))
-    for recording in recordings.options:
-        M.used_recording2firstsound[recording] = \
-              next(filter(lambda x: x[1]['file']==recording, enumerate(M.clustered_sounds)))[0]
-    recordings.options = [""] + recordings.options
 
     cluster_isnotnan = [not np.isnan(x[0]) and not np.isnan(x[1]) \
                         for x in M.clustered_activations[layer0]]
@@ -411,10 +418,6 @@ def cluster_initialize():
     M.kinds = set([x['kind'] for x in M.clustered_sounds])
     M.kinds |= set([''])
     M.kinds = natsorted(list(M.kinds))
-
-    allcombos = [x[0][:-1]+x[1] for x in product(M.species[1:], M.words[1:])]
-    M.label_colors = { l:c for l,c in zip(allcombos+ M.nohyphens[1:],
-                                                cycle(label_palette)) }
 
     p_cluster_xmin, p_cluster_xmax = [0]*M.nlayers, [0]*M.nlayers
     p_cluster_ymin, p_cluster_ymax = [0]*M.nlayers, [0]*M.nlayers
@@ -478,15 +481,8 @@ def cluster_initialize():
     dot_alpha.disabled=False
 
     M.ispecies = M.iword = M.inohyphen = M.ikind = 0
-    
-    labels_touse.value = ','.join(npzfile['labels_touse'])
-    kinds_touse.value = ','.join(npzfile['kinds_touse'])
-    recordings_update()
-    return True
 
 def cluster_update():
-    global cluster_dots
-    global p_cluster_xmax, p_cluster_xmin, p_cluster_ymax, p_cluster_ymin
     dot_alpha.disabled=False
     if precomputed_dots == None:
         return
@@ -553,6 +549,7 @@ def cluster_reset():
                   dc=['#ffffff00', '#ffffff00', '#ffffff00', '#ffffff00',
                       '#ffffff00', '#ffffff00', '#ffffff00', '#ffffff00'])
     cluster_dots.data.update(**kwargs)
+    cluster_circle_fuchsia.data.update(cx=[], cy=[], cz=[], cr=[], cc=[])
 
 def within_an_annotation(sound):
     if len(M.annotated_starts_sorted)>0:
@@ -564,8 +561,6 @@ def within_an_annotation(sound):
     return -1
 
 def snippets_update(redraw_wavs):
-    if len(M.species)==0:
-        return
     if M.isnippet>=0 and not np.isnan(M.xcluster) and not np.isnan(M.ycluster) \
                 and (M.ndcluster==2 or not np.isnan(M.zcluster)):
         snippets_quad_fuchsia.data.update(
@@ -577,12 +572,15 @@ def snippets_update(redraw_wavs):
     else:
         snippets_quad_fuchsia.data.update(left=[], right=[], top=[], bottom=[])
 
-    isubset = np.where([M.species[M.ispecies] in x['label'] and
-                        M.words[M.iword] in x['label'] and
-                        (M.nohyphens[M.inohyphen]=="" or \
-                         M.nohyphens[M.inohyphen]==x['label']) and
-                        (M.kinds[M.ikind]=="" or \
-                         M.kinds[M.ikind]==x['kind']) for x in M.clustered_sounds])[0]
+    if len(M.species)>0:
+        isubset = np.where([M.species[M.ispecies] in x['label'] and
+                            M.words[M.iword] in x['label'] and
+                            (M.nohyphens[M.inohyphen]=="" or \
+                             M.nohyphens[M.inohyphen]==x['label']) and
+                            (M.kinds[M.ikind]=="" or \
+                             M.kinds[M.ikind]==x['kind']) for x in M.clustered_sounds])[0]
+    else:
+        isubset = []
     origin = [M.xcluster,M.ycluster]
     if M.ndcluster==3:
         origin.append(M.zcluster)
@@ -1207,10 +1205,6 @@ def recordings_update():
         M.used_starts_sorted = [M.used_starts_sorted[x] for x in isort]
         M.used_stops = [x['ticks'][1] for x in M.used_sounds]
         M.iused_stops_sorted = np.argsort(M.used_stops)
-        M.used_labels = set([x['label'] for x in M.used_sounds])
-        if M.label_colors.keys() < M.used_labels:
-            M.label_colors = { l:c for l,c in zip(M.used_labels, cycle(label_palette)) }
-            cluster_reset()
 
         recordings.options = sorted(list(wavfiles))
         for recording in recordings.options:
@@ -1226,11 +1220,10 @@ def recordings_update():
         M.used_recording2firstsound = {}
         recordings.options = []
 
-    M.ispecies = M.iword = M.inohyphen = M.ikind = 0
-    M.xcluster = M.ycluster = M.zcluster = np.nan
+    M.used_labels = set([x['label'] for x in M.used_sounds]) if M.used_sounds else []
+    M.label_colors = { l:c for l,c in zip(M.used_labels, cycle(label_palette)) }
     M.isnippet = -1
-    cluster_circle_fuchsia.data.update(cx=[], cy=[], cz=[], cr=[], cc=[])
-    cluster_update()
+    M.context_sound = None
     snippets_update(True)
     context_update()
 
