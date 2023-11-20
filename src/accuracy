@@ -537,7 +537,7 @@ def main():
           ax.set_title(model+"   P="+str(round(P,1))+"%"+"   R="+str(round(R,1))+"%")
           if 2*P*R/(P+R) > best_F1[model][1]:
             best_F1[model] = (ckpt, 2*P*R/(P+R))
-          plt.savefig(os.path.join(FLAGS.logdir,model,'confusion-matrices-'+ckpt+'.pdf'))
+          plt.savefig(os.path.join(FLAGS.logdir,model,'confusion-matrix.ckpt-'+ckpt+'.pdf'))
           plt.close()
 
     print('models =', keys_to_plot)

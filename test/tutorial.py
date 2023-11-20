@@ -124,10 +124,13 @@ check_file_exists(os.path.join(V.logs_folder.value, "train_1r",
                                "probability-density.ckpt-"+V.nsteps.value+".pdf"))
 check_file_exists(os.path.join(V.logs_folder.value, "train_1r",
                                "thresholds.ckpt-"+V.nsteps.value+".csv"))
+check_file_exists(os.path.join(V.logs_folder.value, "train_1r",
+                               "confusion-matrix.ckpt-"+V.nsteps.value+".pdf"))
 check_file_exists(os.path.join(V.logs_folder.value, "train-validation-loss.pdf"))
-check_file_exists(os.path.join(V.logs_folder.value, "validation-F1.pdf"))
-for label in V.labels_touse.value.split(','):
-  check_file_exists(os.path.join(V.logs_folder.value, "validation-PvR-"+label+".pdf"))
+check_file_exists(os.path.join(V.logs_folder.value, "validation-P-R-F1-average.pdf"))
+check_file_exists(os.path.join(V.logs_folder.value, "validation-P-R-F1-label.pdf"))
+check_file_exists(os.path.join(V.logs_folder.value, "validation-P-R-F1-model.pdf"))
+check_file_exists(os.path.join(V.logs_folder.value, "validation-PvR.pdf"))
 
 V.model_file.value = os.path.join(V.logs_folder.value, "train_"+V.nreplicates.value+"r",
                                   "ckpt-"+V.nsteps.value+".index")
@@ -237,7 +240,6 @@ wait_for_job(M.status_ticker_queue)
 
 check_file_exists(os.path.join(V.logs_folder.value, "accuracy.log"))
 check_file_exists(os.path.join(V.logs_folder.value, "accuracy.pdf"))
-check_file_exists(os.path.join(V.logs_folder.value, "confusion-matrices.pdf"))
 for ifile in range(1,1+len(V.validation_files.value.split(','))):
   check_file_exists(os.path.join(V.logs_folder.value, "generalize_"+str(ifile)+"w",
                                  "precision-recall.ckpt-"+V.nsteps.value+".pdf"))
@@ -245,10 +247,13 @@ for ifile in range(1,1+len(V.validation_files.value.split(','))):
                                  "probability-density.ckpt-"+V.nsteps.value+".pdf"))
   check_file_exists(os.path.join(V.logs_folder.value, "generalize_"+str(ifile)+"w",
                                  "thresholds.ckpt-"+V.nsteps.value+".csv"))
+  check_file_exists(os.path.join(V.logs_folder.value, "generalize_"+str(ifile)+"w",
+                                 "confusion-matrix.ckpt-"+V.nsteps.value+".pdf"))
 check_file_exists(os.path.join(V.logs_folder.value, "train-validation-loss.pdf"))
-check_file_exists(os.path.join(V.logs_folder.value, "validation-F1.pdf"))
-for label in V.labels_touse.value.split(','):
-  check_file_exists(os.path.join(V.logs_folder.value, "validation-PvR-"+label+".pdf"))
+check_file_exists(os.path.join(V.logs_folder.value, "validation-P-R-F1-average.pdf"))
+check_file_exists(os.path.join(V.logs_folder.value, "validation-P-R-F1-label.pdf"))
+check_file_exists(os.path.join(V.logs_folder.value, "validation-P-R-F1-model.pdf"))
+check_file_exists(os.path.join(V.logs_folder.value, "validation-PvR.pdf"))
 
 nfeaturess = ["32,32", "64,64"]
 
@@ -281,7 +286,6 @@ wait_for_job(M.status_ticker_queue)
 for nfeatures in nfeaturess:
   check_file_exists(os.path.join(V.logs_folder.value, "accuracy.log"))
   check_file_exists(os.path.join(V.logs_folder.value, "accuracy.pdf"))
-  check_file_exists(os.path.join(V.logs_folder.value, "confusion-matrices.pdf"))
   for ifold in range(1, 1+int(V.kfold.value)):
     check_file_exists(os.path.join(V.logs_folder.value, "xvalidate_"+str(ifold)+"k",
                                    "precision-recall.ckpt-"+V.nsteps.value+".pdf"))
@@ -289,10 +293,13 @@ for nfeatures in nfeaturess:
                                    "probability-density.ckpt-"+V.nsteps.value+".pdf"))
     check_file_exists(os.path.join(V.logs_folder.value, "xvalidate_"+str(ifold)+"k",
                                    "thresholds.ckpt-"+V.nsteps.value+".csv"))
+    check_file_exists(os.path.join(V.logs_folder.value, "xvalidate_"+str(ifold)+"k",
+                                   "confusion-matrix.ckpt-"+V.nsteps.value+".pdf"))
   check_file_exists(os.path.join(V.logs_folder.value, "train-validation-loss.pdf"))
-  check_file_exists(os.path.join(V.logs_folder.value, "validation-F1.pdf"))
-  for label in V.labels_touse.value.split(','):
-    check_file_exists(os.path.join(V.logs_folder.value, "validation-PvR-"+label+".pdf"))
+  check_file_exists(os.path.join(V.logs_folder.value, "validation-P-R-F1-average.pdf"))
+  check_file_exists(os.path.join(V.logs_folder.value, "validation-P-R-F1-label.pdf"))
+  check_file_exists(os.path.join(V.logs_folder.value, "validation-P-R-F1-model.pdf"))
+  check_file_exists(os.path.join(V.logs_folder.value, "validation-PvR.pdf"))
 
 V.logs_folder.value = os.path.join(repo_path, "test", "scratch", "tutorial-py", "nfeatures")
 asyncio.run(C.compare_actuate())
@@ -338,10 +345,13 @@ check_file_exists(os.path.join(V.logs_folder.value, "train_1r",
                                "probability-density.ckpt-"+V.nsteps.value+".pdf"))
 check_file_exists(os.path.join(V.logs_folder.value, "train_1r",
                                "thresholds.ckpt-"+V.nsteps.value+".csv"))
+check_file_exists(os.path.join(V.logs_folder.value, "train_1r",
+                               "confusion-matrix.ckpt-"+V.nsteps.value+".pdf"))
 check_file_exists(os.path.join(V.logs_folder.value, "train-validation-loss.pdf"))
-check_file_exists(os.path.join(V.logs_folder.value, "validation-F1.pdf"))
-for label in V.labels_touse.value.split(','):
-  check_file_exists(os.path.join(V.logs_folder.value, "validation-PvR-"+label+".pdf"))
+check_file_exists(os.path.join(V.logs_folder.value, "validation-P-R-F1-average.pdf"))
+check_file_exists(os.path.join(V.logs_folder.value, "validation-P-R-F1-label.pdf"))
+check_file_exists(os.path.join(V.logs_folder.value, "validation-P-R-F1-model.pdf"))
+check_file_exists(os.path.join(V.logs_folder.value, "validation-PvR.pdf"))
 
 V.model_file.value = os.path.join(V.logs_folder.value, "train_"+V.nreplicates.value+"r",
                                   "ckpt-"+V.nsteps.value+".index")

@@ -135,11 +135,12 @@ check_file_exists $logdir/accuracy.pdf
 check_file_exists $logdir/train_1r/precision-recall.ckpt-$nsteps.pdf
 check_file_exists $logdir/train_1r/probability-density.ckpt-$nsteps.pdf
 check_file_exists $logdir/train_1r/thresholds.ckpt-$nsteps.csv
+check_file_exists $logdir/train_1r/confusion-matrix.ckpt-$nsteps.pdf
 check_file_exists $logdir/train-validation-loss.pdf
-check_file_exists $logdir/validation-F1.pdf
-for label in $(echo $labels_touse | sed "s/,/ /g") ; do
-  check_file_exists $logdir/validation-PvR-$label.pdf
-done
+check_file_exists $logdir/validation-P-R-F1-average.pdf
+check_file_exists $logdir/validation-P-R-F1-label.pdf
+check_file_exists $logdir/validation-P-R-F1-model.pdf
+check_file_exists $logdir/validation-PvR.pdf
 
 check_point=$nsteps
 cmd="freeze \
@@ -357,18 +358,18 @@ eval $cmd &>> $logdir/accuracy.log
 
 check_file_exists $logdir/accuracy.log
 check_file_exists $logdir/accuracy.pdf
-check_file_exists $logdir/confusion-matrices.pdf
 for ioffset in $ioffsets ; do
   ioffset1=$(( "${ioffset}" + 1 ))
   check_file_exists $logdir/generalize_${ioffset1}w/precision-recall.ckpt-$nsteps.pdf
   check_file_exists $logdir/generalize_${ioffset1}w/probability-density.ckpt-$nsteps.pdf
   check_file_exists $logdir/generalize_${ioffset1}w/thresholds.ckpt-$nsteps.csv
+  check_file_exists $logdir/generalize_${ioffset1}w/confusion-matrix.ckpt-$nsteps.pdf
 done
 check_file_exists $logdir/train-validation-loss.pdf
-check_file_exists $logdir/validation-F1.pdf
-for label in $(echo $labels_touse | sed "s/,/ /g") ; do
-  check_file_exists $logdir/validation-PvR-$label.pdf
-done
+check_file_exists $logdir/validation-P-R-F1-average.pdf
+check_file_exists $logdir/validation-P-R-F1-label.pdf
+check_file_exists $logdir/validation-P-R-F1-model.pdf
+check_file_exists $logdir/validation-PvR.pdf
 
 nfeaturess=(32,32 64,64)
 precision_recall_ratios=1.0
@@ -434,17 +435,17 @@ for nfeatures in ${nfeaturess[@]} ; do
 
   check_file_exists $logdir/accuracy.log
   check_file_exists $logdir/accuracy.pdf
-  check_file_exists $logdir/confusion-matrices.pdf
   for ifold in $ifolds ; do
     check_file_exists $logdir/xvalidate_${ifold}k/precision-recall.ckpt-$nsteps.pdf
     check_file_exists $logdir/xvalidate_${ifold}k/probability-density.ckpt-$nsteps.pdf
     check_file_exists $logdir/xvalidate_${ifold}k/thresholds.ckpt-$nsteps.csv
+    check_file_exists $logdir/xvalidate_${ifold}k/confusion-matrix.ckpt-$nsteps.pdf
   done
   check_file_exists $logdir/train-validation-loss.pdf
-  check_file_exists $logdir/validation-F1.pdf
-  for label in $(echo $labels_touse | sed "s/,/ /g") ; do
-    check_file_exists $logdir/validation-PvR-$label.pdf
-  done
+  check_file_exists $logdir/validation-P-R-F1-average.pdf
+  check_file_exists $logdir/validation-P-R-F1-label.pdf
+  check_file_exists $logdir/validation-P-R-F1-model.pdf
+  check_file_exists $logdir/validation-PvR.pdf
 done
 
 logdirs_prefix=$repo_path/test/scratch/tutorial-sh/nfeatures
@@ -524,11 +525,12 @@ check_file_exists $logdir/accuracy.pdf
 check_file_exists $logdir/train_1r/precision-recall.ckpt-$nsteps.pdf
 check_file_exists $logdir/train_1r/probability-density.ckpt-$nsteps.pdf
 check_file_exists $logdir/train_1r/thresholds.ckpt-$nsteps.csv
+check_file_exists $logdir/train_1r/confusion-matrix.ckpt-$nsteps.pdf
 check_file_exists $logdir/train-validation-loss.pdf
-check_file_exists $logdir/validation-F1.pdf
-for label in $(echo $labels_touse | sed "s/,/ /g") ; do
-  check_file_exists $logdir/validation-PvR-$label.pdf
-done
+check_file_exists $logdir/validation-P-R-F1-average.pdf
+check_file_exists $logdir/validation-P-R-F1-label.pdf
+check_file_exists $logdir/validation-P-R-F1-model.pdf
+check_file_exists $logdir/validation-PvR.pdf
 
 cmd="freeze \
       --context_ms=$context_ms \

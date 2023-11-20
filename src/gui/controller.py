@@ -1507,14 +1507,12 @@ def accuracy_succeeded(logdir, reftime):
         return False
     traindirs = list(filter(lambda x: os.path.isdir(os.path.join(logdir,x)) and \
                             not x.startswith('summaries_'), os.listdir(logdir)))
-    toplevelfiles = ["accuracy.pdf", "train-validation-loss.pdf", "validation-F1.pdf"]
-    if len(traindirs)>1:
-        toplevelfiles.append("validation-overlay.pdf")
-        toplevelfiles.append("confusion-matrices.pdf")
-    with open(os.path.join(logdir, traindirs[0], 'labels.txt'), 'r') as fid:
-        labels = fid.read().splitlines()
-    for label in labels:
-        toplevelfiles.append("validation-PvR-"+label+".pdf")
+    toplevelfiles = ["accuracy.pdf",
+                     "train-validation-loss.pdf",
+                     "validation-P-R-F1-average.pdf",
+                     "validation-P-R-F1-label.pdf",
+                     "validation-P-R-F1-model.pdf",
+                     "validation-PvR.pdf"]
     for toplevelfile in toplevelfiles:
         if not pdffile_succeeded(os.path.join(logdir, toplevelfile), reftime):
             return False
@@ -1523,6 +1521,10 @@ def accuracy_succeeded(logdir, reftime):
         trainfiles = os.listdir(os.path.join(logdir,traindir))
         nckpts = len(list(filter( \
                 lambda x: x.startswith('logits.validation.ckpt-'), trainfiles)))
+        nconfmatrix = len(list(filter( \
+                lambda x: x.startswith('confusion-matrix.ckpt-') and \
+                          reftime < os.path.getmtime(os.path.join(logdir,traindir,x)), \
+                trainfiles)))
         nprecision = len(list(filter( \
                 lambda x: x.startswith('precision-recall.ckpt-') and \
                           reftime < os.path.getmtime(os.path.join(logdir,traindir,x)), \
@@ -1543,7 +1545,7 @@ def accuracy_succeeded(logdir, reftime):
                 lambda x: x.startswith('thresholds.ckpt-') and \
                           reftime < os.path.getmtime(os.path.join(logdir,traindir,x)), \
                 trainfiles)))
-        if not nprecision==nprobability==nspecificity==nthresholds:  #==npredictions
+        if not nconfmatrix==nprecision==nprobability==nspecificity==nthresholds:  #==npredictions
             bokehlog.info("ERROR: number of files are not equal to each other"+str(nprecision)+' '+' '+str(nprobability)+' '+str(nspecificity)+' '+str(nthresholds))  #+str(npredictions)
             return False
         if nthresholds>0:
