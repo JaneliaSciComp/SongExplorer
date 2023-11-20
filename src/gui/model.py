@@ -86,7 +86,7 @@ def save_annotations():
         fids = {}
         csvwriters = {}
         csvfiles_current = set([])
-        for wavfile in set([x['file'] for x in annotated_sounds if x["label"]!=""]):
+        for wavfile in set([os.path.join(*x['file']) for x in annotated_sounds if x["label"]!=""]):
             csvfile = wavfile[:-4]+"-annotated-"+songexplorer_starttime+".csv"
             annotated_csvfiles_all.add(csvfile)
             csvfiles_current.add(csvfile)
@@ -100,19 +100,19 @@ def save_annotations():
         corrected_sounds=[]
         for annotation in annotated_sounds:
             if annotation['label']!="" and not annotation['label'].isspace():
-                csvwriters[annotation['file']].writerow(
-                        [os.path.basename(annotation['file']),
+                csvwriters[os.path.join(*annotation['file'])].writerow(
+                        [annotation['file'][1],
                         annotation['ticks'][0], annotation['ticks'][1],
                         'annotated', annotation['label']])
             iused = isused(annotation)
             if len(iused)>0 and used_sounds[iused[0]]['kind']=='annotated':
                 corrected_sounds.append(annotation)
         if corrected_sounds:
-            df_corrected = pd.DataFrame([[os.path.basename(x['file']), x['ticks'][0], \
+            df_corrected = pd.DataFrame([[x['file'][1], x['ticks'][0], \
                                           x['ticks'][1], 'annotated', x['label']] \
                                          for x in corrected_sounds], \
                                         columns=['file','start','stop','kind','label'])
-            for wavfile in set([x['file'] for x in corrected_sounds]):
+            for wavfile in set([os.path.join(*x['file']) for x in corrected_sounds]):
                 wavdir, wavbase = os.path.split(wavfile)
                 wavpath = os.path.join(V.groundtruth_folder.value, wavdir)
                 for csvbase in filter(lambda x: x.startswith(wavbase[:-4]) and

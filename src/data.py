@@ -217,7 +217,7 @@ class AudioProcessor(object):
         if kind not in kinds_touse:
           continue
         wav_path=os.path.join(os.path.dirname(csv_path),wavfile)
-        wav_base2=os.path.join(os.path.basename(os.path.dirname(csv_path)), wavfile)
+        wav_base2=[os.path.basename(os.path.dirname(csv_path)), wavfile]
         if wavfile in validation_files:
           set_index = 'validation'
         elif wavfile in testing_files:
@@ -256,7 +256,7 @@ class AudioProcessor(object):
             print("WARNING: "+str(annotation)+" is too close to edge of recording.  not using")
             continue
         if use_video and wav_path not in video_nframes:
-          sound_dirname = os.path.join(self.data_dir, os.path.dirname(wav_base2))
+          sound_dirname = os.path.join(self.data_dir, wav_base2[0])
           vidfile = video_findfile(sound_dirname, wavfile)
           if not vidfile:
             print("ERROR: video file corresponding to "+wavfile+" not found")
@@ -403,12 +403,12 @@ class AudioProcessor(object):
         start_tic = offset_tic - math.floor(context_tics/2) - shiftby_tics
         stop_tic  = offset_tic + math.ceil(context_tics/2) - shiftby_tics
         if use_audio:
-          wavpath = os.path.join(self.data_dir, sound['file'])
+          wavpath = os.path.join(self.data_dir, *sound['file'])
           _, audio_data = self.audio_read(wavpath, start_tic, stop_tic)
           audio_slice[i-offset,:,:] = audio_data.astype(np.float32) / abs(np.iinfo(np.int16).min)
         if use_video:
-          sound_basename = os.path.basename(sound['file'])
-          sound_dirname = os.path.join(self.data_dir, os.path.dirname(sound['file']))
+          sound_basename = sound['file'][1]
+          sound_dirname = os.path.join(self.data_dir, sound['file'][0])
           vidfile = video_findfile(sound_dirname, sound_basename)
           tiffile = os.path.join(sound_dirname, os.path.splitext(vidfile)[0]+".tif")
           if vidfile not in bkg:

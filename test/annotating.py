@@ -34,7 +34,7 @@ def check_annotation_on_disk(csvfile, thissound, shouldexist):
     csvreader = csv.reader(fid)
     foundit=False
     for line in csvreader:
-      if line[0]==os.path.basename(thissound['file']) and \
+      if line[0]==thissound['file'][1] and \
          line[1]==str(thissound['ticks'][0]) and \
          line[2]==str(thissound['ticks'][1]) and \
          line[3]=='annotated' and \
@@ -69,7 +69,7 @@ shutil.copy(os.path.join(repo_path, "data", "PS_20130625111709_ch3.wav"), basepa
 
 V.groundtruth_folder.value = os.path.join(repo_path, groundtruth_folder)
 
-wavfile = os.path.join(round_folder, 'PS_20130625111709_ch3.wav')
+wavfile = [round_folder, 'PS_20130625111709_ch3.wav']
 M.used_sounds = [
   {'label': 'time', 'file': wavfile, 'ticks': [2, 5], 'kind': 'detected'},
   {'label': 'frequency', 'file': wavfile, 'ticks': [10, 15], 'kind': 'detected'},
@@ -320,7 +320,7 @@ csvfile = os.path.join(basepath, 'PS_20130625111709_ch3-annotated-original.csv')
 with open(csvfile, 'w') as fid:
   csvwriter = csv.writer(fid)
   for sound in M.used_sounds:
-    csvwriter.writerow([os.path.basename(sound['file']),
+    csvwriter.writerow([sound['file'][1],
                         sound['ticks'][0], sound['ticks'][1],
                         sound['kind'],
                         sound['label']])

@@ -156,22 +156,21 @@ def doit(logdir, key_to_plot, ckpt, labels, nprobabilities, error_ratios):
   predictions_path = os.path.join(logdir,key_to_plot,'predictions.ckpt-'+str(ckpt))
   if not os.path.isdir(predictions_path):
     os.mkdir(os.path.join(logdir,key_to_plot,'predictions.ckpt-'+str(ckpt)))
-  wavfiles = set([x['file'] for x in validation_sounds])
-  for subdir in list(set([os.path.basename(os.path.split(x)[0]) for x in wavfiles])):
+  for subdir in set([x['file'][0] for x in validation_sounds]):
     with open(os.path.join(logdir, key_to_plot, 'predictions.ckpt-'+str(ckpt), \
                            subdir+'-mistakes.csv'), \
               'w', newline='') as csvfile:
       csvwriter = csv.writer(csvfile, lineterminator='\n')
       for i in range(len(validation_ground_truth)):
-        if os.path.basename(os.path.split(validation_sounds[i]['file'])[0]) != subdir:
+        if validation_sounds[i]['file'][0] != subdir:
           continue
         classified_as = np.argmax(validation_logits[i,:])
-        id = validation_sounds[i]['file'] + str(validation_sounds[i]['ticks']) + \
+        id = os.path.join(*validation_sounds[i]['file']) + str(validation_sounds[i]['ticks']) + \
              validation_sounds[i]['label'] + labels[classified_as]
         if id in already_written:
           continue
         already_written |= set([id])
-        csvwriter.writerow([os.path.basename(validation_sounds[i]['file']),
+        csvwriter.writerow([validation_sounds[i]['file'][1],
               validation_sounds[i]['ticks'][0], validation_sounds[i]['ticks'][1],
               'correct' if classified_as == validation_ground_truth[i] else 'mistaken',
               labels[classified_as],

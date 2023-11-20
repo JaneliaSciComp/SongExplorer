@@ -341,7 +341,7 @@ def get_shortest_tapped_sound(x_tic, currfile):
                              sorter=M.iused_stops_sorted)
     sounds_righthere &= set([M.iused_stops_sorted[i] for i in \
             range(iright, len(M.iused_stops_sorted))])
-    sounds_inthisfile = filter(lambda x: M.used_sounds[x]['file'] == currfile,
+    sounds_inthisfile = filter(lambda x: os.path.join(*M.used_sounds[x]['file']) == currfile,
                                 sounds_righthere)
     return sorted(sounds_inthisfile, key=lambda x: \
                   M.used_sounds[x]['ticks'][1]-M.used_sounds[x]['ticks'][0])
@@ -358,9 +358,9 @@ def context_doubletap_callback(event, midpoint):
                                                    x_tic + undo_proximity_tic,
                                                    side='right') - 1
             while (idouble_tapped_sound > 0) and \
-                  (M.annotated_sounds[idouble_tapped_sound]['file'] != currfile):
+                  (os.path.join(*M.annotated_sounds[idouble_tapped_sound]['file']) != currfile):
                 idouble_tapped_sound -= 1
-            if (M.annotated_sounds[idouble_tapped_sound]['file'] != currfile) or \
+            if (os.path.join(*M.annotated_sounds[idouble_tapped_sound]['file']) != currfile) or \
                (x_tic - undo_proximity_tic > M.annotated_sounds[idouble_tapped_sound]['ticks'][1]):
                 idouble_tapped_sound = -1
         if idouble_tapped_sound >= 0:
@@ -368,7 +368,9 @@ def context_doubletap_callback(event, midpoint):
         elif M.state['labels'][M.ilabel] != '':
             ticks = M.doubleclick_annotation(M.context_data, M.context_data_istart,
                                              M.audio_tic_rate, V.doubleclick_parameters, x_tic)
-            thissound = {'file':currfile, 'ticks':ticks, 'label':M.state['labels'][M.ilabel]}
+            thissound = {'file':list(os.path.split(currfile)),
+                         'ticks':ticks,
+                         'label':M.state['labels'][M.ilabel]}
             M.add_annotation(thissound)
     else:
         isounds_shortest = get_shortest_tapped_sound(x_tic, currfile)
@@ -428,7 +430,7 @@ def waveform_pan_end_callback(event):
     elif pan_start_y<0 and M.state['labels'][M.ilabel]!='':
         x_tic0 = int(np.rint(event.x*M.audio_tic_rate))
         x_tic1 = int(np.rint(pan_start_x*M.audio_tic_rate))
-        M.add_annotation({'file':V.recordings.value,
+        M.add_annotation({'file':list(os.path.split(V.recordings.value)),
                           'ticks':sorted([x_tic0,x_tic1]),
                           'label':M.state['labels'][M.ilabel]})
     V.waveform_quad_grey_pan.data.update(left=[], right=[], top=[], bottom=[])
@@ -556,7 +558,7 @@ def allright_callback():
 def _label_callback(inequality_fun, idx, button):
     tapped_start = M.context_sound['ticks'][0]
     snippets = np.nonzero([inequality_fun(x['ticks'][0], tapped_start) and
-                           V.recordings.value == x['file'] for x in M.used_sounds])[0]
+                           V.recordings.value == os.path.join(*x['file']) for x in M.used_sounds])[0]
     if len(snippets)>0:
         M.context_sound = M.used_sounds[snippets[idx]]
         contextsound2isnippet()
@@ -688,7 +690,7 @@ def spectrogram_pan_end_callback(event):
     elif M.state['labels'][M.ilabel]!='':
       x_tic0 = int(np.rint(event.x*M.audio_tic_rate))
       x_tic1 = int(np.rint(pan_start_x*M.audio_tic_rate))
-      M.add_annotation({'file':V.recordings.value,
+      M.add_annotation({'file':list(os.path.split(V.recordings.value)),
                         'ticks':sorted([x_tic0,x_tic1]),
                         'label':M.state['labels'][M.ilabel]})
     V.spectrogram_quad_grey_pan.data.update(left=[], right=[], top=[], bottom=[])
@@ -744,7 +746,7 @@ def _find_nearest_used_sound(history_idx):
         delta += 1
     M.context_sound = M.used_sounds[icontext_sound]
     contextsound2isnippet()
-    if V.recordings.value != M.history_stack[history_idx][1]['file']:
+    if V.recordings.value != os.path.join(*M.history_stack[history_idx][1]['file']):
         bokehlog.info("WARNING: can't jump to undone annotation")
 
 def _undo_callback():

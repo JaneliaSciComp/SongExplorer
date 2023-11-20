@@ -606,7 +606,7 @@ def snippets_update(redraw_wavs):
             midpoint = np.mean(thissound['ticks'], dtype=int)
             if redraw_wavs:
                 start_tic = max(0, midpoint-M.snippets_tic//2)
-                _, wavs = M.audio_read(os.path.join(groundtruth_folder.value, thissound['file']),
+                _, wavs = M.audio_read(os.path.join(groundtruth_folder.value, *thissound['file']),
                                        start_tic, start_tic+M.snippets_tic)
                 ntics_gotten = np.shape(wavs)[0]
                 left_pad = max(0, M.snippets_pix-ntics_gotten if start_tic==0 else 0)
@@ -788,11 +788,11 @@ def __context_update(wavi, context_sound, istart_bounded, ilength, npad_sec):
 
     if video_toggle.active:
         video_toggle.button_type="primary"
-        sound_basename=os.path.basename(context_sound['file'])
-        sound_dirname=os.path.join(groundtruth_folder.value, os.path.dirname(context_sound['file']))
+        sound_basename=context_sound['file'][1]
+        sound_dirname=os.path.join(groundtruth_folder.value, context_sound['file'][0])
         vidfile = M.video_findfile(sound_dirname, sound_basename)
         if not vidfile:
-            bokehlog.info("ERROR: video file corresponding to "+context_sound['file']+" not found")
+            bokehlog.info("ERROR: video file corresponding to "+os.path.join(*context_sound['file'])+" not found")
     else:
         vidfile = None
     if vidfile:
@@ -863,15 +863,15 @@ def context_update():
         lastlabel.disabled=False
         M.context_midpoint_tic = np.mean(M.context_sound['ticks'], dtype=int)
         istart = M.context_midpoint_tic-M.context_width_tic//2 + M.context_offset_tic
-        if recordings.value != M.context_sound['file']:
+        if recordings.value != os.path.join(*M.context_sound['file']):
             M.user_changed_recording=False
-        recordings.value = M.context_sound['file']
-        _, wavs = M.audio_read(os.path.join(groundtruth_folder.value, M.context_sound['file']))
+        recordings.value = os.path.join(*M.context_sound['file'])
+        _, wavs = M.audio_read(os.path.join(groundtruth_folder.value, *M.context_sound['file']))
         M.file_nframes = np.shape(wavs)[0]
         probs = [None]*len(M.used_labels)
         for ilabel,label in enumerate(M.used_labels):
             prob_wavfile = os.path.join(groundtruth_folder.value,
-                                        M.context_sound['file'][:-4]+'-'+label+'.wav')
+                                        *M.context_sound['file'])[:-4]+'-'+label+'.wav'
             if os.path.isfile(prob_wavfile):
                 prob_tic_rate, probs[ilabel] = spiowav.read(prob_wavfile, mmap=True)
         if istart+M.context_width_tic>0 and istart<M.file_nframes:
@@ -1192,7 +1192,7 @@ def recordings_update():
                                   np.array(df[4].apply(lambda x: x in labels)))
             if any(bidx):
                 M.used_sounds.extend(list(df[bidx].apply(lambda x:
-                                                         {"file": os.path.join(subdir,x[0]),
+                                                         {"file": [subdir,x[0]],
                                                           "ticks": [x[1],x[2]],
                                                           "kind": x[3],
                                                           "label": x[4]},
@@ -1209,7 +1209,8 @@ def recordings_update():
         recordings.options = sorted(list(wavfiles))
         for recording in recordings.options:
             M.used_recording2firstsound[recording] = \
-                  next(filter(lambda x: x[1]['file']==recording, enumerate(M.used_sounds)))[0]
+                  next(filter(lambda x: os.path.join(*x[1]['file'])==recording,
+                              enumerate(M.used_sounds)))[0]
         recordings.options = [""] + recordings.options
         if recordings.value != "":
             M.user_changed_recording=False

@@ -40,14 +40,14 @@ try:
   fids = []
   csvwriters = {}
   for idx in isort:
-    wavroot,_ = os.path.splitext(sounds[idx]['file'])
+    wavroot = os.path.splitext(os.path.join(*sounds[idx]['file']))[0]
     if wavroot not in csvwriters:
       fids.append(open(os.path.join(groundtruth_directory, wavroot+'-mistakes.csv'),
                        'w', newline=''))
       csvwriters[wavroot] = csv.writer(fids[-1], lineterminator='\n')
     classified_as = np.argmax(logits[idx])
     annotated_as = labels.index(sounds[idx]['label'])
-    csvwriters[wavroot].writerow([os.path.basename(sounds[idx]['file']),
+    csvwriters[wavroot].writerow([sounds[idx]['file'][1],
           sounds[idx]['ticks'][0], sounds[idx]['ticks'][1],
           'correct' if classified_as == annotated_as else 'mistaken',
           labels[classified_as],
