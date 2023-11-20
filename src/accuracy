@@ -24,6 +24,7 @@ import matplotlib.cm as cm
 from matplotlib.patches import Rectangle
 from datetime import datetime
 import socket
+from itertools import cycle, islice
 
 repodir = os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
 
@@ -583,6 +584,9 @@ def main():
   
     ax = plt.subplot(1,3,2)
     colors = plt.rcParams["axes.prop_cycle"].by_key()["color"]
+    if len(colors)<len(labels):
+      colors = list(islice(cycle(colors), len(labels)))
+      print("WARNING: not enough colors in default palette; some will be used again")
     precisions_model_mean = []
     recalls_model_mean = []
     for (ilabel,label) in enumerate(labels):
@@ -633,6 +637,9 @@ def main():
   
     ax = fig.add_subplot(1,3,3)
     colors = plt.rcParams["axes.prop_cycle"].by_key()["color"]
+    if len(colors)<len(keys_to_plot):
+      colors = list(islice(cycle(colors), len(keys_to_plot)))
+      print("WARNING: not enough colors in default palette; some will be used again")
     precisions_label_mean = []
     recalls_label_mean = []
     for (imodel,model) in enumerate(keys_to_plot):
