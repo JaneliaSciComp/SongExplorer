@@ -235,7 +235,7 @@ def main():
       ax4.plot([(x+y)/2 for (x,y) in validation_intervals], train_loss_ave, 'm', label='Loss mean')
       if validation_recall_mean[model]:
         ax1.plot(validation_step[model], validation_recall_mean[model], 'r', label='Validation')
-        ax1.set_title(model+"   "+str(round(validation_recall_mean[model][-1],1))+'%')
+        ax1.set_title(model+"   "+str(round(max(validation_recall_mean[model]),1))+'%')
         ax1.set_ylim(bottom=min(validation_recall_mean[model]))
       ax1.set_ylim(top=100)
       ax1.set_ylabel('Overall recall')
