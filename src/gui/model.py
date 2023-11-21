@@ -239,35 +239,35 @@ def init(_bokeh_document, _configuration_file):
 
     exec(open(_configuration_file).read(), globals())
 
-    sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+    sys.path.insert(0,os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-    sys.path.append(os.path.dirname(audio_read_plugin))
+    sys.path.insert(0,os.path.dirname(audio_read_plugin))
     audio_read_module = importlib.import_module(os.path.basename(audio_read_plugin))
     def audio_read(wav_path, start_tic=None, stop_tic=None):
         return audio_read_module.audio_read(wav_path, start_tic, stop_tic,
                                             **audio_read_plugin_kwargs)
 
-    sys.path.append(os.path.dirname(video_read_plugin))
+    sys.path.insert(0,os.path.dirname(video_read_plugin))
     video_read_module = importlib.import_module(os.path.basename(video_read_plugin))
     def video_read(fullpath, start_frame=None, stop_frame=None):
         return video_read_module.video_read(fullpath, start_frame, stop_frame,
                                             **video_read_plugin_kwargs)
 
-    sys.path.append(os.path.dirname(detect_plugin))
+    sys.path.insert(0,os.path.dirname(detect_plugin))
     tmp = importlib.import_module(os.path.basename(detect_plugin))
     detect_parameters = tmp.detect_parameters
     detect_labels = tmp.detect_labels(int(audio_nchannels))
 
-    sys.path.append(os.path.dirname(gui_context_doubleclick_plugin))
+    sys.path.insert(0,os.path.dirname(gui_context_doubleclick_plugin))
     tmp = importlib.import_module(os.path.basename(gui_context_doubleclick_plugin))
     doubleclick_parameters = tmp.doubleclick_parameters
     doubleclick_annotation = tmp.doubleclick_annotation
 
-    sys.path.append(os.path.dirname(architecture_plugin))
+    sys.path.insert(0,os.path.dirname(architecture_plugin))
     model = importlib.import_module(os.path.basename(architecture_plugin))
     model_parameters = model.model_parameters
 
-    sys.path.append(os.path.dirname(video_findfile_plugin))
+    sys.path.insert(0,os.path.dirname(video_findfile_plugin))
     video_findfile = importlib.import_module(os.path.basename(video_findfile_plugin)).video_findfile
 
     def is_local_server_or_cluster(varname, varvalue):
