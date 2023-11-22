@@ -1005,7 +1005,7 @@ def context_update():
                               M.used_sounds[isound]['label'])
                 left_used.append(L/M.audio_tic_rate)
                 right_used.append(R/M.audio_tic_rate)
-                if M.context_sound==M.used_sounds[isound] and not np.isnan(M.xcluster):
+                if M.context_sound==M.used_sounds[isound]:
                     if M.context_waveform:
                         waveform_quad_fuchsia.data.update(left=[L/M.audio_tic_rate],
                                                           right=[R/M.audio_tic_rate],

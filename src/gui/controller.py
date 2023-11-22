@@ -562,21 +562,20 @@ def _label_callback(inequality_fun, idx, button):
     if len(snippets)>0:
         M.context_sound = M.used_sounds[snippets[idx]]
         contextsound2isnippet()
-        if M.clustered_activations is not None:
-            if M.isnippet>=0:
-                M.xcluster = M.clustered_activations[M.ilayer][M.isnippet,0]
-                M.ycluster = M.clustered_activations[M.ilayer][M.isnippet,1]
-                if M.ndcluster==3:
-                    M.zcluster = M.clustered_activations[M.ilayer][M.isnippet,2]
-                V.cluster_circle_fuchsia.data.update(cx=[M.xcluster],
-                                                     cy=[M.ycluster],
-                                                     cz=[M.zcluster],
-                                                     cr=[M.state["circle_radius"]],
-                                                     cc=[M.cluster_circle_color])
-                M.xsnippet = M.ysnippet = 0
-            else:
-                M.xcluster = M.ycluster = M.zcluster = np.nan
-                V.cluster_circle_fuchsia.data.update(cx=[], cy=[], cz=[], cr=[], cc=[])
+        if M.clustered_activations is not None and M.isnippet>=0:
+            M.xcluster = M.clustered_activations[M.ilayer][M.isnippet,0]
+            M.ycluster = M.clustered_activations[M.ilayer][M.isnippet,1]
+            if M.ndcluster==3:
+                M.zcluster = M.clustered_activations[M.ilayer][M.isnippet,2]
+            V.cluster_circle_fuchsia.data.update(cx=[M.xcluster],
+                                                 cy=[M.ycluster],
+                                                 cz=[M.zcluster],
+                                                 cr=[M.state["circle_radius"]],
+                                                 cc=[M.cluster_circle_color])
+            M.xsnippet = M.ysnippet = 0
+        else:
+            M.xcluster = M.ycluster = M.zcluster = np.nan
+            V.cluster_circle_fuchsia.data.update(cx=[], cy=[], cz=[], cr=[], cc=[])
         V.snippets_update(True)
         V.context_update()
     button.button_type="default"
