@@ -389,9 +389,10 @@ def main():
       ax_r.set_ylim(top=100)
       ax_f1.set_ylim(top=100)
       ax_f1.set_xlabel('Step')
-      ax_p.set_ylabel('Precision')
-      ax_r.set_ylabel('Recall')
-      ax_f1.set_ylabel('F1 = 2PR/(P+R)')
+      if ilabel==0:
+        ax_p.set_ylabel('Precision')
+        ax_r.set_ylabel('Recall')
+        ax_f1.set_ylabel('F1 = 2PR/(P+R)')
       ax_p.set_title(labels_touse[keys_to_plot[0]][isort[ilabel]])
       ax_p.plot(validation_step[model], np.nanmean(P_all, axis=0), color='k', linewidth=3)
       ax_r.plot(validation_step[model], np.nanmean(R_all, axis=0), color='k', linewidth=3)
@@ -399,8 +400,7 @@ def main():
       if ilabel==0:
         lines.append(line)
       epoch_axis(ax_f1, batch_size[model], training_set_size[model], validation_step[model])
-    lgd = fig.legend(lines, [*keys_to_plot, 'mean'], ncol=1+len(keys_to_plot),
-                     bbox_to_anchor=(0.0,-0.02), loc="lower left")
+    lgd = fig.legend(lines, [*keys_to_plot, 'mean'], bbox_to_anchor=(1,1), loc="upper left")
     fig.tight_layout()
     plt.savefig(os.path.join(FLAGS.logdir,'validation-P-R-F1-label.pdf'),
                 bbox_extra_artists=(lgd,), bbox_inches='tight')
@@ -429,9 +429,10 @@ def main():
       ax_r.set_ylim(top=100)
       ax_f1.set_ylim(top=100)
       ax_f1.set_xlabel('Step')
-      ax_p.set_ylabel('Precision')
-      ax_r.set_ylabel('Recall')
-      ax_f1.set_ylabel('F1 = 2PR/(P+R)')
+      if imodel==0:
+        ax_p.set_ylabel('Precision')
+        ax_r.set_ylabel('Recall')
+        ax_f1.set_ylabel('F1 = 2PR/(P+R)')
       ax_p.set_title(model)
       ax_p.plot(validation_step[model], np.nanmean(P_all, axis=0), color='k', linewidth=3)
       ax_r.plot(validation_step[model], np.nanmean(R_all, axis=0), color='k', linewidth=3)
@@ -440,8 +441,7 @@ def main():
         lines.append(line)
       epoch_axis(ax_f1, batch_size[model], training_set_size[model], validation_step[model])
     theselabels = [labels_touse[keys_to_plot[0]][i] for i in isort]
-    lgd = fig.legend(lines, [*theselabels, 'mean'], ncol=1+len(theselabels),
-                     bbox_to_anchor=(0.0,-0.02), loc="lower left")
+    lgd = fig.legend(lines, [*theselabels, 'mean'], bbox_to_anchor=(1,1), loc="upper left")
     fig.tight_layout()
     plt.savefig(os.path.join(FLAGS.logdir,'validation-P-R-F1-model.pdf'),
                 bbox_extra_artists=(lgd,), bbox_inches='tight')
