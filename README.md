@@ -749,48 +749,72 @@ Measure the classifier's performance using the `Accuracy` button.  Output are th
 following charts and tables in the logs folder and the `train_1r` subdirectory
 therein:
 
-* "train-loss.pdf" shows the loss value and training and validation accuracies
-as a function of the number of training steps, wall-clock time, and epochs.
-Should the curves not quite plateau, choose a checkpoint to `restore from`,
-increase `# steps`, and train some more.  If you've changed any of the
+* "train-validation-loss.pdf" shows the loss value and training and validation
+recalls as a function of the number of training steps, wall-clock time, and
+epochs.  Should the curves not quite plateau, choose a checkpoint to `restore
+from`, increase `# steps`, and train some more.  If you've changed any of the
 parameters, you'll need to first reset them as they were, which is made easy by
 selecting one of the original log files and pressing the `Copy` button.
 
-* "accuracy.pdf" shows a confusion matrix in the left panel.  Each annotation
-is placed in this two-dimensional grid according to the label it was manually
-assigned and the label it was automatically predicted to be.  For a perfect
-classifier this matrix would be diagonal-- that is, only the fuchsia numbers in
-the upper left to lower right boxes would be non-zero.  The number in the upper
-right triangle in each square is the number of annotations in this square
-divided by the number of annotations in this row.  For boxes along the diagonal
-it indicates the recall, or sensitivity, for that word, which is the percentage
-of true positives among all real events (true positives plus false negatives).
-Similarly in the lower left is the precision, or positive predictive value--
-the percentage of true positives among all (both true and false) positives.  It
-is calculated by dividing the numbers in the upper right corner of each box
-by the sum of the corresponding column.  In the title is the overall accuracy,
-which is calculated as the average of the upper right numbers along the diagonal.
+* "accuracy.pdf" shows the confusion matrix of the most accurate checkpoint in the
+left panel.  Each annotation is placed in this two-dimensional grid according to
+the label it was manually assigned and the label it was automatically predicted
+to be.  For a perfect classifier this matrix would be diagonal-- that is, only
+the fuchsia numbers in the upper left to lower right boxes would be non-zero.
+The number in the upper right triangle in each square is the number of
+annotations in this square divided by the number of annotations in this row.
+For boxes along the diagonal it indicates the recall for that label, which is
+the percentage of true positives among all real events (true positives plus
+false negatives).  Similarly in the lower left is the precision-- the percentage
+of true positives among all (both true and false) positives.  It is calculated
+by dividing the numbers in the upper right corner of each box by the sum of the
+corresponding column.  In the title are the overall precision and recall, which
+are calculated as the average of the lower left and upper right numbers along
+the diagonal.
 
-In the middle panel of "accuracy.pdf" is the precision and recall for each word
-plotted separately.  For a perfect classifier they would all be 100.  These are
-simply the values in the corners of the boxes along the diagonal of the
-confusion matrix.
+The F1 score, which is the product divided by the sum of the precision and
+recall, times two, is taken to be the "most accurate checkpoint", with the
+particular checkpoint plotted in the confusion matrix specified in the legend
+of the right panel.  In this particular case, there is only one model, but in
+[Measuring Generalization](#measuring-generalization) and [Searching
+Hyperparameters](#searching-hyperparameters) we'll train multiple models.  In
+these cases, the *sum* of the confusion matrices with the best F1s for each
+model is shown here.  Multiple models are also created if `# replicates` is
+greater than 1.
 
-The right panel of "accuracy.pdf" shows the overall accuracy.  The fuchsia
-numbers along the diagonal of the confusion matrix are first divided by the
-number of annotations for the corresponding word (equivalent to the sum of the
-corresponding row) and then averaged.  In this case there will only be one
-point plotted, but in [Measuring Generalization](#measuring-generalization) and
-[Searching Hyperparameters](#searching-hyperparameters) we'll train multiple
-models, and each will have it's own point here calculated from their individual
-confusion matrices.
+In the middle panel of "accuracy.pdf" is the precision and recall for each label
+plotted separately.  These are simply the values in the corners of the boxes
+along the diagonal of the confusion matrix.  For a perfect classifier they would
+all be 100.  In this case all of the circles have black perimeters because this
+logs folder contains just a single trained model, but in the case where there
+are multiple models in this logs folder each will have it's own point here
+calculated from their individual confusion matrices.  The model-specific circles
+will be smaller and have white perimeters, with the larger circles outlined in
+black being the average across models.
 
-* "validation-F1.pdf" plots the F1 score (the product divided by the sum of the
-precision and recall, times two) over time for each of the `labels to use` separately.
-Check here to make sure that the accuracy of each word has converged.
+Similarly in the right panel of "accuracy.pdf" is the precision and recall for
+each model (as opposed to label) plotted separately.  Small circles with white
+perimeters show the label-specific accuracies and larger circles with black
+perimeters show the average across labels for each model.
 
-* "validation-PvR-<word\>.pdf" plots, separately for each word, the trajectory
-of the precision versus recall curve over number of training steps.
+* "validation-P-R-F1-label.pdf" plots precision, recall, and the F1 score over
+time in the top, middle, and bottom rows respectively with a separate column for
+each label.  Check here to make sure that the accuracy of each label has
+converged.  If there is more than one model in this logs folder, the thin
+colored lines are the accuracies for each model, with the thick black line being
+the average across models.  "validation-P-R-F1-model.pdf" is similar, but the
+columns are the models and the thin colored lines the labels.  Averages across
+all labels and models are plotted in "validation-P-R-F1-average.pdf".
+
+* "validation-PvR.pdf" plots, separately for each label and model, the trajectory
+of the precision versus recall curve over number of training steps.  The
+leftmost column and topmost row show the averages across models and labels,
+respectively, with the upper left plot showing the average across all models and
+labels.
+
+* "train_1r/confusion-matrix.ckpt-\*.csv" shows the confusion matrices for each
+checkpoint.  The checkpoint with the highest F1 is also shown in the left panel
+of "accuracy.pdf".
 
 * "train_1r/precision-recall.ckpt-\*.pdf" and
 "train_1r/sensitivity-specificity.ckpt-\*.pdf" show how the ratio of false
@@ -814,20 +838,6 @@ specific annotations in the withheld validation set which were mis-classified
 (plus those that were correct).  The WAV files and time stamps therein can be
 used to look for patterns in the raw data ([see Examining
 Errors](#examining-errors)).
-
-At this point in the tutorial we have just trained a single model, but SongExplorer
-does have workflows were multiple models are saved to a single `Logs Folder`
-(e.g. if `# replicates` is >1, or if `Omit One` or `X-Validate` is
-used).  In these cases, the left panel of "accuracy.pdf" will show the sum of
-the confusion matrix across all models, the right panel will have a gray box
-showing the mean and standard deviation of the overall accuracy across all
-models, and two additional files will be produced:
-
-* "train-overlay.pdf" shows the same validation accuracies as in "train-loss.pdf"
-overlayed across all replicates, leave-one-out models, or cross-validation folds.
-
-* "confusion-matrices.pdf" shows the individual confusion matrices for each
-replicate, model, or fold.
 
 ## Making Predictions ##
 
@@ -1037,8 +1047,8 @@ quantify accuracy.  Since the learning curves generally don't converge until
 the entire data set has been sampled many times over, set `# steps` to be
 several fold greater than the number of annotations (shown in the table near
 the labels) divided by the `mini-batch` size, and check that it actually
-converges with the "train-loss.pdf", "validation-F1.pdf", and
-"validation-PvR-<word\>.pdf" figures generated by the `Accuracy` button.  If the
+converges with the "train-validation-loss.pdf", "validation-P-R-F1*.pdf", and
+"validation-PvR.pdf" figures generated by the `Accuracy` button.  If the
 accuracy converges before an entire epoch has been trained upon, use a smaller
 `learning rate`.
 
@@ -1153,7 +1163,7 @@ or stochastic gradient descent (SGD).
 
 * `learning rate` specifies the fraction of the gradient to change each weight
 by at each training step.  Set it such that the training curve accuracy in
-"train-loss.pdf" does not saturate until after at least one epoch of ground
+"train-validation-loss.pdf" does not saturate until after at least one epoch of ground
 truth has been trained upon.
 
 The above apply to all architectures.  Specific to the default convolutional
