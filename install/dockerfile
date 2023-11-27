@@ -1,4 +1,4 @@
-ARG UBUNTU_VERSION=20.04
+ARG UBUNTU_VERSION=22.04
 
 FROM ubuntu:${UBUNTU_VERSION} as base
 
@@ -8,10 +8,9 @@ RUN apt-get update && apt-get install -y wget vim ssh tree && \
     wget https://repo.anaconda.com/miniconda/Miniconda3-py39_4.12.0-Linux-x86_64.sh -O /opt/miniconda3.sh && \
     bash /opt/miniconda3.sh -b -p /opt/miniconda3 && \
     /opt/miniconda3/bin/conda install conda-build -c conda-forge && \
-    /opt/miniconda3/bin/conda install mamba -c conda-forge && \
     /opt/miniconda3/bin/conda create --name songexplorer && \
-    /opt/miniconda3/bin/mamba build /opt/songexplorer/install/conda/songexplorer -c conda-forge -c apple -c nvidia && \
-    /opt/miniconda3/bin/mamba install -y --use-local songexplorer -n songexplorer -c conda-forge -c apple -c nvidia
+    /opt/miniconda3/bin/conda build /opt/songexplorer/install/conda/songexplorer -c conda-forge -c apple -c nvidia && \
+    /opt/miniconda3/bin/conda install -y --use-local songexplorer -n songexplorer -c conda-forge -c apple -c nvidia
 
 ENV PATH=/opt/miniconda3/envs/songexplorer/bin:/opt/miniconda3/condabin:$PATH
 

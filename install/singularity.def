@@ -1,5 +1,5 @@
 Bootstrap: library
-From: ubuntu:20.04
+From: ubuntu:22.04
 Stage: build
 %files
     songexplorer /opt
@@ -15,7 +15,6 @@ Stage: build
     wget https://repo.anaconda.com/miniconda/Miniconda3-py39_4.12.0-Linux-x86_64.sh
     bash Miniconda3-py39_4.12.0-Linux-x86_64.sh -b -p /opt/miniconda3
     /opt/miniconda3/bin/conda install conda-build -c conda-forge
-    /opt/miniconda3/bin/conda install mamba -c conda-forge
     /opt/miniconda3/bin/conda create --name songexplorer
-    /opt/miniconda3/bin/mamba build /opt/songexplorer/install/conda/songexplorer -c conda-forge -c apple -c nvidia
-    CONDA_OVERRIDE_CUDA='11.7' /opt/miniconda3/bin/mamba install -y --use-local songexplorer -n songexplorer -c conda-forge -c apple -c nvidia
+    /opt/miniconda3/bin/conda build /opt/songexplorer/install/conda/songexplorer -c conda-forge -c apple -c nvidia
+    CONDA_OVERRIDE_CUDA='12.1' /opt/miniconda3/bin/conda install -y --use-local songexplorer -n songexplorer -c conda-forge -c apple -c nvidia
