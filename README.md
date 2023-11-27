@@ -8,9 +8,7 @@ Table of Contents
    * [Citations and Repositories](#citations-and-repositories)
    * [Notation](#notation)
    * [Installation](#installation)
-      * [Conda for all Platforms](#conda-for-all-platforms)
-      * [Singularity for Linux](#singularity-for-linux)
-      * [Docker for Windows and Mac](#docker-for-windows-and-mac)
+      * [Conda Package Manager](#conda-package-manager)
       * [System Configuration](#system-configuration)
       * [Scheduling Jobs](#scheduling-jobs)
          * [Locally](#locally)
@@ -139,34 +137,27 @@ represent sections which you much customize.
 
 # Installation #
 
-SongExplorer can be run on all three major platforms.  The conda package
-manager is the preferred installation method, and pre-built images for
-docker and singularity containers are available too.  If you have a Linux
-distribution other than Ubuntu, then you will need to use a container, as
-Tensorflow, the machine learning framework from Google that SongExplorer
-uses, only supports Ubuntu.  Training your own classifier is fastest with
-a graphics processing unit (GPU).  For this reason, containers are not
-recommended on Mac and Windows as they do not support access to GPUs.
+SongExplorer can be run on all three major platforms.  The conda package manager
+is the preferred installation method.  If you have a Linux distribution other
+than Ubuntu, then you will need to use a container (e.g. Docker), as Tensorflow,
+the machine learning framework from Google that SongExplorer uses, only supports
+Ubuntu.
 
-On Linux and Windows you'll need to install the CUDA and CUDNN drivers
-from nvidia.com if you have a GPU.  The latter requires you to register
-for an account.  SongExplorer was tested and built with version 12.1.
+Training your own classifier is fastest with a graphics processing unit (GPU).
+On Linux and Windows you'll need to install the CUDA and CUDNN drivers from
+nvidia.com.  The latter requires you to register for an account.  SongExplorer
+was tested and built with version 12.1.
 
-## Conda for all Platforms ##
+## Conda Package Manager ##
 
-Platform-specific installation conda instructions can be found at
-[Mamba](https://mamba.readthedocs.io/en/latest/installation.html).
-You can either add it to an existing installation of
-[Conda](https://conda.io/projects/conda/en/latest/user-guide/install),
-or install a fresh copy.  If the latter, consider using
-[Micromamba](https://mamba.readthedocs.io/en/latest/user_guide/micromamba.html).
-On Macs you can also use [Homebrew](https://brew.sh/) to install conda
-and mamba.
+Platform-specific conda installation instructions can be found at
+[Conda](https://conda.io/projects/conda/en/latest/user-guide/install).  On Macs
+you can also use [Homebrew](https://brew.sh/) to install conda.
 
 Then, simply install Songexplorer into its own environment:
 
     $ conda create --name songexplorer
-    $ mamba install songexplorer -n songexplorer -c janelia
+    $ conda install songexplorer -n songexplorer -c janelia
 
 Pay attention to the notice at the end demarcated with "*** IMPORTANT
 !!! ***".  Follow the directions therein to install platform-specific
@@ -188,106 +179,6 @@ configuration file.  For now, you just need to decide where you're going to put 
 and then specify the full path to that file in the alias definition (e.g.
 "$HOME/songexplorer/configuration.py").
 
-## Singularity for Linux ##
-
-Platform-specific installation instructions can be found at
-[Sylabs](https://www.sylabs.io).  SongExplorer has been tested with version 3.7 on
-Linux and [3.3 Desktop Beta](https://sylabs.io/singularity-desktop-macos) on
-Mac.
-
-Next download the SongExplorer image from the cloud.  You can either go to
-[SongExplorer's cloud.sylabs.io
-page](https://cloud.sylabs.io/library/bjarthur/janelia/songexplorer) and
-click the Download button, or equivalently use the command line (for which you
-might need an access token):
-
-    $ singularity remote login SylabsCloud
-
-    $ singularity pull library://bjarthur/janelia/songexplorer:latest
-    INFO:    Container is signed
-    Data integrity checked, authentic and signed by:
-      ben arthur (songexplorer) <arthurb@hhmi.org>, Fingerprint XXABCXXX
-
-    $ ls -lht | head -n 2
-    total 16G
-    -rwxr-xr-x  1 arthurb scicompsoft 1.5G Sep  2 08:16 songexplorer_latest.sif*
-
-Put these definitions in your .bashrc (or .zshrc file on Mac OS Catalina and newer) file:
-
-    export SONGEXPLORER_BIN="singularity exec [--nv] [-B <disk-drive>] \
-        [--vm-cpu] [--vm-ram] <path-to-songexplorer_latest.sif>"
-    alias songexplorer="$SONGEXPLORER_BIN songexplorer <path-to-configuration.py> 5006"
-
-Add to the SONGEXPLORER_BIN export any directories you want to access using the
-`-B` flag (e.g. `singularity exec -B /my/home/directory ...`).
-
-In [System Configuration](#system-configuration) we'll make a copy of the default
-configuration file.  For now, you just need to decide where you're going to put it,
-and then specify the full path to that file in the alias definition (e.g.
-"$HOME/songexplorer/configuration.py").
-
-## Docker for Windows and Mac ##
-
-Platform-specific installation instructions can be
-found at [Docker](http://www.docker.com).  On Windows
-you'll also need to install the [Windows Subsystem for
-Linux](https://docs.microsoft.com/en-us/windows/wsl/install). Once
-everything is installed, open the Command Prompt on Windows and start WSL
-with `wsl`, or the Terminal on Mac, and download the [SongExplorer image from
-cloud.docker.com](https://hub.docker.com/r/bjarthur/songexplorer) as follows:
-
-    $ docker login
-
-    $ docker pull bjarthur/songexplorer
-    Using default tag: latest
-    latest: Pulling from bjarthur/songexplorer
-    Digest: sha256:466674507a10ae118219d83f8d0a3217ed31e4763209da96dddb03994cc26420
-    Status: Image is up to date for bjarthur/songexplorer:latest
-
-    $ docker image ls
-    REPOSITORY        TAG    IMAGE ID     CREATED      SIZE
-    bjarthur/songexplorer latest b63784a710bb 20 hours ago 2.27GB
-
-Put these definitions in your .bashrc (or .zshrc file on Mac OS X Catalina
-and newer) file:
-
-    export SONGEXPLORER_BIN="docker run \
-        [-v <disk-drive>] [-u <userid>] [-w <working-directory] \
-        bjarthur/songexplorer"
-    alias songexplorer="docker run \
-        [-v <disk-drive>] [-u <userid>] [-w <working-directory] \
-        -e SONGEXPLORER_BIN -h=`hostname` -p 5006:5006 \
-        bjarthur/songexplorer songexplorer <path-to-configuration.py> 5006"
-
-Add to these definitions any directories you want to access using the `-v`
-flag.  You might also need to use the `-u` flag to specify your username
-or userid.  Optionally specify the current working directory with the
-`-w` flag.  All together these options would look something like `docker
-run -v /Users:/Users -w $HOME ...`.
-
-In [System Configuration](#system-configuration) we'll make a copy of the
-default configuration file.  For now, you just need to decide where you're
-going to put it, and then specify the full path to that file in the alias
-definition (e.g. "$HOME/songexplorer/configuration.py").
-
-To quit out of SongExplorer you might need to open another terminal window and
-issue the `stop` command:
-
-    $ docker ps
-    CONTAINER ID IMAGE             COMMAND               CREATED       STATUS ...
-    6a26ad9d005e bjarthur/songexplorer "detect.sh /src/p..." 3 seconds ago Up 2 seconds ...
-
-    $ docker stop 6a26ad9d005e
-
-To make this easy, put this short cut in your .bashrc file:
-
-    alias dockerkill='docker stop $(docker ps --latest --format "{{.ID}}")'
-
-On Windows and Mac docker runs within a virtual machine that is configured by
-default to only use half the available CPU cores and half of the memory.  This
-configuration can be changed in the Preferences window.  Note that even when
-SongExplorer is idle these resources will *not* be available to other programs,
-including the operating system.
 
 ## System Configuration ##
 
@@ -1923,12 +1814,12 @@ build command.  These only need to be done once:
 
 Then build:
 
-    $ mamba build <path-to-songexplorer-repo>/install/conda/songexplorer -c conda-forge -c apple -c nvidia
+    $ conda build <path-to-songexplorer-repo>/install/conda/songexplorer -c conda-forge -c apple -c nvidia
 
 To install directly from this build:
 
     $ conda create --name songexplorer
-    $ mamba install -n songexplorer --use-local songexplorer -c conda-forge -c apple -c nvidia
+    $ conda install -n songexplorer --use-local songexplorer -c conda-forge -c apple -c nvidia
 
 To upload to the [Janelia forge](https://anaconda.org/janelia):
 
@@ -1946,11 +1837,6 @@ update "meta.yaml" with the new version number and new hash for the tar.gz
 asset:
 
     $ openssl sha256 <github-tar-gz-file>
-
-Currently, there is a [bug](https://github.com/mamba-org/mamba/issues/1826)
-in mamba on apple silicon.  The workaround is:
-
-    $ conda install libarchive -n base -c conda-forge
 
 Currently, songexplorer [hangs](https://github.com/microsoft/WSL/issues/7443)
 for large models on Windows.  This, despite updating to the latest version
@@ -1990,6 +1876,22 @@ Then push the image to the cloud:
     $ singularity sign songexplorer.sif
     $ singularity push songexplorer.sif library://bjarthur/janelia/songexplorer[:<version>]
 
+To download the image from the cloud.  You can either go to
+[SongExplorer's cloud.sylabs.io
+page](https://cloud.sylabs.io/library/bjarthur/janelia/songexplorer) and
+click the Download button, or equivalently use the command line:
+
+    $ singularity pull library://bjarthur/janelia/songexplorer:latest
+    INFO:    Container is signed
+    Data integrity checked, authentic and signed by:
+      ben arthur (songexplorer) <arthurb@hhmi.org>, Fingerprint XXABCXXX
+
+Put these definitions in your .bashrc  file:
+
+    export SONGEXPLORER_BIN="singularity exec [--nv] [-B <disk-drive>] \
+        [--vm-cpu] [--vm-ram] <path-to-songexplorer_latest.sif>"
+    alias songexplorer="$SONGEXPLORER_BIN songexplorer <path-to-configuration.py> 5006"
+
 To use a copy of the SongExplorer source code outside of the container, set
 SINGULARITYENV_PREPEND_PATH to the full path to SongExplorer's `src` directory in
 your shell environment.  `source_path` in "configuration.py" must be set
@@ -2009,12 +1911,54 @@ To build a docker image and push it to docker hub:
           [--no-cache=true] .
     $ [docker tag <image-id> bjarthur/songexplorer:<tag>]  % get image-id from `docker image ls`
     $ docker login
-    $ docker {push,pull} bjarthur/songexplorer[:<tag>]
+    $ docker push bjarthur/songexplorer[:<tag>]
 
 To remove a tag from docker hub:
 
     $ docker run --rm lumir/remove-dockerhub-tag --user bjarthur \
           --password <password> bjarthur/songexplorer:<tag>
+
+To pull an image from docker hub:
+
+    $ docker pull bjarthur/songexplorer
+    Using default tag: latest
+    latest: Pulling from bjarthur/songexplorer
+    Digest: sha256:466674507a10ae118219d83f8d0a3217ed31e4763209da96dddb03994cc26420
+    Status: Image is up to date for bjarthur/songexplorer:latest
+
+Put these definitions in your .bashrc file:
+
+    export SONGEXPLORER_BIN="docker run \
+        [-v <disk-drive>] [-u <userid>] [-w <working-directory] \
+        bjarthur/songexplorer"
+    alias songexplorer="docker run \
+        [-v <disk-drive>] [-u <userid>] [-w <working-directory] \
+        -e SONGEXPLORER_BIN -h=`hostname` -p 5006:5006 \
+        bjarthur/songexplorer songexplorer <path-to-configuration.py> 5006"
+
+Add to these definitions any directories you want to access using the `-v`
+flag.  You might also need to use the `-u` flag to specify your username
+or userid.  Optionally specify the current working directory with the
+`-w` flag.
+
+To quit out of SongExplorer you might need to open another terminal window and
+issue the `stop` command:
+
+    $ docker ps
+    CONTAINER ID IMAGE             COMMAND               CREATED       STATUS ...
+    6a26ad9d005e bjarthur/songexplorer "detect.sh /src/p..." 3 seconds ago Up 2 seconds ...
+
+    $ docker stop 6a26ad9d005e
+
+To make this easy, put this short cut in your .bashrc file:
+
+    alias dockerkill='docker stop $(docker ps --latest --format "{{.ID}}")'
+
+On Windows docker runs within a virtual machine that is configured by default to
+only use half the available CPU cores and half of the memory.  This
+configuration can be changed in the Preferences window.  Note that even when
+SongExplorer is idle these resources will *not* be available to other programs,
+including the operating system.
 
 To monitor resource usage:
 
