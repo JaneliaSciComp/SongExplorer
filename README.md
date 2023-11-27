@@ -111,9 +111,21 @@ Museo de Ciencias Naturales de Madrid's [Fonoteca Zoológica](www.fonozoo.com).
 
 # Citations and Repositories
 
+HM Shiozaki, K Wang, JL Lillvis, M Xu, BJ Dickson, DL Stern (2023)
+Combinatorial circuit dynamics orchestrate flexible motor patterns in Drosophila
+[bioRxiv](https://www.biorxiv.org/content/10.1101/2022.12.14.520499v2.full)
+
+JL Lillvis, K Wang, HM Shiozaki, M Xu,  DL Stern, BJ Dickson (2023)
+Nested neural circuits generate distinct acoustic signals during Drosophila courtship
+[bioRxiv](https://www.biorxiv.org/content/10.1101/2023.08.30.555537v2.abstract)
+
+JL Lillvis, H Otsuna, X Ding, I Pisarev, T Kawase, J Colonell, K Rokicki, C Goina, R Gao, A Hu, K Wang, J Bogovic, DE Milkie, L Meienberg, BD Mensh, ES Boyden, S Saalfeld, PW Tillberg, BJ Dickson  (2022)
+Rapid reconstruction of neural circuits using tissue expansion and light sheet microscopy
+[eLife](https://elifesciences.org/articles/81248) [bioRxiv](https://www.biorxiv.org/content/10.1101/2021.11.14.468535v2.abstract)
+
 BJ Arthur, Y Ding, M Sosale, F Khalif, E Kim, P Waddell, S Turaga, DL Stern (2021)  
 *SongExplorer*: A deep learning workflow for discovery and segmentation of animal acoustic communication signals  
-[bioRxiv doi: 10.1101/2021.03.26.437280](https://www.biorxiv.org/content/10.1101/2021.03.26.437280v1)  [figshare](https://figshare.com/articles/dataset/Audio_recordings_of_21_species_of_Drosophila_10_of_which_are_annotated/14328425)
+[bioRxiv](https://www.biorxiv.org/content/10.1101/2021.03.26.437280v1)  [figshare](https://figshare.com/articles/dataset/Audio_recordings_of_21_species_of_Drosophila_10_of_which_are_annotated/14328425)
 
 # Notation #
 
