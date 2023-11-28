@@ -420,6 +420,9 @@ def read_probabilities(basepath, labels):
 
 def discretize_probabilities(probability_matrix, thresholds, labels,
                             audio_tic_rate_probabilities, half_stride_sec, audio_tic_rate):
+  probability_matrix = np.append(probability_matrix,
+                                 np.zeros((np.shape(probability_matrix)[0],1)),
+                                 axis=1)
   behavior = probability_matrix > thresholds
   diff_behavior = np.diff(behavior)
   ichanges, jchanges = np.where(diff_behavior)
