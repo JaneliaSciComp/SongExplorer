@@ -1,11 +1,11 @@
 # audio_read_plugin="load-wav"
-# audio_read_plugin_kwargs={}
+# audio_read_plugin_kwargs={'mmap':True}
 
 import numpy as np
 import scipy.io.wavfile as spiowav
 
-def audio_read(wav_path, start_tic, stop_tic):
-    sampling_rate, data = spiowav.read(wav_path, mmap=True)
+def audio_read(wav_path, start_tic, stop_tic, mmap=True):
+    sampling_rate, data = spiowav.read(wav_path, mmap=mmap)
 
     if np.ndim(data)==1:
         data = np.expand_dims(data, axis=1)
