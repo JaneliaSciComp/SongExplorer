@@ -826,6 +826,8 @@ def _context_update(wavi, context_sound, istart_bounded, ilength, npad_sec):
             __context_update(wavi, context_sound, istart_bounded, ilength, npad_sec))
 
 def context_update():
+    global context_cache_file, context_cache_data
+
     istart = np.nan
     scales = [0]*len(M.context_waveform)
     ywav = [np.full(1,np.nan)]*len(M.context_waveform)
@@ -866,8 +868,11 @@ def context_update():
         if recordings.value != os.path.join(*M.context_sound['file']):
             M.user_changed_recording=False
         recordings.value = os.path.join(*M.context_sound['file'])
-        _, wavs = M.audio_read(os.path.join(groundtruth_folder.value, *M.context_sound['file']))
-        M.file_nframes = np.shape(wavs)[0]
+        wavfile = os.path.join(groundtruth_folder.value, *M.context_sound['file'])
+        if context_cache_file != wavfile:
+            context_cache_file = wavfile
+            _, context_cache_data = M.audio_read(wavfile)
+        M.file_nframes = np.shape(context_cache_data)[0]
         probs = [None]*len(M.used_labels)
         for ilabel,label in enumerate(M.used_labels):
             prob_wavfile = os.path.join(groundtruth_folder.value,
@@ -890,7 +895,7 @@ def context_update():
                 prob_pix = round(M.context_width_tic*tic_rate_ratio / prob_decimate_by)
 
             for ichannel in range(M.audio_nchannels):
-                wavi = wavs[istart_bounded : istart_bounded+ilength, ichannel]
+                wavi = context_cache_data[istart_bounded : istart_bounded+ilength, ichannel]
                 npad_sec = 0
                 if len(wavi)<M.context_width_tic+1:
                     npad = M.context_width_tic+1-len(wavi)
@@ -1496,6 +1501,9 @@ def init(_bokeh_document):
     global detect_parameters, detect_parameters_enable_logic, detect_parameters_required, detect_parameters_partitioned
     global doubleclick_parameters, doubleclick_parameters_enable_logic, doubleclick_parameters_required
     global model_parameters, model_parameters_enable_logic, model_parameters_required, model_parameters_partitioned
+    global context_cache_file, context_cache_data
+
+    context_cache_file, context_cache_data = None, None
 
     bokeh_document = _bokeh_document
 
