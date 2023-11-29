@@ -25,6 +25,7 @@ from matplotlib.patches import Rectangle
 from datetime import datetime
 import socket
 from itertools import cycle, islice
+from mpl_toolkits.axes_grid1 import make_axes_locatable
 
 repodir = os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
 
@@ -537,6 +538,12 @@ def main():
           ax.set_title(model+"   P="+str(round(P,1))+"%"+"   R="+str(round(R,1))+"%")
           if 2*P*R/(P+R) > best_F1[model][1]:
             best_F1[model] = (ckpt, 2*P*R/(P+R))
+          divider = make_axes_locatable(ax)
+          cax = divider.append_axes("right", size="5%", pad=0.1)
+          fig.colorbar(cm.ScalarMappable(norm=mpl.colors.Normalize(vmin=0, vmax=100),
+                                         cmap=cm.viridis),
+                       cax=cax, ticks=[0,100], use_gridspec=True)
+          fig.tight_layout()
           plt.savefig(os.path.join(FLAGS.logdir,model,'confusion-matrix.ckpt-'+ckpt+'.pdf'))
           plt.close()
 
@@ -560,8 +567,6 @@ def main():
   
     precision_summed_matrix, recall_summed_matrix, precision_summed, recall_summed = \
           normalize_confusion_matrix(summed_confusion_matrix)
-  
-    from mpl_toolkits.axes_grid1 import make_axes_locatable
   
     fig = plt.figure(figsize=(3*6.4, 4.8))
   
