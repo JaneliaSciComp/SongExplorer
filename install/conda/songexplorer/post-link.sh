@@ -2,11 +2,18 @@ cat << EOF >> ${PREFIX}/.messages.txt
 ********** IMPORTANT !!! **********
 EOF
 
-if [ `uname -m` == arm64 ] ; then
+if [ `uname` == Darwin ] ; then
 cat << EOF >> ${PREFIX}/.messages.txt
 cut and paste the following into the command line to finish the installation:
 conda activate songexplorer
-pip3 install tensorflow tensorflow-metal
+pip3 install tensorflow
+EOF
+if [ `uname -m` == arm64 ] ; then
+cat << EOF >> ${PREFIX}/.messages.txt
+pip3 install tensorflow-metal
+EOF
+fi
+cat << EOF >> ${PREFIX}/.messages.txt
 optionally, to use video in songexplorer cut and paste the following too:
 EOF
 else
