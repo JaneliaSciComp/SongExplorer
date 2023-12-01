@@ -1823,6 +1823,9 @@ To install directly from this build:
 
 To upload to the [Janelia forge](https://anaconda.org/janelia):
 
+    % conda activate base
+    $ conda install anaconda-client
+    $ anaconda login
     $ anaconda upload -u janelia $CONDA_PREFIX/conda-bld/<architecture>/songexplorer-<version>-0.tar.bz2
 
 To upgrade to the latest version, first get the new version and delete the
