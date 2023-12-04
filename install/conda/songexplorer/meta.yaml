@@ -15,7 +15,7 @@ requirements:
   run:
     - python <=3.10
     - numpy
-    - tensorflow >=2.8  # [linux]
+    - tensorflow >=2.8,<2.14  # [linux]
     - cudatoolkit  # [not osx]
     - cudnn  # [not osx]
     - bokeh >=2,<3

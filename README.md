@@ -1814,12 +1814,12 @@ build command.  These only need to be done once:
 
 Then build:
 
-    $ conda build <path-to-songexplorer-repo>/install/conda/songexplorer -c conda-forge -c apple -c nvidia
+    $ conda build <path-to-songexplorer-repo>/install/conda/songexplorer -c conda-forge
 
 To install directly from this build:
 
     $ conda create --name songexplorer
-    $ conda install -n songexplorer --use-local songexplorer -c conda-forge -c apple -c nvidia
+    $ conda install -n songexplorer --use-local songexplorer -c conda-forge
 
 To upload to the [Janelia forge](https://anaconda.org/janelia):
 
