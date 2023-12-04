@@ -112,7 +112,8 @@ cmd="train \
      --batch_seed=$batch_seed \
      --weights_seed=$weights_seed \
      --deterministic=$deterministic \
-     --ireplicates=$ireplicates"
+     --ireplicates=$ireplicates \
+     --igpu="
 echo $cmd &>> $logdir/train1.log
 eval $cmd &>> $logdir/train1.log
 
@@ -156,7 +157,8 @@ cmd="freeze \
       --video_frame_rate=$video_frame_rate \
       --video_frame_height=$video_frame_height \
       --video_frame_width=$video_frame_width \
-      --video_channels=$video_channels"
+      --video_channels=$video_channels \
+      --igpu="
 echo $cmd &>> $logdir/train_${ireplicates}r/freeze.ckpt-${check_point}.log
 eval $cmd &>> $logdir/train_${ireplicates}r/freeze.ckpt-${check_point}.log
 
@@ -189,7 +191,8 @@ cmd="classify \
       --video_channels=$video_channels \
       --deterministic=$deterministic \
       --labels= \
-      --prevalences="
+      --prevalences= \
+      --igpu="
 echo $cmd &>> ${wavpath_noext}-classify.log
 eval $cmd &>> ${wavpath_noext}-classify.log
 
@@ -263,7 +266,8 @@ cmd="activations \
       --validation_percentage=0.0 \
       --validation_offset_percentage=0.0 \
       --deterministic=$deterministic \
-      --save_activations=True"
+      --save_activations=True \
+      --igpu="
 echo $cmd &>> $data_dir/activations.log
 eval $cmd &>> $data_dir/activations.log
 
@@ -333,7 +337,8 @@ for ioffset in $ioffsets ; do
        --video_channels=$video_channels \
        --batch_seed=$batch_seed \
        --weights_seed=$weights_seed \
-       --deterministic=$deterministic '' \
+       --deterministic=$deterministic ''  \
+       --igpu=\
        --ioffset=$ioffset \
        --subsets=${wavfiles[ioffset]}"
   echo $cmd &>> $logdir/generalize$(( "${ioffset}" + 1 )).log
@@ -413,7 +418,8 @@ for nfeatures in ${nfeaturess[@]} ; do
          --weights_seed=$weights_seed \
          --deterministic=$deterministic \
          --kfold=$kfold \
-         --ifolds=$ifold"
+         --ifolds=$ifold \
+         --igpu="
     echo $cmd &>> $logdir/xvalidate${ifold}.log
     eval $cmd &>> $logdir/xvalidate${ifold}.log
   done
@@ -503,7 +509,8 @@ cmd="train \
      --batch_seed=$batch_seed \
      --weights_seed=$weights_seed \
      --deterministic=$deterministic \
-     --ireplicates=$ireplicates"
+     --ireplicates=$ireplicates \
+     --igpu="
 echo $cmd &>> $logdir/train1.log
 eval $cmd &>> $logdir/train1.log
 
@@ -545,7 +552,8 @@ cmd="freeze \
       --video_frame_rate=$video_frame_rate \
       --video_frame_height=$video_frame_height \
       --video_frame_width=$video_frame_width \
-      --video_channels=$video_channels"
+      --video_channels=$video_channels \
+      --igpu="
 echo $cmd &>> $logdir/train_${ireplicates}r/freeze.ckpt-${check_point}.log
 eval $cmd &>> $logdir/train_${ireplicates}r/freeze.ckpt-${check_point}.log
 
@@ -578,7 +586,8 @@ cmd="classify \
       --video_channels=$video_channels \
       --deterministic=$deterministic \
       --labels= \
-      --prevalences="
+      --prevalences= \
+      --igpu="
 echo $cmd &>> ${wavpath_noext}-classify.log
 eval $cmd &>> ${wavpath_noext}-classify.log
 
@@ -696,7 +705,8 @@ cmd="classify \
       --video_channels=$video_channels \
       --deterministic=$deterministic \
       --labels= \
-      --prevalences="
+      --prevalences= \
+      --igpu="
 echo $cmd &>> ${wavpath_noext}-classify.log
 eval $cmd &>> ${wavpath_noext}-classify.log
 
@@ -786,7 +796,8 @@ cmd="classify \
       --video_channels=$video_channels \
       --deterministic=$deterministic \
       --labels= \
-      --prevalences="
+      --prevalences= \
+      --igpu="
 echo $cmd &>> ${wavpath_noext}-classify.log
 eval $cmd &>> ${wavpath_noext}-classify.log
 

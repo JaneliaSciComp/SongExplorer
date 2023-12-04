@@ -75,7 +75,6 @@ bazel run tensorflow/examples/speech_commands:train -- \
 import argparse
 import os.path
 import sys
-import platform
 import re
 
 import numpy as np
@@ -84,13 +83,14 @@ from tensorflow.keras.optimizers import *
 
 import data
 
-from subprocess import run, PIPE, STDOUT
 from datetime import datetime
 import socket
 
 import json
 
 import importlib
+
+from lib import log_nvidia_smi_output, select_GPUs
 
 FLAGS = None
 
@@ -113,16 +113,7 @@ def main():
 
   np.set_printoptions(linewidth=np.inf)
 
-  if FLAGS.igpu:
-    physical_devices = tf.config.list_physical_devices('GPU')
-    if re.search('[a-zA-Z]', FLAGS.igpu):
-      if FLAGS.igpu in os.environ:
-        igpu = [int(x) for x in os.environ[FLAGS.igpu].split(',') if x != '']
-      else:
-        igpu = range(len(physical_devices))
-    else:
-      igpu = [int(x) for x in FLAGS.igpu.split(',')]
-    tf.config.set_visible_devices([physical_devices[x] for x in igpu], 'GPU')
+  select_GPUs(FLAGS.igpu)
 
   sys.path.append(os.path.dirname(FLAGS.model_architecture))
   model = importlib.import_module(os.path.basename(FLAGS.model_architecture))
@@ -618,7 +609,7 @@ if __name__ == '__main__':
   parser.add_argument(
       '--igpu',
       type=str,
-      default='',
+      default='songexplorer_use_all_gpus',
       help='If a comma separated list of numbers, use those GPU(s); if alphanumeric, use the GPUs specified in that environment variable; otherwise, use them all.')
 
   FLAGS, unparsed = parser.parse_known_args()
@@ -628,15 +619,7 @@ if __name__ == '__main__':
   with open(os.path.join(repodir, "VERSION.txt"), 'r') as fid:
     print('SongExplorer version = '+fid.read().strip().replace('\n',', '))
   print("hostname = "+socket.gethostname())
-  if FLAGS.igpu:
-      if platform.system()=='Windows':
-          cmd = 'where nvidia-smi.exe && nvidia-smi.exe'
-      else:
-          cmd = 'which nvidia-smi && nvidia-smi'
-      if FLAGS.igpu and FLAGS.igpu in os.environ:
-          cmd += ' -i '+os.environ[FLAGS.igpu]
-      p = run(cmd, shell=True, stdout=PIPE, stderr=STDOUT)
-      print(p.stdout.decode('ascii').rstrip())
+  log_nvidia_smi_output(FLAGS.igpu)
 
   try:
     main()

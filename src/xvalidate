@@ -43,7 +43,6 @@
 import argparse
 import os
 import sys
-import platform
 from subprocess import run, PIPE, STDOUT
 import asyncio
 import signal
@@ -51,6 +50,8 @@ import platform
 
 from datetime import datetime
 import socket
+
+from lib import log_nvidia_smi_output
 
 FLAGS = None
 
@@ -125,13 +126,11 @@ def main():
             "--validation_percentage="+str(kpercent),
             "--validation_offset_percentage="+str(koffset),
             "--train_dir="+os.path.join(FLAGS.logdir,"xvalidate_"+model),
-            "--summaries_dir="+os.path.join(FLAGS.logdir,"summaries_"+model)]
+            "--summaries_dir="+os.path.join(FLAGS.logdir,"summaries_"+model),
+            "--igpu="+FLAGS.igpu]
 
             #"--subsample_label=mel-pulse",
             #"--subsample_skip=1",
-
-      if FLAGS.igpu:
-          expr += ["--igpu="+FLAGS.igpu]
 
       cmds.append(expr+[os.path.join(FLAGS.logdir,"xvalidate_"+model+".log")])
       with open(cmds[-1][-1], mode) as fid:
@@ -310,7 +309,7 @@ if __name__ == '__main__':
   parser.add_argument(
       '--igpu',
       type=str,
-      default='',
+      default='songexplorer_use_all_gpus',
       help='If a comma separated list of numbers, use those GPU(s); if alphanumeric, use the GPUs specified in that environment variable; otherwise, use them all.')
   parser.add_argument(
       '--kfold',
@@ -330,15 +329,7 @@ if __name__ == '__main__':
   with open(os.path.join(repodir, "VERSION.txt"), 'r') as fid:
     print('SongExplorer version = '+fid.read().strip().replace('\n',', '))
   print("hostname = "+socket.gethostname())
-  if FLAGS.igpu:
-      if platform.system()=='Windows':
-          cmd = 'where nvidia-smi.exe && nvidia-smi.exe'
-      else:
-          cmd = 'which nvidia-smi && nvidia-smi'
-      if FLAGS.igpu and FLAGS.igpu in os.environ:
-          cmd += ' -i '+os.environ[FLAGS.igpu]
-      p = run(cmd, shell=True, stdout=PIPE, stderr=STDOUT)
-      print(p.stdout.decode('ascii').rstrip())
+  log_nvidia_smi_output(FLAGS.igpu)
   
   try:
     main()

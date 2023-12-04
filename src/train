@@ -44,7 +44,6 @@
 import argparse
 import os
 import sys
-import platform
 from subprocess import run, PIPE, STDOUT
 import asyncio
 import signal
@@ -52,6 +51,8 @@ import platform
 
 from datetime import datetime
 import socket
+
+from lib import log_nvidia_smi_output
 
 FLAGS = None
 
@@ -124,7 +125,8 @@ def main():
             "--deterministic="+FLAGS.deterministic,
             "--train_dir="+os.path.join(FLAGS.logdir,"train_"+model),
             "--summaries_dir="+os.path.join(FLAGS.logdir,"summaries_"+model),
-            "--save_fingerprints="+FLAGS.save_fingerprints]
+            "--save_fingerprints="+FLAGS.save_fingerprints,
+            "--igpu="+FLAGS.igpu]
 
             #"--subsample_label=mel-pulse,mel-notpulse",
             #"--subsample_skip=4096",
@@ -133,9 +135,6 @@ def main():
             #"--partition_n=4",
             #"--partition_training_files=PS_20130625111709_ch10.wav,PS_20130625111709_ch3.wav,PS_20130625155828_ch10.wav,PS_20130625155828_ch11.wav,PS_20130625155828_ch3.wav,PS_20130625155828_ch7.wav,PS_20130625155828_ch8.wav,PS_20130628144304_ch14.wav,PS_20130628144304_ch16.wav,PS_20130628144304_ch2.wav,PS_20130628144304_ch8.wav,PS_20130628165930_ch11.wav,PS_20130702114557_ch1.wav,PS_20130702114557_ch13.wav,PS_20130702114557_ch14.wav,PS_20130702144748_ch15.wav",
             #"--partition_validation_files=PS_20130625111709_ch7.wav,PS_20130625155828_ch6.wav,PS_20130628144304_ch15.wav,PS_20130702114557_ch10.wav",
-
-      if FLAGS.igpu:
-          expr += ["--igpu="+FLAGS.igpu]
 
       cmds.append(expr+[os.path.join(FLAGS.logdir,"train_"+model+".log")])
       with open(cmds[-1][-1], mode) as fid:
@@ -324,7 +323,7 @@ if __name__ == '__main__':
   parser.add_argument(
       '--igpu',
       type=str,
-      default='',
+      default='songexplorer_use_all_gpus',
       help='If a comma separated list of numbers, use those GPU(s); if alphanumeric, use the GPUs specified in that environment variable; otherwise, use them all.')
   parser.add_argument(
       '--ireplicates',
@@ -339,15 +338,7 @@ if __name__ == '__main__':
   with open(os.path.join(repodir, "VERSION.txt"), 'r') as fid:
     print('SongExplorer version = '+fid.read().strip().replace('\n',', '))
   print("hostname = "+socket.gethostname())
-  if FLAGS.igpu:
-      if platform.system()=='Windows':
-          cmd = 'where nvidia-smi.exe && nvidia-smi.exe'
-      else:
-          cmd = 'which nvidia-smi && nvidia-smi'
-      if FLAGS.igpu and FLAGS.igpu in os.environ:
-          cmd += ' -i '+os.environ[FLAGS.igpu]
-      p = run(cmd, shell=True, stdout=PIPE, stderr=STDOUT)
-      print(p.stdout.decode('ascii').rstrip())
+  log_nvidia_smi_output(FLAGS.igpu)
   
   try:
     main()

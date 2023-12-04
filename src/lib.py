@@ -20,6 +20,10 @@ from datetime import datetime
 
 import tifffile
 
+import tensorflow as tf
+import platform
+from subprocess import run, PIPE, STDOUT
+
 sys.path.append(os.path.dirname(os.path.realpath(__file__)))
 
 def compute_background(vidfile, video_bkg_frames, video_data, tiffile):
@@ -474,3 +478,23 @@ def save_thresholds(logdir, model, ckpt, thresholds, ratios, labels, dense=False
   for ilabel in range(len(labels)):
     fidcsv.writerow([labels[ilabel]] + thresholds[labels[ilabel]].tolist())
   fid.close()
+
+def select_GPUs(igpu):
+  if igpu != "songexplorer_use_all_gpus":
+    physical_devices = tf.config.list_physical_devices('GPU')
+    igpu = os.environ[igpu] if igpu in os.environ else igpu
+    igpu = [int(x) for x in igpu.split(',') if x]
+    tf.config.set_visible_devices([physical_devices[x] for x in igpu], 'GPU')
+
+def log_nvidia_smi_output(igpu):
+  if not (igpu=='' or igpu in os.environ and os.environ[igpu]==''):
+      if platform.system()=='Windows':
+          cmd = 'where nvidia-smi.exe && nvidia-smi.exe'
+      else:
+          cmd = 'which nvidia-smi && nvidia-smi'
+      if igpu in os.environ and os.environ[igpu]:
+          cmd += ' -i ' + os.environ[igpu] 
+      elif igpu != 'songexplorer_use_all_gpus':
+          cmd += ' -i ' + igpu
+      p = run(cmd, shell=True, stdout=PIPE, stderr=STDOUT)
+      print(p.stdout.decode('ascii').rstrip())

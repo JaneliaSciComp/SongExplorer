@@ -73,7 +73,7 @@ parameters = [
     "--batch_seed=1",
     "--weights_seed=1",
     "--deterministic=0",
-    "--igpu=QUEUE1",
+    "--igpu=",
     "--ireplicates=1",
     "--save_fingerprints=1"]  # not hoised to GUI
 
