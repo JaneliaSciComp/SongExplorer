@@ -157,16 +157,20 @@ you can also use [Homebrew](https://brew.sh/) to install conda.
 Then, simply install Songexplorer into its own environment:
 
     $ conda create --name songexplorer
-    $ conda install songexplorer -n songexplorer -c janelia
+    $ conda install songexplorer -n songexplorer -c janelia -c nvidia -c conda-forge
 
 Pay attention to the notice at the end demarcated with "*** IMPORTANT
 !!! ***".  Follow the directions therein to install platform-specific
 dependencies which are not in conda-forge.
 
-If you have trouble using the GPU on Ubuntu 22.04, you might need to install
-cuda-nvcc and set XLA_FLAGS in your environment.  See the [Tensorflow
-installation](https://www.tensorflow.org/install/pip#step-by-step_instructions)
-directions for more details.
+If you have trouble using the GPU on Ubuntu 22.04, you might need to move a
+library, set XLA_FLAGS in your environment, and install cuda-nvcc:
+
+    $ conda activate songexplorer
+    $ mkdir -p $CONDA_PREFIX/lib/nvvm/libdevice/
+    $ cp -p $CONDA_PREFIX/lib/libdevice.10.bc $CONDA_PREFIX/lib/nvvm/libdevice/
+    $ echo 'export XLA_FLAGS=--xla_gpu_cuda_data_dir=$CONDA_PREFIX/lib' >> $CONDA_PREFIX/etc/conda/activate.d/env_vars.sh
+    $ conda install -c nvidia cuda-nvcc
 
 Optionally, put these definitions in your .bashrc file (or .zshrc file on Mac OS
 Catalina and newer):
@@ -1814,12 +1818,12 @@ build command.  These only need to be done once:
 
 Then build:
 
-    $ conda build <path-to-songexplorer-repo>/install/conda/songexplorer -c conda-forge
+    $ conda build <path-to-songexplorer-repo>/install/conda/songexplorer -c nvidia -c conda-forge
 
 To install directly from this build:
 
     $ conda create --name songexplorer
-    $ conda install -n songexplorer --use-local songexplorer -c conda-forge
+    $ conda install -n songexplorer --use-local songexplorer -c nvidia -c conda-forge
 
 To upload to the [Janelia forge](https://anaconda.org/janelia):
 
