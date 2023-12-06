@@ -1,6 +1,11 @@
+import sys
 import os
 from subprocess import run, PIPE, STDOUT
 import time
+
+sys.path.append(os.path.join(os.path.dirname(os.path.dirname(os.path.realpath(__file__))),
+                             "src"))
+from lib import get_srcrepobindirs
 
 def wait_for_job(status_ticker_queue):
   while True:

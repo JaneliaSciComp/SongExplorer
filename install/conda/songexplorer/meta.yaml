@@ -36,8 +36,8 @@ requirements:
 
 test:
   commands:
-    - test -f $PREFIX/bin/songexplorer  # [unix]
-    - if not exist "%PREFIX%\bin\songexplorer.bat" exit 1  # [win]
+    - test -f $PREFIX/bin/songexplorer/src/songexplorer  # [unix]
+    - if not exist "%PREFIX%\bin\songexplorer\src\songexplorer" exit 1  # [win]
 
 about:
   home: https://github.com/JaneliaSciComp/SongExplorer

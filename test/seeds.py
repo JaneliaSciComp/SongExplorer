@@ -2,9 +2,6 @@
 
 # test that weights_seed works
 
-# export SINGULARITYENV_SONGEXPLORER_STATE=/tmp
-# ${SONGEXPLORER_BIN/-B/-B /tmp:/opt/songexplorer/test/scratch -B} test/seeds.py
-
 import sys
 import os
 import shutil
@@ -14,9 +11,11 @@ import time
 import math
 import asyncio
 
-from lib import wait_for_job, check_file_exists
+from libtest import wait_for_job, check_file_exists, get_srcrepobindirs
 
-repo_path = os.path.dirname(sys.path[0])
+_, repo_path, bindirs = get_srcrepobindirs()
+
+os.environ['PATH'] = os.pathsep.join([*os.environ['PATH'].split(os.pathsep), *bindirs])
   
 sys.path.append(os.path.join(repo_path, "src", "gui"))
 import model as M

@@ -24,7 +24,23 @@ import tensorflow as tf
 import platform
 from subprocess import run, PIPE, STDOUT
 
-sys.path.append(os.path.dirname(os.path.realpath(__file__)))
+def get_srcrepobindirs():
+    srcdir = os.path.dirname(os.path.realpath(__file__))
+    repodir = os.path.dirname(srcdir)
+    bindir = os.path.dirname(repodir)
+    envdir = os.path.dirname(bindir)
+    if platform.system()=='Windows':
+        bindirs = [
+            envdir,
+            os.path.join(envdir, "Library", "mingw-w64", "bin"),
+            os.path.join(envdir, "Library", "usr", "bin"),
+            os.path.join(envdir, "Library", "bin"),
+            os.path.join(envdir, "Scripts"),
+            os.path.join(envdir, "bin"),
+            ]
+    else:
+        bindirs = [os.path.join(envdir, "bin")]
+    return srcdir, repodir, bindirs
 
 def compute_background(vidfile, video_bkg_frames, video_data, tiffile):
     print("INFO: calculating median background for "+vidfile)

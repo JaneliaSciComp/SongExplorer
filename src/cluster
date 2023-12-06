@@ -2,8 +2,7 @@
 
 # reduce dimensionality of internal activation states
 
-# e.g.
-# $SONGEXPLORER_BIN cluster \
+# e.g. cluster \
 #     --data_dir=`pwd`/groundtruth-data \
 #     --layers=0,1,2,3,4 \
 #     --pca_fraction_variance_to_retain=1 \

@@ -15,10 +15,9 @@ from itertools import cycle
 from datetime import datetime
 import socket
 
-repodir = os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
-
-sys.path.append(os.path.join(repodir, "src"))
 from lib import *
+
+_, repodir, _ = get_srcrepobindirs()
 
 print(str(datetime.now())+": start time")
 with open(os.path.join(repodir, "VERSION.txt"), 'r') as fid:

@@ -2,9 +2,6 @@
 
 # test doing, undoing, and redoing annotations
 
-# export SINGULARITYENV_SONGEXPLORER_STATE=/tmp
-# ${SONGEXPLORER_BIN/-B/-B /tmp:/opt/songexplorer/test/scratch -B} test/annotating.py
-
 import sys
 import os
 import shutil
@@ -15,7 +12,7 @@ import math
 import csv
 import numpy as np
 
-from lib import count_lines, check_file_exists
+from libtest import count_lines, check_file_exists
 
 def check_annotation_in_memory(thissound, shouldexist):
   if shouldexist:

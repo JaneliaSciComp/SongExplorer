@@ -22,8 +22,7 @@
 
 # generate .wav files of per-label probabilities
 
-# e.g.
-# $SONGEXPLORER_BIN classify \
+# e.g. classify \
 #      --context_ms=204.8 \
 #      --shiftby_ms=0.0 \
 #      --video_findfile=same-basename \

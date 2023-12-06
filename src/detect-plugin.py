@@ -1,7 +1,6 @@
 #!/usr/bin/env python3
 
-# e.g.
-# $SONGEXPLORER_BIN detect-plugin.py \
+# e.g. detect-plugin.py \
 #     --filename=`pwd`/groundtruth-data/round2/20161207T102314_ch1_p1.wav \
 #     --parameters={"time_sigma":"9,4", "time_smooth_ms":"6.4", "frequency_n_ms":"25.6", "frequency_nw":"4", "frequency_p":"0.1,1.0", "frequency_smooth_ms":"25.6", "time_sigma_robust":"median"} \
 #     --audio_tic_rate=2500 \

@@ -30,6 +30,8 @@ M.init(doc, configuration_file)
 V.init(doc)
 C.init(doc)
 
+os.environ['PATH'] = os.pathsep.join([*M.bindirs, *os.environ['PATH'].split(os.pathsep)])
+
 detect_parameters = list(V.detect_parameters.values())
 doubleclick_parameters = list(V.doubleclick_parameters.values())
 model_parameters = list(V.model_parameters.values())

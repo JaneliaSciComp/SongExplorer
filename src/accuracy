@@ -2,8 +2,7 @@
 
 # generate learning curves, confusion matrices, precision-recall curves, thresholds, etc.
  
-# e.g.
-# $SONGEXPLORER_BIN accuracy \
+# e.g. accuracy \
 #     --logdir=trained-classifier \
 #     --error_ratios=2,1,0.5 \
 #     --nprobabilities=50 \
@@ -27,10 +26,9 @@ import socket
 from itertools import cycle, islice
 from mpl_toolkits.axes_grid1 import make_axes_locatable
 
-repodir = os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
-
-sys.path.append(os.path.join(repodir, "src"))
 from lib import *
+
+srcdir, repodir, _ = get_srcrepobindirs()
 
 from scipy import interpolate
 from scipy import stats

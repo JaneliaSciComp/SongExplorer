@@ -28,8 +28,9 @@ import view as V
 def generic_actuate(cmd, logfile, where,
                     ncpu_cores, ngpu_cards, ngigabyes_memory, clusterflags, *args):
     # https://github.com/rust-lang/rust/issues/94743
+    cmd = os.path.join(M.srcdir, cmd)
     if platform.system()=='Windows':
-        cmd += ".bat"
+        cmd = cmd.replace(os.path.sep, os.path.sep+os.path.sep)
         args = [x.replace('<','^^^<').replace('>','^^^>') for x in args]
     args = ["\'\'" if x=="" else "'"+x+"'" for x in args]
     with open(logfile, 'w') as fid:
@@ -46,19 +47,21 @@ def generic_actuate(cmd, logfile, where,
     if where == "local":
         kwargs = {"process_group": 0} if sys.version_info.major == 3 and sys.version_info.minor >= 11 else {}
         p = Popen(["hsubmit",
-                   str(ncpu_cores)+','+str(ngpu_cards)+','+str(ngigabyes_memory),
                    "-o", logfile, "-e", logfile, "-a",
+                   str(ncpu_cores)+','+str(ngpu_cards)+','+str(ngigabyes_memory),
                    *localdeps,
+                   "python",
                    cmd+" "+' '.join(args)],
                   stdout=PIPE, **kwargs)
         jobid = p.stdout.readline().decode('ascii').rstrip()
         bokehlog.info(jobid)
     elif where == "server":
         p = Popen(["ssh", "-l", M.server_username, M.server_ipaddr, "export SINGULARITYENV_PREPEND_PATH="+M.source_path+";",
-                   "$SONGEXPLORER_BIN", "hsubmit",
-                   str(ncpu_cores)+','+str(ngpu_cards)+','+str(ngigabyes_memory),
+                   "eval", "$SONGEXPLORER_BIN", "hsubmit",
                    "-o", logfile, "-e", logfile, "-a",
+                   str(ncpu_cores)+','+str(ngpu_cards)+','+str(ngigabyes_memory),
                    *localdeps,
+                   "python",
                    cmd+" "+' '.join(args).replace('"','\\"')],
                   stdout=PIPE)
         jobid = p.stdout.readline().decode('ascii').rstrip()
@@ -66,7 +69,7 @@ def generic_actuate(cmd, logfile, where,
     elif where == "cluster":
         pe = Popen(["echo",
                     "export SINGULARITYENV_PREPEND_PATH="+M.source_path+";",
-                    "$SONGEXPLORER_BIN "+cmd+" "+' '.join(args)],
+                    "eval $SONGEXPLORER_BIN python "+cmd+" "+' '.join(args)],
                    stdout=PIPE)
         if M.cluster_ipaddr:
             ssh_cmd = ["ssh", M.cluster_ipaddr]

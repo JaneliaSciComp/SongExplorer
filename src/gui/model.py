@@ -14,6 +14,9 @@ import view as V
 
 import importlib
 
+sys.path.append(os.path.dirname(os.path.dirname(os.path.realpath(__file__))))
+from lib import get_srcrepobindirs
+
 def parse_model_file(modelstr):
     filepath, filename = os.path.split(modelstr)
     if 'ckpt-' not in filename:
@@ -221,7 +224,7 @@ def next_pow2_ms(x_ms):
     return False, x_ms
 
 def init(_bokeh_document, _configuration_file):
-    global bokeh_document, configuration_file
+    global bokeh_document, configuration_file, bindirs, repodir, srcdir
     global audio_tic_rate, audio_nchannels, video_channels
     global nlabels, gui_width_pix
     global cluster_circle_color, label_palette
@@ -239,7 +242,9 @@ def init(_bokeh_document, _configuration_file):
 
     exec(open(_configuration_file).read(), globals())
 
-    sys.path.insert(0,os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+    srcdir, repodir, bindirs = get_srcrepobindirs()
+
+    sys.path.insert(0,srcdir)
 
     sys.path.insert(0,os.path.dirname(audio_read_plugin))
     audio_read_module = importlib.import_module(os.path.basename(audio_read_plugin))

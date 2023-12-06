@@ -8,7 +8,7 @@ Table of Contents
    * [Citations and Repositories](#citations-and-repositories)
    * [Notation](#notation)
    * [Installation](#installation)
-      * [Conda Package Manager](#conda-package-manager)
+      * [Downloading Executables](#downloading-executables)
       * [System Configuration](#system-configuration)
       * [Scheduling Jobs](#scheduling-jobs)
          * [Locally](#locally)
@@ -137,46 +137,56 @@ represent sections which you much customize.
 
 # Installation #
 
-SongExplorer can be run on all three major platforms.  The conda package manager
-is the preferred installation method.  If you have a Linux distribution other
-than Ubuntu, then you will need to use a container (e.g. Docker), as Tensorflow,
-the machine learning framework from Google that SongExplorer uses, only supports
-Ubuntu.
+SongExplorer can be run on all three major platforms.  Installation is as simple
+as downloading a compressed binary file, unpacking it, and setting your PATH
+environment variable.  If you have a Linux distribution other than Ubuntu, then
+you might need to use a container (e.g. Docker), as Tensorflow, the machine
+learning framework from Google that SongExplorer uses, only supports Ubuntu.
 
 Training your own classifier is fastest with a graphics processing unit (GPU).
 On Linux and Windows you'll need to install the CUDA and CUDNN drivers from
 nvidia.com.  The latter requires you to register for an account.  SongExplorer
-was tested and built with version 12.1.
+was tested and built with version 12.1.  On Macs with Apple silicon processors
+(i.e. the M series chips), the integrated GPU is accessed via the Metal
+framework, which comes preinstalled on MacOS.
 
-## Conda Package Manager ##
+## Downloading Executables ##
 
-Platform-specific conda installation instructions can be found at
-[Conda](https://conda.io/projects/conda/en/latest/user-guide/install).  On Macs
-you can also use [Homebrew](https://brew.sh/) to install conda.
+Download the "tar.gz" file specific to your operating system from the Assets
+section of Songexplorer's
+[Releases](https://github.com/JaneliaSciComp/SongExplorer/releases) page on
+Github.  Then extract its contents:
 
-Then, simply install Songexplorer into its own environment:
+    $ tar xvzf songexplorer-<version>-<architecture>.tar.gz
 
-    $ conda create --name songexplorer
-    $ conda install songexplorer -n songexplorer -c janelia -c nvidia -c conda-forge
-
-Pay attention to the notice at the end demarcated with "*** IMPORTANT
-!!! ***".  Follow the directions therein to install platform-specific
-dependencies which are not in conda-forge.
-
-If you have trouble using the GPU on Ubuntu 22.04, you might need to move a
-library, set XLA_FLAGS in your environment, and install cuda-nvcc:
-
-    $ conda activate songexplorer
-    $ mkdir -p $CONDA_PREFIX/lib/nvvm/libdevice/
-    $ cp -p $CONDA_PREFIX/lib/libdevice.10.bc $CONDA_PREFIX/lib/nvvm/libdevice/
-    $ echo 'export XLA_FLAGS=--xla_gpu_cuda_data_dir=$CONDA_PREFIX/lib' >> $CONDA_PREFIX/etc/conda/activate.d/env_vars.sh
-    $ conda install -c nvidia cuda-nvcc
-
-Optionally, put these definitions in your .bashrc file (or .zshrc file on Mac OS
+Next, put these definitions in your .bashrc file (or .zshrc file on Mac OS
 Catalina and newer):
 
-    export SONGEXPLORER_BIN='conda run -n songexplorer --no-capture-output'
-    alias songexplorer="$SONGEXPLORER_BIN songexplorer <path-to-configuration.py> 5006"
+    export SONGEXPLORER_BIN='PATH=<path-to-extracted-tarball>/bin:$PATH'
+    alias songexplorer="eval $SONGEXPLORER_BIN <path-to-extracted-tarball>/bin/songexplorer/src/songexplorer <path-to-configuration.py> 5006"
+
+For MS Windows, the equivalent is, in a PowerShell terminal with administrator
+privileges:
+
+    > $tbpath="<path-to-extracted-tarball>"
+    > [Environment]::SetEnvironmentVariable("SONGEXPLORER_BIN",
+            $tbpath + ";" +
+            $tbpath + "\Library\mingw-w64\bin;" +
+            $tbpath + "\Library\usr\bin;" +
+            $tbpath + "\Library\bin;" +
+            $tbpath + "\Scripts;" +
+            $tbpath + "\bin;",
+            [EnvironmentVariableTarget]::Machine)
+
+and in a powershell file (e.g. "songexplorer.ps1"):
+
+    $env:Path = $env:SONGEXPLORER_BIN + $env:Path
+    python <path-to-extracted-tarball>\bin\songexplorer\src\songexplorer <path-to-configuration.py> 5006
+    sleep 10
+
+If on MS Windows you get a permissions error, execute the following in PowerShell:
+
+    > Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope CurrentUser
 
 In [System Configuration](#system-configuration) we'll make a copy of the default
 configuration file.  For now, you just need to decide where you're going to put it,
@@ -194,11 +204,7 @@ a cluster.  You specify how you want this to work by editing
 Copy the exemplar configuration file out of the container and into your home
 directory:
 
-    $ cp $CONDA_PREFIX/songexplorer/configuration.py $PWD
-
-Note that if you're using a container, use this command instead:
-
-    $ $SONGEXPLORER_BIN cp /opt/songexplorer/configuration.py $PWD
+    $ cp <path-to-extracted_tarball>/bin/songexplorer/configuration.py $PWD
 
 Inside you'll find many variables which control where SongExplorer does its work:
 
@@ -341,8 +347,8 @@ to `SONGEXPLORER_BIN` and `mkdir -p /groups && ln -s /Volumes/MyLab/
 /groups/MyLab`.  With Docker you'll additionally need to open the preferences
 panel and configure file sharing to bind "/groups".
 
-* Set the `SONGEXPLORER` environment variable plus the `songexplorer` alias on both
-your workstation and the server to point to this same image.
+* Set the `SONGEXPLORER_BIN` environment variable plus the `songexplorer` alias
+on both your workstation and the server to point to this same image.
 
 * You might need an RSA key pair.  If so, you'll need to add `-[v|B]
 ~/.ssh:/root/.ssh` to `SONGEXPLORER_BIN`.
@@ -398,14 +404,14 @@ your system administrator.
     cluster_logfile_flag="-oo"
 
 The syntax used to specify the resources required is unique to the particular
-scheduler your cluster uses and how it is configured.  SongExplorer was developed
-and tested using the Load Sharing Facility (LSF) from IBM.  To support any
-cluster scheduler (e.g. SGE, PBS, Slurm, etc.), SongExplorer ignores
-`<task>_local_resources` when `<task_where>` is set to "cluster" and
-uses the variables `<task>_cluster_flags` instead to provide maximum
-flexibility.  Instead of specifying the cores, GPUs, and RAM needed explicitly,
-you give it the flags that the job submission command uses to allocate those
-same resources.
+scheduler your cluster uses and how it is configured.  SongExplorer was
+developed and tested using the Load Sharing Facility (LSF) from IBM.  To support
+any cluster scheduler (e.g. SGE, PBS, Slurm, etc.), SongExplorer ignores
+`<task>_{ncpu_cores,ngpu_cards,ngigabytes_memory}` when `<task_where>` is set to
+"cluster" and uses the variables `<task>_cluster_flags` instead to provide
+maximum flexibility.  Instead of specifying the cores, GPUs, and RAM needed
+explicitly, you give it the flags that the job submission command uses to
+allocate those same resources.
 
     $ grep -E train.*cluster configuration.py
     train_cluster_flags="-n 2 -gpu 'num=1' -q gpu_rtx"
@@ -1499,7 +1505,7 @@ documentation showing how to call it.  Here, for example, is the interface for
     # threshold an audio recording in both the time and frequency spaces
 
     # e.g.
-    # $SONGEXPLORER_BIN time-freq-threshold.py \
+    # eval $SONGEXPLORER_BIN time-freq-threshold.py \
     #     --filename=`pwd`/groundtruth-data/round2/20161207T102314_ch1_p1.wav \
     #     --parameters={"time_sigma":"9,4", "time_smooth_ms":"6.4", "frequency_n_ms":"25.6", "frequency_nw":"4", "frequency_p":"0.1,1.0", "frequency_smooth_ms":"25.6", "time_sigma_robust":"median"} \
     #     --audio_tic_rate=2500 \
@@ -1518,7 +1524,7 @@ of recordings in different folders:
 
     $ for wavfile in ${wavfiles[@]} ; do
           time-freq-threshold.py $wavfile 4 2 6.4 25.6 4 0.1 1.0 25.6 2500 1
-          $SONGEXPLORER_BIN time-freq-threshold.py \
+          eval $SONGEXPLORER_BIN time-freq-threshold.py \
               --filename=$wavfile \
               --parameters={"time_sigma":"9,4", "time_smooth_ms":"6.4", \
                             "frequency_n_ms":"25.6", "frequency_nw":"4", \
@@ -1808,7 +1814,14 @@ to improve SongExplorer instead instead of forking your own version.
 
 # Development #
 
+Conda is the preferred development environment.  The Singularity and Docker
+files provided use conda internally.
+
 ## Conda ##
+
+Platform-specific conda installation instructions can be found at
+[Conda](https://conda.io/projects/conda/en/latest/user-guide/install).  On Macs
+you can also use [Homebrew](https://brew.sh/) to install conda.
 
 To build locally, first download the source code and install the conda
 build command.  These only need to be done once:
@@ -1820,17 +1833,36 @@ Then build:
 
     $ conda build <path-to-songexplorer-repo>/install/conda/songexplorer -c nvidia -c conda-forge
 
-To install directly from this build:
+To install directly from this local build:
 
     $ conda create --name songexplorer
     $ conda install -n songexplorer --use-local songexplorer -c nvidia -c conda-forge
 
+Pay attention to the notice at the end demarcated with "*** IMPORTANT
+!!! ***".  Follow the directions therein to install platform-specific
+dependencies which are not in conda-forge.
+
+If you have trouble using the GPU on Ubuntu 22.04, you might need to move a
+library, set XLA_FLAGS in your environment, and install cuda-nvcc:
+
+    $ conda activate songexplorer
+    $ mkdir -p $CONDA_PREFIX/lib/nvvm/libdevice/
+    $ cp -p $CONDA_PREFIX/lib/libdevice.10.bc $CONDA_PREFIX/lib/nvvm/libdevice/
+    $ echo 'export XLA_FLAGS=--xla_gpu_cuda_data_dir=$CONDA_PREFIX/lib' >> $CONDA_PREFIX/etc/conda/activate.d/env_vars.sh
+    $ conda install -c nvidia cuda-nvcc
+
 To upload to the [Janelia forge](https://anaconda.org/janelia):
 
-    % conda activate base
+    $ conda activate base
     $ conda install anaconda-client
     $ anaconda login
     $ anaconda upload -u janelia $CONDA_PREFIX/conda-bld/<architecture>/songexplorer-<version>-0.tar.bz2
+
+Subsequently you can install directly from the Janelia forge, instead of your local
+build:
+
+    $ conda create --name songexplorer
+    $ conda install songexplorer -n songexplorer -c janelia -c nvidia -c conda-forge
 
 To upgrade to the latest version, first get the new version and delete the
 local build, and then execute the above commands again:
@@ -1843,7 +1875,31 @@ To update the conda recipe, tag a new version and make a github release, then
 update "meta.yaml" with the new version number and new hash for the tar.gz
 asset:
 
+    $ git tag v<version>
+    $ git push --tags
+
     $ openssl sha256 <github-tar-gz-file>
+
+To upload a tarball to Github, compress the conda environment and drag and drop
+it into the assets section of the releases page:
+
+    $ cd $CONDA_PREFIX/..
+    $ tar czf songexplorer-<version>-<architecture>.tar.gz songexplorer
+
+To make changes to the code, do so in the git repository while using the
+dependent packages in the conda environment:
+
+    $ conda activate songexplorer
+    $ echo PATH=<path-to-git-repo>/src:$PATH >> $CONDA_PREFIX/etc/conda/activate.d/env_vars.sh
+    $ echo PATH=<path-to-git-repo>/test:$PATH >> $CONDA_PREFIX/etc/conda/activate.d/env_vars.sh
+    $ conda activate songexplorer
+
+Or, skip activating a conda environment and depend on the packages in the tarball
+instead:
+
+    $ echo PATH=<path-to-git-repo>/src:$PATH >> ~/.bashrc
+    $ echo PATH=<path-to-git-repo>/test:$PATH >> ~/.bashrc
+    $ echo PATH=<path-to-extracted-tarball>/bin:$PATH >> ~/.bashrc
 
 Currently, songexplorer [hangs](https://github.com/microsoft/WSL/issues/7443)
 for large models on Windows.  This, despite updating to the latest version
@@ -1980,19 +2036,10 @@ that everything works both after you've first installed it as well as after any
 changes have been made to the code.  The tests exercise both the Python GUI as
 well as the Linux Bash interfaces.  To run them, simply execute "runtests":
 
-    $ runtests
+    $ $CONDA_PREFIX/bin/songexplorer/test/runtests
 
-or with singularity:
+or,
 
-    $ singularity exec -B /tmp:/opt/songexplorer/test/scratch <songexplorer.sif> \
-            /opt/songexplorer/test/runtests
+    $ <path-to-extracted-tarball>/bin/songexplorer/test/runtests
 
-or with docker:
 
-    $ docker run -v /tmp:/opt/songexplorer/test/scratch \
-            [-v <other-disks>] [-u <userid>] [-w <working-directory] \
-            -e SONGEXPLORER_BIN bjarthur/songexplorer:<tag> \
-            /opt/songexplorer/test/runtests
-
-Tensorflow with a GPU is not completely deterministic, so don't use the
-`--nv` flag when exercising the tests.

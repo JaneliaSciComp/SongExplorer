@@ -5,8 +5,7 @@
 # songexplorer <configuration-file> <port>
 # http://<hostname>:<port>/gui
 
-# e.g.
-# $SONGEXPLORER_BIN songexplorer `pwd`/configuration.py 5006
+# e.g. songexplorer `pwd`/configuration.py 5006
 
 import os
 import sys
@@ -15,6 +14,13 @@ import psutil
 from subprocess import run, PIPE, DEVNULL
 import socket
 import webbrowser
+import platform
+import shutil
+
+from lib import get_srcrepobindirs
+
+_, _, bindirs = get_srcrepobindirs()
+os.environ['PATH'] = os.pathsep.join([*bindirs, *os.environ['PATH'].split(os.pathsep)])
 
 _, configuration_file, port = sys.argv
 
@@ -182,7 +188,9 @@ try:
     except:
         defaultbrowser = None
     maybeshow = () if isinstance(defaultbrowser, webbrowser.GenericBrowser) else ("--show",)
-    run(["bokeh", "serve",
+    run([*(["bokeh"] if platform.system()=='Windows' else
+                 ["python", shutil.which("bokeh")]),
+         "serve",
          os.path.join(repodir, "src", "gui"),
          *[x for y in [["--allow-websocket-origin", x] for x in allow_websockets] for x in y],
          *maybeshow,

@@ -2,8 +2,7 @@
 
 # train several networks on different subsets of the annotations
 
-# e.g.
-# $SONGEXPLORER_BIN xvalidate \
+# e.g. xvalidate \
 #     --context_ms=204.8 \
 #     --shiftby_ms=0.0 \
 #     --optimizer=Adam \
@@ -46,12 +45,14 @@ import sys
 from subprocess import run, PIPE, STDOUT
 import asyncio
 import signal
-import platform
 
 from datetime import datetime
 import socket
 
-from lib import log_nvidia_smi_output
+from lib import log_nvidia_smi_output, get_srcrepobindirs
+
+srcdir, repodir, bindirs = get_srcrepobindirs()
+os.environ['PATH'] = os.pathsep.join([*bindirs, *os.environ['PATH'].split(os.pathsep)])
 
 FLAGS = None
 
@@ -90,7 +91,7 @@ def main():
       model=ifold+'k'
       kpercent=100/FLAGS.kfold
       koffset=kpercent * (int(ifold) - 1)
-      expr=["loop" + (".bat" if platform.system()=='Windows' else ""),
+      expr=["python", os.path.join(srcdir,"loop"),
             "--context_ms="+str(FLAGS.context_ms),
             "--shiftby_ms="+str(FLAGS.shiftby_ms),
             "--optimizer="+FLAGS.optimizer,
@@ -325,7 +326,6 @@ if __name__ == '__main__':
   FLAGS, unparsed = parser.parse_known_args()
 
   print(str(datetime.now())+": start time")
-  repodir = os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
   with open(os.path.join(repodir, "VERSION.txt"), 'r') as fid:
     print('SongExplorer version = '+fid.read().strip().replace('\n',', '))
   print("hostname = "+socket.gethostname())

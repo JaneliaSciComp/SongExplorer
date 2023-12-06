@@ -4,9 +4,6 @@
 # downsamplings via strided convolutions, and numbers of outputs tics
 # to predict in parallel
 
-# export SINGULARITYENV_SONGEXPLORER_STATE=/tmp
-# ${SONGEXPLORER_BIN/-B/-B /tmp:/opt/deepsong/test/scratch -B} test/freeze-classify.py
-
 import sys
 import os
 import shutil
@@ -17,9 +14,11 @@ import math
 import asyncio
 import scipy.io.wavfile as spiowav
 
-from lib import wait_for_job, check_file_exists
+from libtest import wait_for_job, check_file_exists, get_srcrepobindirs
 
-repo_path = os.path.dirname(sys.path[0])
+_, repo_path, bindirs = get_srcrepobindirs()
+
+os.environ['PATH'] = os.pathsep.join([*os.environ['PATH'].split(os.pathsep), *bindirs])
   
 sys.path.append(os.path.join(repo_path, "src", "gui"))
 import model as M

@@ -2,14 +2,16 @@
 
 # run all of the tests
 
-# ${SONGEXPLORER_BIN/-B/-B /tmp:/opt/songexplorer/test/scratch -B} python test/runtests"
-
 import os
 import sys
 from subprocess import run
 from filecmp import cmp, dircmp
 
-repo_path = os.path.dirname(sys.path[0])
+from libtest import get_srcrepobindirs
+
+_, repo_path, bindirs = get_srcrepobindirs()
+
+os.environ['PATH'] = os.pathsep.join([*os.environ['PATH'].split(os.pathsep), *bindirs])
 
 run(["python", os.path.join(repo_path, "test", "tutorial.py")])
 

@@ -2,8 +2,7 @@
 
 # make an ensemble of trained models
 
-# e.g.
-# $SONGEXPLORER_BIN ensemble \
+# e.g. ensemble \
 #      --context_ms=204.8 \
 #      --model_architecture=convolutional \
 #      --model_parameters='{"representation":"waveform", "window_ms":6.4, "stride_ms":1.6, "mel_dct":"7,7", "dropout":0.5, "kernel_sizes":5,3,3", last_conv_width":130, "nfeatures":"256,256,256", "dilate_after_layer":65535, "stride_after_layer":65535, "connection_type":"plain"}' \

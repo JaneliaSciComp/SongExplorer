@@ -9,7 +9,11 @@ from subprocess import run
 import numpy as np
 import platform
 
-repo_path = os.path.dirname(sys.path[0])
+from libtest import get_srcrepobindirs
+
+srcdir, repo_path, bindirs = get_srcrepobindirs()
+
+os.environ['PATH'] = os.pathsep.join([*os.environ['PATH'].split(os.pathsep), *bindirs])
 
 os.makedirs(os.path.join(repo_path, "test", "scratch", "shiftby"))
 shutil.copy(os.path.join(repo_path, "configuration.py"),
@@ -81,7 +85,7 @@ shiftby = 0.0
 logdir = os.path.join(repo_path, "test", "scratch", "shiftby", "shiftby-"+str(shiftby))
 
 os.makedirs(logdir)
-cmd = ["train" + (".bat" if platform.system()=='Windows' else ""),
+cmd = ["python", os.path.join(srcdir, "train"),
         *parameters, "--shiftby_ms="+str(shiftby), "--logdir="+logdir]
 with open(os.path.join(logdir, "train1.log"), 'w') as f:
     f.write(str(cmd))
@@ -94,7 +98,7 @@ shiftby = 51.2
 logdir = os.path.join(repo_path, "test", "scratch", "shiftby", "shiftby-"+str(shiftby))
 
 os.makedirs(logdir)
-cmd = ["train" + (".bat" if platform.system()=='Windows' else ""),
+cmd = ["python", os.path.join(srcdir, "train"),
         *parameters, "--shiftby_ms="+str(shiftby), "--logdir="+logdir]
 with open(os.path.join(logdir, "train1.log"), 'w') as f:
     f.write(str(cmd))

@@ -7,6 +7,8 @@ import json
 import tensorflow as tf
 from tensorflow.keras.layers import *
 
+from lib import get_srcrepobindirs
+
 import logging 
 bokehlog = logging.getLogger("songexplorer") 
 
@@ -37,7 +39,9 @@ def load_model(model_settings, ckpt):
                 this_model_parameters = json.loads(m.group(1))
                 break
 
-    sys.path.append(os.path.dirname("songexplorer/src/"+this_model_architecture))
+    srcdir, _, _ = get_srcrepobindirs()
+    modeldir = os.path.dirname(this_model_architecture)
+    sys.path.append(modeldir if modeldir else srcdir)
     model = importlib.import_module(os.path.basename(this_model_architecture))
 
     thismodel = model.create_model(model_settings, this_model_parameters)

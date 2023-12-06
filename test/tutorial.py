@@ -2,9 +2,6 @@
 
 # recapitulate the tutorial via the python interface
 
-# export SINGULARITYENV_SONGEXPLORER_STATE=/tmp
-# ${SONGEXPLORER_BIN/-B/-B /tmp:/opt/songexplorer/test/scratch -B} test/tutorial.py
-
 import sys
 import os
 import shutil
@@ -12,9 +9,11 @@ import glob
 from subprocess import run, PIPE, STDOUT
 import asyncio
 
-from lib import wait_for_job, check_file_exists, count_lines_with_label, count_lines
+from libtest import wait_for_job, check_file_exists, count_lines_with_label, count_lines, get_srcrepobindirs
 
-repo_path = os.path.dirname(sys.path[0])
+_, repo_path, bindirs = get_srcrepobindirs()
+
+os.environ['PATH'] = os.pathsep.join([*os.environ['PATH'].split(os.pathsep), *bindirs])
   
 sys.path.append(os.path.join(repo_path, "src", "gui"))
 import model as M
