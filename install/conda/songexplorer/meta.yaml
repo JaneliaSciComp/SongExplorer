@@ -32,6 +32,7 @@ requirements:
     - nodejs >=10.13.10
     - aitch >=0.2.2
     - opentsne
+    - libssh2 [win]
 
 test:
   commands:
