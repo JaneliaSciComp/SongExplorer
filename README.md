@@ -115,7 +115,7 @@ Combinatorial circuit dynamics orchestrate flexible motor patterns in Drosophila
 
 JL Lillvis, K Wang, HM Shiozaki, M Xu,  DL Stern, BJ Dickson (2023)
 Nested neural circuits generate distinct acoustic signals during Drosophila courtship
-[bioRxiv](https://www.biorxiv.org/content/10.1101/2023.08.30.555537v2.abstract)
+[bioRxiv](https://www.biorxiv.org/content/10.1101/2023.08.30.555537v2.abstract)  [figshare](https://doi.org/10.25378/janelia.24707544)
 
 JL Lillvis, H Otsuna, X Ding, I Pisarev, T Kawase, J Colonell, K Rokicki, C Goina, R Gao, A Hu, K Wang, J Bogovic, DE Milkie, L Meienberg, BD Mensh, ES Boyden, S Saalfeld, PW Tillberg, BJ Dickson  (2022)
 Rapid reconstruction of neural circuits using tissue expansion and light sheet microscopy
