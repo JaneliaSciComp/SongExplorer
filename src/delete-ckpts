@@ -1,39 +1,49 @@
 #!/usr/bin/env python3
 
 # delete unused checkpoints, to compact the size of models and conserve disk space.
-# if `ckpt-tokeep` is not supplied, the all but the last checkpoint is deleted.
+# `ckpts-tokeep` is a comma-separated list of checkpoints to keep, one for each model
+# in `logdir`.  if not supplied, all but the best checkpoint is deleted, as recorded
+# in accuracy.log.
 
-# delete-cktps <logdir> [ckpt-tokeep]
+# delete-cktps <logdir> [ckpts-tokeep]
 
-# e.g. delete-ckpts /Volumes/sternlab/behavior/arthurb/e-fish/timo/models/HandLabeled/ben-k3x15_dt1_df0_mb16_lr1e6-EPOCH 10000
+# e.g. delete-ckpts $PWD/trained-classifier 8750,10000,9500
 
 import sys
 import os
 from glob import glob
 import shutil
 from natsort import natsorted
+import ast
 
 if len(sys.argv)==3:
-    _,logdir,ckpt_tokeep = sys.argv
+    _,logdir,ckpts_tokeep = sys.argv
+    ckpts_tokeep = ckpts_tokeep.split(',')
+    modeldirs = natsorted(filter(lambda x: os.path.isdir(os.path.join(logdir, x)) and
+                                           not x.startswith("summaries"),
+                                 os.listdir(logdir)))
 else:
     _,logdir = sys.argv
-    pattern = "ckpt-X.index"
-    search_path = os.path.join(logdir, '*', pattern.replace('X', '*'))
-    ckpt_files = glob(search_path)
-    if len(ckpt_files)==0:
-        print('no checkpoint files found in ', logdir)
-        exit()
-    ckpt_tokeep = os.path.basename(natsorted(ckpt_files)[-1])[5:-6]
+    with open(os.path.join(logdir, "accuracy.log"), 'r') as fid:
+        for line in fid:
+            if line.startswith("models = "):
+                modeldirs = ast.literal_eval(line[9:])
+            if line.startswith("ckpts = "):
+                ckpts_tokeep = ast.literal_eval(line[8:])
+
+assert len(ckpts_tokeep) == len(modeldirs)
 
 print('logdir: '+logdir)
-print('ckpt_tokeep: '+ckpt_tokeep)
+print('ckpts_tokeep: '+str(ckpts_tokeep))
+print('modeldirs: '+str(modeldirs))
 
 def delete_glob(pattern, fn):
-  search_path = os.path.join(logdir, '*', pattern.replace('X', '*'))
-  notpattern = pattern.replace('X', ckpt_tokeep).replace('*', '')
-  for ckpt in glob(search_path):
-      if notpattern not in ckpt:
-          fn(ckpt)
+    for modeldir, ckpt_tokeep in zip(modeldirs, ckpts_tokeep):
+        search_path = os.path.join(logdir, modeldir, pattern.replace('X', '*'))
+        notpattern = pattern.replace('X', ckpt_tokeep).replace('*', '')
+        for ckpt in glob(search_path):
+            if notpattern not in ckpt:
+                fn(ckpt)
 
 delete_glob("ckpt-X.index", os.remove)
 delete_glob("ckpt-X.data*", os.remove)
