@@ -37,6 +37,7 @@ def delete_glob(pattern, fn):
 
 delete_glob("ckpt-X.index", os.remove)
 delete_glob("ckpt-X.data*", os.remove)
+delete_glob("confusion-matrix.ckpt-X.pdf", os.remove)
 delete_glob("logits.testing.ckpt-X.npz", os.remove)
 delete_glob("logits.validation.ckpt-X.npz", os.remove)
 delete_glob("precision-recall.ckpt-X.pdf", os.remove)
