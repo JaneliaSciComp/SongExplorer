@@ -123,7 +123,7 @@ def main():
       FLAGS.partition_validation_files.split(','),
       -1,
       FLAGS.testing_equalize_ratio, FLAGS.testing_max_sounds,
-      model_settings, FLAGS.model_parameters,
+      model_settings,
       FLAGS.data_loader_queuesize, FLAGS.data_loader_maxprocs,
       model.use_audio, model.use_video, video_findfile, FLAGS.video_bkg_frames,
       FLAGS.audio_read_plugin, FLAGS.video_read_plugin,
