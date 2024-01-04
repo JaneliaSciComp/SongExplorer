@@ -120,7 +120,7 @@ def save_annotations():
                 wavpath = os.path.join(V.groundtruth_folder.value, wavdir)
                 for csvbase in filter(lambda x: x.startswith(wavbase[:-4]) and
                                                 x.endswith(".csv") and
-                                                "-annotated-" in x and
+                                                "-annotated" in x and
                                                 songexplorer_starttime not in x,
                                       os.listdir(wavpath)):
                     csvfile = os.path.join(wavpath, csvbase)
