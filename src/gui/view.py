@@ -1290,7 +1290,13 @@ def buttons_update():
     else:
         model_file_button.label='checkpoint file:'
     for button in parameter_buttons:
-        button.disabled = button not in action2parameterbuttons[M.action]
+        if button in action2parameterbuttons[M.action]:
+            if button==prevalences_button:
+                button.disabled = loss.value=='overlapped'
+            else:
+                button.disabled = False
+        else:
+            button.disabled = True
     okay=True if M.action else False
     for textinput in parameter_textinputs:
         if textinput in action2parametertextinputs[M.action]:
@@ -1309,6 +1315,8 @@ def buttons_update():
             elif textinput==umap_distance:
                 umap_distance.disabled=False \
                         if cluster_algorithm.value.startswith('UMAP') else True
+            elif textinput==prevalences:
+                prevalences.disabled = loss.value=='overlapped'
             elif textinput in detect_parameters.values():
                 thislogic = detect_parameters_enable_logic[textinput]
                 if thislogic:
@@ -1342,7 +1350,7 @@ def buttons_update():
         else:
             textinput.disabled=True
     if M.action==classify and \
-            prevalences.value!='' and labels_touse.value=='':
+            loss.value=='exclusive' and prevalences.value!='' and labels_touse.value=='':
         okay=False
     if M.action==congruence and \
             validation_files.value=='' and test_files.value=='':
@@ -1497,7 +1505,7 @@ def init(_bokeh_document):
     global detect, misses, train, leaveoneout, leaveallout, xvalidate, mistakes, activations, cluster, visualize, accuracy, freeze, ensemble, classify, ethogram, compare, congruence
     global status_ticker, waitfor, deletefailures
     global file_dialog_source, configuration_contents
-    global logs_folder_button, logs_folder, model_file_button, model_file, wavcsv_files_button, wavcsv_files, groundtruth_folder_button, groundtruth_folder, validation_files_button, test_files_button, validation_files, test_files, labels_touse_button, labels_touse, kinds_touse_button, kinds_touse, prevalences_button, prevalences, copy, labelsounds, makepredictions, fixfalsepositives, fixfalsenegatives, generalize, tunehyperparameters, findnovellabels, examineerrors, testdensely, doit, nsteps, restore_from, save_and_validate_period, validate_percentage, mini_batch, kfold, activations_equalize_ratio, activations_max_sounds, pca_fraction_variance_to_retain, tsne_perplexity, tsne_exaggeration, umap_neighbors, umap_distance, cluster_algorithm, cluster_these_layers, precision_recall_ratios, congruence_portion, congruence_convolve, congruence_measure, context_ms, shiftby_ms, optimizer, learning_rate, nreplicates, batch_seed, weights_seed, file_dialog_string, file_dialog_table, readme_contents, model_summary, labelcounts, wizard_buttons, action_buttons, parameter_buttons, parameter_textinputs, wizard2actions, action2parameterbuttons, action2parametertextinputs, status_ticker_update, status_ticker_pre, status_ticker_post
+    global logs_folder_button, logs_folder, model_file_button, model_file, wavcsv_files_button, wavcsv_files, groundtruth_folder_button, groundtruth_folder, validation_files_button, test_files_button, validation_files, test_files, labels_touse_button, labels_touse, kinds_touse_button, kinds_touse, prevalences_button, prevalences, copy, labelsounds, makepredictions, fixfalsepositives, fixfalsenegatives, generalize, tunehyperparameters, findnovellabels, examineerrors, testdensely, doit, nsteps, restore_from, save_and_validate_period, validate_percentage, mini_batch, kfold, activations_equalize_ratio, activations_max_sounds, pca_fraction_variance_to_retain, tsne_perplexity, tsne_exaggeration, umap_neighbors, umap_distance, cluster_algorithm, cluster_these_layers, precision_recall_ratios, congruence_portion, congruence_convolve, congruence_measure, context_ms, shiftby_ms, optimizer, loss, learning_rate, nreplicates, batch_seed, weights_seed, file_dialog_string, file_dialog_table, readme_contents, model_summary, labelcounts, wizard_buttons, action_buttons, parameter_buttons, parameter_textinputs, wizard2actions, action2parameterbuttons, action2parametertextinputs, status_ticker_update, status_ticker_pre, status_ticker_post
     global detect_parameters, detect_parameters_enable_logic, detect_parameters_required, detect_parameters_partitioned
     global doubleclick_parameters, doubleclick_parameters_enable_logic, doubleclick_parameters_required
     global model_parameters, model_parameters_enable_logic, model_parameters_required, model_parameters_partitioned
@@ -2121,6 +2129,11 @@ def init(_bokeh_document):
                        options=["Adadelta", "Adagrad", "Adam", "Adamax", "Ftrl", "Nadam", "RMSProp", "SGD"])
     optimizer.on_change('value', lambda a,o,n: C.generic_parameters_callback(''))
 
+    loss = Select(title="loss", height=50, \
+                       value=M.state['loss'], \
+                       options=["exclusive", "overlapped"])
+    loss.on_change('value', lambda a,o,n: C.generic_parameters_callback(''))
+
     learning_rate = TextInput(value=M.state['learning_rate'], \
                                      title="learning rate", \
                                      disabled=False)
@@ -2203,7 +2216,7 @@ def init(_bokeh_document):
     cluster_these_layers = MultiSelect(title='layers', \
                                        value=M.state['cluster_these_layers'], \
                                        options=[],
-                                       height=169)
+                                       height=110)
     cluster_these_layers.on_change('value', lambda a,o,n: C.generic_parameters_callback(''))
     cluster_these_layers_update()
 
@@ -2316,6 +2329,7 @@ def init(_bokeh_document):
         context_ms,
         shiftby_ms,
         optimizer,
+        loss,
         learning_rate] +
 
         list(detect_parameters.values()) +
@@ -2355,21 +2369,21 @@ def init(_bokeh_document):
 
     action2parametertextinputs = {
             detect: [wavcsv_files] + list(detect_parameters.values()),
-            train: [context_ms, shiftby_ms, optimizer, learning_rate, nreplicates, batch_seed, weights_seed, logs_folder, groundtruth_folder, test_files, labels_touse, kinds_touse, nsteps, restore_from, save_and_validate_period, validate_percentage, mini_batch] + list(model_parameters.values()),
-            leaveoneout: [context_ms, shiftby_ms, optimizer, learning_rate, batch_seed, weights_seed, logs_folder, groundtruth_folder, validation_files, test_files, labels_touse, kinds_touse, nsteps, restore_from, save_and_validate_period, mini_batch] + list(model_parameters.values()),
-            leaveallout: [context_ms, shiftby_ms, optimizer, learning_rate, batch_seed, weights_seed, logs_folder, groundtruth_folder, validation_files, test_files, labels_touse, kinds_touse, nsteps, restore_from, save_and_validate_period, mini_batch] + list(model_parameters.values()),
-            xvalidate: [context_ms, shiftby_ms, optimizer, learning_rate, batch_seed, weights_seed, logs_folder, groundtruth_folder, test_files, labels_touse, kinds_touse, nsteps, restore_from, save_and_validate_period, mini_batch, kfold] + list(model_parameters.values()),
+            train: [context_ms, shiftby_ms, optimizer, loss, learning_rate, nreplicates, batch_seed, weights_seed, logs_folder, groundtruth_folder, test_files, labels_touse, kinds_touse, nsteps, restore_from, save_and_validate_period, validate_percentage, mini_batch] + list(model_parameters.values()),
+            leaveoneout: [context_ms, shiftby_ms, optimizer, loss, learning_rate, batch_seed, weights_seed, logs_folder, groundtruth_folder, validation_files, test_files, labels_touse, kinds_touse, nsteps, restore_from, save_and_validate_period, mini_batch] + list(model_parameters.values()),
+            leaveallout: [context_ms, shiftby_ms, optimizer, loss, learning_rate, batch_seed, weights_seed, logs_folder, groundtruth_folder, validation_files, test_files, labels_touse, kinds_touse, nsteps, restore_from, save_and_validate_period, mini_batch] + list(model_parameters.values()),
+            xvalidate: [context_ms, shiftby_ms, optimizer, loss, learning_rate, batch_seed, weights_seed, logs_folder, groundtruth_folder, test_files, labels_touse, kinds_touse, nsteps, restore_from, save_and_validate_period, mini_batch, kfold] + list(model_parameters.values()),
             mistakes: [groundtruth_folder],
             activations: [context_ms, shiftby_ms, logs_folder, model_file, groundtruth_folder, labels_touse, kinds_touse, activations_equalize_ratio, activations_max_sounds, mini_batch, batch_seed] + list(model_parameters.values()),
             cluster: [groundtruth_folder, cluster_algorithm, cluster_these_layers, pca_fraction_variance_to_retain, tsne_perplexity, tsne_exaggeration, umap_neighbors, umap_distance],
             visualize: [groundtruth_folder],
-            accuracy: [logs_folder, precision_recall_ratios],
-            freeze: [context_ms, logs_folder, model_file] + list(model_parameters.values()),
+            accuracy: [logs_folder, precision_recall_ratios, loss],
+            freeze: [context_ms, logs_folder, model_file, loss] + list(model_parameters.values()),
             ensemble: [context_ms, logs_folder, model_file] + list(model_parameters.values()),
-            classify: [context_ms, shiftby_ms, logs_folder, model_file, wavcsv_files, labels_touse, prevalences],
+            classify: [context_ms, shiftby_ms, logs_folder, model_file, wavcsv_files, labels_touse, prevalences, loss],
             ethogram: [model_file, wavcsv_files],
             misses: [wavcsv_files],
-            compare: [logs_folder],
+            compare: [logs_folder, loss],
             congruence: [groundtruth_folder, validation_files, test_files, congruence_portion, congruence_convolve, congruence_measure],
             None: parameter_textinputs }
 

@@ -11,6 +11,8 @@ import numpy as np
 from matplotlib.collections import PatchCollection
 from matplotlib.patches import Polygon
 import matplotlib.cm as cm
+from mpl_toolkits.axes_grid1 import make_axes_locatable
+from matplotlib.colors import Normalize
 from scipy import interpolate
 import math
 from natsort import realsorted
@@ -87,19 +89,36 @@ def combine_events(events1, events2, logic):
 
 def confusion_string2matrix(arg):
   arg = arg[1:-1]
+  arg = arg.replace("\n\n", ",")
   arg = arg.replace("\n", ",")
   arg = re.sub("(?P<P>[0-9]) ","\g<P>,", arg)
   return ast.literal_eval(arg)
 
-
-def _parse_confusion_matrices(logfile, nlabels_touse):
+def _parse_confusion_matrices(logfile):
   confusion_matrices = {}
   labels_string = None
   recent_lines = []
+  loss = ""
+  nlines_to_keep=np.inf
   with open(logfile, 'r') as fid:
     for line in fid:
+      if "labels_touse = " in line:
+        m=re.search('labels_touse = (.+)',line)
+        labels_touse = m.group(1).split(',')
+      if "loss = " in line:
+        m=re.search('loss = (.+)',line)
+        loss = m.group(1)
+      if "overlapped_prefix = " in line:
+        m=re.search('overlapped_prefix = (.+)',line)
+        overlapped_prefix = m.group(1)
+        if loss=='overlapped' and len(labels_touse)>1:
+            labels_touse = list(filter(lambda x: not x.startswith(overlapped_prefix),
+                                       labels_touse))
+            nlines_to_keep = 3*len(labels_touse)+1
+        else:
+            nlines_to_keep = len(labels_touse)+2
       recent_lines.append(line)
-      if len(recent_lines)>nlabels_touse+2:
+      while len(recent_lines) > nlines_to_keep:
         recent_lines.pop(0)
       if line.rstrip().endswith("Validation"):
         if not labels_string:
@@ -107,21 +126,20 @@ def _parse_confusion_matrices(logfile, nlabels_touse):
         assert labels_string == recent_lines[0].strip()
         ckpt = line.split(',')[1]
         confusion_string = ''.join(recent_lines[1:-1])
-        confusion_matrices[ckpt] = confusion_string2matrix(confusion_string)
+        confusion_matrix = confusion_string2matrix(confusion_string)
+        confusion_matrices[ckpt] = [confusion_matrix] if loss=="exclusive" else confusion_matrix
         recent_lines = []
   return confusion_matrices, ast.literal_eval(labels_string)
 
 def parse_confusion_matrices(logdir, kind, idx_time=None):
   models = list(filter(lambda x: x.startswith(kind+'_') and \
                           os.path.isdir(os.path.join(logdir,x)), os.listdir(logdir)))
-  labels_path = os.path.join(logdir,list(models)[0],'labels.txt')
-  nlabels_touse = sum(1 for line in open(labels_path))
 
   confusion_matrices={}
   labels=None
   for model in models:
     logfile = os.path.join(logdir, model+'.log')
-    confusion_matrices[model], theselabels = _parse_confusion_matrices(logfile, nlabels_touse)
+    confusion_matrices[model], theselabels = _parse_confusion_matrices(logfile)
     if not labels:
       labels=theselabels
     assert labels==theselabels
@@ -141,43 +159,54 @@ def normalize_confusion_matrix(matrix):
   return col_norm_matrix, row_norm_matrix, precision, recall
 
 
-def plot_confusion_matrix(ax, abs_matrix, col_matrix, row_matrix, numbers):
-  patches = []
-  sx,sy = np.shape(col_matrix)
-  for ix in range(sx):
-    for iy in range(sy):
-      value = row_matrix[iy][ix]
-      color = cm.viridis(value)
-      polygon=Polygon([[ix-0.5,iy-0.5],[ix+0.5,iy-0.5],[ix+0.5,iy+0.5]], facecolor=color)
-      patches.append(polygon)
-      if numbers and not np.isnan(value):
-        ax.annotate("{0:.1f}".format(100*value),xy=(ix+0.5,iy-0.5),
-                    color=(1-value,1-value,1-value,1),
-                    horizontalalignment='right', verticalalignment='top')
-      value = col_matrix[iy][ix]
-      color = cm.viridis(value)
-      polygon=Polygon([[ix-0.5,iy-0.5],[ix-0.5,iy+0.5],[ix+0.5,iy+0.5]], facecolor=color)
-      patches.append(polygon)
-      if numbers and not np.isnan(value):
-        ax.annotate("{0:.1f}".format(100*value),xy=(ix-0.5,iy+0.5),
-                    color=(1-value,1-value,1-value,1),
-                    horizontalalignment='left', verticalalignment='bottom')
-      value = abs_matrix[iy][ix]
-      if numbers and not np.isnan(value):
-        ax.annotate(str(int(value)),xy=(ix,iy),
-                    color="fuchsia",
-                    horizontalalignment='center', verticalalignment='center')
-      if numbers:
-        polygon=Polygon([[ix-0.5,iy-0.5],[ix-0.5,iy+0.5],[ix+0.5,iy+0.5],[ix+0.5,iy-0.5]], \
-                        facecolor=(1,1,1,0), edgecolor="white")
-        patches.append(polygon)
-  p = PatchCollection(patches,match_original=True)
-  ax.add_collection(p)
-  ax.set_xlim(-0.5,sx-0.5)
-  ax.set_ylim(-0.5,sy-0.5)
-  ax.set_xticks(range(sx))
-  ax.set_yticks(range(sy))
-
+def plot_confusion_matrix(fig, ax,
+                          abs_matrix, col_matrix, row_matrix, numbers,
+                          title, labels, precision, recall):
+    patches = []
+    sx,sy = np.shape(col_matrix)
+    for ix in range(sx):
+        for iy in range(sy):
+            value = row_matrix[iy][ix]
+            color = cm.viridis(value)
+            polygon=Polygon([[ix-0.5,iy-0.5],[ix+0.5,iy-0.5],[ix+0.5,iy+0.5]], facecolor=color)
+            patches.append(polygon)
+            if numbers and not np.isnan(value):
+                ax.annotate("{0:.1f}".format(100*value),xy=(ix+0.5,iy-0.5),
+                            color=(1-value,1-value,1-value,1),
+                            horizontalalignment='right', verticalalignment='top')
+            value = col_matrix[iy][ix]
+            color = cm.viridis(value)
+            polygon=Polygon([[ix-0.5,iy-0.5],[ix-0.5,iy+0.5],[ix+0.5,iy+0.5]], facecolor=color)
+            patches.append(polygon)
+            if numbers and not np.isnan(value):
+                ax.annotate("{0:.1f}".format(100*value),xy=(ix-0.5,iy+0.5),
+                            color=(1-value,1-value,1-value,1),
+                            horizontalalignment='left', verticalalignment='bottom')
+            value = abs_matrix[iy][ix]
+            if numbers and not np.isnan(value):
+                ax.annotate(str(int(value)),xy=(ix,iy),
+                            color="fuchsia",
+                            horizontalalignment='center', verticalalignment='center')
+            if numbers:
+                polygon=Polygon([[ix-0.5,iy-0.5],[ix-0.5,iy+0.5],[ix+0.5,iy+0.5],[ix+0.5,iy-0.5]], \
+                                facecolor=(1,1,1,0), edgecolor="white")
+                patches.append(polygon)
+    p = PatchCollection(patches,match_original=True)
+    ax.add_collection(p)
+    ax.set_xlim(-0.5,sx-0.5)
+    ax.set_ylim(-0.5,sy-0.5)
+    ax.set_xticks(range(sx))
+    ax.set_yticks(range(sy))
+    divider = make_axes_locatable(ax)
+    cax = divider.append_axes("right", size="5%", pad=0.1)
+    fig.colorbar(cm.ScalarMappable(norm=Normalize(vmin=0, vmax=100), cmap=cm.viridis),
+                 cax=cax, ticks=[0,100], use_gridspec=True)
+    ax.set_xticklabels(labels, rotation=40, ha='right')
+    ax.set_yticklabels(labels)
+    ax.invert_yaxis()
+    ax.set_xlabel('Classification')
+    ax.set_ylabel('Annotation')
+    ax.set_title(title+"P="+str(round(precision,1))+"%   "+"R="+str(round(recall,1))+"%")
 
 def layout(nplots):
   if nplots==10:
@@ -201,6 +230,7 @@ def read_log(frompath, logfile):
     train_restart_correction=0.0
     validation_restart_correction=0.0
     count_validation_state=count_testing_state=count_training_state=False
+    conf_matrix_state, confusion_string = False, ""
     for line in fid:
       if "num validation labels" in line:
         count_validation_state=True
@@ -241,17 +271,27 @@ def read_log(frompath, logfile):
           nlayers += 1
         m=re.search('[^,] (\d+)',line)
         nparameters_finallayer = int(m.group(1))
-      elif " [" in line and " ['" not in line and 'None' not in line:
-        if " [[" in line:
-          confusion_string=line
-        else:
+      elif "Confusion Matrix" in line:
+          conf_matrix_state=True
+      elif conf_matrix_state and " [" in line and " ['" not in line and 'None' not in line:
           confusion_string+=line
-        if "]]" in line:
-          confusion_matrix = confusion_string2matrix(confusion_string)
-          column_normalized_confusion_matrix, row_normalized_confusion_matrix, precision_mean, recall_mean = \
-                  normalize_confusion_matrix(confusion_matrix)
-          precision = [x[i] for (i,x) in enumerate(column_normalized_confusion_matrix)]
-          recall = [x[i] for (i,x) in enumerate(row_normalized_confusion_matrix)]
+          if "]]]" in line or ("]]" in line and "[[[" not in confusion_string):
+              confusion_matrix = confusion_string2matrix(confusion_string)
+              if np.ndim(confusion_matrix)==3:
+                  precision = []
+                  recall = []
+                  for i in range(np.shape(confusion_matrix)[2]):
+                      column_normalized_confusion_matrix, row_normalized_confusion_matrix, precision_mean, recall_mean = \
+                              normalize_confusion_matrix(confusion_matrix[i])
+                      precision.append(column_normalized_confusion_matrix[0][0])
+                      recall.append(row_normalized_confusion_matrix[0][0])
+              else:
+                  column_normalized_confusion_matrix, row_normalized_confusion_matrix, precision_mean, recall_mean = \
+                          normalize_confusion_matrix(confusion_matrix)
+                  precision = [x[i] for (i,x) in enumerate(column_normalized_confusion_matrix)]
+                  recall = [x[i] for (i,x) in enumerate(row_normalized_confusion_matrix)]
+              conf_matrix_state=False
+              confusion_string=""
       elif "Validation\n" in line:
         validation_precision.append(precision)
         validation_recall.append(recall)
@@ -356,7 +396,7 @@ def choose_units(data):
     return [x/24/60/60 for x in data], 'days'
 
 def calculate_precision_recall_specificity(validation_ground_truth, test_logits, labels, \
-                                           nprobabilities, ratios):
+                                           nprobabilities, ratios, loss):
   probabilities = {}
   thresholds = {}
   precisions = {}
@@ -367,8 +407,12 @@ def calculate_precision_recall_specificity(validation_ground_truth, test_logits,
   roc_areas = {}
   for ilabel in range(len(labels)):
     print(ilabel, end="\r", flush=True)
-    itrue = validation_ground_truth==ilabel
-    ifalse = validation_ground_truth!=ilabel
+    if loss=='exclusive':
+        itrue = validation_ground_truth==ilabel
+        ifalse = validation_ground_truth!=ilabel
+    else:
+        itrue = validation_ground_truth[:,ilabel]==1
+        ifalse = validation_ground_truth[:,ilabel]!=1
     precisions[labels[ilabel]] = np.full([nprobabilities],np.nan)
     recalls[labels[ilabel]] = np.full([nprobabilities],np.nan)
     sensitivities[labels[ilabel]] = np.full([nprobabilities],np.nan)

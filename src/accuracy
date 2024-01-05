@@ -4,6 +4,8 @@
  
 # e.g. accuracy \
 #     --logdir=trained-classifier \
+#     --loss=exclusive \
+#     --overlapped_prefix=not_ \
 #     --error_ratios=2,1,0.5 \
 #     --nprobabilities=50 \
 #     --parallelize=-1
@@ -24,7 +26,6 @@ from matplotlib.patches import Rectangle
 from datetime import datetime
 import socket
 from itertools import cycle, islice
-from mpl_toolkits.axes_grid1 import make_axes_locatable
 
 from lib import *
 
@@ -80,7 +81,7 @@ def plot_metrics_parameterized_by_threshold(thresholds, \
                   color="r", verticalalignment='top', horizontalalignment=whichside)
   fig.tight_layout()
 
-def plot_probability_density(test_ground_truth, test_logits, ratios, thresholds, labels):
+def plot_probability_density(test_ground_truth, test_logits, ratios, thresholds, labels, loss):
   speciess = sorted(list(set([x.split('-')[0] for x in labels])))
   if len(speciess)<len(labels):
     ncols = len(speciess)
@@ -110,7 +111,10 @@ def plot_probability_density(test_ground_truth, test_logits, ratios, thresholds,
       else:
         plt.axvline(x=threshold, color='k', linestyle='dotted')
     for gt in range(len(labels)):
-      igt = test_ground_truth==gt
+      if loss=='exclusive':
+        igt = test_ground_truth==gt
+      else:
+        igt = test_ground_truth[:,ilabel]==gt
       if sum(igt)==0:
         continue
       xdata = test_logits[igt,ilabel]
@@ -128,14 +132,15 @@ def plot_probability_density(test_ground_truth, test_logits, ratios, thresholds,
   fig.tight_layout()
   return fig.legend(loc='lower left')
 
-def doit(logdir, key_to_plot, ckpt, labels, nprobabilities, error_ratios):
+def doit(logdir, key_to_plot, ckpt, labels, nprobabilities, error_ratios, loss,
+        overlapped_prefix):
   validation_sounds, validation_ground_truth, validation_logits = \
         read_logits(logdir, key_to_plot, ckpt)
 
   probabilities, thresholds, precisions, recalls, sensitivities, specificities, \
         pr_areas, roc_areas = calculate_precision_recall_specificity( \
         validation_ground_truth, validation_logits, labels, nprobabilities, \
-        error_ratios)
+        error_ratios, loss)
 
   save_thresholds(logdir, key_to_plot, ckpt, thresholds, error_ratios, labels)
 
@@ -156,28 +161,57 @@ def doit(logdir, key_to_plot, ckpt, labels, nprobabilities, error_ratios):
   predictions_path = os.path.join(logdir,key_to_plot,'predictions.ckpt-'+str(ckpt))
   if not os.path.isdir(predictions_path):
     os.mkdir(os.path.join(logdir,key_to_plot,'predictions.ckpt-'+str(ckpt)))
-  for subdir in set([x['file'][0] for x in validation_sounds]):
-    with open(os.path.join(logdir, key_to_plot, 'predictions.ckpt-'+str(ckpt), \
-                           subdir+'-mistakes.csv'), \
-              'w', newline='') as csvfile:
-      csvwriter = csv.writer(csvfile, lineterminator='\n')
-      for i in range(len(validation_ground_truth)):
-        if validation_sounds[i]['file'][0] != subdir:
-          continue
-        classified_as = np.argmax(validation_logits[i,:])
-        id = os.path.join(*validation_sounds[i]['file']) + str(validation_sounds[i]['ticks']) + \
-             validation_sounds[i]['label'] + labels[classified_as]
-        if id in already_written:
-          continue
-        already_written |= set([id])
-        csvwriter.writerow([validation_sounds[i]['file'][1],
-              validation_sounds[i]['ticks'][0], validation_sounds[i]['ticks'][1],
-              'correct' if classified_as == validation_ground_truth[i] else 'mistaken',
-              labels[classified_as],
-              validation_sounds[i]['label']])
+  if loss=='exclusive':
+      for subdir in set([x['file'][0] for x in validation_sounds]):
+          with open(os.path.join(logdir, key_to_plot, 'predictions.ckpt-'+str(ckpt), \
+                                 subdir+'-mistakes.csv'), \
+                    'w', newline='') as csvfile:
+            csvwriter = csv.writer(csvfile, lineterminator='\n')
+            for i in range(len(validation_sounds)):
+                if validation_sounds[i]['file'][0] != subdir:
+                    continue
+                classified_as = np.argmax(validation_logits[i,:])
+                id = os.path.join(*validation_sounds[i]['file']) + \
+                     str(validation_sounds[i]['ticks']) + \
+                     validation_sounds[i]['label'] + \
+                     labels[classified_as]
+                if id in already_written:
+                    continue
+                already_written |= set([id])
+                csvwriter.writerow([validation_sounds[i]['file'][1],
+                        validation_sounds[i]['ticks'][0],
+                        validation_sounds[i]['ticks'][1],
+                        'correct' if classified_as == validation_ground_truth[i] else 'mistaken',
+                        labels[classified_as],
+                        validation_sounds[i]['label']])
+  else:
+      for subdir in set([x[0]['file'][0] for x in validation_sounds]):
+          with open(os.path.join(logdir, key_to_plot, 'predictions.ckpt-'+str(ckpt), \
+                                 subdir+'-mistakes.csv'), \
+                    'w', newline='') as csvfile:
+            csvwriter = csv.writer(csvfile, lineterminator='\n')
+            for i in range(len(validation_sounds)):
+                if validation_sounds[i][0]['file'][0] != subdir:
+                    continue
+                for j in range(len(validation_sounds[i])):
+                    k = labels.index(validation_sounds[i][j]['label'].removeprefix(overlapped_prefix))
+                    classified_as = validation_logits[i,k]>0.5
+                    id = os.path.join(*validation_sounds[i][j]['file']) + \
+                         str(validation_sounds[i][j]['ticks']) + \
+                         validation_sounds[i][j]['label'] + \
+                         str(classified_as)
+                    if id in already_written:
+                        continue
+                    already_written |= set([id])
+                    csvwriter.writerow([validation_sounds[i][j]['file'][1],
+                            validation_sounds[i][j]['ticks'][0],
+                            validation_sounds[i][j]['ticks'][1],
+                            'correct' if classified_as == validation_ground_truth[i][j] else 'mistaken',
+                            labels[k] if classified_as==1 else overlapped_prefix+labels[k],
+                            validation_sounds[i][j]['label']])
 
   lgd = plot_probability_density(validation_ground_truth, validation_logits, \
-                                 error_ratios, thresholds, labels)
+                                 error_ratios, thresholds, labels, loss)
   plt.savefig(os.path.join(logdir, key_to_plot, \
                            'probability-density.ckpt-'+str(ckpt)+'.pdf'), \
               bbox_extra_artists=(lgd,), bbox_inches='tight')
@@ -295,13 +329,15 @@ def main():
         ax.yaxis.tick_right()
         return minp, minr
 
-    nrows, ncols = 1+len(labels_touse[keys_to_plot[0]]), 1+len(keys_to_plot)
+    these_labels_touse = labels_touse[keys_to_plot[0]]
+
+    nrows, ncols = 1+len(these_labels_touse), 1+len(keys_to_plot)
     fig = plt.figure(figsize=(6.4*ncols, 4.8*nrows))
     minp, minr = 100, 100
     axs = []
     precision_all, recall_all = [], []
     ilabel_all, imodel_all = [], []
-    for (ilabel,label) in enumerate(labels_touse[keys_to_plot[0]]):
+    for (ilabel,label) in enumerate(these_labels_touse):
       for (imodel,model) in enumerate(keys_to_plot):
         axs.append(fig.add_subplot(nrows, ncols, (ilabel+1)*ncols+imodel+2))
         precision = [100*x[ilabel] for x in validation_precision[model]]
@@ -314,7 +350,7 @@ def main():
         if imodel==len(keys_to_plot)-1:
             axs[-1].yaxis.set_label_position("right")
             axs[-1].set_ylabel("Precision")
-        if ilabel==len(labels_touse[keys_to_plot[0]])-1:
+        if ilabel==len(these_labels_touse)-1:
             axs[-1].set_xlabel("Recall")
     for (imodel,model) in enumerate(keys_to_plot):
         axs.append(fig.add_subplot(nrows, ncols, imodel+2))
@@ -327,7 +363,7 @@ def main():
         if imodel==len(keys_to_plot)-1:
             axs[-1].yaxis.set_label_position("right")
             axs[-1].set_ylabel("Precision")
-    for (ilabel,label) in enumerate(labels_touse[keys_to_plot[0]]):
+    for (ilabel,label) in enumerate(these_labels_touse):
         axs.append(fig.add_subplot(nrows, ncols, (ilabel+1)*ncols+1))
         precision = np.nanmean([precision_all[i] for (i,idx) in enumerate(ilabel_all) if idx==ilabel],
                             axis=0)
@@ -335,7 +371,7 @@ def main():
                          axis=0)
         minp, minr = PvR(axs[-1], precision, recall, validation_step[model], minp, minr)
         axs[-1].set_ylabel(label)
-        if ilabel==len(labels_touse[keys_to_plot[0]])-1:
+        if ilabel==len(these_labels_touse)-1:
             axs[-1].set_xlabel("Recall")
     axs.append(fig.add_subplot(nrows, ncols, 1))
     precision = np.nanmean(precision_all, axis=0)
@@ -347,7 +383,7 @@ def main():
       ax.set_ylim([minp,100])
       ax.set_xlim([minr,100])
     fig.tight_layout()
-    plt.savefig(os.path.join(FLAGS.logdir,'validation-PvR.pdf'))
+    plt.savefig(os.path.join(FLAGS.logdir,'PvR.pdf'))
     plt.close()
   
   
@@ -366,10 +402,10 @@ def main():
         ax3.set_xlabel('Epoch')
 
 
-    nrows, ncols = 3, len(labels_touse[keys_to_plot[0]])
+    nrows, ncols = 3, len(these_labels_touse)
     fig = plt.figure(figsize=(6.4*ncols, 4.8*nrows))
     lines=[]
-    isort = index_natsorted(labels_touse[keys_to_plot[0]])
+    isort = index_natsorted(these_labels_touse)
     for ilabel in range(len(isort)):
       ax_p = fig.add_subplot(nrows, ncols, ilabel+1)
       ax_r = fig.add_subplot(nrows, ncols, ncols+ilabel+1)
@@ -392,7 +428,7 @@ def main():
         ax_p.set_ylabel('Precision')
         ax_r.set_ylabel('Recall')
         ax_f1.set_ylabel('F1 = 2PR/(P+R)')
-      ax_p.set_title(labels_touse[keys_to_plot[0]][isort[ilabel]])
+      ax_p.set_title(these_labels_touse[isort[ilabel]])
       ax_p.plot(validation_step[model], np.nanmean(P_all, axis=0), color='k', linewidth=3)
       ax_r.plot(validation_step[model], np.nanmean(R_all, axis=0), color='k', linewidth=3)
       line, = ax_f1.plot(validation_step[model], np.nanmean(F1_all, axis=0), color='k', linewidth=3)
@@ -401,10 +437,12 @@ def main():
       epoch_axis(ax_f1, batch_size[model], training_set_size[model], validation_step[model])
     lgd = fig.legend(lines, [*keys_to_plot, 'mean'], bbox_to_anchor=(1,1), loc="upper left")
     fig.tight_layout()
-    plt.savefig(os.path.join(FLAGS.logdir,'validation-P-R-F1-label.pdf'),
+    plt.savefig(os.path.join(FLAGS.logdir,'P-R-F1-label.pdf'),
                 bbox_extra_artists=(lgd,), bbox_inches='tight')
     plt.close()
 
+
+    isort = index_natsorted(these_labels_touse)
   
     nrows, ncols = 3, len(keys_to_plot)
     fig = plt.figure(figsize=(6.4*ncols, 4.8*nrows))
@@ -414,7 +452,6 @@ def main():
       ax_r = fig.add_subplot(nrows, ncols, ncols+imodel+1)
       ax_f1 = fig.add_subplot(nrows, ncols, 2*ncols+imodel+1)
       P_all, R_all, F1_all = [], [], []
-      isort = index_natsorted(labels_touse[model])
       for ilabel in range(len(isort)):
         P_all.append([100*p[isort[ilabel]] for p in validation_precision[model]])
         R_all.append([100*r[isort[ilabel]] for r in validation_recall[model]])
@@ -439,10 +476,10 @@ def main():
       if imodel==0:
         lines.append(line)
       epoch_axis(ax_f1, batch_size[model], training_set_size[model], validation_step[model])
-    theselabels = [labels_touse[keys_to_plot[0]][i] for i in isort]
+    theselabels = [these_labels_touse[i] for i in isort]
     lgd = fig.legend(lines, [*theselabels, 'mean'], bbox_to_anchor=(1,1), loc="upper left")
     fig.tight_layout()
-    plt.savefig(os.path.join(FLAGS.logdir,'validation-P-R-F1-model.pdf'),
+    plt.savefig(os.path.join(FLAGS.logdir,'P-R-F1-model.pdf'),
                 bbox_extra_artists=(lgd,), bbox_inches='tight')
     plt.close()
 
@@ -455,7 +492,6 @@ def main():
     P_all, R_all, F1_all = [], [], []
     errorbars = len(keys_to_plot) * len(isort) > 10
     for (imodel,model) in enumerate(keys_to_plot):
-      isort = index_natsorted(labels_touse[model])
       for ilabel in range(len(isort)):
         P_all.append([100*p[isort[ilabel]] for p in validation_precision[model]])
         R_all.append([100*r[isort[ilabel]] for r in validation_recall[model]])
@@ -491,7 +527,7 @@ def main():
     epoch_axis(ax_r, batch_size[model], training_set_size[model], validation_step[model])
     epoch_axis(ax_f1, batch_size[model], training_set_size[model], validation_step[model])
     fig.tight_layout()
-    plt.savefig(os.path.join(FLAGS.logdir,'validation-P-R-F1-average.pdf'))
+    plt.savefig(os.path.join(FLAGS.logdir,'P-R-F1-average.pdf'))
     plt.close()
     print('ckpts_all =', validation_step[model])
     print('precisions_all =', P_all)
@@ -516,45 +552,80 @@ def main():
         recalls_mean[model]={}
         best_F1[model]=("",0)
         for ckpt in confusion_matrices[model].keys():
-          precision_matrices[model][ckpt], recall_matrices[model][ckpt], precisions_mean[model][ckpt], recalls_mean[model][ckpt] = \
-                normalize_confusion_matrix(confusion_matrices[model][ckpt])
-  
-          fig = plt.figure(figsize=(6.4, 4.8))
-          ax = plt.subplot(1,1,1)
-          plot_confusion_matrix(ax,
-                                confusion_matrices[model][ckpt],
-                                precision_matrices[model][ckpt],
-                                recall_matrices[model][ckpt],
-                                numbers=len(labels)<10)
-          ax.set_xticklabels(labels, rotation=40, ha='right')
-          ax.set_yticklabels(labels)
-          ax.invert_yaxis()
-          ax.set_xlabel('classification')
-          ax.set_ylabel('annotation')
-          P=precisions_mean[model][ckpt]
-          R=recalls_mean[model][ckpt]
-          ax.set_title(model+"   P="+str(round(P,1))+"%"+"   R="+str(round(R,1))+"%")
-          if 2*P*R/(P+R) > best_F1[model][1]:
-            best_F1[model] = (ckpt, 2*P*R/(P+R))
-          divider = make_axes_locatable(ax)
-          cax = divider.append_axes("right", size="5%", pad=0.1)
-          fig.colorbar(cm.ScalarMappable(norm=mpl.colors.Normalize(vmin=0, vmax=100),
-                                         cmap=cm.viridis),
-                       cax=cax, ticks=[0,100], use_gridspec=True)
-          fig.tight_layout()
-          plt.savefig(os.path.join(FLAGS.logdir,model,'confusion-matrix.ckpt-'+ckpt+'.pdf'))
-          plt.close()
+            precision_matrices[model][ckpt]=[None]*len(confusion_matrices[model][ckpt])
+            recall_matrices[model][ckpt]=[None]*len(confusion_matrices[model][ckpt])
+            if FLAGS.loss=='exclusive':
+                nrows, ncols = 1,1
+                fig = plt.figure(figsize=(6.4, 4.8))
+            else:
+                nrows, ncols = layout(1+len(labels))
+                fig = plt.figure(figsize=(4.8*ncols, 3.6*nrows))
+            for iconfmat, confusion_matrix in enumerate(confusion_matrices[model][ckpt]):
+                ax = plt.subplot(nrows, ncols, 1 if FLAGS.loss=='exclusive' else 2+iconfmat)
+                precision_matrices[model][ckpt][iconfmat], recall_matrices[model][ckpt][iconfmat], precision_mean, recall_mean = \
+                      normalize_confusion_matrix(confusion_matrix)
+                plot_confusion_matrix(fig, ax,
+                                      confusion_matrix,
+                                      precision_matrices[model][ckpt][iconfmat],
+                                      recall_matrices[model][ckpt][iconfmat],
+                                      len(labels)<10,
+                                      "",
+                                      labels if FLAGS.loss=='exclusive' else
+                                          [labels[iconfmat], FLAGS.overlapped_prefix+labels[iconfmat]],
+                                      precision_mean, recall_mean)
+                P,R = precision_mean, recall_mean
+                if FLAGS.loss=='exclusive' and 2*P*R/(P+R) > best_F1[model][1]:
+                    best_F1[model] = (ckpt, 2*P*R/(P+R))
+            if FLAGS.loss=='overlapped':
+                ax = plt.subplot(nrows,ncols,1)
+                summed_confusion_matrix = np.sum(confusion_matrices[model][ckpt], axis=0)
+                precision_matrix, recall_matrix, precision_mean, recall_mean = \
+                      normalize_confusion_matrix(summed_confusion_matrix)
+                plot_confusion_matrix(fig, ax,
+                                      summed_confusion_matrix,
+                                      precision_matrix,
+                                      recall_matrix,
+                                      len(labels)<10,
+                                      "",
+                                      ["song", FLAGS.overlapped_prefix+"song"],
+                                      precision_mean, recall_mean)
+                P,R = precision_mean, recall_mean
+                if 2*P*R/(P+R) > best_F1[model][1]:
+                    best_F1[model] = (ckpt, 2*P*R/(P+R))
+            fig.tight_layout()
+            plt.savefig(os.path.join(FLAGS.logdir,model,'confusion-matrix.ckpt-'+ckpt+'.pdf'))
+            plt.close()
 
-    print('models =', keys_to_plot)
     print('ckpts =', [best_F1[k][0] for k in keys_to_plot])
     print('labels =', labels)
-    print('precisions =', [[100*precision_matrices[model][ckpt][ilabel][ilabel]
-                            for ilabel in range(len(labels))]
-                           for model in keys_to_plot])
-    print('recalls =', [[100*recall_matrices[model][ckpt][ilabel][ilabel]
-                         for ilabel in range(len(labels))]
-                        for model in keys_to_plot])
+    print('models =', keys_to_plot)
+    if FLAGS.loss=='exclusive':
+        precisions = {model: [100*precision_matrices[model][ckpt][0][ilabel][ilabel]
+                       for ilabel in range(len(labels))]
+                      for model in keys_to_plot}
+        recalls = {model: [100*recall_matrices[model][ckpt][0][ilabel][ilabel]
+                    for ilabel in range(len(labels))]
+                   for model in keys_to_plot}
+    else:
+        precisions = {model: [100*precision_matrices[model][ckpt][ilabel][0][0]
+                       for ilabel in range(len(labels))]
+                      for model in keys_to_plot}
+        recalls = {model: [100*recall_matrices[model][ckpt][ilabel][0][0]
+                    for ilabel in range(len(labels))]
+                   for model in keys_to_plot}
+    print('precisions =', [precisions[model] for model in keys_to_plot])
+    print('recalls =', [recalls[model] for model in keys_to_plot])
 
+
+
+    if FLAGS.loss=='exclusive':
+        fig = plt.figure(figsize=(6.4, 4.8))
+        ax = plt.subplot(1,1,1)
+    else:
+        nrows, ncols = layout(1+len(labels))
+        fig = plt.figure(figsize=(ncols*4.8, nrows*3.6))
+        ax = plt.subplot(nrows,ncols,1)
+  
     summed_confusion_matrix = None
     for model in best_F1.keys():
       ckpt = best_F1[model][0]
@@ -562,30 +633,45 @@ def main():
           summed_confusion_matrix = np.array(confusion_matrices[model][ckpt])
       else:
           summed_confusion_matrix += confusion_matrices[model][ckpt]
-  
+    summed_confusion_matrix = np.sum(summed_confusion_matrix, axis=0)
     precision_summed_matrix, recall_summed_matrix, precision_summed, recall_summed = \
           normalize_confusion_matrix(summed_confusion_matrix)
-  
-    fig = plt.figure(figsize=(3*6.4, 4.8))
-  
-    ax = plt.subplot(1,3,1)
-    plot_confusion_matrix(ax, summed_confusion_matrix, \
+    plot_confusion_matrix(fig, ax,
+                          summed_confusion_matrix, \
                           precision_summed_matrix, recall_summed_matrix, \
-                          numbers=len(labels)<10)
-    divider = make_axes_locatable(ax)
-    cax = divider.append_axes("right", size="5%", pad=0.1)
-    fig.colorbar(cm.ScalarMappable(norm=mpl.colors.Normalize(vmin=0, vmax=100),
-                                   cmap=cm.viridis),
-                 cax=cax, ticks=[0,100], use_gridspec=True)
-    ax.set_xticklabels(labels, rotation=40, ha='right')
-    ax.set_yticklabels(labels)
-    ax.invert_yaxis()
-    ax.set_xlabel('Classification')
-    ax.set_ylabel('Annotation')
-    ax.set_title("P="+str(round(precision_summed,1))+"%   "+
-                 "R="+str(round(recall_summed,1))+"%")
+                          len(labels)<10,
+                          "",
+                          labels if FLAGS.loss=='exclusive' else
+                              ["song", FLAGS.overlapped_prefix+"song"],
+                          precision_summed, recall_summed)
+    if FLAGS.loss=='overlapped':
+        for ilabel in range(len(labels)):
+            ax = plt.subplot(nrows,ncols,2+ilabel)
+            summed_confusion_matrix = None
+            for model in best_F1.keys():
+              ckpt = best_F1[model][0]
+              if summed_confusion_matrix is None:
+                  summed_confusion_matrix = np.array(confusion_matrices[model][ckpt][ilabel])
+              else:
+                  summed_confusion_matrix += confusion_matrices[model][ckpt][ilabel]
+            precision_summed_matrix, recall_summed_matrix, precision_summed, recall_summed = \
+                  normalize_confusion_matrix(summed_confusion_matrix)
+            plot_confusion_matrix(fig, ax,
+                                  summed_confusion_matrix, \
+                                  precision_summed_matrix, recall_summed_matrix, \
+                                  len(labels)<10,
+                                  "",
+                                  [labels[ilabel], FLAGS.overlapped_prefix+labels[ilabel]],
+                                  precision_summed, recall_summed)
+
+    fig.tight_layout()
+    plt.savefig(os.path.join(FLAGS.logdir,'confusion-matrix.pdf'))
+    plt.close()
+
+
+    fig = plt.figure(figsize=(2*6.4, 4.8))
   
-    ax = plt.subplot(1,3,2)
+    ax = plt.subplot(1,2,1)
     colors = plt.rcParams["axes.prop_cycle"].by_key()["color"]
     if len(colors)<len(labels):
       colors = list(islice(cycle(colors), len(labels)))
@@ -597,8 +683,8 @@ def main():
       recalls_all = []
       for model in keys_to_plot:
         ckpt = best_F1[model][0]
-        precisions_all.append(100*precision_matrices[model][ckpt][ilabel][ilabel])
-        recalls_all.append(100*recall_matrices[model][ckpt][ilabel][ilabel])
+        precisions_all.append(precisions[model][ilabel])
+        recalls_all.append(recalls[model][ilabel])
         line, = ax.plot(recalls_all[-1], precisions_all[-1], 'o',
                         markeredgecolor='w', color=colors[ilabel])
         if model==keys_to_plot[0]:
@@ -638,7 +724,7 @@ def main():
                  "R="+str(round(x,1))+"+/-"+str(round(w,1))+"%")
     ax.legend(loc=(1.05, 0.0))
   
-    ax = fig.add_subplot(1,3,3)
+    ax = fig.add_subplot(1,2,2)
     colors = plt.rcParams["axes.prop_cycle"].by_key()["color"]
     if len(colors)<len(keys_to_plot):
       colors = list(islice(cycle(colors), len(keys_to_plot)))
@@ -650,8 +736,8 @@ def main():
       recalls_all = []
       for (ilabel,label) in enumerate(labels):
         ckpt = best_F1[model][0]
-        precisions_all.append(100*precision_matrices[model][ckpt][ilabel][ilabel])
-        recalls_all.append(100*recall_matrices[model][ckpt][ilabel][ilabel])
+        precisions_all.append(precisions[model][ilabel])
+        recalls_all.append(recalls[model][ilabel])
         line, = ax.plot(recalls_all[-1], precisions_all[-1], 'o',
                         markeredgecolor='w', color=colors[imodel])
         if label==labels[0]:
@@ -692,24 +778,28 @@ def main():
     ax.legend(loc=(1.05, 0.0))
   
     fig.tight_layout()
-    plt.savefig(os.path.join(FLAGS.logdir,'accuracy.pdf'))
+    plt.savefig(os.path.join(FLAGS.logdir,'precision-recall.pdf'))
     plt.close()
   
+
     if FLAGS.parallelize!=0:
       from multiprocessing import Pool
       nprocs = os.cpu_count() if FLAGS.parallelize==-1 else FLAGS.parallelize
       pool = Pool(nprocs)
       results = []
   
-    for model in recalls_mean:
+    for model in keys_to_plot:
       for ckpt in [int(x.split('-')[1][:-4]) for x in \
                    filter(lambda x: 'validation' in x and x.endswith('.npz'), \
                           os.listdir(os.path.join(FLAGS.logdir,model)))]:
   
         if FLAGS.parallelize!=0:
-          results.append(pool.apply_async(doit, (FLAGS.logdir,model,ckpt,labels,FLAGS.nprobabilities,error_ratios)))
+          results.append(pool.apply_async(doit,
+              (FLAGS.logdir, model, ckpt, labels, FLAGS.nprobabilities, error_ratios,
+               FLAGS.loss, FLAGS.overlapped_prefix)))
         else:
-          doit(FLAGS.logdir, model, ckpt, labels, FLAGS.nprobabilities, error_ratios)
+          doit(FLAGS.logdir, model, ckpt, labels, FLAGS.nprobabilities, error_ratios,
+               FLAGS.loss, FLAGS.overlapped_prefix)
   
     if FLAGS.parallelize!=0:
       for result in results:
@@ -733,6 +823,17 @@ if __name__ == "__main__":
       type=int,
       default=50,
       help='')
+  parser.add_argument(
+      '--loss',
+      type=str,
+      default='exclusive',
+      choices=['exclusive', 'overlapped'],
+      help='Sigmoid cross entropy is used for "overlapped" labels while softmax cross entropy is used for "exclusive" labels.')
+  parser.add_argument(
+      '--overlapped_prefix',
+      type=str,
+      default='not_',
+      help='When `loss` is `overlapped`, a label starting which this string indicates the absence of the class.  E.g. `song` and `not_song`.')
   parser.add_argument(
       '--parallelize',
       type=int,

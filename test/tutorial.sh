@@ -79,11 +79,15 @@ testing_files=
 batch_seed=1
 weights_seed=1
 ireplicates=1
+loss=exclusive
+overlapped_prefix=not_
 mkdir $logdir
 cmd="${srcdir}/train \
      --context_ms=$context_ms \
      --shiftby_ms=$shiftby_ms \
      --optimizer=$optimizer \
+     --loss=$loss \
+     --overlapped_prefix=$overlapped_prefix \
      --learning_rate=$learning_rate  \
      --audio_read_plugin=$audio_read_plugin \
      --audio_read_plugin_kwargs=$audio_read_plugin_kwargs \
@@ -127,6 +131,8 @@ check_file_exists $logdir/train_1r/logits.validation.ckpt-$nsteps.npz
 precision_recall_ratios=0.5,1.0,2.0
 cmd="${srcdir}/accuracy \
      --logdir=$logdir \
+     --loss=$loss \
+     --overlapped_prefix=$overlapped_prefix \
      --error_ratios=$precision_recall_ratios \
      --nprobabilities=$nprobabilities \
      --parallelize=$accuracy_parallelize"
@@ -134,20 +140,22 @@ echo $cmd >> $logdir/accuracy.log 2>&1
 eval $cmd >> $logdir/accuracy.log 2>&1
 
 check_file_exists $logdir/accuracy.log
-check_file_exists $logdir/accuracy.pdf
+check_file_exists $logdir/precision-recall.pdf
+check_file_exists $logdir/confusion-matrix.pdf
 check_file_exists $logdir/train_1r/precision-recall.ckpt-$nsteps.pdf
 check_file_exists $logdir/train_1r/probability-density.ckpt-$nsteps.pdf
 check_file_exists $logdir/train_1r/thresholds.ckpt-$nsteps.csv
 check_file_exists $logdir/train_1r/confusion-matrix.ckpt-$nsteps.pdf
 check_file_exists $logdir/train-validation-loss.pdf
-check_file_exists $logdir/validation-P-R-F1-average.pdf
-check_file_exists $logdir/validation-P-R-F1-label.pdf
-check_file_exists $logdir/validation-P-R-F1-model.pdf
-check_file_exists $logdir/validation-PvR.pdf
+check_file_exists $logdir/P-R-F1-average.pdf
+check_file_exists $logdir/P-R-F1-label.pdf
+check_file_exists $logdir/P-R-F1-model.pdf
+check_file_exists $logdir/PvR.pdf
 
 check_point=$nsteps
 cmd="${srcdir}/freeze \
       --context_ms=$context_ms \
+      --loss=$loss \
       --model_architecture=$architecture \
       --model_parameters='$model_parameters' \
       --start_checkpoint=${logdir}/train_${ireplicates}r/ckpt-$check_point \
@@ -174,6 +182,7 @@ cp $repo_path/data/20161207T102314_ch1.wav \
 wavpath_noext=$repo_path/test/scratch/tutorial-sh/groundtruth-data/round2/20161207T102314_ch1
 cmd="${srcdir}/classify \
       --context_ms=$context_ms \
+      --loss=$loss \
       --shiftby_ms=$shiftby_ms \
       --audio_read_plugin=$audio_read_plugin \
       --audio_read_plugin_kwargs=$audio_read_plugin_kwargs \
@@ -249,6 +258,8 @@ equalize_ratio=1000
 max_sounds=10000
 cmd="${srcdir}/activations \
       --context_ms=$context_ms \
+      --loss=$loss \
+      --overlapped_prefix=$overlapped_prefix \
       --shiftby_ms=$shiftby_ms \
       --video_findfile=$video_findfile_plugin \
       --video_bkg_frames=$video_bkg_frames \
@@ -311,6 +322,8 @@ for ioffset in $ioffsets ; do
        --context_ms=$context_ms \
        --shiftby_ms=$shiftby_ms \
        --optimizer=$optimizer \
+       --loss=$loss \
+       --overlapped_prefix=$overlapped_prefix \
        --learning_rate=$learning_rate \
        --audio_read_plugin=$audio_read_plugin \
        --audio_read_plugin_kwargs=$audio_read_plugin_kwargs \
@@ -357,6 +370,8 @@ done
 
 cmd="${srcdir}/accuracy \
      --logdir=$logdir \
+     --loss=$loss \
+     --overlapped_prefix=$overlapped_prefix \
      --error_ratios=$precision_recall_ratios \
      --nprobabilities=$nprobabilities \
      --parallelize=$accuracy_parallelize"
@@ -364,7 +379,8 @@ echo $cmd >> $logdir/accuracy.log 2>&1
 eval $cmd >> $logdir/accuracy.log 2>&1
 
 check_file_exists $logdir/accuracy.log
-check_file_exists $logdir/accuracy.pdf
+check_file_exists $logdir/precision-recall.pdf
+check_file_exists $logdir/confusion-matrix.pdf
 for ioffset in $ioffsets ; do
   ioffset1=$(( ${ioffset} + 1 ))
   check_file_exists $logdir/generalize_${ioffset1}w/precision-recall.ckpt-$nsteps.pdf
@@ -373,98 +389,120 @@ for ioffset in $ioffsets ; do
   check_file_exists $logdir/generalize_${ioffset1}w/confusion-matrix.ckpt-$nsteps.pdf
 done
 check_file_exists $logdir/train-validation-loss.pdf
-check_file_exists $logdir/validation-P-R-F1-average.pdf
-check_file_exists $logdir/validation-P-R-F1-label.pdf
-check_file_exists $logdir/validation-P-R-F1-model.pdf
-check_file_exists $logdir/validation-PvR.pdf
+check_file_exists $logdir/P-R-F1-average.pdf
+check_file_exists $logdir/P-R-F1-label.pdf
+check_file_exists $logdir/P-R-F1-model.pdf
+check_file_exists $logdir/PvR.pdf
 
 nfeaturess=(32,32 64,64)
+losses=(exclusive overlapped)
 precision_recall_ratios=1.0
-for nfeatures in ${nfeaturess[@]} ; do
-  logdir=$repo_path/test/scratch/tutorial-sh/nfeatures-${nfeatures%%,*}
-  kfold=2
-  ifolds=$(seq 1 $kfold)
-  mkdir $logdir
-  for ifold in $ifolds ; do
-    cmd="${srcdir}/xvalidate \
-         --context_ms=$context_ms \
-         --shiftby_ms=$shiftby_ms \
-         --optimizer=$optimizer \
-         --learning_rate=$learning_rate  \
-         --audio_read_plugin=$audio_read_plugin \
-         --audio_read_plugin_kwargs=$audio_read_plugin_kwargs \
-         --video_read_plugin=$video_read_plugin \
-         --video_read_plugin_kwargs=$video_read_plugin_kwargs \
-         --video_findfile_plugin=$video_findfile_plugin \
-         --video_bkg_frames=$video_bkg_frames \
-         --data_loader_queuesize=$data_loader_queuesize \
-         --data_loader_maxprocs=$data_loader_maxprocs \
-         --model_architecture=$architecture \
-         --model_parameters='$model_parameters' \
-         --logdir=$logdir \
-         --data_dir=$data_dir \
-         --labels_touse=$labels_touse \
-         --kinds_touse=$kinds_touse \
-         --nsteps=$nsteps \
-         --restore_from='$restore_from' \
-         --save_and_validate_period=$save_and_validate_period \
-         --mini_batch=$mini_batch \
-         --testing_files='$testing_files' \
-         --audio_tic_rate=$audio_tic_rate \
-         --audio_nchannels=$audio_nchannels \
-         --video_frame_rate=$video_frame_rate \
-         --video_frame_width=$video_frame_width \
-         --video_frame_height=$video_frame_height \
-         --video_channels=$video_channels \
-         --batch_seed=$batch_seed \
-         --weights_seed=$weights_seed \
-         --deterministic=$deterministic \
-         --kfold=$kfold \
-         --ifolds=$ifold \
-         --igpu="
-    echo $cmd >> $logdir/xvalidate${ifold}.log 2>&1
-    eval $cmd >> $logdir/xvalidate${ifold}.log 2>&1
-  done
+cp $repo_path/data/PS_20130625111709_ch3-annotated-notsong.csv \
+   $repo_path/test/scratch/tutorial-sh/groundtruth-data/round1
+cp $repo_path/data/20161207T102314_ch1-annotated-notsong.csv \
+   $repo_path/test/scratch/tutorial-sh/groundtruth-data/round2
+for loss in ${losses[@]} ; do
+    if [ "$loss" == "exclusive" ]; then
+        labels_touse=mel-pulse,mel-sine,ambient
+    else
+        labels_touse=mel-pulse,mel-sine
+    fi;
+    for nfeatures in ${nfeaturess[@]} ; do
+        logdir=$repo_path/test/scratch/tutorial-sh/nfeatures$loss-${nfeatures%%,*}
+        kfold=2
+        ifolds=$(seq 1 $kfold)
+        mkdir $logdir
+        for ifold in $ifolds ; do
+            cmd="${srcdir}/xvalidate \
+                 --context_ms=$context_ms \
+                 --shiftby_ms=$shiftby_ms \
+                 --optimizer=$optimizer \
+                 --loss=$loss \
+                 --overlapped_prefix=$overlapped_prefix \
+                 --learning_rate=$learning_rate  \
+                 --audio_read_plugin=$audio_read_plugin \
+                 --audio_read_plugin_kwargs=$audio_read_plugin_kwargs \
+                 --video_read_plugin=$video_read_plugin \
+                 --video_read_plugin_kwargs=$video_read_plugin_kwargs \
+                 --video_findfile_plugin=$video_findfile_plugin \
+                 --video_bkg_frames=$video_bkg_frames \
+                 --data_loader_queuesize=$data_loader_queuesize \
+                 --data_loader_maxprocs=$data_loader_maxprocs \
+                 --model_architecture=$architecture \
+                 --model_parameters='$model_parameters' \
+                 --logdir=$logdir \
+                 --data_dir=$data_dir \
+                 --labels_touse=$labels_touse \
+                 --kinds_touse=$kinds_touse \
+                 --nsteps=$nsteps \
+                 --restore_from='$restore_from' \
+                 --save_and_validate_period=$save_and_validate_period \
+                 --mini_batch=$mini_batch \
+                 --testing_files='$testing_files' \
+                 --audio_tic_rate=$audio_tic_rate \
+                 --audio_nchannels=$audio_nchannels \
+                 --video_frame_rate=$video_frame_rate \
+                 --video_frame_width=$video_frame_width \
+                 --video_frame_height=$video_frame_height \
+                 --video_channels=$video_channels \
+                 --batch_seed=$batch_seed \
+                 --weights_seed=$weights_seed \
+                 --deterministic=$deterministic \
+                 --kfold=$kfold \
+                 --ifolds=$ifold \
+                 --igpu="
+            echo $cmd >> $logdir/xvalidate${ifold}.log 2>&1
+            eval $cmd >> $logdir/xvalidate${ifold}.log 2>&1
+        done
+    
+        for ifold in $ifolds ; do
+            check_file_exists $logdir/xvalidate${ifold}.log
+            check_file_exists $logdir/xvalidate_${ifold}k.log
+            check_file_exists $logdir/xvalidate_${ifold}k/ckpt-$nsteps.index
+            check_file_exists $logdir/xvalidate_${ifold}k/logits.validation.ckpt-$nsteps.npz
+        done
+    
+        cmd="${srcdir}/accuracy \
+             --logdir=$logdir \
+             --loss=$loss \
+             --overlapped_prefix=$overlapped_prefix \
+             --error_ratios=$precision_recall_ratios \
+             --nprobabilities=$nprobabilities \
+             --parallelize=$accuracy_parallelize"
+        echo $cmd >> $logdir/accuracy.log 2>&1
+        $cmd >> $logdir/accuracy.log 2>&1
+    
+        check_file_exists $logdir/accuracy.log
+        check_file_exists $logdir/precision-recall.pdf
+        check_file_exists $logdir/confusion-matrix.pdf
+        for ifold in $ifolds ; do
+            check_file_exists $logdir/xvalidate_${ifold}k/precision-recall.ckpt-$nsteps.pdf
+            check_file_exists $logdir/xvalidate_${ifold}k/probability-density.ckpt-$nsteps.pdf
+            check_file_exists $logdir/xvalidate_${ifold}k/thresholds.ckpt-$nsteps.csv
+            check_file_exists $logdir/xvalidate_${ifold}k/confusion-matrix.ckpt-$nsteps.pdf
+        done
+        check_file_exists $logdir/train-validation-loss.pdf
+        check_file_exists $logdir/P-R-F1-average.pdf
+        check_file_exists $logdir/P-R-F1-label.pdf
+        check_file_exists $logdir/P-R-F1-model.pdf
+        check_file_exists $logdir/PvR.pdf
+    done
 
-  for ifold in $ifolds ; do
-    check_file_exists $logdir/xvalidate${ifold}.log
-    check_file_exists $logdir/xvalidate_${ifold}k.log
-    check_file_exists $logdir/xvalidate_${ifold}k/ckpt-$nsteps.index
-    check_file_exists $logdir/xvalidate_${ifold}k/logits.validation.ckpt-$nsteps.npz
-  done
+    logdirs_prefix=$repo_path/test/scratch/tutorial-sh/nfeatures$loss
+    cmd="${srcdir}/compare \
+         --logdirs_prefix=$logdirs_prefix \
+         --loss=$loss \
+         --overlapped_prefix=$overlapped_prefix"
+    echo $cmd >> ${logdirs_prefix}-compare.log 2>&1
+    eval $cmd >> ${logdirs_prefix}-compare.log 2>&1
 
-  cmd="${srcdir}/accuracy \
-       --logdir=$logdir \
-       --error_ratios=$precision_recall_ratios \
-       --nprobabilities=$nprobabilities \
-       --parallelize=$accuracy_parallelize"
-  echo $cmd >> $logdir/accuracy.log 2>&1
-  $cmd >> $logdir/accuracy.log 2>&1
-
-  check_file_exists $logdir/accuracy.log
-  check_file_exists $logdir/accuracy.pdf
-  for ifold in $ifolds ; do
-    check_file_exists $logdir/xvalidate_${ifold}k/precision-recall.ckpt-$nsteps.pdf
-    check_file_exists $logdir/xvalidate_${ifold}k/probability-density.ckpt-$nsteps.pdf
-    check_file_exists $logdir/xvalidate_${ifold}k/thresholds.ckpt-$nsteps.csv
-    check_file_exists $logdir/xvalidate_${ifold}k/confusion-matrix.ckpt-$nsteps.pdf
-  done
-  check_file_exists $logdir/train-validation-loss.pdf
-  check_file_exists $logdir/validation-P-R-F1-average.pdf
-  check_file_exists $logdir/validation-P-R-F1-label.pdf
-  check_file_exists $logdir/validation-P-R-F1-model.pdf
-  check_file_exists $logdir/validation-PvR.pdf
+    check_file_exists ${logdirs_prefix}-compare.log
+    check_file_exists ${logdirs_prefix}-compare-PR-classes.pdf
+    check_file_exists ${logdirs_prefix}-compare-confusion-matrices.pdf
+    check_file_exists ${logdirs_prefix}-compare-overall-params-speed.pdf
 done
-
-logdirs_prefix=$repo_path/test/scratch/tutorial-sh/nfeatures
-cmd="${srcdir}/compare $logdirs_prefix"
-echo $cmd >> ${logdirs_prefix}-compare.log 2>&1
-eval $cmd >> ${logdirs_prefix}-compare.log 2>&1
-
-check_file_exists ${logdirs_prefix}-compare.log
-check_file_exists ${logdirs_prefix}-compare-PR-classes.pdf
-check_file_exists ${logdirs_prefix}-compare-confusion-matrices.pdf
-check_file_exists ${logdirs_prefix}-compare-overall-params-speed.pdf
+loss=exclusive
+labels_touse=mel-pulse,mel-sine,ambient
 
 cmd="${srcdir}/mistakes $data_dir"
 echo $cmd >> $data_dir/mistakes.log 2>&1
@@ -481,6 +519,8 @@ cmd="${srcdir}/train \
      --context_ms=$context_ms \
      --shiftby_ms=$shiftby_ms \
      --optimizer=$optimizer \
+     --loss=$loss \
+     --overlapped_prefix=$overlapped_prefix \
      --learning_rate=$learning_rate  \
      --audio_read_plugin=$audio_read_plugin \
      --audio_read_plugin_kwargs=$audio_read_plugin_kwargs \
@@ -523,6 +563,8 @@ check_file_exists $logdir/train_1r/logits.validation.ckpt-$nsteps.npz
 
 cmd="${srcdir}/accuracy \
      --logdir=$logdir \
+     --loss=$loss \
+     --overlapped_prefix=$overlapped_prefix \
      --error_ratios=$precision_recall_ratios \
      --nprobabilities=$nprobabilities \
      --parallelize=$accuracy_parallelize"
@@ -530,19 +572,21 @@ echo $cmd >> $logdir/accuracy.log 2>&1
 eval $cmd >> $logdir/accuracy.log 2>&1
 
 check_file_exists $logdir/accuracy.log
-check_file_exists $logdir/accuracy.pdf
+check_file_exists $logdir/precision-recall.pdf
+check_file_exists $logdir/confusion-matrix.pdf
 check_file_exists $logdir/train_1r/precision-recall.ckpt-$nsteps.pdf
 check_file_exists $logdir/train_1r/probability-density.ckpt-$nsteps.pdf
 check_file_exists $logdir/train_1r/thresholds.ckpt-$nsteps.csv
 check_file_exists $logdir/train_1r/confusion-matrix.ckpt-$nsteps.pdf
 check_file_exists $logdir/train-validation-loss.pdf
-check_file_exists $logdir/validation-P-R-F1-average.pdf
-check_file_exists $logdir/validation-P-R-F1-label.pdf
-check_file_exists $logdir/validation-P-R-F1-model.pdf
-check_file_exists $logdir/validation-PvR.pdf
+check_file_exists $logdir/P-R-F1-average.pdf
+check_file_exists $logdir/P-R-F1-label.pdf
+check_file_exists $logdir/P-R-F1-model.pdf
+check_file_exists $logdir/PvR.pdf
 
 cmd="${srcdir}/freeze \
       --context_ms=$context_ms \
+      --loss=$loss \
       --model_architecture=$architecture \
       --model_parameters='$model_parameters' \
       --start_checkpoint=${logdir}/train_${ireplicates}r/ckpt-$check_point \
@@ -569,6 +613,7 @@ cp $repo_path/data/20190122T093303a-7.wav \
 wavpath_noext=$repo_path/test/scratch/tutorial-sh/groundtruth-data/congruence/20190122T093303a-7
 cmd="${srcdir}/classify \
       --context_ms=$context_ms \
+      --loss=$loss \
       --shiftby_ms=$shiftby_ms \
       --audio_read_plugin=$audio_read_plugin \
       --audio_read_plugin_kwargs=$audio_read_plugin_kwargs \
@@ -662,7 +707,7 @@ for kind in ${kinds[@]} ; do
   done
 done
 
-logdir=${repo_path}/test/scratch/tutorial-sh/nfeatures-64
+logdir=${repo_path}/test/scratch/tutorial-sh/nfeaturesexclusive-64
 
 mkdir ${logdir}/xvalidate_1k,2k
 cmd="${srcdir}/ensemble \
@@ -688,6 +733,7 @@ cp $repo_path/data/20190122T132554a-14.wav \
 wavpath_noext=$repo_path/test/scratch/tutorial-sh/groundtruth-data/congruence-ensemble/20190122T132554a-14
 cmd="${srcdir}/classify \
       --context_ms=$context_ms \
+      --loss=$loss \
       --shiftby_ms=$shiftby_ms \
       --audio_read_plugin=$audio_read_plugin \
       --audio_read_plugin_kwargs=$audio_read_plugin_kwargs \
@@ -779,6 +825,7 @@ done
 wavpath_noext=$repo_path/test/scratch/tutorial-sh/groundtruth-data/round1/PS_20130625111709_ch3
 cmd="${srcdir}/classify \
       --context_ms=$context_ms \
+      --loss=$loss \
       --shiftby_ms=$shiftby_ms \
       --audio_read_plugin=$audio_read_plugin \
       --audio_read_plugin_kwargs=$audio_read_plugin_kwargs \

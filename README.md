@@ -30,6 +30,7 @@ Table of Contents
       * [Ensemble Models](#ensemble-models)
       * [Testing Densely](#testing-densely)
       * [Discovering Novel Sounds](#discovering-novel-sounds)
+      * [Overlapped Classes](#overlapped-classes)
       * [Unsupervised Methods](#unsupervised-methods)
       * [Scripting Automation](#scripting-automation)
    * [Training on Video](#training-on-video)
@@ -669,8 +670,8 @@ from`, increase `# steps`, and train some more.  If you've changed any of the
 parameters, you'll need to first reset them as they were, which is made easy by
 selecting one of the original log files and pressing the `Copy` button.
 
-* "accuracy.pdf" shows the confusion matrix of the most accurate checkpoint in the
-left panel.  Each annotation is placed in this two-dimensional grid according to
+* "confusion-matrix.pdf" shows the confusion matrix of the most accurate
+checkpoint.  Each annotation is placed in this two-dimensional grid according to
 the label it was manually assigned and the label it was automatically predicted
 to be.  For a perfect classifier this matrix would be diagonal-- that is, only
 the fuchsia numbers in the upper left to lower right boxes would be non-zero.
@@ -691,12 +692,12 @@ particular checkpoint plotted in the confusion matrix specified in the legend
 of the right panel.  In this particular case, there is only one model, but in
 [Measuring Generalization](#measuring-generalization) and [Searching
 Hyperparameters](#searching-hyperparameters) we'll train multiple models.  In
-these cases, the *sum* of the confusion matrices with the best F1s for each
+those cases, the *sum* of the confusion matrices with the best F1s for each
 model is shown here.  Multiple models are also created if `# replicates` is
 greater than 1.
 
-In the middle panel of "accuracy.pdf" is the precision and recall for each label
-plotted separately.  These are simply the values in the corners of the boxes
+* In the left panel of "precision-recall.pdf" is the precision and recall for each
+label plotted separately.  These are simply the values in the corners of the boxes
 along the diagonal of the confusion matrix.  For a perfect classifier they would
 all be 100.  In this case all of the circles have black perimeters because this
 logs folder contains just a single trained model, but in the case where there
@@ -705,29 +706,28 @@ calculated from their individual confusion matrices.  The model-specific circles
 will be smaller and have white perimeters, with the larger circles outlined in
 black being the average across models.
 
-Similarly in the right panel of "accuracy.pdf" is the precision and recall for
-each model (as opposed to label) plotted separately.  Small circles with white
+Similarly in the right panel of "precision-recall.pdf" is the precision and recall
+for each model (as opposed to label) plotted separately.  Small circles with white
 perimeters show the label-specific accuracies and larger circles with black
 perimeters show the average across labels for each model.
 
-* "validation-P-R-F1-label.pdf" plots precision, recall, and the F1 score over
+* "P-R-F1-label.pdf" plots validation precision, recall, and the F1 score over
 time in the top, middle, and bottom rows respectively with a separate column for
 each label.  Check here to make sure that the accuracy of each label has
 converged.  If there is more than one model in this logs folder, the thin
 colored lines are the accuracies for each model, with the thick black line being
-the average across models.  "validation-P-R-F1-model.pdf" is similar, but the
+the average across models.  "P-R-F1-model.pdf" is similar, but the
 columns are the models and the thin colored lines the labels.  Averages across
-all labels and models are plotted in "validation-P-R-F1-average.pdf".
+all labels and models are plotted in "P-R-F1-average.pdf".
 
-* "validation-PvR.pdf" plots, separately for each label and model, the trajectory
-of the precision versus recall curve over number of training steps.  The
+* "PvR.pdf" plots, separately for each label and model, the trajectory of the
+validation precision versus recall curve over number of training steps.  The
 leftmost column and topmost row show the averages across models and labels,
 respectively, with the upper left plot showing the average across all models and
 labels.
 
 * "train_1r/confusion-matrix.ckpt-\*.csv" shows the confusion matrices for each
-checkpoint.  The checkpoint with the highest F1 is also shown in the left panel
-of "accuracy.pdf".
+checkpoint.
 
 * "train_1r/precision-recall.ckpt-\*.pdf" and
 "train_1r/sensitivity-specificity.ckpt-\*.pdf" show how the ratio of false
@@ -1453,6 +1453,44 @@ alternately switch between `annotated` and `detected` in the `kind` pull-down
 menu to find any differences in the density distributions.  Click on any new
 hot spots you find in the detected clusters, and annotate sounds which are
 labeled as detected but not annotated.  Create new word types as necessary.
+
+## Overlapped Classes ##
+
+So far we have assumed that songs of interest do not overlap, as is usually the
+case in a laboratory setting with just a single or small number of animals.  In
+this case, the output taps of the neural network are considered mutually
+exclusive and a soft-max function is used to ensure that the probabilities
+across classes add to one at any given point in time.
+
+This assumption quickly breaks down in field recordings, however, where multiple
+individuals from multiple species may be present.  In this case, we need to
+design the network's outputs such that each of them can be reinterpreted as
+indicating whether a song is present or not, and to do so independently of each
+other.  Specifically, the soft-max across all outputs is replaced with an
+individual sigmoid function for each.
+
+To train a network in this fashion, a second set of labels must be used to
+indicate the absence of a class.  So, for example, "mel-sine" from the tutorial
+above would be paired with "not_mel-sine", and similarly for "mel-pulse" and
+"not_mel-pulse, etc. (but *not* "not_ambient"!).   These "not_" annotations
+don't necessarily have to be intervals in time during which no sound is present
+(i.e. are ambient), but rather just no song of that class is present.  In fact,
+it's best to make "not_" annotations which also include sounds, and may even
+contain song from another class.
+
+Once you have annotated in this manner, select "overlapped" from the "loss"
+pull-down menu.  Then enter the classes in `labels to use` as before, but do
+*not* enter the "not_" labels there-- rather, songexplorer will automatically
+use the "not_" annotations in the groundtruth folder corresponding to those
+classes in "labels to use" when "overlapped" is chosen.  Then train a model and
+make predictions as before.  You should then find that the probability waveforms
+do not necessarily add to one, and that the ethograms may be overlapped.
+
+For maximum flexibility, in the case that one of your class names naturally
+starts with "not_", the prefix used to indicate the absence of a class can be
+specified in your configuration.py file.  See the variable named
+"overlapped_prefix", which defaults to "not_".
+
 
 ## Unsupervised Methods ##
 

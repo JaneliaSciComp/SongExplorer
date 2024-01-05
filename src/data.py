@@ -109,7 +109,7 @@ class AudioProcessor(object):
                  partition_label, partition_n, partition_training_files, partition_validation_files,
                  random_seed_batch,
                  testing_equalize_ratio, testing_max_sounds,
-                 model_settings,
+                 model_settings, loss, overlapped_prefix,
                  queue_size, max_procs,
                  use_audio, use_video, video_findfile, video_bkg_frames,
                  audio_read_plugin, video_read_plugin,
@@ -131,8 +131,8 @@ class AudioProcessor(object):
                                 testing_percentage, testing_files, subsample_skip, subsample_label,
                                 partition_label, partition_n, partition_training_files, partition_validation_files,
                                 testing_equalize_ratio, testing_max_sounds,
-                                model_settings, use_audio, use_video,
-                                video_findfile, video_bkg_frames)
+                                model_settings, loss, overlapped_prefix,
+                                use_audio, use_video, video_findfile, video_bkg_frames)
         self.queue_size = queue_size
         self.max_procs = max_procs
 
@@ -148,6 +148,17 @@ class AudioProcessor(object):
         return video_read_module.video_read(fullpath, start_frame, stop_frame,
                                             **self.video_read_plugin_kwargs)
 
+    def catalog_overlaps(self, data):
+        data.sort(key=lambda x: x['ticks'][0])
+        k = [True]*len(data)
+        for i in range(len(data)):
+            for j in range(i-1):
+                if not k[j]:  continue
+                if data[j]['ticks'][1] < data[i]['ticks'][0]:
+                    k[j] = False
+                    continue
+                data[i]['overlaps'].append(j)
+
     def prepare_data_index(self,
                            shiftby_ms,
                            labels_touse, kinds_touse,
@@ -155,7 +166,7 @@ class AudioProcessor(object):
                            testing_percentage, testing_files, subsample_skip, subsample_label,
                            partition_label, partition_n, partition_training_files, partition_validation_files,
                            testing_equalize_ratio, testing_max_sounds,
-                           model_settings, use_audio, use_video,
+                           model_settings, loss, overlapped_prefix, use_audio, use_video,
                            video_findfile, video_bkg_frames):
         """Prepares a list of the sounds organized by set and label.
 
@@ -179,10 +190,6 @@ class AudioProcessor(object):
         Raises:
           Exception: If expected files are not found.
         """
-        # Make sure the shuffling is deterministic.
-        labels_touse_index = {}
-        for index, label_touse in enumerate(labels_touse):
-            labels_touse_index[label_touse] = index
         self.data_index = {'validation': [], 'testing': [], 'training': []}
         all_labels = {}
         # Look through all the subfolders to find sounds
@@ -215,6 +222,9 @@ class AudioProcessor(object):
                 kind=annotation[3]
                 label=annotation[4]
                 if kind not in kinds_touse:
+                    continue
+                if (label if loss=='exclusive' else
+                    label.removeprefix(overlapped_prefix)) not in labels_touse:
                     continue
                 wav_path=os.path.join(os.path.dirname(csv_path),wavfile)
                 wav_base2=[os.path.basename(os.path.dirname(csv_path)), wavfile]
@@ -310,27 +320,29 @@ class AudioProcessor(object):
                                "shortening interval to usable range")
                         ticks[1] = video_nframes[wav_path] / video_frame_rate * model_settings['audio_tic_rate'] - context_tics//2 + shiftby_tics
                 all_labels[label] = True
-                # If it's a known class, store its detail
-                if label in labels_touse_index:
-                    self.data_index[set_index].append({'label': label,
-                                                       'file': wav_base2, \
-                                                       'ticks': ticks,
-                                                       'kind': kind})
+                self.data_index[set_index].append({'label': label,
+                                                   'file': wav_base2, \
+                                                   'ticks': ticks,
+                                                   'kind': kind,
+                                                   'overlaps': []})
         if not all_labels:
-            print('WARNING: No labels to use found in labels')
+            print('WARNING: None of the labels to use were found in the ground truth')
         if validation_percentage+testing_percentage<100:
-            for index, label_touse in enumerate(labels_touse):
+            for label_touse in labels_touse:
                 if label_touse not in all_labels:
-                    print('WARNING: '+label_touse+' not in labels')
+                    print('WARNING: '+label_touse+' not in ground truth')
+                if loss=='overlapped':
+                    if overlapped_prefix+label_touse not in all_labels:
+                        print('WARNING: '+overlapped_prefix+label_touse+' not in ground truth')
         # equalize
         for set_index in ['validation', 'testing', 'training']:
             print("num "+set_index+" labels")
-            labels = [sound['label'] for sound in self.data_index[set_index]]
             if set_index != 'testing':
+                self.catalog_overlaps(self.data_index[set_index])
+                labels = [sound['label'] for sound in self.data_index[set_index]]
                 for uniqlabel in sorted(set(labels)):
                     print('%8d %s' % (sum(label==uniqlabel for label in labels), uniqlabel))
-            if set_index == 'validation' or len(self.data_index[set_index])==0:
-                continue
+            if set_index == 'validation' or len(self.data_index[set_index])==0: continue
             label_kind_indices = {}
             for isound in range(len(self.data_index[set_index])):
                 sound = self.data_index[set_index][isound]
@@ -357,14 +369,17 @@ class AudioProcessor(object):
                         sounds_needed = min(sounds_have, testing_equalize_ratio * sounds_smallest)
                         if sounds_needed<sounds_have:
                             del_these.extend(self.np_rng.choice(label_kind_indices[label], \
-                                             sounds_have-sounds_needed, replace=False))
+                                                                sounds_have-sounds_needed,
+                                                                replace=False))
                     for i in sorted(del_these, reverse=True):
                         del self.data_index[set_index][i]
                 if 0 < testing_max_sounds < len(self.data_index[set_index]):
                     self.data_index[set_index] = self.np_rng.choice(self.data_index[set_index], \
-                                                 testing_max_sounds, replace=False)
+                                                                    testing_max_sounds,
+                                                                    replace=False)
             if set_index == 'testing':
-                labels = [sound['label'] for sound in self.data_index[set_index]]
+                self.catalog_overlaps(self.data_index['testing'])
+                labels = [sound['label'] for sound in self.data_index['testing']]
                 for uniqlabel in sorted(set(labels)):
                     print('%7d %s' % (sum(label==uniqlabel for label in labels), uniqlabel))
         # Make sure the ordering is random.
@@ -372,10 +387,6 @@ class AudioProcessor(object):
             self.np_rng.shuffle(self.data_index[set_index])
         # Prepare the rest of the result data structure.
         self.labels_list = labels_touse
-        self.label_to_index = {}
-        for label in all_labels:
-            if label in labels_touse_index:
-                self.label_to_index[label] = labels_touse_index[label]
 
     def set_size(self, mode):
         """Calculates the number of sounds in the dataset partition.
@@ -388,7 +399,7 @@ class AudioProcessor(object):
         """
         return len(self.data_index[mode])
 
-    def _get_data(self, q, o, how_many, offset, model_settings,
+    def _get_data(self, q, o, how_many, offset, model_settings, loss, overlapped_prefix,
                   shiftby_ms, mode, use_audio, use_video, video_findfile):
         q.cancel_join_thread()
         while True:
@@ -417,7 +428,10 @@ class AudioProcessor(object):
                                         len(video_channels)),
                                        dtype=np.float32)
                 bkg = {}
-            labels = np.zeros(nsounds, dtype=np.int32)
+            if loss=='exclusive':
+                labels = np.zeros(nsounds, dtype=np.int32)
+            else:
+                labels = 2*np.ones((nsounds, len(self.labels_list)), dtype=np.float32)
             # repeatedly to generate the final output sound data we'll use in training.
             for i in range(offset, offset + nsounds):
                 # Pick which sound to use.
@@ -447,10 +461,24 @@ class AudioProcessor(object):
                     _, video_data = self.video_read(os.path.join(sound_dirname, vidfile),
                                                     start_frame, start_frame+nframes)
                     for iframe, frame in enumerate(video_data):
-                        video_slice[i-offset,iframe,:,:,:] = frame[:,:,video_channels] - bkg[vidfile][:,:,video_channels]
-                label_index = self.label_to_index[sound['label']]
-                labels[i - offset] = label_index
-                sounds.append(sound)
+                        video_slice[i-offset,iframe,:,:,:] = \
+                                frame[:,:,video_channels] - bkg[vidfile][:,:,video_channels]
+                if loss=='exclusive':
+                    labels[i - offset] = self.labels_list.index(sound['label'])
+                    sounds.append(sound)
+                else:
+                    target = 0 if sound['label'].startswith(overlapped_prefix) else 1
+                    root = sound['label'].removeprefix(overlapped_prefix)
+                    labels[i - offset, self.labels_list.index(root)] = target
+                    sounds.append([sound])
+                    for ioverlap in sound['overlaps']:
+                        overlapped_sound = self.data_index[mode][ioverlap]
+                        if overlapped_sound['ticks'][1] > sound['ticks'][0] and \
+                           overlapped_sound['ticks'][0] < sound['ticks'][1]:
+                            target = 0 if overlapped_sound['label'].startswith(overlapped_prefix) else 1
+                            root = overlapped_sound['label'].removeprefix(overlapped_prefix)
+                            labels[i - offset, self.labels_list.index(root)] = target
+                            sounds[-1].append(overlapped_sound)
             if use_audio and use_video:
                 q.put([[audio_slice, video_slice], labels, sounds])
             elif use_audio:
@@ -458,7 +486,7 @@ class AudioProcessor(object):
             elif use_video:
                 q.put([video_slice, labels, sounds])
 
-    def get_data(self, how_many, offset, model_settings,
+    def get_data(self, how_many, offset, model_settings, loss, overlapped_prefix,
                  shiftby_ms, mode, use_audio, use_video, video_findfile):
         """Gather sounds from the data set, applying transformations as needed.
 
@@ -496,7 +524,8 @@ class AudioProcessor(object):
             len(processes[mode])<self.max_procs):
             p = Process(target=self._get_data,
                         args=(queues[mode], offsets[mode] if mode!='training' else None,
-                              how_many, offset, model_settings, shiftby_ms,
+                              how_many, offset, model_settings, loss,
+                              overlapped_prefix, shiftby_ms,
                               mode, use_audio, use_video, video_findfile),
                         daemon=True)
             p.start()

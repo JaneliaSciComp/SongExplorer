@@ -30,6 +30,7 @@
 #      --audio_read_plugin_kwargs="{}" \
 #      --video_read_plugin=load-avi-mp4-mov \
 #      --video_read_plugin_kwargs="{}" \
+#      --loss=exclusive
 #      --model=`pwd`/trained-classifier/train_1k/frozen-graph.ckpt-50.pb \
 #      --model_labels=`pwd`/trained-classifier/train_1k/labels.txt \
 #      --wav=`pwd`/groundtruth-data/round1/20161207T102314_ch1_p1.wav \
@@ -92,6 +93,16 @@ def main():
 
   if FLAGS.labels:
     labels = np.array(FLAGS.labels.split(','))
+    iimodel_labels = np.argsort(np.argsort(model_labels))
+    ilabels = np.argsort(labels)
+    labels = labels[ilabels][iimodel_labels]
+    assert np.all(labels==model_labels)
+  else:
+    labels = model_labels
+    ilabels = iimodel_labels = range(len(labels))
+  print('labels: '+str(labels))
+
+  if FLAGS.prevalences and FLAGS.loss=='exclusive':
     prevalences = np.array([float(x) for x in FLAGS.prevalences.split(',')])
     if len(labels) != len(prevalences):
       print("ERROR: length of 'labels to use' (="+str(len(labels))+
@@ -102,16 +113,10 @@ def main():
             os.path.join(logdir,model,'labels.txt'))
       exit()
     prevalences /= np.sum(prevalences)
-    iimodel_labels = np.argsort(np.argsort(model_labels))
-    ilabels = np.argsort(labels)
-    labels = labels[ilabels][iimodel_labels]
     prevalences = prevalences[ilabels][iimodel_labels]
-    assert np.all(labels==model_labels)
+    print('prevalences: '+str(prevalences))
   else:
-    labels = model_labels
-    prevalences = [1/len(labels) for _ in range(len(labels))]
-  print('labels: '+str(labels))
-  print('prevalences: '+str(prevalences))
+    prevalences = None
 
   # Load model and create a tf session to process audio pieces
   thismodel = tf.saved_model.load(FLAGS.model)
@@ -228,12 +233,15 @@ def main():
     print('WARNING: .wav files do not support fractional sampling rates!')
 
   probability_matrix = np.concatenate(probability_list)
-  denominator = np.sum(probability_matrix * prevalences, axis=1)
+  if prevalences:
+      denominator = np.sum(probability_matrix * prevalences, axis=1)
   for ch in range(len(labels)):
-    adjusted_probability = probability_matrix[:,ch] * prevalences[ch]
-    adjusted_probability[npadding:] /= denominator[npadding:]
-    #inotnan = ~isnan(probability_matrix(:,ch));
-    waveform = adjusted_probability*np.iinfo(np.int16).max  # colon was inotnan
+    if prevalences:
+      adjusted_probability = probability_matrix[:,ch] * prevalences[ch]
+      adjusted_probability[npadding:] /= denominator[npadding:]
+    else:
+      adjusted_probability = probability_matrix[:,ch]
+    waveform = adjusted_probability*np.iinfo(np.int16).max
     filename = os.path.splitext(FLAGS.wav)[0]+'-'+labels[ch]+'.wav'
     wavfile.write(filename, int(sample_rate), waveform.astype('int16'))
 
@@ -258,6 +266,12 @@ if __name__ == '__main__':
       help='A comma-separated list of the a priori probabilities of each label.')
   parser.add_argument(
       '--model', type=str, default='', help='The model used for inference')
+  parser.add_argument(
+      '--loss',
+      type=str,
+      default='exclusive',
+      choices=['exclusive', 'overlapped'],
+      help='Sigmoid cross entropy is used for "overlapped" labels while softmax cross entropy is used for "exclusive" labels.')
   parser.add_argument(
       '--context_ms',
       type=float,

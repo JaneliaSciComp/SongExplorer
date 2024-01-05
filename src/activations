@@ -25,6 +25,8 @@
 # e.g. activations \
 #      --context_ms=204.8 \
 #      --shiftby_ms=0.0 \
+#      --loss=exclusive \
+#      --overlapped_prefix=not_ \
 #      --video_findfile=same-basename \
 #      --video_bkg_frames=1000 \
 #      --audio_read_plugin=load-wav \
@@ -109,7 +111,7 @@ def main():
                     'video_channels': [int(x)-1 for x in FLAGS.video_channels.split(',')],
                     'parallelize': 1,
                     'batch_size': FLAGS.batch_size,
-                    'context_ms': FLAGS.context_ms }
+                    'context_ms': FLAGS.context_ms}
 
   audio_processor = data.AudioProcessor(
       FLAGS.data_dir,
@@ -123,7 +125,7 @@ def main():
       FLAGS.partition_validation_files.split(','),
       -1,
       FLAGS.testing_equalize_ratio, FLAGS.testing_max_sounds,
-      model_settings,
+      model_settings, FLAGS.loss, FLAGS.overlapped_prefix,
       FLAGS.data_loader_queuesize, FLAGS.data_loader_maxprocs,
       model.use_audio, model.use_video, video_findfile, FLAGS.video_bkg_frames,
       FLAGS.audio_read_plugin, FLAGS.video_read_plugin,
@@ -146,6 +148,7 @@ def main():
     # HACK: get_data not guaranteed to return isounds in order
     fingerprints, _, sounds = audio_processor.get_data(
                                  FLAGS.batch_size, isound, model_settings,
+                                 FLAGS.loss, FLAGS.overlapped_prefix,
                                  time_shift_tics, 'testing',
                                  model.use_audio, model.use_video, video_findfile)
     hidden_activations, logits = thismodel(fingerprints, training=False)
@@ -292,6 +295,17 @@ if __name__ == '__main__':
       type=float,
       default=1000,
       help='Expected duration in milliseconds of the wavs',)
+  parser.add_argument(
+      '--loss',
+      type=str,
+      default='exclusive',
+      choices=['exclusive', 'overlapped'],
+      help='Sigmoid cross entropy is used for "overlapped" labels while softmax cross entropy is used for "exclusive" labels.')
+  parser.add_argument(
+      '--overlapped_prefix',
+      type=str,
+      default='not_',
+      help='When `loss` is `overlapped`, a label starting which this string indicates the absence of the class.  E.g. `song` and `not_song`.')
   parser.add_argument(
       '--batch_size',
       type=int,

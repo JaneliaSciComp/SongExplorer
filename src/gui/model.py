@@ -69,6 +69,7 @@ def save_state_callback():
                      'context_ms': V.context_ms.value,
                      'shiftby_ms': V.shiftby_ms.value,
                      'optimizer': V.optimizer.value,
+                     'loss': V.loss.value,
                      'learning_rate': V.learning_rate.value},
                   **{k:v.value for k,v in V.detect_parameters.items()},
                   **{k:v.value for k,v in V.doubleclick_parameters.items()},
@@ -232,6 +233,7 @@ def init(_bokeh_document, _configuration_file):
     global context_width_ms, context_offset_ms, context_waveform, context_waveform_height_pix, context_spectrogram, context_spectrogram_height_pix, context_spectrogram_units, context_probability_height_pix, context_undo_proximity_pix
     global context_waveform_low, context_waveform_high, context_spectrogram_freq_scale, label_colors
     global spectrogram_colormap, spectrogram_window, spectrogram_length_ms, spectrogram_overlap, spectrogram_low_hz, spectrogram_high_hz
+    global overlapped_prefix
     global deterministic
     global context_width_ms0, context_offset_ms0
     global xcluster, ycluster, zcluster, ndcluster, tic2pix_max, snippet_width_pix, ilayer, ispecies, iword, inohyphen, ikind, nlayers, layers, species, words, nohyphens, kinds, used_labels, snippets_gap_ms, snippets_tic, snippets_gap_tic, snippets_decimate_by, snippets_pix, snippets_gap_pix, context_decimate_by, context_width_tic, context_offset_tic, context_sound, isnippet, xsnippet, ysnippet, file_nframes, context_midpoint_tic, ilabel, used_sounds, used_starts_sorted, used_stops, iused_stops_sorted, annotated_sounds, annotated_starts_sorted, annotated_stops, iannotated_stops_sorted, annotated_csvfiles_all, nrecent_annotations, clustered_sounds, clustered_activations, used_recording2firstsound, clustered_starts_sorted, clustered_stops, iclustered_stops_sorted, songexplorer_starttime, history_stack, history_idx, wizard, action, function, statepath, state, file_dialog_root, file_dialog_filter, nearest_sounds, status_ticker_queue, waitfor_job, dfs, remaining_isounds
@@ -481,6 +483,7 @@ def init(_bokeh_document, _configuration_file):
                           'context_ms':'204.8', \
                           'shiftby_ms':'0.0', \
                           'optimizer':'Adam', \
+                          'loss':'exclusive', \
                           'learning_rate':'0.0002'}, \
                        **{x[0]:x[3] for x in detect_parameters}, \
                        **{x[0]:x[3] for x in doubleclick_parameters}, \

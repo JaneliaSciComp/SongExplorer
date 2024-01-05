@@ -95,17 +95,27 @@ from lib import log_nvidia_smi_output, select_GPUs
 FLAGS = None
 
 # Create the back propagation and training evaluation machinery
-def loss_fn(logits, ground_truth_input):
-    return tf.nn.sparse_softmax_cross_entropy_with_logits(
-            labels=ground_truth_input,
-            logits=logits[:,0,:])
+def masked_sigmoid_cross_entropy_with_logits(labels, logits):
+    loss = tf.nn.sigmoid_cross_entropy_with_logits(labels, logits)
+    mask = tf.math.not_equal(labels, 2)
+    return loss * tf.cast(mask, tf.float32)
+
+def loss_fn(fn, logits, ground_truth_input):
+    return fn(labels=ground_truth_input, logits=logits[:,0,:])
 
 def evaluate_fn(model, fingerprint_input, ground_truth_input, istraining):
     hidden_activations, logits = model(fingerprint_input, training=istraining)
-    predicted_indices = tf.cast(tf.math.argmax(logits, 2)[:,0], tf.int32)
-    correct_prediction = tf.equal(predicted_indices, ground_truth_input)
-    accuracy = tf.reduce_mean(tf.cast(correct_prediction, tf.float32))
-    return logits, accuracy, predicted_indices, hidden_activations
+    if ground_truth_input.dtype == tf.int32:
+        predicted_indices = tf.cast(tf.math.argmax(logits, 2)[:,0], tf.int32)
+        correct_predictions = tf.equal(predicted_indices, ground_truth_input)
+        mask = None
+    else:
+        predicted_indices = tf.cast(logits > 0.5, tf.float32)[:,0,:]
+        all_predictions = tf.equal(predicted_indices, ground_truth_input)
+        mask = tf.math.not_equal(ground_truth_input, 2)
+        correct_predictions = tf.boolean_mask(all_predictions, mask)
+    accuracy = tf.reduce_mean(tf.cast(correct_predictions, tf.float32))
+    return logits, accuracy, predicted_indices, hidden_activations, mask
 
 def main():
   os.environ['TF_DETERMINISTIC_OPS']=FLAGS.deterministic
@@ -145,6 +155,7 @@ def main():
     labels_touse = FLAGS.labels_touse
 
   nlabels = len(labels_touse.split(','))
+
   model_settings = {'nlabels': nlabels,
                     'audio_tic_rate': FLAGS.audio_tic_rate,
                     'audio_nchannels': FLAGS.audio_nchannels,
@@ -154,7 +165,7 @@ def main():
                     'video_channels': [int(x)-1 for x in FLAGS.video_channels.split(',')],
                     'parallelize': 1,
                     'batch_size': FLAGS.batch_size,
-                    'context_ms': FLAGS.context_ms }
+                    'context_ms': FLAGS.context_ms}
 
   audio_processor = data.AudioProcessor(
       FLAGS.data_dir,
@@ -168,7 +179,7 @@ def main():
       FLAGS.partition_validation_files.split(','),
       FLAGS.random_seed_batch,
       FLAGS.testing_equalize_ratio, FLAGS.testing_max_sounds,
-      model_settings,
+      model_settings, FLAGS.loss, FLAGS.overlapped_prefix,
       FLAGS.data_loader_queuesize, FLAGS.data_loader_maxprocs,
       model.use_audio, model.use_video, video_findfile, FLAGS.video_bkg_frames,
       FLAGS.audio_read_plugin, FLAGS.video_read_plugin,
@@ -178,6 +189,9 @@ def main():
   thismodel.summary()
 
   thisoptimizer = getattr(tf.keras.optimizers, FLAGS.optimizer)(learning_rate=FLAGS.learning_rate)
+
+  thisloss = tf.nn.sparse_softmax_cross_entropy_with_logits if FLAGS.loss=='exclusive' else \
+             masked_sigmoid_cross_entropy_with_logits
 
   start_step = 1
 
@@ -205,7 +219,8 @@ def main():
   if FLAGS.how_many_training_steps==0:
       # pre-process a batch of data to make sure settings are valid
       train_fingerprints, train_ground_truth, _ = audio_processor.get_data(
-          FLAGS.batch_size, 0, model_settings, FLAGS.shiftby_ms, 'training',
+          FLAGS.batch_size, 0, model_settings, FLAGS.loss,
+          FLAGS.overlapped_prefix, FLAGS.shiftby_ms, 'training',
           model.use_audio, model.use_video, video_findfile)
       evaluate_fn(thismodel, train_fingerprints, train_ground_truth, False)
       return
@@ -218,9 +233,9 @@ def main():
   def train_step(train_fingerprints, train_ground_truth):
     # Run the graph with this batch of training data.
     with tf.GradientTape() as tape:
-      logits, train_accuracy, _, _ = evaluate_fn(thismodel, train_fingerprints,
+      logits, train_accuracy, _, _, _ = evaluate_fn(thismodel, train_fingerprints,
                                                  train_ground_truth, True)
-      loss_value = loss_fn(logits, train_ground_truth)
+      loss_value = loss_fn(thisloss, logits, train_ground_truth)
     gradients = tape.gradient(loss_value, thismodel.trainable_variables)
     thisoptimizer.apply_gradients(zip(gradients, thismodel.trainable_variables))
     cross_entropy_mean = tf.math.reduce_mean(loss_value)
@@ -232,7 +247,8 @@ def main():
     if training_set_size>0:
       # Pull the sounds we'll use for training.
       train_fingerprints, train_ground_truth, _ = audio_processor.get_data(
-          FLAGS.batch_size, 0, model_settings, FLAGS.shiftby_ms, 'training',
+          FLAGS.batch_size, 0, model_settings, FLAGS.loss,
+          FLAGS.overlapped_prefix, FLAGS.shiftby_ms, 'training',
           model.use_audio, model.use_video, video_findfile)
 
       cross_entropy_mean, train_accuracy = train_step(train_fingerprints, train_ground_truth)
@@ -255,34 +271,46 @@ def main():
     if validation_set_size>0 and \
        training_step != FLAGS.how_many_training_steps and \
        (FLAGS.validate_step_period > 0 and training_step % FLAGS.validate_step_period == 0):
-      validate_and_test(thismodel, 'validation', validation_set_size, model_settings, \
+      validate_and_test(thismodel, thisloss, 'validation', validation_set_size, model_settings, \
                         audio_processor, False, training_step, t0, nlabels, \
-                        validation_writer, model.use_audio, model.use_video, video_findfile)
+                        validation_writer, model.use_audio, model.use_video,
+                        video_findfile, FLAGS.loss=='exclusive')
 
   if validation_set_size>0:
-    validate_and_test(thismodel, 'validation', validation_set_size, model_settings, \
+    validate_and_test(thismodel, thisloss, 'validation', validation_set_size, model_settings, \
                       audio_processor, True, FLAGS.how_many_training_steps, t0, nlabels, \
-                      validation_writer, model.use_audio, model.use_video, video_findfile)
+                      validation_writer, model.use_audio, model.use_video,
+                      video_findfile, FLAGS.loss=='exclusive')
   if testing_set_size>0:
-    validate_and_test(thismodel, 'testing', testing_set_size, model_settings, \
+    validate_and_test(thismodel, thisloss, 'testing', testing_set_size, model_settings, \
                       audio_processor, True, FLAGS.how_many_training_steps, t0, nlabels, \
-                      validation_writer, model.use_audio, model.use_video, video_findfile)
+                      validation_writer, model.use_audio, model.use_video,
+                      video_findfile, FLAGS.loss=='exclusive')
 
 @tf.function
-def validate_test_step(model, nlabels, fingerprints, ground_truth):
-  logits, accuracy, predicted_indices, hidden_activations = evaluate_fn(model, fingerprints,
-                                                                        ground_truth, False)
-  loss_value = loss_fn(logits, ground_truth)
+def validate_test_step(model, loss, nlabels, fingerprints, ground_truth, exclusive):
+  logits, accuracy, predicted_indices, hidden_activations, mask = evaluate_fn(model,
+          fingerprints, ground_truth, False)
+  loss_value = loss_fn(loss, logits, ground_truth)
   cross_entropy_mean = tf.math.reduce_mean(loss_value)
-  confusion_matrix = tf.math.confusion_matrix(ground_truth,
-                                              predicted_indices,
-                                              num_classes=nlabels)
-
+  if exclusive:
+      confusion_matrix = tf.math.confusion_matrix(ground_truth,
+                                                  predicted_indices,
+                                                  num_classes=nlabels)
+  else:
+    confusion_matrices = []
+    for ilabel in range(nlabels):
+        confusion_matrices.append(tf.math.confusion_matrix(
+                tf.boolean_mask(1-ground_truth[:,ilabel], mask[:,ilabel]),
+                tf.boolean_mask(1-predicted_indices[:,ilabel], mask[:,ilabel]),
+                num_classes=2))
+    confusion_matrix = tf.stack(confusion_matrices)
   return logits, accuracy, hidden_activations, cross_entropy_mean, confusion_matrix
 
-def validate_and_test(model, set_kind, set_size, model_settings, \
+def validate_and_test(model, loss, set_kind, set_size, model_settings, \
                       audio_processor, is_last_step, training_step, t0, nlabels, \
-                      validation_writer, use_audio, use_video, video_findfile):
+                      validation_writer, use_audio, use_video, video_findfile,
+                      exclusive):
   total_accuracy = 0
   total_conf_matrix = None
   isound = 0
@@ -290,10 +318,11 @@ def validate_and_test(model, set_kind, set_size, model_settings, \
     # HACK: get_data not guaranteed to return isounds in order
     fingerprints, ground_truth, sounds = (
         audio_processor.get_data(FLAGS.batch_size, isound, model_settings,
+                                 FLAGS.loss, FLAGS.overlapped_prefix,
                                  FLAGS.shiftby_ms, set_kind,
                                  use_audio, use_video, video_findfile))
     logits, accuracy, hidden_activations, cross_entropy_mean, confusion_matrix = \
-            validate_test_step(model, nlabels, fingerprints, ground_truth)
+            validate_test_step(model, loss, nlabels, fingerprints, ground_truth, exclusive)
 
     with validation_writer.as_default():
       tf.summary.scalar('cross_entropy', cross_entropy_mean, step=training_step)
@@ -307,7 +336,7 @@ def validate_and_test(model, set_kind, set_size, model_settings, \
       total_conf_matrix += confusion_matrix
     if isound==0:
       sounds_data = [None]*set_size
-      groundtruth_data = np.empty((set_size,))
+      groundtruth_data = np.empty((set_size, nlabels) if ground_truth.ndim>1 else (set_size,))
       logit_data = np.empty((set_size,np.shape(logits)[2]))
     sounds_data[isound:isound+this_batch_size] = sounds
     groundtruth_data[isound:isound+this_batch_size] = ground_truth
@@ -346,16 +375,18 @@ def validate_and_test(model, set_kind, set_size, model_settings, \
                    total_accuracy * 100, set_kind.capitalize()))
   np.savez(os.path.join(FLAGS.train_dir,
                         'logits.'+set_kind+'.ckpt-'+str(training_step)+'.npz'), \
-           sounds=sounds_data, groundtruth=groundtruth_data, logits=logit_data)
+           sounds=np.asarray(sounds_data, dtype="object"),
+           groundtruth=groundtruth_data,
+           logits=logit_data)
   if is_last_step:
     if FLAGS.save_hidden:
       np.savez(os.path.join(FLAGS.train_dir,
                             'hidden.'+set_kind+'.ckpt-'+str(training_step)+'.npz'), \
-               *hidden_layers, sounds=sounds_data)
+               *hidden_layers, sounds=np.asarray(sounds_data, dtype="object"))
     if FLAGS.save_fingerprints:
       np.savez(os.path.join(FLAGS.train_dir,
                             'fingerprints.'+set_kind+'.ckpt-'+str(training_step)+'.npz'), \
-              input_layer, sounds=sounds_data)
+              input_layer, sounds=np.asarray(sounds_data, dtype="object"))
 
 def str2bool(v):
     if v.lower() in ('yes', 'true', 't', 'y', '1'):
@@ -476,6 +507,17 @@ if __name__ == '__main__':
       type=str,
       default='sgd',
       help='What optimizer to use.  One of Adadelta, Adagrad, Adam, Adamax, Ftrl, Nadam, RMSProp, or SGD.')
+  parser.add_argument(
+      '--loss',
+      type=str,
+      default='exclusive',
+      choices=['exclusive', 'overlapped'],
+      help='Sigmoid cross entropy is used for "overlapped" labels while softmax cross entropy is used for "exclusive" labels.')
+  parser.add_argument(
+      '--overlapped_prefix',
+      type=str,
+      default='not_',
+      help='When `loss` is `overlapped`, a label starting which this string indicates the absence of the class.  E.g. `song` and `not_song`.')
   parser.add_argument(
       '--how_many_training_steps',
       type=int,

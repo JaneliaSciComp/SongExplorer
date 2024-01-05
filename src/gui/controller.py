@@ -1157,6 +1157,8 @@ async def train_actuate():
         args = ["--context_ms="+V.context_ms.value, \
                 "--shiftby_ms="+V.shiftby_ms.value, \
                 "--optimizer="+V.optimizer.value, \
+                "--loss="+V.loss.value, \
+                "--overlapped_prefix="+M.overlapped_prefix, \
                 "--learning_rate="+V.learning_rate.value, \
                 "--audio_read_plugin="+str(M.audio_read_plugin), \
                 "--audio_read_plugin_kwargs="+json.dumps(M.audio_read_plugin_kwargs), \
@@ -1242,6 +1244,8 @@ async def leaveout_actuate(comma):
         args = ["--context_ms="+V.context_ms.value, \
                 "--shiftby_ms="+V.shiftby_ms.value, \
                 "--optimizer="+V.optimizer.value, \
+                "--loss="+V.loss.value, \
+                "--overlapped_prefix="+M.overlapped_prefix, \
                 "--learning_rate="+V.learning_rate.value, \
                 "--audio_read_plugin="+str(M.audio_read_plugin), \
                 "--audio_read_plugin_kwargs="+json.dumps(M.audio_read_plugin_kwargs), \
@@ -1306,6 +1310,8 @@ async def xvalidate_actuate():
         args = ["--context_ms="+V.context_ms.value, \
                 "--shiftby_ms="+V.shiftby_ms.value, \
                 "--optimizer="+V.optimizer.value, \
+                "--loss="+V.loss.value, \
+                "--overlapped_prefix="+M.overlapped_prefix, \
                 "--learning_rate="+V.learning_rate.value, \
                 "--audio_read_plugin="+str(M.audio_read_plugin), \
                 "--audio_read_plugin_kwargs="+json.dumps(M.audio_read_plugin_kwargs), \
@@ -1511,12 +1517,13 @@ def accuracy_succeeded(logdir, reftime):
         return False
     traindirs = list(filter(lambda x: os.path.isdir(os.path.join(logdir,x)) and \
                             not x.startswith('summaries_'), os.listdir(logdir)))
-    toplevelfiles = ["accuracy.pdf",
+    toplevelfiles = ["precision-recall.pdf",
+                     "confusion-matrix.pdf",
                      "train-validation-loss.pdf",
-                     "validation-P-R-F1-average.pdf",
-                     "validation-P-R-F1-label.pdf",
-                     "validation-P-R-F1-model.pdf",
-                     "validation-PvR.pdf"]
+                     "P-R-F1-average.pdf",
+                     "P-R-F1-label.pdf",
+                     "P-R-F1-model.pdf",
+                     "PvR.pdf"]
     for toplevelfile in toplevelfiles:
         if not pdffile_succeeded(os.path.join(logdir, toplevelfile), reftime):
             return False
@@ -1568,6 +1575,8 @@ async def accuracy_actuate():
     args = ["--logdir="+V.logs_folder.value, \
             "--error_ratios="+V.precision_recall_ratios.value, \
             "--nprobabilities="+str(M.nprobabilities), \
+            "--loss="+V.loss.value, \
+            "--overlapped_prefix="+M.overlapped_prefix, \
             "--accuracy_parallelize="+str(M.accuracy_parallelize)]
     jobid = generic_actuate("accuracy", logfile,
                             M.accuracy_where,
@@ -1617,6 +1626,7 @@ async def _freeze_actuate(ckpts):
                             "--context_ms="+V.context_ms.value,
                             "--model_architecture="+M.architecture_plugin,
                             "--model_parameters="+json.dumps({k:v.value for k,v in V.model_parameters.items()}),
+                            "--loss="+V.loss.value, \
                             "--parallelize="+str(M.classify_parallelize),
                             "--audio_tic_rate="+str(M.audio_tic_rate),
                             "--audio_nchannels="+str(M.audio_nchannels),
@@ -1740,6 +1750,7 @@ async def _classify_actuate(wavfiles):
     logfile = os.path.splitext(wavfile)[0]+'-classify.log'
     args = ["--context_ms="+V.context_ms.value,
             "--shiftby_ms="+V.shiftby_ms.value,
+            "--loss="+V.loss.value,
             "--model="+os.path.join(logdir,model,"frozen-graph.ckpt-"+check_point+".pb"),
             "--model_labels="+os.path.join(logdir,model,"labels.txt"),
             "--wav="+wavfile,
@@ -1846,7 +1857,7 @@ def compare_succeeded(logdirprefix, reftime):
         return False
     for pdffile in ["-compare-overall-params-speed.pdf", 
                     "-compare-confusion-matrices.pdf", 
-                    "-compare-precision-recall.pdf"]:
+                    "-compare-PR-classes.pdf"]:
         if not pdffile_succeeded(logdirprefix+pdffile, reftime):
             return False
     return True
@@ -1854,13 +1865,16 @@ def compare_succeeded(logdirprefix, reftime):
 async def compare_actuate():
     currtime = time.time()
     logfile = V.logs_folder.value+'-compare.log'
+    args = ["--logdirs_prefix="+V.logs_folder.value, \
+            "--loss="+V.loss.value, \
+            "--overlapped_prefix="+M.overlapped_prefix]
     jobid = generic_actuate("compare", logfile,
                             M.compare_where,
                             M.compare_ncpu_cores,
                             M.compare_ngpu_cards,
                             M.compare_ngigabytes_memory,
                             M.compare_cluster_flags,
-                            V.logs_folder.value)
+                            *args)
     displaystring = "COMPARE "+os.path.basename(V.logs_folder.value.rstrip(os.sep))+ \
                     " ("+jobid+")"
     M.waitfor_job = jobid
@@ -2098,6 +2112,9 @@ def _copy_callback():
             elif "optimizer = " in line:
                 m=re.search('optimizer = (.*)', line)
                 V.optimizer.value = m.group(1)
+            elif "loss = " in line:
+                m=re.search('loss = (.*)', line)
+                V.loss.value = m.group(1)
             elif "start_checkpoint = " in line:
                 m=re.search('start_checkpoint = .*ckpt-([0-9]+)', line)
                 if m:

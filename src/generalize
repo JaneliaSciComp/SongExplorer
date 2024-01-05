@@ -6,6 +6,8 @@
 #     --context_ms=204.8 \
 #     --shiftby_ms=0.0 \
 #     --optimizer=Adam \
+#     --loss=exclusive \
+#     --overlapped_prefix=not_ \
 #     --learning_rate=0.0002 \
 #     --audio_read_plugin=load_wav \
 #     --audio_read_plugin_kwargs="{}" \
@@ -93,6 +95,8 @@ def main():
             "--context_ms="+str(FLAGS.context_ms),
             "--shiftby_ms="+str(FLAGS.shiftby_ms),
             "--optimizer="+FLAGS.optimizer,
+            "--loss="+FLAGS.loss,
+            "--overlapped_prefix="+FLAGS.overlapped_prefix,
             "--learning_rate="+str(FLAGS.learning_rate),
             "--audio_read_plugin="+FLAGS.audio_read_plugin,
             "--audio_read_plugin_kwargs="+FLAGS.audio_read_plugin_kwargs,
@@ -206,6 +210,17 @@ if __name__ == '__main__':
       type=str,
       default='sgd',
       help='What optimizer to use.  One of Adadelta, Adagrad, Adam, Adamax, Ftrl, Nadam, RMSProp, or SGD.')
+  parser.add_argument(
+      '--loss',
+      type=str,
+      default='exclusive',
+      choices=['exclusive', 'overlapped'],
+      help='Sigmoid cross entropy is used for "overlapped" labels while softmax cross entropy is used for "exclusive" labels.')
+  parser.add_argument(
+      '--overlapped_prefix',
+      type=str,
+      default='not_',
+      help='When `loss` is `overlapped`, a label starting which this string indicates the absence of the class.  E.g. `song` and `not_song`.')
   parser.add_argument(
       '--nsteps',
       type=int,
