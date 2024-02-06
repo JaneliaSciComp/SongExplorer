@@ -257,24 +257,24 @@ class AudioProcessor(object):
                     audio_tic_rate, audio_data = self.audio_read(wav_path)
                     if audio_tic_rate != model_settings['audio_tic_rate']:
                         print(f'ERROR: audio_tic_rate is set to {model_settings["audio_tic_rate"]} '
-                               'in configuration.py but is actually {audio_tic_rate} in {wav_path}')
+                              f'in configuration.py but is actually {audio_tic_rate} in {wav_path}')
                     if np.shape(audio_data)[1] != model_settings['audio_nchannels']:
                         print(f'ERROR: audio_nchannels is set to {model_settings["audio_nchannels"]} '
-                               'in configuration.py but is actually {np.shape(audio_data)[1]} in {wav_path}')
+                              f'in configuration.py but is actually {np.shape(audio_data)[1]} in {wav_path}')
                     audio_ntics[wav_path] = len(audio_data)
                 if use_audio:
                     if ticks[1] < context_tics//2 + shiftby_tics or \
                        ticks[0] > (audio_ntics[wav_path] - context_tics//2 + shiftby_tics):
                         print(f"WARNING: {str(annotation)} is too close to both edges of recording.  "
-                               "not using at all")
+                              f"not using at all")
                         continue
                     if ticks[0] < context_tics//2 + shiftby_tics:
                         print(f"WARNING: {str(annotation)} is close to beginning of recording.  "
-                               "shortening interval to usable range")
+                              f"shortening interval to usable range")
                         ticks[0] = context_tics//2 + shiftby_tics
                     if ticks[1] > audio_ntics[wav_path] - context_tics//2 + shiftby_tics:
                         print(f"WARNING: {str(annotation)} is close to end of recording.  "
-                               "shortening interval to usable range")
+                              f"shortening interval to usable range")
                         ticks[1] = audio_ntics[wav_path] - context_tics//2 + shiftby_tics
                 if use_video and wav_path not in video_nframes:
                     sound_dirname = os.path.join(self.data_dir, wav_base2[0])
@@ -285,19 +285,19 @@ class AudioProcessor(object):
                     frame_rate, video_shape, _, video_data = self.video_read(os.path.join(sound_dirname,vidfile))
                     if video_frame_rate != frame_rate:
                         print(f'ERROR: video_frame_rate is set to {video_frame_rate} '
-                               'in configuration.py but is actually {frame_rate} in {vidfile}')
+                              f'in configuration.py but is actually {frame_rate} in {vidfile}')
                         continue
                     if video_frame_width != video_shape[1]:
                         print(f'ERROR: video_frame_width is set to {video_frame_width} '
-                               'in configuration.py but is actually {video_shape[1]} in {vidfile}')
+                              f'in configuration.py but is actually {video_shape[1]} in {vidfile}')
                         continue
                     if video_frame_height != video_shape[2]:
                         print(f'ERROR: video_frame_height is set to {video_frame_height} '
-                               'in configuration.py but is actually {video_shape[2]} in {vidfile}')
+                              f'in configuration.py but is actually {video_shape[2]} in {vidfile}')
                         continue
                     if max(video_channels) > video_shape[3]:
                         print(f'ERROR: video_channels is set to {video_channels} '
-                               'in configuration.py but {vidfile} has only {video_shape[3]} channels')
+                              f'in configuration.py but {vidfile} has only {video_shape[3]} channels')
                         continue
                     video_nframes[wav_path] = video_shape[0]
 
@@ -309,15 +309,15 @@ class AudioProcessor(object):
                     if ticks[1] < context_tics//2 + shiftby_tics or \
                        ticks[0] > video_nframes[wav_path] / video_frame_rate * model_settings['audio_tic_rate'] - context_tics//2 + shiftby_tics:
                         print(f"WARNING: {str(annotation)} is too close to both edges of recording.  "
-                               "not using at all")
+                              f"not using at all")
                         continue
                     if ticks[0] < context_tics//2 + shiftby_tics:
                         print(f"WARNING: {str(annotation)} is close to beginning of recording.  "
-                               "shortening interval to usable range")
+                              f"shortening interval to usable range")
                         ticks[0] = context_tics//2 + shiftby_tics
                     if ticks[1] > video_nframes[wav_path] / video_frame_rate * model_settings['audio_tic_rate'] - context_tics//2 + shiftby_tics:
                         print(f"WARNING: {str(annotation)} is close to end of recording.  "
-                               "shortening interval to usable range")
+                              f"shortening interval to usable range")
                         ticks[1] = video_nframes[wav_path] / video_frame_rate * model_settings['audio_tic_rate'] - context_tics//2 + shiftby_tics
                 all_labels[label] = True
                 self.data_index[set_index].append({'label': label,
