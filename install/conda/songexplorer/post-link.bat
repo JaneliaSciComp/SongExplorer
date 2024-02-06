@@ -10,4 +10,5 @@ echo pip3 install -e git+https://github.com/soft-matter/pims.git@7bd634015ecbfeb
 echo either way, to finish the installation cut and paste the following: >> %PREFIX%\.messages.txt
 echo conda activate songexplorer >> %PREFIX%\.messages.txt
 echo pip3 install "tensorflow<2.11" >> %PREFIX%\.messages.txt
+echo pip3 install tensorflow-io^=^=^<VERSION^>  # https://github.com/tensorflow/io?tab=readme-ov-file#tensorflow-version-compatibility >> %PREFIX%\.messages.txt
 echo ********** IMPORTANT !!! ********** >> %PREFIX%\.messages.txt
