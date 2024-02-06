@@ -72,7 +72,7 @@ def main():
 
   hyperparameter1 = int(FLAGS.parameters["my-simple-textbox"])
 
-  _, song = audio_read(FLAGS.filename)
+  _, _, song = audio_read(FLAGS.filename)
   song = abs(song)
   if FLAGS.audio_nchannels>1:
       song = np.max(song, axis=1)

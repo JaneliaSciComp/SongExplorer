@@ -24,7 +24,7 @@ def audio_read(wav_path, start_tic, stop_tic, cutoff=1, order=2):
     # https://docs.scipy.org/doc/scipy/reference/generated/scipy.signal.sosfiltfilt.html
     padlen = 3 * (2 * len(sos) + 1 - min((sos[:, 2] == 0).sum(), (sos[:, 5] == 0).sum()))
     padlenL = min(padlen, start_tic_clamped)
-    padlenR = min(padlen, np.shape(data)[0] - stop_tic_clamped + 1)
+    padlenR = min(padlen, np.shape(data)[0] - stop_tic_clamped)
 
     data_filtered = sosfiltfilt(sos.astype('float32'),
                                 data[start_tic_clamped-padlenL : stop_tic_clamped+padlenR],
@@ -32,4 +32,4 @@ def audio_read(wav_path, start_tic, stop_tic, cutoff=1, order=2):
                                 padtype=None)
     data_unpadded = data_filtered[padlenL:-padlenR or None, :]
 
-    return sampling_rate, data_unpadded
+    return sampling_rate, data.shape, data_unpadded

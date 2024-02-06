@@ -606,7 +606,7 @@ def snippets_update(redraw_wavs):
             midpoint = np.mean(thissound['ticks'], dtype=int)
             if redraw_wavs:
                 start_tic = max(0, midpoint-M.snippets_tic//2)
-                _, wavs = M.audio_read(os.path.join(groundtruth_folder.value, *thissound['file']),
+                _, _, wavs = M.audio_read(os.path.join(groundtruth_folder.value, *thissound['file']),
                                        start_tic, start_tic+M.snippets_tic)
                 ntics_gotten = np.shape(wavs)[0]
                 left_pad = max(0, M.snippets_pix-ntics_gotten if start_tic==0 else 0)
@@ -871,7 +871,7 @@ def context_update():
         wavfile = os.path.join(groundtruth_folder.value, *M.context_sound['file'])
         if context_cache_file != wavfile:
             context_cache_file = wavfile
-            _, context_cache_data = M.audio_read(wavfile)
+            _, _, context_cache_data = M.audio_read(wavfile)
         M.file_nframes = np.shape(context_cache_data)[0]
         probs = [None]*len(M.used_labels)
         for ilabel,label in enumerate(M.used_labels):

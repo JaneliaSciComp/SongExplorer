@@ -18,4 +18,4 @@ def audio_read(wav_path, start_tic, stop_tic, mmap=True):
 
     data_sliced = data[start_tic_clamped : stop_tic_clamped, :]
 
-    return sampling_rate, data_sliced
+    return sampling_rate, data.shape, data_sliced

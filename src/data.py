@@ -254,14 +254,14 @@ class AudioProcessor(object):
                            for x in self.data_index['training']) >= partition_n:
                         continue
                 if use_audio and wav_path not in audio_ntics:
-                    audio_tic_rate, audio_data = self.audio_read(wav_path)
+                    audio_tic_rate, audio_data_shape, _ = self.audio_read(wav_path, 0, 1)
                     if audio_tic_rate != model_settings['audio_tic_rate']:
                         print(f'ERROR: audio_tic_rate is set to {model_settings["audio_tic_rate"]} '
                               f'in configuration.py but is actually {audio_tic_rate} in {wav_path}')
-                    if np.shape(audio_data)[1] != model_settings['audio_nchannels']:
+                    if audio_data_shape[1] != model_settings['audio_nchannels']:
                         print(f'ERROR: audio_nchannels is set to {model_settings["audio_nchannels"]} '
-                              f'in configuration.py but is actually {np.shape(audio_data)[1]} in {wav_path}')
-                    audio_ntics[wav_path] = len(audio_data)
+                              f'in configuration.py but is actually {audio_data_shape[1]} in {wav_path}')
+                    audio_ntics[wav_path] = audio_data_shape[0]
                 if use_audio:
                     if ticks[1] < context_tics//2 + shiftby_tics or \
                        ticks[0] > (audio_ntics[wav_path] - context_tics//2 + shiftby_tics):
@@ -448,7 +448,7 @@ class AudioProcessor(object):
                 stop_tic  = offset_tic + math.ceil(context_tics/2) - shiftby_tics
                 if use_audio:
                     wavpath = os.path.join(self.data_dir, *sound['file'])
-                    _, audio_data = self.audio_read(wavpath, start_tic, stop_tic)
+                    _, _, audio_data = self.audio_read(wavpath, start_tic, stop_tic)
                     audio_slice[i-offset,:,:] = audio_data.astype(np.float32) / abs(np.iinfo(np.int16).min)
                 if use_video:
                     sound_basename = sound['file'][1]

@@ -126,7 +126,7 @@ def main():
 
   #Load a wav file and return audio_tic_rate and numpy data of float64 type.
   if use_audio:
-    fs, audio_data = audio_read(FLAGS.wav)
+    fs, _, audio_data = audio_read(FLAGS.wav)
     if fs != audio_tic_rate:
       print("ERROR: audio_tic_rate of WAV file is %d while %d was expected" %
             (fs, audio_tic_rate))

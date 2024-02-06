@@ -97,7 +97,7 @@ def main():
     frequency_smooth = round(float(FLAGS.parameters['frequency_smooth_ms'])/1000*FLAGS.audio_tic_rate) // (frequency_n//2)
     time_sigma_robust = FLAGS.parameters['time_sigma_robust']
 
-    fs, song = audio_read(FLAGS.filename)
+    fs, _, song = audio_read(FLAGS.filename)
     if fs!=FLAGS.audio_tic_rate:
       raise Exception("ERROR: sampling rate of WAV file (="+str(fs)+
             ") is not the same as specified in the config file (="+str(FLAGS.audio_tic_rate)+")")
@@ -110,8 +110,6 @@ def main():
       next_lower_ms = np.around(next_lower/FLAGS.audio_tic_rate*1000, decimals=sigdigs)
       raise Exception("ERROR: 'freq N (msec)' should be a power of two when converted to tics.  "+FLAGS.parameters['frequency_n_ms']+" ms is "+str(frequency_n)+" tics for Fs="+str(FLAGS.audio_tic_rate)+".  try "+str(next_lower_ms)+" ms (="+str(next_lower)+") or "+str(next_higher_ms)+"ms (="+str(next_higher)+") instead.")
 
-    if np.ndim(song)==1:
-      song = np.expand_dims(song, axis=1)
     nsounds = np.shape(song)[0]
     nchannels = np.shape(song)[1]
     if nchannels != FLAGS.audio_nchannels:
