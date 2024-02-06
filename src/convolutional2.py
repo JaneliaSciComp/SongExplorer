@@ -449,10 +449,12 @@ def create_model(model_settings, model_parameters, io=sys.stdout):
       nfreqs = x.get_shape().as_list()[2]
       x = Slice([0, 0, round(nfreqs * float(lo) / nyquist), 0],
                 [-1, -1, round(nfreqs * (float(hi) - float(lo)) / nyquist), -1])(x)
+    hidden_layers.append(x)
   elif representation == "mel-cepstrum":
     filterbank_nchannels, dct_ncoefficients = model_parameters['mel_dct'].split(',')
     x = MelCepstrum(window_tics, stride_tics, audio_tic_rate,
                          int(filterbank_nchannels), int(dct_ncoefficients))(x)
+    hidden_layers.append(x)
   x_shape = x.get_shape().as_list()
 
   receptive_field = [1,1]
@@ -546,9 +548,10 @@ def create_model(model_settings, model_parameters, io=sys.stdout):
       relu = ReLU()(x)
       x = dropout_kind(dropout_rate)(relu)
     x = Conv2D(nunits, (noutput_tics if idense==0 else 1, x_shape[2]))(x)
+    hidden_layers.append(conv)
     x_shape = x.get_shape().as_list()
 
   final = Reshape((-1,model_settings['nlabels']))(x)
 
-  print('convolutional2.py version = 0.1', file=io)
+  print('convolutional2.py version = 0.1.1', file=io)
   return tf.keras.Model(inputs=inputs, outputs=[hidden_layers, final], name="convolutional2")
