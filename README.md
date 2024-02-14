@@ -48,6 +48,7 @@ Table of Contents
       * [Singularity](#singularity)
       * [Docker](#docker)
 
+
 # Description #
 
 You have an audio recording, and you want to know where certain classes of
@@ -107,6 +108,24 @@ In addition, consider donating your recordings to a library or museum, like the
 Cornell Lab of Ornithology's [Macauley Library](www.macaulaylibrary.org) or the
 Museo de Ciencias Naturales de Madrid's [Fonoteca Zoológica](www.fonozoo.com).
 
+Publishing your trained models too is also useful to others, for reproducibility
+at a minimum but also as an example of what hyperparameters work well.  Simply
+compress the entire "logs folder" along with the ".pb" folder inside containing
+the learned parameters (see [Making Predictions](#making-predictions) below).
+Be sure to use `delete-ckpts` to reduce its footprint on disk before
+distributing it to others.
+
+As an alternative, a list of hyperparameters could suffice, but only if it is
+complete.  At least the following should be included:  the length of the context
+window, a description of each layer including the kernel size, the number of
+feature maps, strides and dilations if it is convolutional, the type of
+non-linearity used (e.g. ReLU), whether and where dropout and batch
+normalization were used, the batch size, the learning rate, the optimizer, the
+number of training steps, the fraction of data withheld for validation, the
+version of songexplorer used, the number of trainable parameters (as a sanity
+check), and, for the curious, the wall clock time that training took and the
+hardware used (e.g. GPU make and model).
+
 
 # Citations and Repositories
 
@@ -125,6 +144,7 @@ Rapid reconstruction of neural circuits using tissue expansion and light sheet m
 BJ Arthur, Y Ding, M Sosale, F Khalif, E Kim, P Waddell, S Turaga, DL Stern (2021)  
 *SongExplorer*: A deep learning workflow for discovery and segmentation of animal acoustic communication signals  
 [bioRxiv](https://www.biorxiv.org/content/10.1101/2021.03.26.437280v1)  [figshare](https://figshare.com/articles/dataset/Audio_recordings_of_21_species_of_Drosophila_10_of_which_are_annotated/14328425)
+
 
 # Notation #
 
@@ -590,11 +610,6 @@ just made were saved into an "-annotated.csv" file in the "groundtruth/" folder.
 
     $ tree groundtruth-data
     groundtruth-data
-    ├── cluster.npz
-    ├── cluster.log
-    ├── activations.npz
-    ├── activations.log
-    ├── activations-samples.log
     └── round1
         ├── PS_20130625111709_ch3-annotated-<timestamp>.csv
         ├── PS_20130625111709_ch3-detected.csv
@@ -1626,6 +1641,7 @@ These two files implement, as Bash and Python scripts respectively, the entire
 workflow presented in this [Tutorial](#tutorial), from [Detecting
 Sounds](#detecting-sounds) all the way to [Testing Densely](#testing-densely).
 
+
 # Training on Video #
 
 SongExplorer was conceived to analyze one-dimensional audio recordings.
@@ -1642,6 +1658,7 @@ See "src/video.py" for a network architecture plugin that inputs only video,
 and "src/ensemble-concat-dense.py" for an architecture plugin which combines a
 (possibly pretrained) audio-only model and a (possibly pretrained) video-only
 model with a simple top model.
+
 
 # Customizing with Plug-ins #
 
@@ -1840,6 +1857,7 @@ which would increase the time for each step.  This slow down in learning
 might be mitigated if filtered data were cached, or if SongExplorer's data
 loader were re-worked to run in a separate parallel process.  For now you'll
 need to filter a copy of your data in advance.
+
 
 # Reporting Problems #
 
