@@ -232,7 +232,7 @@ def init(_bokeh_document, _configuration_file):
     global snippets_colormap, snippets_width_ms, snippets_nx, snippets_ny, snippets_waveform, snippets_spectrogram
     global context_width_ms, context_offset_ms, context_waveform, context_waveform_height_pix, context_spectrogram, context_spectrogram_height_pix, context_spectrogram_units, context_probability_height_pix, context_undo_proximity_pix
     global context_waveform_low, context_waveform_high, context_spectrogram_freq_scale, label_colors
-    global spectrogram_colormap, spectrogram_window, spectrogram_length_ms, spectrogram_overlap, spectrogram_low_hz, spectrogram_high_hz
+    global spectrogram_colormap, spectrogram_clip, spectrogram_window, spectrogram_length_ms, spectrogram_overlap, spectrogram_low_hz, spectrogram_high_hz
     global overlapped_prefix
     global deterministic
     global context_width_ms0, context_offset_ms0
@@ -339,6 +339,7 @@ def init(_bokeh_document, _configuration_file):
         exit()
 
     context_spectrogram_units=gui_context_spectrogram_units
+    spectrogram_clip=gui_spectrogram_clip
     spectrogram_colormap=gui_spectrogram_colormap
     spectrogram_window=gui_spectrogram_window
     spectrogram_length_ms=[next_pow2_ms(float(gui_spectrogram_length_ms))[1]]*audio_nchannels

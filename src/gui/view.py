@@ -690,8 +690,11 @@ def snippets_update(redraw_wavs):
                         snippets_gram_glyphs[isnippet][idx].glyph.dw = xdata[-1] - xdata[0] + \
                                                                        xdata[1] - xdata[0]
                         snippets_gram_glyphs[isnippet][idx].glyph.dh = 2/len(M.snippets_spectrogram)
-                        snippets_gram_sources[isnippet][idx].data.update(image=[np.log10(1e-15+ \
-                                gram_images[isnippet][idx][ilows[isnippet][idx]:1+ihighs[isnippet][idx],:])])
+                        log_img = np.log10(1e-15 + gram_images[isnippet][idx][ilows[isnippet][idx] : 1+ihighs[isnippet][idx], :])
+                        clip_vals = np.percentile(log_img, M.spectrogram_clip)
+                        np.where(log_img, log_img<clip_vals[0], clip_vals[0])
+                        np.where(log_img, log_img>clip_vals[1], clip_vals[1])
+                        snippets_gram_sources[isnippet][idx].data.update(image=[log_img])
                     else:
                         snippets_gram_sources[isnippet][idx].data.update(image=[])
         if labels_annotated[isnippet]!='':
@@ -1115,8 +1118,11 @@ def context_update():
                 spectrogram_glyph[idx].glyph.dw = gram_time[idx][-1] + \
                         M.spectrogram_length_ms[ichannel] / 1000 * M.gui_spectrogram_overlap
                 spectrogram_glyph[idx].glyph.dh = 1
-                spectrogram_source[idx].data.update(image=[np.log10(1e-15+ \
-                        gram_image[idx][ilow[idx]:1+ihigh[idx],:])])
+                log_img = np.log10(1e-15 + gram_image[idx][ilow[idx] : 1+ihigh[idx], :])
+                clip_vals = np.percentile(log_img, M.spectrogram_clip)
+                np.place(log_img, log_img<clip_vals[0], clip_vals[0])
+                np.place(log_img, log_img>clip_vals[1], clip_vals[1])
+                spectrogram_source[idx].data.update(image=[log_img])
             else:
                 spectrogram_source[idx].data.update(image=[])
         if xwav and not np.isnan(xwav[0][-1]):
