@@ -82,7 +82,6 @@ def create_inference_graph():
                     'video_frame_height': FLAGS.video_frame_height,
                     'video_channels': [int(x)-1 for x in FLAGS.video_channels.split(',')],
                     'parallelize': FLAGS.parallelize,
-                    'batch_size': 1,
                     'context_ms': FLAGS.context_ms }
   thismodel = model.create_model(model_settings, FLAGS.model_parameters)
   thismodel.summary()
