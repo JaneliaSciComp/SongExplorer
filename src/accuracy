@@ -22,7 +22,6 @@ import matplotlib.pyplot as plt
 import csv
 from natsort import natsorted, index_natsorted
 import matplotlib.cm as cm
-from matplotlib.patches import Rectangle
 from datetime import datetime
 import socket
 from itertools import cycle, islice
@@ -676,11 +675,9 @@ def main():
     if len(colors)<len(labels):
       colors = list(islice(cycle(colors), len(labels)))
       print("WARNING: not enough colors in default palette; some will be used again")
-    precisions_model_mean = []
-    recalls_model_mean = []
+    precisions_mean, recalls_mean = [], []
     for (ilabel,label) in enumerate(labels):
-      precisions_all = []
-      recalls_all = []
+      precisions_all, recalls_all = [], []
       for model in keys_to_plot:
         ckpt = best_F1[model][0]
         precisions_all.append(precisions[model][ilabel])
@@ -689,51 +686,20 @@ def main():
                         markeredgecolor='w', color=colors[ilabel])
         if model==keys_to_plot[0]:
           line.set_label(label)
-      precisions_model_mean.append(np.nanmean(precisions_all))
-      recalls_model_mean.append(np.nanmean(recalls_all))
-      ax.plot(recalls_model_mean[-1], precisions_model_mean[-1], 'o',
+      precisions_mean.append(np.nanmean(precisions_all))
+      recalls_mean.append(np.nanmean(recalls_all))
+      ax.plot(recalls_mean[-1], precisions_mean[-1], 'o',
               markeredgecolor='k', color=colors[ilabel])
+    label_precisions_recall(ax, recalls_mean, precisions_mean, "")
 
-    ax.autoscale_view()
-    ax.set_autoscale_on(False)
-    miny = ax.get_ylim()[0]
-    minx = ax.get_xlim()[0]
-    if len(recalls_model_mean)>1:
-      x = np.nanmean(recalls_model_mean)
-      w = np.nanstd(recalls_model_mean)
-      avebox = Rectangle((x-w,miny),2*w,100)
-      ax.plot([x,x],[miny,100],'#c0c0c0', zorder=1, alpha=0.5)
-      pc = PatchCollection([avebox], facecolor='#f0f0f0', alpha=0.5)
-      ax.add_collection(pc)
-      y = np.nanmean(precisions_model_mean)
-      h = np.nanstd(precisions_model_mean)
-      avebox = Rectangle((minx,y-h),100,2*h)
-      ax.plot([minx,100],[y,y],'#c0c0c0', zorder=1, alpha=0.5)
-      pc = PatchCollection([avebox], facecolor='#f0f0f0', alpha=0.5)
-      ax.add_collection(pc)
-    else:
-      x,y,w,h = recalls_model_mean[0], precisions_model_mean[0], 0, 0
-      ax.plot([x,x],[miny,100], '#c0c0c0', zorder=1, alpha=0.5)
-      ax.plot([minx,100],[y,y], '#c0c0c0', zorder=1, alpha=0.5)
-
-    ax.set_xlim(right=100)
-    ax.set_ylim(top=100)
-    ax.set_xlabel('Recall (%)')
-    ax.set_ylabel('Precision (%)')
-    ax.set_title("P="+str(round(y,1))+"+/-"+str(round(h,1))+"%   "+
-                 "R="+str(round(x,1))+"+/-"+str(round(w,1))+"%")
-    ax.legend(loc=(1.05, 0.0))
-  
     ax = fig.add_subplot(1,2,2)
     colors = plt.rcParams["axes.prop_cycle"].by_key()["color"]
     if len(colors)<len(keys_to_plot):
       colors = list(islice(cycle(colors), len(keys_to_plot)))
       print("WARNING: not enough colors in default palette; some will be used again")
-    precisions_label_mean = []
-    recalls_label_mean = []
+    precisions_mean, recalls_mean = [], []
     for (imodel,model) in enumerate(keys_to_plot):
-      precisions_all = []
-      recalls_all = []
+      precisions_all, recalls_all = [], []
       for (ilabel,label) in enumerate(labels):
         ckpt = best_F1[model][0]
         precisions_all.append(precisions[model][ilabel])
@@ -742,41 +708,12 @@ def main():
                         markeredgecolor='w', color=colors[imodel])
         if label==labels[0]:
           line.set_label(model+'/ckpt-'+best_F1[model][0])
-      precisions_label_mean.append(np.nanmean(precisions_all))
-      recalls_label_mean.append(np.nanmean(recalls_all))
-      ax.plot(recalls_label_mean[-1], precisions_label_mean[-1], 'o',
+      precisions_mean.append(np.nanmean(precisions_all))
+      recalls_mean.append(np.nanmean(recalls_all))
+      ax.plot(recalls_mean[-1], precisions_mean[-1], 'o',
               markeredgecolor='k', color=colors[imodel])
+    label_precisions_recall(ax, recalls_mean, precisions_mean, "")
 
-    ax.autoscale_view()
-    ax.set_autoscale_on(False)
-    miny = ax.get_ylim()[0]
-    minx = ax.get_xlim()[0]
-    if len(recalls_label_mean)>1:
-      x = np.nanmean(recalls_label_mean)
-      w = np.nanstd(recalls_label_mean)
-      avebox = Rectangle((x-w,miny),2*w,100)
-      ax.plot([x,x],[miny,100],'#c0c0c0', zorder=1, alpha=0.5)
-      pc = PatchCollection([avebox], facecolor='#f0f0f0', alpha=0.5)
-      ax.add_collection(pc)
-      y = np.nanmean(precisions_label_mean)
-      h = np.nanstd(precisions_label_mean)
-      avebox = Rectangle((minx,y-h),100,2*h)
-      ax.plot([minx,100],[y,y],'#c0c0c0', zorder=1, alpha=0.5)
-      pc = PatchCollection([avebox], facecolor='#f0f0f0', alpha=0.5)
-      ax.add_collection(pc)
-    else:
-      x,y,w,h = recalls_label_mean[0], precisions_label_mean[0], 0, 0
-      ax.plot([x,x],[miny,100], '#c0c0c0', zorder=1, alpha=0.5)
-      ax.plot([minx,100],[y,y], '#c0c0c0', zorder=1, alpha=0.5)
-
-    ax.set_xlim(right=100)
-    ax.set_ylim(top=100)
-    ax.set_xlabel('Recall (%)')
-    ax.set_ylabel('Precision (%)')
-    ax.set_title("P="+str(round(y,1))+"+/-"+str(round(h,1))+"%   "+
-                 "R="+str(round(x,1))+"+/-"+str(round(w,1))+"%")
-    ax.legend(loc=(1.05, 0.0))
-  
     fig.tight_layout()
     plt.savefig(os.path.join(FLAGS.logdir,'precision-recall.pdf'))
     plt.close()

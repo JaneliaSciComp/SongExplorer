@@ -91,31 +91,23 @@ def main():
     differentparameters = {x:','.join(natsorted(list(hyperparameters[x]-commonparameters))) \
                            for x in natsorted(logdirs)}
 
+
     fig = plt.figure(figsize=(8,10*2/3))
 
     ax = fig.add_subplot(2,2,1)
-    minprecision, minrecall = 100, 100
-    for logdir in logdirs:
-        for model in validation_recall[logdir].keys():
-            minprecision = min(minprecision, max(validation_precision[logdir][model]))
-            minrecall = min(minrecall, max(validation_recall[logdir][model]))
 
+    precisions_mean, recalls_mean = [], []
     for (ilogdir,logdir) in enumerate(natsorted(logdirs)):
         color = cm.viridis(ilogdir/max(1,len(validation_recall)-1))
-        model0=list(validation_recall[logdir].keys())[0]
-        precisions, recalls = [], []
+        precisions_all, recalls_all = [], []
         for model in validation_recall[logdir].keys():
-            precisions.append(max(validation_precision[logdir][model]))
-            recalls.append(max(validation_recall[logdir][model]))
-            ax.plot(recalls[-1], precisions[-1], 'o', markeredgecolor='k', color=color)
-        y = np.nanmean(precisions)
-        ax.plot([minrecall,100],[y,y],color=color)
-        x = np.nanmean(recalls)
-        ax.plot([x,x],[minprecision,100],color=color)
-    ax.set_xlim(left=minrecall, right=100)
-    ax.set_ylim(bottom=minprecision, top=100)
-    ax.set_xlabel('Recall (%)')
-    ax.set_ylabel('Precision (%)')
+            precisions_all.append(max(validation_precision[logdir][model]))
+            recalls_all.append(max(validation_recall[logdir][model]))
+            ax.plot(recalls_all[-1], precisions_all[-1], 'o', markeredgecolor='w', color=color)
+        precisions_mean.append(np.nanmean(precisions_all))
+        recalls_mean.append(np.nanmean(recalls_all))
+        ax.plot(recalls_mean[-1], precisions_mean[-1], 'o', markeredgecolor='k', color=color)
+    label_precisions_recall(ax, recalls_mean, precisions_mean, "", False)
 
     ax = fig.add_subplot(2,2,2)
     bottom=100
@@ -247,47 +239,30 @@ def main():
 
 
     nrows, ncols = layout(len(labels))
-    scale=6.4
-    fig = plt.figure(figsize=(scale*ncols, scale*3/4*nrows))
-
-    minprecision, minrecall = 100, 100
-    for logdir in logdirs:
-        for model in recall_confusion_matrices[logdir].keys():
-            for ilabel in range(len(labels)):
-                minprecision = min(minprecision,
-                                   100*precision_confusion_matrices[logdir][model][ilabel][ilabel])
-                minrecall = min(minrecall,
-                                100*recall_confusion_matrices[logdir][model][ilabel][ilabel])
+    scale=4.8
+    fig = plt.figure(figsize=(scale*ncols, scale*nrows))
 
     for (ilabel,label) in enumerate(labels):
         ax = fig.add_subplot(nrows, ncols, ilabel+1)
+        precisions_mean, recalls_mean = [], []
         for (ilogdir,logdir) in enumerate(natsorted(logdirs)):
             color = cm.viridis(ilogdir/max(1,len(validation_recall)-1))
-            model0=list(recall_confusion_matrices[logdir].keys())[0]
-            precisions, recalls = [], []
-            for model in recall_confusion_matrices[logdir].keys():
-                precisions.append(100*precision_confusion_matrices[logdir][model][ilabel][ilabel])
-                recalls.append(100*recall_confusion_matrices[logdir][model][ilabel][ilabel])
-                line, = ax.plot(recalls[-1], precisions[-1], 'o', markeredgecolor='k', color=color)
-                if ilabel==0 and model==model0:
+            precisions_all, recalls_all = [], []
+            for (imodel,model) in enumerate(recall_confusion_matrices[logdir].keys()):
+                precisions_all.append(100*precision_confusion_matrices[logdir][model][ilabel][ilabel])
+                recalls_all.append(100*recall_confusion_matrices[logdir][model][ilabel][ilabel])
+                line, = ax.plot(recalls_all[-1], precisions_all[-1],
+                                'o', markeredgecolor='w', color=color)
+                if imodel==0:
                     line.set_label(differentparameters[logdir])
-            y = np.nanmean(precisions)
-            ax.plot([minrecall,100],[y,y],color=color)
-            x = np.nanmean(recalls)
-            ax.plot([x,x],[minprecision,100],color=color)
-        ax.set_xlim(left=minrecall, right=100)
-        ax.set_ylim(bottom=minprecision, top=100)
-        if ilabel//ncols==nrows-1:
-            ax.set_xlabel('Recall (%)')
-        if ilabel%ncols==0:
-            ax.set_ylabel('Precision (%)')
-        if ilabel==len(labels)-1:
-            lgd = fig.legend(bbox_to_anchor=(1.0,0.0), loc='lower left', title=dirname)
-        ax.set_title(label)
+            precisions_mean.append(np.nanmean(precisions_all))
+            recalls_mean.append(np.nanmean(recalls_all))
+            ax.plot(recalls_mean[-1], precisions_mean[-1],
+                    'o', markeredgecolor='k', color=color)
+        label_precisions_recall(ax, recalls_mean, precisions_mean, label+"\n")
 
     fig.tight_layout()
-    plt.savefig(logdirs_prefix+'-compare-PR-classes.pdf',
-                bbox_extra_artists=(lgd,), bbox_inches='tight')
+    plt.savefig(logdirs_prefix+'-compare-PR-classes.pdf')
     plt.close()
   
 if __name__ == "__main__":

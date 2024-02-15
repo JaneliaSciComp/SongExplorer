@@ -13,6 +13,7 @@ from matplotlib.patches import Polygon
 import matplotlib.cm as cm
 from mpl_toolkits.axes_grid1 import make_axes_locatable
 from matplotlib.colors import Normalize
+from matplotlib.patches import Rectangle
 from scipy import interpolate
 import math
 from natsort import realsorted
@@ -87,6 +88,38 @@ def combine_events(events1, events2, logic):
 
   return start_times, stop_times, ifeature
 
+def label_precisions_recall(ax, recalls_model_mean, precisions_model_mean, title, legend=True):
+    ax.autoscale_view()
+    ax.set_autoscale_on(False)
+    miny = ax.get_ylim()[0]
+    minx = ax.get_xlim()[0]
+    if len(recalls_model_mean)>1:
+        x = np.nanmean(recalls_model_mean)
+        w = np.nanstd(recalls_model_mean)
+        avebox = Rectangle((x-w,miny),2*w,100)
+        ax.plot([x,x],[miny,100],'#c0c0c0', zorder=1, alpha=0.5)
+        pc = PatchCollection([avebox], facecolor='#f0f0f0', alpha=0.5)
+        ax.add_collection(pc)
+        y = np.nanmean(precisions_model_mean)
+        h = np.nanstd(precisions_model_mean)
+        avebox = Rectangle((minx,y-h),100,2*h)
+        ax.plot([minx,100],[y,y],'#c0c0c0', zorder=1, alpha=0.5)
+        pc = PatchCollection([avebox], facecolor='#f0f0f0', alpha=0.5)
+        ax.add_collection(pc)
+    else:
+        x,y,w,h = recalls_model_mean[0], precisions_model_mean[0], 0, 0
+        ax.plot([x,x],[miny,100], '#c0c0c0', zorder=1, alpha=0.5)
+        ax.plot([minx,100],[y,y], '#c0c0c0', zorder=1, alpha=0.5)
+
+    ax.set_xlim(right=100)
+    ax.set_ylim(top=100)
+    ax.set_xlabel('Recall (%)')
+    ax.set_ylabel('Precision (%)')
+    ax.set_title(title+
+                 "P="+str(round(y,1))+"+/-"+str(round(h,1))+"%   "+
+                 "R="+str(round(x,1))+"+/-"+str(round(w,1))+"%")
+    if legend: ax.legend(loc=(1.05, 0.0))
+  
 def confusion_string2matrix(arg):
   arg = arg[1:-1]
   arg = arg.replace("\n\n", ",")
