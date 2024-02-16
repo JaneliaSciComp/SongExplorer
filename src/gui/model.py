@@ -290,6 +290,7 @@ def init(_bokeh_document, _configuration_file):
     is_local_server_or_cluster("activations_where", activations_where)
     is_local_server_or_cluster("cluster_where", cluster_where)
     is_local_server_or_cluster("accuracy_where", accuracy_where)
+    is_local_server_or_cluster("delete_ckpts_where", delete_ckpts_where)
     is_local_server_or_cluster("freeze_where", freeze_where)
     is_local_server_or_cluster("classify_where", classify_where)
     is_local_server_or_cluster("ethogram_where", ethogram_where)

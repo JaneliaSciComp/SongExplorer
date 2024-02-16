@@ -1511,7 +1511,7 @@ def init(_bokeh_document):
     global detect, misses, train, leaveoneout, leaveallout, xvalidate, mistakes, activations, cluster, visualize, accuracy, freeze, ensemble, classify, ethogram, compare, congruence
     global status_ticker, waitfor, deletefailures
     global file_dialog_source, configuration_contents
-    global logs_folder_button, logs_folder, model_file_button, model_file, wavcsv_files_button, wavcsv_files, groundtruth_folder_button, groundtruth_folder, validation_files_button, test_files_button, validation_files, test_files, labels_touse_button, labels_touse, kinds_touse_button, kinds_touse, prevalences_button, prevalences, copy, labelsounds, makepredictions, fixfalsepositives, fixfalsenegatives, generalize, tunehyperparameters, findnovellabels, examineerrors, testdensely, doit, nsteps, restore_from, save_and_validate_period, validate_percentage, mini_batch, kfold, activations_equalize_ratio, activations_max_sounds, pca_fraction_variance_to_retain, tsne_perplexity, tsne_exaggeration, umap_neighbors, umap_distance, cluster_algorithm, cluster_these_layers, precision_recall_ratios, congruence_portion, congruence_convolve, congruence_measure, context_ms, shiftby_ms, optimizer, loss, learning_rate, nreplicates, batch_seed, weights_seed, file_dialog_string, file_dialog_table, readme_contents, model_summary, labelcounts, wizard_buttons, action_buttons, parameter_buttons, parameter_textinputs, wizard2actions, action2parameterbuttons, action2parametertextinputs, status_ticker_update, status_ticker_pre, status_ticker_post
+    global logs_folder_button, logs_folder, model_file_button, model_file, wavcsv_files_button, wavcsv_files, groundtruth_folder_button, groundtruth_folder, validation_files_button, test_files_button, validation_files, test_files, labels_touse_button, labels_touse, kinds_touse_button, kinds_touse, prevalences_button, prevalences, delete_ckpts, copy, labelsounds, makepredictions, fixfalsepositives, fixfalsenegatives, generalize, tunehyperparameters, findnovellabels, examineerrors, testdensely, doit, nsteps, restore_from, save_and_validate_period, validate_percentage, mini_batch, kfold, activations_equalize_ratio, activations_max_sounds, pca_fraction_variance_to_retain, tsne_perplexity, tsne_exaggeration, umap_neighbors, umap_distance, cluster_algorithm, cluster_these_layers, precision_recall_ratios, congruence_portion, congruence_convolve, congruence_measure, context_ms, shiftby_ms, optimizer, loss, learning_rate, nreplicates, batch_seed, weights_seed, file_dialog_string, file_dialog_table, readme_contents, model_summary, labelcounts, wizard_buttons, action_buttons, parameter_buttons, parameter_textinputs, wizard2actions, action2parameterbuttons, action2parametertextinputs, status_ticker_update, status_ticker_pre, status_ticker_post
     global detect_parameters, detect_parameters_enable_logic, detect_parameters_required, detect_parameters_partitioned
     global doubleclick_parameters, doubleclick_parameters_enable_logic, doubleclick_parameters_required
     global model_parameters, model_parameters_enable_logic, model_parameters_required, model_parameters_partitioned
@@ -2008,6 +2008,9 @@ def init(_bokeh_document):
     prevalences = TextInput(value=M.state['prevalences'], title="", disabled=False)
     prevalences.on_change('value', lambda a,o,n: C.generic_parameters_callback(n))
 
+    delete_ckpts = Button(label='delete ckpts')
+    delete_ckpts.on_click(lambda: C.action_callback(delete_ckpts, C.delete_ckpts_actuate))
+
     copy = Button(label='copy')
     copy.on_click(C.copy_callback)
 
@@ -2285,7 +2288,8 @@ def init(_bokeh_document):
         ethogram,
         misses,
         compare,
-        congruence])
+        congruence,
+        delete_ckpts])
 
     parameter_buttons = set([
         logs_folder_button,
@@ -2342,15 +2346,15 @@ def init(_bokeh_document):
         list(model_parameters.values()))
 
     wizard2actions = {
-            labelsounds: [detect,train,activations,cluster,visualize],
-            makepredictions: [train, accuracy, freeze, classify, ethogram],
-            fixfalsepositives: [activations, cluster, visualize],
-            fixfalsenegatives: [detect, misses, activations, cluster, visualize],
-            generalize: [leaveoneout, leaveallout, accuracy],
-            tunehyperparameters: [xvalidate, accuracy, compare],
-            findnovellabels: [detect, train, activations, cluster, visualize],
-            examineerrors: [detect, mistakes, activations, cluster, visualize],
-            testdensely: [detect, activations, cluster, visualize, classify, ethogram, congruence],
+            labelsounds: [detect, train, activations, cluster, visualize, delete_ckpts],
+            makepredictions: [train, accuracy, freeze, classify, ethogram, delete_ckpts],
+            fixfalsepositives: [activations, cluster, visualize, delete_ckpts],
+            fixfalsenegatives: [detect, misses, activations, cluster, visualize, delete_ckpts],
+            generalize: [leaveoneout, leaveallout, accuracy, delete_ckpts],
+            tunehyperparameters: [xvalidate, accuracy, compare, delete_ckpts],
+            findnovellabels: [detect, train, activations, cluster, visualize, delete_ckpts],
+            examineerrors: [detect, mistakes, activations, cluster, visualize, delete_ckpts],
+            testdensely: [detect, activations, cluster, visualize, classify, ethogram, congruence, delete_ckpts],
             None: action_buttons }
 
     action2parameterbuttons = {
@@ -2364,6 +2368,7 @@ def init(_bokeh_document):
             cluster: [groundtruth_folder_button],
             visualize: [groundtruth_folder_button],
             accuracy: [logs_folder_button],
+            delete_ckpts: [logs_folder_button],
             freeze: [logs_folder_button, model_file_button],
             ensemble: [logs_folder_button, model_file_button],
             classify: [logs_folder_button, model_file_button, wavcsv_files_button, labels_touse_button, prevalences_button],
@@ -2384,6 +2389,7 @@ def init(_bokeh_document):
             cluster: [groundtruth_folder, cluster_algorithm, cluster_these_layers, pca_fraction_variance_to_retain, tsne_perplexity, tsne_exaggeration, umap_neighbors, umap_distance],
             visualize: [groundtruth_folder],
             accuracy: [logs_folder, precision_recall_ratios, loss],
+            delete_ckpts: [logs_folder],
             freeze: [context_ms, logs_folder, model_file, loss] + list(model_parameters.values()),
             ensemble: [context_ms, logs_folder, model_file] + list(model_parameters.values()),
             classify: [context_ms, shiftby_ms, logs_folder, model_file, wavcsv_files, labels_touse, prevalences, loss],

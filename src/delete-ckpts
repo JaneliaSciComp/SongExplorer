@@ -15,6 +15,17 @@ from glob import glob
 import shutil
 from natsort import natsorted
 import ast
+from datetime import datetime
+
+import socket
+from lib import *
+
+srcdir, repodir, _ = get_srcrepobindirs()
+
+print(str(datetime.now())+": start time")
+with open(os.path.join(repodir, "VERSION.txt"), 'r') as fid:
+  print('SongExplorer version = '+fid.read().strip().replace('\n',', '))
+print("hostname = "+socket.gethostname())
 
 if len(sys.argv)==3:
     _,logdir,ckpts_tokeep = sys.argv
@@ -43,6 +54,7 @@ def delete_glob(pattern, fn):
         notpattern = pattern.replace('X', ckpt_tokeep).replace('*', '')
         for ckpt in glob(search_path):
             if notpattern not in ckpt:
+                print('deleting '+ckpt)
                 fn(ckpt)
 
 delete_glob("ckpt-X.index", os.remove)
@@ -55,3 +67,5 @@ delete_glob("predictions.ckpt-X", shutil.rmtree)
 delete_glob("probability-density.ckpt-X.pdf", os.remove)
 delete_glob("specificity-sensitivity.ckpt-X.pdf", os.remove)
 delete_glob("thresholds.ckpt-X.csv", os.remove)
+
+print(str(datetime.now())+": finish time")

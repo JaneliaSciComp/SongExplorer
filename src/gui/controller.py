@@ -1510,6 +1510,48 @@ def _visualize_actuate():
     V.snippets_update(True)
     V.context_update()
 
+def delete_ckpts_succeeded(logdir, reftime):
+    logfile = os.path.join(logdir, 'delete-ckpts.log')
+    if not logfile_succeeded(logfile, reftime):
+        return False
+
+    traindirs = list(filter(lambda x: os.path.isdir(os.path.join(logdir,x)) and \
+                            not x.startswith('summaries_'), os.listdir(logdir)))
+
+    for traindir in traindirs:
+        trainfiles = os.listdir(os.path.join(logdir,traindir))
+        for prefix in ['logits.validation.ckpt-',
+                       'confusion-matrix.ckpt-',
+                       'precision-recall.ckpt-',
+                       'predictions.ckpt-',
+                       'probability-density.ckpt-',
+                       'specificity-sensitivity.ckpt-',
+                       'thresholds.ckpt-']:
+            if 1 != len(list(filter(lambda x: x.startswith(prefix), trainfiles))):
+                bokehlog.info("ERROR: more than one "+prefix+" file")
+                return False
+    return True
+
+async def delete_ckpts_actuate():
+    currtime = time.time()
+    logfile = os.path.join(V.logs_folder.value, "delete-ckpts.log")
+    args = [V.logs_folder.value]
+    jobid = generic_actuate("delete-ckpts", logfile,
+                            M.delete_ckpts_where,
+                            M.delete_ckpts_ncpu_cores,
+                            M.delete_ckpts_ngpu_cards,
+                            M.delete_ckpts_ngigabytes_memory,
+                            M.delete_ckpts_cluster_flags,
+                            *args)
+    displaystring = "DELETE-CKPTS "+os.path.basename(V.logs_folder.value.rstrip(os.sep))+ \
+                    " ("+jobid+")"
+    M.waitfor_job = [jobid]
+    V.waitfor_update()
+    asyncio.create_task(actuate_monitor(displaystring, None, None, \
+                        lambda l=logfile, t=currtime: recent_file_exists(l, t, False), \
+                        lambda l=logfile: contains_two_timestamps(l), \
+                        lambda l=V.logs_folder.value, t=currtime: delete_ckpts_succeeded(l, t)))
+ 
 def accuracy_succeeded(logdir, reftime):
     logfile = os.path.join(logdir, 'accuracy.log')
     if not logfile_succeeded(logfile, reftime):

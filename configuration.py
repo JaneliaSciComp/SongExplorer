@@ -126,6 +126,12 @@ accuracy_ngpu_cards=-1
 accuracy_ngigabytes_memory=-1
 accuracy_cluster_flags=""
 
+delete_ckpts_where=default_where
+delete_ckpts_ncpu_cores=-1
+delete_ckpts_ngpu_cards=-1
+delete_ckpts_ngigabytes_memory=-1
+delete_ckpts_cluster_flags=""
+
 freeze_where=default_where
 freeze_ncpu_cores=-1
 freeze_ngpu_cards=-1
