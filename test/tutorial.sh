@@ -152,14 +152,13 @@ check_file_exists $logdir/P-R-F1-label.pdf
 check_file_exists $logdir/P-R-F1-model.pdf
 check_file_exists $logdir/PvR.pdf
 
-check_point=$nsteps
 cmd="${srcdir}/freeze \
       --context_ms=$context_ms \
       --loss=$loss \
       --model_architecture=$architecture \
       --model_parameters='$model_parameters' \
-      --start_checkpoint=${logdir}/train_${ireplicates}r/ckpt-$check_point \
-      --output_file=${logdir}/train_${ireplicates}r/frozen-graph.ckpt-${check_point}.pb \
+      --start_checkpoint=${logdir}/train_${ireplicates}r/ckpt-$nsteps \
+      --output_file=${logdir}/train_${ireplicates}r/frozen-graph.ckpt-${nsteps}.pb \
       --labels_touse=$labels_touse \
       --parallelize=$classify_parallelize \
       --audio_tic_rate=$audio_tic_rate \
@@ -169,11 +168,11 @@ cmd="${srcdir}/freeze \
       --video_frame_width=$video_frame_width \
       --video_channels=$video_channels \
       --igpu="
-echo $cmd >> $logdir/train_${ireplicates}r/freeze.ckpt-${check_point}.log 2>&1
-eval $cmd >> $logdir/train_${ireplicates}r/freeze.ckpt-${check_point}.log 2>&1
+echo $cmd >> $logdir/train_${ireplicates}r/freeze.ckpt-${nsteps}.log 2>&1
+eval $cmd >> $logdir/train_${ireplicates}r/freeze.ckpt-${nsteps}.log 2>&1
 
-check_file_exists $logdir/train_${ireplicates}r/freeze.ckpt-${check_point}.log
-check_file_exists $logdir/train_${ireplicates}r/frozen-graph.ckpt-${check_point}.pb
+check_file_exists $logdir/train_${ireplicates}r/freeze.ckpt-${nsteps}.log
+check_file_exists $logdir/train_${ireplicates}r/frozen-graph.ckpt-${nsteps}.pb
 
 mkdir $repo_path/test/scratch/tutorial-sh/groundtruth-data/round2
 cp $repo_path/data/20161207T102314_ch1.wav \
@@ -190,7 +189,7 @@ cmd="${srcdir}/classify \
       --video_read_plugin_kwargs=$video_read_plugin_kwargs \
       --video_findfile_plugin=$video_findfile_plugin \
       --video_bkg_frames=$video_bkg_frames \
-      --model=$logdir/train_${ireplicates}r/frozen-graph.ckpt-${check_point}.pb \
+      --model=$logdir/train_${ireplicates}r/frozen-graph.ckpt-${nsteps}.pb \
       --model_labels=$logdir/train_${ireplicates}r/labels.txt \
       --wav=${wavpath_noext}.wav \
       --parallelize=$classify_parallelize \
@@ -214,7 +213,7 @@ for label in $(echo $labels_touse | sed "s/,/ /g") ; do
 done
 
 cmd="${srcdir}/ethogram \
-      $logdir train_${ireplicates}r thresholds.ckpt-${check_point}.csv \
+      $logdir train_${ireplicates}r thresholds.ckpt-${nsteps}.csv \
       ${wavpath_noext}.wav $audio_tic_rate"
 echo $cmd >> ${wavpath_noext}-ethogram.log 2>&1
 eval $cmd >> ${wavpath_noext}-ethogram.log 2>&1
@@ -252,7 +251,6 @@ check_file_exists ${wavpath_noext}-missed.csv
 count_lines_with_label ${wavpath_noext}-missed.csv other 1569 WARNING
 
 model=train_${ireplicates}r
-check_point=$nsteps
 kinds_touse=annotated,missed
 equalize_ratio=1000
 max_sounds=10000
@@ -267,7 +265,7 @@ cmd="${srcdir}/activations \
       --data_loader_maxprocs=$data_loader_maxprocs \
       --model_architecture=$architecture \
       --model_parameters='$model_parameters' \
-      --start_checkpoint=$logdir/$model/ckpt-$check_point \
+      --start_checkpoint=$logdir/$model/ckpt-$nsteps \
       --data_dir=$data_dir \
       --labels_touse=$labels_touse \
       --kinds_touse=$kinds_touse \
@@ -589,8 +587,8 @@ cmd="${srcdir}/freeze \
       --loss=$loss \
       --model_architecture=$architecture \
       --model_parameters='$model_parameters' \
-      --start_checkpoint=${logdir}/train_${ireplicates}r/ckpt-$check_point \
-      --output_file=${logdir}/train_${ireplicates}r/frozen-graph.ckpt-${check_point}.pb \
+      --start_checkpoint=${logdir}/train_${ireplicates}r/ckpt-$nsteps \
+      --output_file=${logdir}/train_${ireplicates}r/frozen-graph.ckpt-${nsteps}.pb \
       --labels_touse=$labels_touse \
       --parallelize=$classify_parallelize \
       --audio_tic_rate=$audio_tic_rate \
@@ -600,11 +598,11 @@ cmd="${srcdir}/freeze \
       --video_frame_width=$video_frame_width \
       --video_channels=$video_channels \
       --igpu="
-echo $cmd >> $logdir/train_${ireplicates}r/freeze.ckpt-${check_point}.log 2>&1
-eval $cmd >> $logdir/train_${ireplicates}r/freeze.ckpt-${check_point}.log 2>&1
+echo $cmd >> $logdir/train_${ireplicates}r/freeze.ckpt-${nsteps}.log 2>&1
+eval $cmd >> $logdir/train_${ireplicates}r/freeze.ckpt-${nsteps}.log 2>&1
 
-check_file_exists $logdir/train_${ireplicates}r/freeze.ckpt-${check_point}.log
-check_file_exists $logdir/train_${ireplicates}r/frozen-graph.ckpt-${check_point}.pb
+check_file_exists $logdir/train_${ireplicates}r/freeze.ckpt-${nsteps}.log
+check_file_exists $logdir/train_${ireplicates}r/frozen-graph.ckpt-${nsteps}.pb
 
 mkdir $repo_path/test/scratch/tutorial-sh/groundtruth-data/congruence
 cp $repo_path/data/20190122T093303a-7.wav \
@@ -621,7 +619,7 @@ cmd="${srcdir}/classify \
       --video_read_plugin_kwargs=$video_read_plugin_kwargs \
       --video_findfile_plugin=$video_findfile_plugin \
       --video_bkg_frames=$video_bkg_frames \
-      --model=$logdir/train_${ireplicates}r/frozen-graph.ckpt-${check_point}.pb \
+      --model=$logdir/train_${ireplicates}r/frozen-graph.ckpt-${nsteps}.pb \
       --model_labels=$logdir/train_${ireplicates}r/labels.txt \
       --wav=${wavpath_noext}.wav \
       --parallelize=$classify_parallelize \
@@ -645,7 +643,7 @@ for label in $(echo $labels_touse | sed "s/,/ /g") ; do
 done
 
 cmd="${srcdir}/ethogram \
-      $logdir train_${ireplicates}r thresholds.ckpt-${check_point}.csv \
+      $logdir train_${ireplicates}r thresholds.ckpt-${nsteps}.csv \
       ${wavpath_noext}.wav $audio_tic_rate"
 echo $cmd >> ${wavpath_noext}-ethogram.log 2>&1
 eval $cmd >> ${wavpath_noext}-ethogram.log 2>&1
@@ -709,10 +707,10 @@ done
 
 logdir=${repo_path}/test/scratch/tutorial-sh/nfeaturesexclusive-64
 
-mkdir ${logdir}/xvalidate_1k,2k
+mkdir ${logdir}/xvalidate_1k_2k
 cmd="${srcdir}/ensemble \
-      --start_checkpoints=${logdir}/xvalidate_1k/ckpt-300,${logdir}/xvalidate_2k/ckpt-300 \
-      --output_file=${logdir}/xvalidate_1k,2k/frozen-graph.ckpt-300,300.pb \
+      --start_checkpoints=${logdir}/xvalidate_1k/ckpt-${nsteps},${logdir}/xvalidate_2k/ckpt-${nsteps} \
+      --output_file=${logdir}/xvalidate_1k_2k/frozen-graph.ckpt-${nsteps}_${nsteps}.pb \
       --labels_touse=mel-pulse,mel-sine,ambient \
       --context_ms=$context_ms \
       --model_architecture=$architecture \
@@ -720,11 +718,11 @@ cmd="${srcdir}/ensemble \
       --parallelize=$classify_parallelize \
       --audio_tic_rate=$audio_tic_rate \
       --nchannels=$audio_nchannels"
-echo $cmd >> ${logdir}/xvalidate_1k,2k/ensemble.log 2>&1
-eval $cmd >> ${logdir}/xvalidate_1k,2k/ensemble.log 2>&1
+echo $cmd >> ${logdir}/xvalidate_1k_2k/ensemble.log 2>&1
+eval $cmd >> ${logdir}/xvalidate_1k_2k/ensemble.log 2>&1
 
-check_file_exists ${logdir}/xvalidate_1k,2k/ensemble.log
-check_file_exists ${logdir}/xvalidate_1k,2k/frozen-graph.ckpt-${check_point},${check_point}.pb/saved_model.pb 
+check_file_exists ${logdir}/xvalidate_1k_2k/ensemble.log
+check_file_exists ${logdir}/xvalidate_1k_2k/frozen-graph.ckpt-${nsteps}_${nsteps}.pb/saved_model.pb 
 
 mkdir -p $repo_path/test/scratch/tutorial-sh/groundtruth-data/congruence-ensemble
 cp $repo_path/data/20190122T132554a-14.wav \
@@ -741,8 +739,8 @@ cmd="${srcdir}/classify \
       --video_read_plugin_kwargs=$video_read_plugin_kwargs \
       --video_findfile_plugin=$video_findfile_plugin \
       --video_bkg_frames=$video_bkg_frames \
-      --model=${logdir}/xvalidate_1k,2k/frozen-graph.ckpt-${check_point},${check_point}.pb \
-      --model_labels=${logdir}/xvalidate_1k,2k/labels.txt \
+      --model=${logdir}/xvalidate_1k_2k/frozen-graph.ckpt-${nsteps}_${nsteps}.pb \
+      --model_labels=${logdir}/xvalidate_1k_2k/labels.txt \
       --wav=${wavpath_noext}.wav \
       --parallelize=$classify_parallelize \
       --audio_tic_rate=$audio_tic_rate \
@@ -765,7 +763,7 @@ for label in $(echo $labels_touse | sed "s/,/ /g") ; do
 done
 
 cmd="${srcdir}/ethogram \
-      $logdir xvalidate_1k thresholds.ckpt-${check_point}.csv \
+      $logdir xvalidate_1k thresholds.ckpt-${nsteps}.csv \
       ${wavpath_noext}.wav $audio_tic_rate"
 echo $cmd >> ${wavpath_noext}-ethogram.log 2>&1
 eval $cmd >> ${wavpath_noext}-ethogram.log 2>&1
@@ -833,8 +831,8 @@ cmd="${srcdir}/classify \
       --video_read_plugin_kwargs=$video_read_plugin_kwargs \
       --video_findfile_plugin=$video_findfile_plugin \
       --video_bkg_frames=$video_bkg_frames \
-      --model=${logdir}/xvalidate_1k,2k/frozen-graph.ckpt-${check_point},${check_point}.pb \
-      --model_labels=${logdir}/xvalidate_1k,2k/labels.txt \
+      --model=${logdir}/xvalidate_1k_2k/frozen-graph.ckpt-${nsteps}_${nsteps}.pb \
+      --model_labels=${logdir}/xvalidate_1k_2k/labels.txt \
       --wav=${wavpath_noext}.wav \
       --parallelize=$classify_parallelize \
       --audio_tic_rate=$audio_tic_rate \
@@ -857,10 +855,10 @@ for label in $(echo $labels_touse | sed "s/,/ /g") ; do
 done
 
 thresholds_dense_file=$(basename $(ls ${logdir}/xvalidate_1k/thresholds-dense-*))
-mv ${logdir}/xvalidate_1k/${thresholds_dense_file} ${logdir}/xvalidate_1k,2k
+mv ${logdir}/xvalidate_1k/${thresholds_dense_file} ${logdir}/xvalidate_1k_2k
 
 cmd="${srcdir}/ethogram \
-      $logdir xvalidate_1k,2k ${thresholds_dense_file} \
+      $logdir xvalidate_1k_2k ${thresholds_dense_file} \
       ${wavpath_noext}.wav $audio_tic_rate"
 echo $cmd >> ${wavpath_noext}-ethogram.log 2>&1
 eval $cmd >> ${wavpath_noext}-ethogram.log 2>&1

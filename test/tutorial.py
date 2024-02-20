@@ -466,23 +466,23 @@ for kind in kinds:
                                    wavpath_noext+"-disjoint-"+kind+"-only"+person+".csv"))
 
 V.logs_folder.value = os.path.join(repo_path, "test", "scratch", "tutorial-py", "nfeaturesexclusive-64")
-V.model_file.value = os.path.join(V.logs_folder.value, "xvalidate_1k", "ckpt-300")+','+ \
-                     os.path.join(V.logs_folder.value, "xvalidate_2k", "ckpt-300")
+V.model_file.value = os.path.join(V.logs_folder.value, "xvalidate_1k", "ckpt-"+V.nsteps.value)+','+ \
+                     os.path.join(V.logs_folder.value, "xvalidate_2k", "ckpt-"+V.nsteps.value)
 
 asyncio.run(C.ensemble_actuate())
 
 wait_for_job(M.status_ticker_queue)
 
-check_file_exists(os.path.join(V.logs_folder.value, "xvalidate_1k,2k", "ensemble.log"))
-check_file_exists(os.path.join(V.logs_folder.value, "xvalidate_1k,2k",
-                               "frozen-graph.ckpt-300,300.pb", "saved_model.pb"))
+check_file_exists(os.path.join(V.logs_folder.value, "xvalidate_1k_2k", "ensemble.log"))
+check_file_exists(os.path.join(V.logs_folder.value, "xvalidate_1k_2k",
+                               "frozen-graph.ckpt-"+V.nsteps.value+"_"+V.nsteps.value+".pb", "saved_model.pb"))
 
 os.mkdir(os.path.join(repo_path, "test", "scratch", "tutorial-py", "groundtruth-data", "congruence-ensemble"))
 shutil.copy(os.path.join(repo_path, "data", "20190122T132554a-14.wav"),
             os.path.join(repo_path, "test", "scratch", "tutorial-py", "groundtruth-data", "congruence-ensemble"))
 
-V.model_file.value = os.path.join(V.logs_folder.value, "xvalidate_1k,2k",
-                                  "frozen-graph.ckpt-300,300.pb")
+V.model_file.value = os.path.join(V.logs_folder.value, "xvalidate_1k_2k",
+                                  "frozen-graph.ckpt-"+V.nsteps.value+"_"+V.nsteps.value+".pb")
 V.wavcsv_files.value = os.path.join(repo_path,
       "test", "scratch", "tutorial-py", "groundtruth-data", "congruence-ensemble", "20190122T132554a-14.wav")
 asyncio.run(C.classify_actuate())
@@ -545,8 +545,8 @@ for kind in kinds:
     check_file_exists(os.path.join(V.groundtruth_folder.value, "congruence-ensemble",
                                    wavpath_noext+"-disjoint-"+kind+"-only"+person+".csv"))
 
-V.model_file.value = os.path.join(V.logs_folder.value, "xvalidate_1k,2k",
-                                  "frozen-graph.ckpt-300,300.pb")
+V.model_file.value = os.path.join(V.logs_folder.value, "xvalidate_1k_2k",
+                                  "frozen-graph.ckpt-"+V.nsteps.value+"_"+V.nsteps.value+".pb")
 V.wavcsv_files.value = os.path.join(repo_path,
       "test", "scratch", "tutorial-py", "groundtruth-data", "round1", "PS_20130625111709_ch3.wav")
 asyncio.run(C.classify_actuate())
@@ -562,9 +562,9 @@ frompath=os.path.join(V.logs_folder.value, "xvalidate_1k")
 thresholds_dense_file=next(filter(lambda x: x.startswith('thresholds-dense'),
                                   os.listdir(frompath)))
 shutil.move(os.path.join(frompath, thresholds_dense_file),
-            os.path.join(V.logs_folder.value, "xvalidate_1k,2k"))
+            os.path.join(V.logs_folder.value, "xvalidate_1k_2k"))
 
-V.model_file.value = os.path.join(V.logs_folder.value, "xvalidate_1k,2k", thresholds_dense_file)
+V.model_file.value = os.path.join(V.logs_folder.value, "xvalidate_1k_2k", thresholds_dense_file)
 asyncio.run(C.ethogram_actuate())
 
 wait_for_job(M.status_ticker_queue)

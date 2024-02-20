@@ -1729,7 +1729,7 @@ async def ensemble_actuate():
         model = root
         models.append(rkw)
         ckpts.append(thisckpt)
-    model += '_'+','.join(models)
+    model += '_'+'_'.join(models)
     os.makedirs(os.path.join(logdir, model), exist_ok=True)
     shutil.copy(os.path.join(os.path.dirname(V_model_file_value.split(',')[0].rstrip(os.path.sep)),
                              "labels.txt"),
@@ -1745,7 +1745,7 @@ async def ensemble_actuate():
                             M.ensemble_cluster_flags,
                             "--start_checkpoints="+V_model_file_value, \
                             "--output_file="+os.path.join(logdir, model,
-                                                          "frozen-graph.ckpt-"+','.join(ckpts)+".pb"), \
+                                                          "frozen-graph.ckpt-"+'_'.join(ckpts)+".pb"), \
                             "--labels_touse="+','.join(labels),
                             "--context_ms="+V.context_ms.value,
                             "--model_architecture="+M.architecture_plugin,
