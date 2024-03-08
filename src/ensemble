@@ -13,6 +13,7 @@
 #      --parallelize=16384 \
 #      --audio_tic_rate=5000 \
 #      --audio_nchannels=1
+#      --igpu=1 \
 
 import argparse
 import os.path
@@ -27,6 +28,8 @@ import tensorflow as tf
 import numpy as np
 import json
 import importlib
+
+from lib import log_nvidia_smi_output
 
 FLAGS = None
 
@@ -109,6 +112,17 @@ def main():
   for key in sorted(flags.keys()):
     print('%s = %s' % (key, flags[key]))
 
+  if FLAGS.igpu:
+    physical_devices = tf.config.list_physical_devices('GPU')
+    if re.search('[a-zA-Z]', FLAGS.igpu):
+      if FLAGS.igpu in os.environ:
+        igpu = [int(x) for x in os.environ[FLAGS.igpu].split(',') if x != '']
+      else:
+        igpu = range(len(physical_devices))
+    else:
+      igpu = [int(x) for x in FLAGS.igpu.split(',')]
+    tf.config.set_visible_devices([physical_devices[x] for x in igpu], 'GPU')
+
   # Create the model and load its weights.
   thismodel = create_inference_graph()
 
@@ -184,6 +198,11 @@ if __name__ == '__main__':
       default='yes,no,up,down,left,right,on,off,stop,go',
       help='Words to use (others will be added to an unknown label)',)
   parser.add_argument(
+      '--igpu',
+      type=str,
+      default='',
+      help='If a comma separated list of numbers, use those GPU(s); if alphanumeric, use the GPUs specified in that environment variable; otherwise, use them all.')
+  parser.add_argument(
       '--output_file',
       type=str,
       help='Where to save the frozen graph.')
@@ -195,6 +214,7 @@ if __name__ == '__main__':
   with open(os.path.join(repodir, "VERSION.txt"), 'r') as fid:
     print('SongExplorer version = '+fid.read().strip().replace('\n',', '))
   print("hostname = "+socket.gethostname())
+  log_nvidia_smi_output(FLAGS.igpu)
 
   try:
     main()

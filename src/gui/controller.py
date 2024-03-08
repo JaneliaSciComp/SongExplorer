@@ -1756,7 +1756,8 @@ async def ensemble_actuate():
                             "--video_frame_rate="+str(M.video_frame_rate),
                             "--video_frame_height="+str(M.video_frame_height),
                             "--video_frame_width="+str(M.video_frame_width),
-                            "--video_channels="+str(M.video_channels))
+                            "--video_channels="+str(M.video_channels),
+                            "--igpu=QUEUE1")
     displaystring = "ENSEMBLE " + \
                     os.path.join(os.path.basename(logdir), model) + \
                     " ("+jobid+")"
