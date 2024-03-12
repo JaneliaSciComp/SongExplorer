@@ -185,6 +185,13 @@ executing this command in a terminal:
 
     $ unzip songexplorer-<version>-<architecture>.zip
 
+If on MS Windows you get an error about file paths being too long, edit the
+registry as follows:  press Start and type "regedit" to launch the
+RegistryEditor, in the left sidebar navigate to "HKEY_LOCAL_MACHINE \ SYSTEM \
+CurrentControlSet \ Control \ FileSystem", on the right double-click on
+"LongPathsEnabled", change the value to "1", press Ok, sign out of your
+account and then back in, and try to decompress again.
+
 If on MS Windows you get a permissions error when running SongExplorer, execute
 the following in PowerShell:
 
