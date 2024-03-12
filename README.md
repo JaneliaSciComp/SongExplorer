@@ -163,10 +163,10 @@ represent sections which you much customize.
 # Installation #
 
 SongExplorer can be run on all three major platforms.  Installation is as simple
-as downloading a compressed binary file, unpacking it, and setting your PATH
-environment variable.  If you have a Linux distribution other than Ubuntu, then
-you might need to use a container (e.g. Docker), as Tensorflow, the machine
-learning framework from Google that SongExplorer uses, only supports Ubuntu.
+as downloading a compressed binary file, unpacking it, and opening a file.  If
+you have a Linux distribution other than Ubuntu, then you might need to use a
+container (e.g. Docker), as Tensorflow, the machine learning framework from
+Google that SongExplorer uses, only supports Ubuntu.
 
 Training your own classifier is fastest with a graphics processing unit (GPU).
 On Linux and Windows you'll need to install the CUDA and CUDNN drivers from
@@ -177,59 +177,24 @@ framework, which comes preinstalled on MacOS.
 
 ## Downloading Executables ##
 
-Download the "tar.gz" file specific to your operating system from the Assets
+Download the ZIP file specific to your operating system from the Assets
 section of Songexplorer's
 [Releases](https://github.com/JaneliaSciComp/SongExplorer/releases) page on
-Github.  Then extract its contents:
+Github.  Then extract its contents, by either right-clicking on the icon, or
+executing this command in a terminal:
 
-    $ tar xvzf songexplorer-<version>-<architecture>.tar.gz
+    $ unzip songexplorer-<version>-<architecture>.zip
 
-Next, put these definitions in your .bashrc file (or .zshrc file on Mac OS
-Catalina and newer):
-
-    export SONGEXPLORER_BIN='PATH=<path-to-extracted-tarball>/bin:$PATH'
-    alias songexplorer="eval $SONGEXPLORER_BIN <path-to-extracted-tarball>/bin/songexplorer/src/songexplorer <path-to-configuration.py> 5006"
-
-For MS Windows, the equivalent is, in a PowerShell terminal with administrator
-privileges:
-
-    > $tbpath="<path-to-extracted-tarball>"
-    > [Environment]::SetEnvironmentVariable("SONGEXPLORER_BIN",
-            $tbpath + ";" +
-            $tbpath + "\Library\mingw-w64\bin;" +
-            $tbpath + "\Library\usr\bin;" +
-            $tbpath + "\Library\bin;" +
-            $tbpath + "\Scripts;" +
-            $tbpath + "\bin;",
-            [EnvironmentVariableTarget]::Machine)
-
-and in a powershell file (e.g. "songexplorer.ps1"):
-
-    $env:Path = $env:SONGEXPLORER_BIN + $env:Path
-    python <path-to-extracted-tarball>\bin\songexplorer\src\songexplorer <path-to-configuration.py> 5006
-    sleep 10
-
-If on MS Windows you get a permissions error, execute the following in PowerShell:
+If on MS Windows you get a permissions error when running SongExplorer, execute
+the following in PowerShell:
 
     > Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope CurrentUser
-
-In [System Configuration](#system-configuration) we'll make a copy of the default
-configuration file.  For now, you just need to decide where you're going to put it,
-and then specify the full path to that file in the alias definition (e.g.
-"$HOME/songexplorer/configuration.py").
-
 
 ## System Configuration ##
 
 SongExplorer is capable of training a classifier and making predictions on
 recordings either locally on the host computer, or remotely on a workstation or
-a cluster.  You specify how you want this to work by editing
-"configuration.py".
-
-Copy the exemplar configuration file out of the container and into your home
-directory:
-
-    $ cp <path-to-extracted_tarball>/bin/songexplorer/configuration.py $PWD
+a cluster.  You specify how you want this to work by editing "configuration.py".
 
 Inside you'll find many variables which control where SongExplorer does its work:
 
@@ -362,8 +327,31 @@ This is easiest if there is a shared file system between the two computers.
 The advantage here is that less compute intensive jobs (e.g. freeze, accuracy)
 can be run on your workstation.  In this case:
 
-* Store all SongExplorer related files on the share, including the container image,
-"configuration.py", and all of your data.
+* Store all SongExplorer related files on the share, including the uncompressed
+ZIP file or container image, "configuration.py", and all of your data.
+
+* Set the PATH environment variable on the remote machine, either directly or by
+specifying it in `SONGEXPLORER_BIN` as follows.
+
+On MacOS, put this definition in your .zshenv file:
+
+    export SONGEXPLORER_BIN='PATH=<path-to-extracted-tarball>/bin:$PATH'
+
+For MS Windows, the equivalent is, in a PowerShell terminal with administrator
+privileges:
+
+    > $tbpath="<path-to-extracted-tarball>"
+    > [Environment]::SetEnvironmentVariable("SONGEXPLORER_BIN",
+            $tbpath + ";" +
+            $tbpath + "\Library\mingw-w64\bin;" +
+            $tbpath + "\Library\usr\bin;" +
+            $tbpath + "\Library\bin;" +
+            $tbpath + "\Scripts;" +
+            $tbpath + "\bin;",
+            [EnvironmentVariableTarget]::Machine)
+    > [Environment]::SetEnvironmentVariable("Path",
+            $env:SONGEXPLORER_BIN + $env:Path,
+            [EnvironmentVariableTarget]::Machine)
 
 * Make the remote and local file paths match by creating a symbolic link.
 For example, if on a Mac you use SMB to mount as "/Volumes/MyLab" an NSF
@@ -1562,7 +1550,7 @@ documentation showing how to call it.  Here, for example, is the interface for
     # threshold an audio recording in both the time and frequency spaces
 
     # e.g.
-    # eval $SONGEXPLORER_BIN time-freq-threshold.py \
+    # time-freq-threshold.py \
     #     --filename=`pwd`/groundtruth-data/round2/20161207T102314_ch1_p1.wav \
     #     --parameters={"time_sigma":"9,4", "time_smooth_ms":"6.4", "frequency_n_ms":"25.6", "frequency_nw":"4", "frequency_p":"0.1,1.0", "frequency_smooth_ms":"25.6", "time_sigma_robust":"median"} \
     #     --audio_tic_rate=2500 \
@@ -1580,8 +1568,7 @@ of recordings in different folders:
                )
 
     $ for wavfile in ${wavfiles[@]} ; do
-          time-freq-threshold.py $wavfile 4 2 6.4 25.6 4 0.1 1.0 25.6 2500 1
-          eval $SONGEXPLORER_BIN time-freq-threshold.py \
+          time-freq-threshold.py \
               --filename=$wavfile \
               --parameters={"time_sigma":"9,4", "time_smooth_ms":"6.4", \
                             "frequency_n_ms":"25.6", "frequency_nw":"4", \
@@ -1881,7 +1868,9 @@ files provided use conda internally.
 
 Platform-specific conda installation instructions can be found at
 [Conda](https://conda.io/projects/conda/en/latest/user-guide/install).  On Macs
-you can also use [Homebrew](https://brew.sh/) to install conda.
+you can also use [Homebrew](https://brew.sh/) to install conda.  On MS Windows,
+miniforge by default uses a command prompt; execute `conda init powershell` to
+used conda in PowerShell.
 
 To build locally, first download the source code and install the conda
 build command.  These only need to be done once:
