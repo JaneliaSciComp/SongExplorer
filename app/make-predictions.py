@@ -14,13 +14,14 @@ from subprocess import run, PIPE, STDOUT
 import asyncio
 import tensorflow as tf
 import re
+import platform
 
 __dir__ = os.path.dirname(__file__)
 
 sys.path.append(os.path.join(__dir__, "songexplorer", "bin", "songexplorer", "test"))
 from libtest import wait_for_job
 
-_, *wavfiles = sys.argv
+_, *wavpaths = sys.argv
   
 sys.path.append(os.path.join(__dir__, "songexplorer", "bin", "songexplorer", "src", "gui"))
 import model as M
@@ -48,7 +49,7 @@ with open(os.path.join(__dir__, logdir, model+".log"),'r') as fid:
     for line in fid:
         if "labels_touse = " in line:
             m=re.search('labels_touse = (.+)',line)
-            V.labels_touse.value = labels_touse = m.group(1)
+            V.labels_touse.value = m.group(1)
         if "context_ms = " in line:
             m=re.search('context_ms = (.+)',line)
             V.context_ms.value = m.group(1)
@@ -61,15 +62,40 @@ with open(os.path.join(__dir__, logdir, model+".log"),'r') as fid:
 
 V.prevalences.value = ""
 
-for wavfile in wavfiles:
+def do_it(wavfile):
     V.wavcsv_files.value = os.path.join(wavfile)
+
+    V.waitfor.active = False
+    M.waitfor_job = []
     asyncio.run(C.classify_actuate())
 
-wait_for_job(M.status_ticker_queue)
-
-for wavfile in wavfiles:
-    V.wavcsv_files.value = os.path.join(wavfile)
+    V.waitfor.active = True
     asyncio.run(C.ethogram_actuate())
+
+    logfile = os.path.splitext(wavfile)[0]+"-post-process.log"
+    ncpu_cores, ngpu_cards, ngigabyes_memory  = 1, 0, 8
+    localdeps = ["-d "+M.waitfor_job.pop()]
+    kwargs = {"process_group": 0} if sys.version_info.major == 3 and sys.version_info.minor >= 11 else {}
+    cmd = os.path.join(__dir__, "post-process.py")
+    arg = wavfile
+    if platform.system()=='Windows':
+        cmd = cmd.replace(os.path.sep, os.path.sep+os.path.sep)
+        arg = arg.replace(os.path.sep, os.path.sep+os.path.sep)
+    run(["hsubmit",
+         "-o", logfile, "-e", logfile, "-a",
+         str(ncpu_cores)+','+str(ngpu_cards)+','+str(ngigabyes_memory),
+         *localdeps,
+         "python",
+         cmd,
+	 arg],
+        **kwargs)
+
+for wavpath in wavpaths:
+    if os.path.isdir(wavpath):
+        for wavfile in os.listdir(wavpath):
+            do_it(os.path.join(wavpath, wavfile))
+    else:
+        do_it(wavpath)
 
 wait_for_job(M.status_ticker_queue)
 
