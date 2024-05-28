@@ -1,6 +1,19 @@
 #!/usr/bin/env python3
 
-# threshold an audio recording in both the time and frequency spaces
+# threshold an audio recording in both the time and frequency spaces.
+# specifically, in the time domain, subtract the median, take the absolute value,
+# threshold by the median absolute deviation times the first number in `time σ`,
+# and morphologically close gaps shorter than `time smooth` milliseconds.
+# separately, use multi-taper harmonic analysis ([thomson, 1982;
+# IEEE](https://ieeexplore.ieee.org/document/1456701)) in the frequency domain to
+# create a spectrogram using a window of length `freq N` milliseconds (`freq N` /
+# 1000 * `audio_tic_rate` should be a power of two) and twice `freq NW` slepian
+# tapers, include sounds only within `freq range`, multiply the default threshold
+# of the F-test by the first number in `freq ρ`, and open islands and close gaps
+# shorter than `freq smooth` milliseconds.  sound events are considered to be
+# periods of time which pass either of these two criteria.  quiescent intervals
+# are similarly defined as those which pass neither the time nor the frequency
+# domain criteria using the second number in `time σ` and `freq ρ` text boxes.
 
 # e.g. time-freq-threshold.py \
 #     --filename=`pwd`/groundtruth-data/round2/20161207T102314_ch1_p1.wav \
