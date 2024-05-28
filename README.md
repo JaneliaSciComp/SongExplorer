@@ -1,4 +1,4 @@
-[![video tutorials](/data/screenshot.png)](https://www.youtube.com/playlist?list=PLYXyXDkMwZip8x78RAyN6ee9NK42WBbKb)
+[![](data/screenshot.png)](https://www.youtube.com/playlist?list=PLYXyXDkMwZip8x78RAyN6ee9NK42WBbKb)
 
 Table of Contents
 =================
@@ -47,6 +47,7 @@ Table of Contents
       * [Conda](#conda)
       * [Singularity](#singularity)
       * [Docker](#docker)
+      * [System Tests](#system-tests)
 
 
 # Description #
@@ -185,12 +186,17 @@ executing this command in a terminal:
 
     $ unzip songexplorer-<version>-<architecture>.zip
 
+If there are multiple ZIP files ending in a three digit number, download them
+all and use a decompression program (e.g. 7-zip on MS Windows) that can
+automatically glue them back together.  Github has a 2 GB limit on file size
+and so sometimes ZIP files must be split.
+
 If on MS Windows you get an error about file paths being too long, edit the
 registry as follows:  press Start and type "regedit" to launch the
-RegistryEditor, in the left sidebar navigate to "HKEY_LOCAL_MACHINE \ SYSTEM \
+RegistryEditor, in the left sidebar navigate to "HKEY_LOCAL_MACHINE \ SYSTEM \\
 CurrentControlSet \ Control \ FileSystem", on the right double-click on
-"LongPathsEnabled", change the value to "1", press Ok, sign out of your
-account and then back in, and try to decompress again.
+"LongPathsEnabled", change the value to "1", press Ok, sign out of your account
+and then back in, and try to decompress again making sure to use 7-zip.
 
 If on MS Windows you get a permissions error when running SongExplorer, execute
 the following in PowerShell:
@@ -275,7 +281,7 @@ just one GPU, you could only train one model at a time.
 
 Note that these settings don't actually limit the job to that amount of
 resources, but rather they just limit how many jobs are running simultaneously.
-It is important not to overburden you computer with tasks, so don't
+It is important not to overburden your computer with tasks, so don't
 underestimate the resources required, particularly memory consumption.  To make
 an accurate assessment for your particular workflow, use the `top` and
 `nvidia-smi` commands on Unix, the Task Manager on Windows, or the Activity
@@ -340,14 +346,14 @@ ZIP file or container image, "configuration.py", and all of your data.
 * Set the PATH environment variable on the remote machine, either directly or by
 specifying it in `SONGEXPLORER_BIN` as follows.
 
-On MacOS, put this definition in your .zshenv file:
+On MacOS (and Linux), put this definition in your .zshenv file:
 
-    export SONGEXPLORER_BIN='PATH=<path-to-extracted-tarball>/bin:$PATH'
+    export SONGEXPLORER_BIN='PATH=<path-to-unzipped-executable>/songexplorer/bin:$PATH'
 
 For MS Windows, the equivalent is, in a PowerShell terminal with administrator
 privileges:
 
-    > $tbpath="<path-to-extracted-tarball>"
+    > $tbpath="<path-to-unzipped-executable>"
     > [Environment]::SetEnvironmentVariable("SONGEXPLORER_BIN",
             $tbpath + ";" +
             $tbpath + "\Library\mingw-w64\bin;" +
@@ -453,7 +459,8 @@ described in [Discovering Novel Sounds](#discovering-novel-sounds).  [Video
 tutorials](https://www.youtube.com/playlist?list=PLYXyXDkMwZip8x78RAyN6ee9NK42WBbKb)
 are also available.
 
-<img src='gui/static/workflows.svg' width=400px></img>
+<img src='src/gui/static/workflows.svg' width=400px alt=''>
+<img src='gui/static/workflows.svg' width=400px alt=''>
 
 Let's walk through the steps needed to train a classifier completely from
 scratch.
@@ -463,8 +470,13 @@ They should all be sampled at the same rate, which can be anything.  For this
 tutorial we supply you with *Drosophila melanogaster* data sampled at 2500 Hz.
 
 First, let's get some data bundled with SongExplorer into your home directory.
+Using your computer's file browser, create a new folder called
+"groundtruth-data" with a subfolder inside it called "round1", and copy into
+there the WAV recording called "PS_20130625111709_ch3.wav" from
+"<path-to-unzipped-executable>/songexplorer/bin/songexplorer/data".  Like this
+on the command line:
 
-    $ ls -1 $CONDA_PREFIX/songexplorer/data
+    $ ls -1 <path-to-unzipped-executable>/songexplorer/bin/songexplorer/data
     20161207T102314_ch1-annotated-person1.csv
     20161207T102314_ch1.wav*
     20190122T093303a-7-annotated-person2.csv*
@@ -479,17 +491,18 @@ First, let's get some data bundled with SongExplorer into your home directory.
 
     $ mkdir -p groundtruth-data/round1
 
-    $ cp $CONDA_PREFIX/songexplorer/data/PS_20130625111709_ch3.wav \
-          $PWD/groundtruth-data/round1
+    $ cd <path-to-unzipped-executable>/songexplorer/bin/songexplorer/data
+    $ cp PS_20130625111709_ch3.wav $PWD/groundtruth-data/round1
 
 ## Detecting Sounds ##
 
 Now that we have some data, let's extract the timestamps of some sounds from
 one of these as-of-yet unannotated audio recordings.
 
-First, start SongExplorer's GUI:
+First, start SongExplorer's GUI by right-clicking on OPEN-WITH-TERMINAL.sh (or
+RUN-WITH-POWERSHELL.ps1 on MS Windows).  Like this on the command line:
 
-    $ songexplorer
+    $ ./OPEN-WITH-TERMINAL.sh
     INFO: detected 12 local_ncpu_cores, 1 local_ngpu_cards, 31 local_ngigabytes_memory
     SongExplorer version: 27 May 2022 b0c7d5b5452c
     arthurb-ws2:5006
@@ -501,7 +514,8 @@ First, start SongExplorer's GUI:
     2020-08-09 09:30:15,054 WebSocket connection opened
     2020-08-09 09:30:15,055 ServerConnection created
 
-Then in your favorite internet browser navigate to the URL on the line printed
+The SongExplorer GUI should automatically open in a new tab of your default
+internet browswer.  If not, manually navigate to the URL on the line printed
 to the terminal immediately below the version information.  In the output
 above this is "arthurb-ws2:5006", which is my computer's name, but for you
 it will be different.  If that doesn't work, try "http://localhost:5006/gui".
@@ -514,27 +528,27 @@ editable text box with "configuration.py".  On the right is this instruction
 manual for easy reference.
 
 Click on the `Label Sounds` button and then `Detect`.  All of the parameters
-below that are *not* used will be greyed out and disabled.  If all of the
-required parameters are filled in, the `DoIt!` button in the upper right will
-in addition be enabled and turn red.
+below that are *not* used in this step will be greyed out and disabled.  If all
+of the required parameters are filled in, the `DoIt!` button in the upper right
+will in addition be enabled and turn red.
 
-The first time you use SongExplorer all of the parameters will need to be
-specified.  In the `File Browser`, navigate to the WAV file in the "round1/"
-directory and click on the `WAV Files` button.  Then specify the eight
-parameters that control the algorithm used to find sounds:  In the time domain,
-subtract the median, take the absolute value, threshold by the median absolute
-deviation times the first number in `time σ`, and morphologically close gaps
-shorter than `time smooth` milliseconds.  Separately, use multi-taper harmonic
-analysis ([Thomson, 1982; IEEE](https://ieeexplore.ieee.org/document/1456701))
-in the frequency domain to create a spectrogram using a window of length `freq
-N` milliseconds (`freq N` / 1000 * `audio_tic_rate` should be a power of two)
-and twice `freq NW` Slepian tapers, include sounds only within `freq range`,
-multiply the default threshold of the F-test by the first number in `freq ρ`,
-and open islands and close gaps shorter than `freq smooth` milliseconds.  Sound
-events are considered to be periods of time which pass either of these two
-criteria.  Quiescent intervals are similarly defined as those which pass neither
-the time nor the frequency domain criteria using the second number in `time σ`
-and `freq ρ` text boxes.
+The first time you use SongExplorer many of the parameters will need to be
+manually specified.  Their values are saved into "songexplorer.state.yml" and
+are subsequently automatically filled in with their previous values.
+
+In the `File Browser`, navigate to the WAV file in the "round1/" directory and
+click on the `WAV Files` button.
+
+Then specify the eight parameters that control the algorithm used to find
+sounds.  The default values are suitable to the data in this tutorial and so
+should not need to be changed.  If it's not finding sounds though, try making
+the first number in `time σ` smaller and/or the first number in `freq ρ`
+bigger.  If rather it's too sensitive, do the opposite.  Conversely, if it's
+labelling ambient as a sound, make the second number in `time σ` bigger and the
+second number in `freq ρ` smaller.  `time smooth` and `freq smooth` will fill
+in small gaps between detected sounds and cull detected sounds that are too
+short.  For further details, see the comments at the top of
+"time-freq-threshold.py".
 
 [Customizing with Plug-ins](#customizing-with-plug-ins) describes how to
 use arbitrary custom code of your choosing to detect events should this
@@ -546,53 +560,64 @@ asynchronously dispatched, and then back to grey.  "DETECT
 PS_20130625111709_ch3.wav (<jobid>)" will appear in the status bar.  It's font
 will initially be grey to indicate that it is pending, then turn black when it
 is running, and finally either blue if it successfully finished or red if it
-failed.  Upon success you'll also see the wide pull-down menu to the left
-labeled "recording" briefly turn orange, and below that will appear a table
-showing how many sounds met each criterion.
+failed.
 
 The result is a file of comma-separated values with the start and stop times
 (in tics) of sounds which exceeded a threshold in either the time or frequency
 domain, plus intervals which did not exceed either.
 
-  $ grep -m 3 time groundtruth-data/round1/PS_20130625111709_ch3-detected.csv
-  PS_20130625111709_ch3.wav,2251,2252,detected,time
-  PS_20130625111709_ch3.wav,2314,2316,detected,time
-  PS_20130625111709_ch3.wav,2404,2405,detected,time
+    $ grep -m 3 time groundtruth-data/round1/PS_20130625111709_ch3-detected.csv
+    PS_20130625111709_ch3.wav,2251,2252,detected,time
+    PS_20130625111709_ch3.wav,2314,2316,detected,time
+    PS_20130625111709_ch3.wav,2404,2405,detected,time
 
-  $ grep -m 3 frequency groundtruth-data/round1/PS_20130625111709_ch3-detected.csv
-  PS_20130625111709_ch3.wav,113872,114032,detected,frequency
-  PS_20130625111709_ch3.wav,158224,158672,detected,frequency
-  PS_20130625111709_ch3.wav,182864,182960,detected,frequency
+    $ grep -m 3 frequency groundtruth-data/round1/PS_20130625111709_ch3-detected.csv
+    PS_20130625111709_ch3.wav,113872,114032,detected,frequency
+    PS_20130625111709_ch3.wav,158224,158672,detected,frequency
+    PS_20130625111709_ch3.wav,182864,182960,detected,frequency
 
-  $ grep -m 3 neither groundtruth-data/round1/PS_20130625111709_ch3-detected.csv
-  PS_20130625111709_ch3.wav,388,795,detected,neither
-  PS_20130625111709_ch3.wav,813,829,detected,neither
-  PS_20130625111709_ch3.wav,868,2201,detected,neither
+    $ grep -m 3 neither groundtruth-data/round1/PS_20130625111709_ch3-detected.csv
+    PS_20130625111709_ch3.wav,388,795,detected,neither
+    PS_20130625111709_ch3.wav,813,829,detected,neither
+    PS_20130625111709_ch3.wav,868,2201,detected,neither
 
 
 ## Manually Annotating ##
 
 Now we need to manually curate these heuristically detected sounds into a
-ground truth data set on which to train a classifier.  Pull down on the
-"recording" menu on the far left and select the WAV file in which you
-just detected sounds.  In the panel below, the waveform will be plotted
-along with grey rectangles in the upper half indicating the locations
+ground truth data set on which to train a classifier.
+
+First, check that the `kinds to use` and `labels to use` text boxes are set to
+"detected" and "time,frequency,neither", respectively.  This should have been
+automatically done when pressing the "Label Sounds" button above.
+
+Then enter into the `ground truth` textbox the full path to the
+"groundtruth-data" folder you created above (leaving off the "round1"
+sub-folder).  You can either type it in by hand, or navigate to this folder in
+the `File Browser` and click on the `ground truth` button.  You'll see the wide
+pull-down menu to the left labeled "recording" briefly turn orange, and below
+that will appear a table showing how many sounds we're detected above.
+
+Then pull down on the "recording" menu on the far left and select the WAV file
+in which you just detected sounds.  In the panel below, the waveform will be
+plotted along with grey rectangles in the upper half indicating the locations
 of detected sounds.  Pan and zoom through the recording with the buttons
-labeled with arrows below and to the left.  The `Play` button can be used
-to listen to the sound, and if the `Video` button is selected and a movie
-with the same root basename exists alongside the corresponding WAV file,
-it will be displayed as well.  To record a manual annotation, first pick a
-sound that is an unambiguous example of a particular word.  Type the word's
-name into one of the text boxes to the right of the pan and zoom controls and
-hit return to activate the corresponding counter to its left.  Hopefully the
-chosen sounds was detected and the corresponding gray box in the upper half
-of the context window nicely demarcates the temporal extent of the word.
-If so, all you have to do is to double click the grey box itself and it
-will be extended to the bottom half and your chosen label will be applied.
-If not, either double-click or click-and-drag in the bottom half of the
-context window to create a custom time span for a new annotation.  In all
-cases, annotations can be deleted by double clicking any of the gray boxes,
-or clicking on the "undo" button above.
+labeled with arrows below and to the left.  The `Play` button can be used to
+listen to the sound, and if the `Video` button is selected and a movie with the
+same root basename exists alongside the corresponding WAV file, it will be
+displayed as well.
+
+To record a manual annotation, first pick a sound that is an unambiguous
+example of a particular word.  Type the word's name into one of the text boxes
+to the right of the pan and zoom controls and hit return to activate the
+corresponding counter to its left.  Hopefully the chosen sounds was detected
+and the corresponding gray box in the upper half of the context window nicely
+demarcates the temporal extent of the word.  If so, all you have to do is to
+double click the grey box itself and it will be extended to the bottom half and
+your chosen label will be applied.  If not, either double-click or
+click-and-drag in the bottom half of the context window to create a custom time
+span for a new annotation.  In all cases, annotations can be deleted by double
+clicking any of the gray boxes, or clicking on the "undo" button above.
 
 For this tutorial, choose the words "mel-pulse", "mel-sine", "ambient", and
 "other".  We use the syntax "A-B" here, where A is the species (mel
@@ -673,98 +698,110 @@ the validation accuracy should become well above chance.
 
 ## Quantifying Accuracy ##
 
-Measure the classifier's performance using the `Accuracy` button.  Output are the
-following charts and tables in the logs folder and the `train_1r` subdirectory
-therein:
+Measure the classifier's performance using the `Accuracy` button.  For the
+purposes of this tutorial, leave the `P/Rs` textbox (short for Precision /
+Recall ratio) set to the default value of "1.0" so that the false positives and
+false negatives are equally weighted.  In future, if, say, minimizing false
+positives in your experiments is important, and you are tolerant of a few more
+false negatives, you can set it to say "10" (or "0.1" if vice versa).
+
+Output are the following charts and tables in the logs folder and the `train_1r`
+subdirectory therein:
 
 * "train-validation-loss.pdf" shows the loss value and training and validation
-recalls as a function of the number of training steps, wall-clock time, and
-epochs.  Should the curves not quite plateau, choose a checkpoint to `restore
-from`, increase `# steps`, and train some more.  If you've changed any of the
-parameters, you'll need to first reset them as they were, which is made easy by
-selecting one of the original log files and pressing the `Copy` button.
+  recalls as a function of the number of training steps, wall-clock time, and
+  epochs.  Should the curves not quite plateau, choose a checkpoint to `restore
+  from`, increase `# steps`, and train some more.  If you've changed any of the
+  parameters, you'll need to first reset them as they were, which is made easy
+  by selecting one of the original log files and pressing the `Copy` button.
 
 * "confusion-matrix.pdf" shows the confusion matrix of the most accurate
-checkpoint.  Each annotation is placed in this two-dimensional grid according to
-the label it was manually assigned and the label it was automatically predicted
-to be.  For a perfect classifier this matrix would be diagonal-- that is, only
-the fuchsia numbers in the upper left to lower right boxes would be non-zero.
-The number in the upper right triangle in each square is the number of
-annotations in this square divided by the number of annotations in this row.
-For boxes along the diagonal it indicates the recall for that label, which is
-the percentage of true positives among all real events (true positives plus
-false negatives).  Similarly in the lower left is the precision-- the percentage
-of true positives among all (both true and false) positives.  It is calculated
-by dividing the numbers in the upper right corner of each box by the sum of the
-corresponding column.  In the title are the overall precision and recall, which
-are calculated as the average of the lower left and upper right numbers along
-the diagonal.
+  checkpoint.  Each annotation is placed in this two-dimensional grid according
+  to the label it was manually assigned and the label it was automatically
+  predicted to be.  For a perfect classifier this matrix would be diagonal--
+  that is, the upper left to lower right boxes would be bright yellow and all
+  others dark purple.
 
-The F1 score, which is the product divided by the sum of the precision and
-recall, times two, is taken to be the "most accurate checkpoint", with the
-particular checkpoint plotted in the confusion matrix specified in the legend
-of the right panel.  In this particular case, there is only one model, but in
-[Measuring Generalization](#measuring-generalization) and [Searching
-Hyperparameters](#searching-hyperparameters) we'll train multiple models.  In
-those cases, the *sum* of the confusion matrices with the best F1s for each
-model is shown here.  Multiple models are also created if `# replicates` is
-greater than 1.
+  The F1 score, which is the product divided by the sum of the precision and
+  recall, times two, is taken to be the "most accurate checkpoint".  In this
+  particular case, there is only one model, but in [Measuring
+  Generalization](#measuring-generalization) and [Searching
+  Hyperparameters](#searching-hyperparameters) we'll train multiple models.  In
+  those cases, the *sum* of the confusion matrices with the best F1s for each
+  model is shown here.  Multiple models are also created if `# replicates` is
+  greater than 1.
 
-* In the left panel of "precision-recall.pdf" is the precision and recall for each
-label plotted separately.  These are simply the values in the corners of the boxes
-along the diagonal of the confusion matrix.  For a perfect classifier they would
-all be 100.  In this case all of the circles have black perimeters because this
-logs folder contains just a single trained model, but in the case where there
-are multiple models in this logs folder each will have it's own point here
-calculated from their individual confusion matrices.  The model-specific circles
-will be smaller and have white perimeters, with the larger circles outlined in
-black being the average across models.
+  If there are ten or fewer labels, the squares are large enough to annotate
+  them in the middle with the total number of annotations falling into this
+  square.  The number in the upper right triangle in each square is the number
+  of annotations in this square divided by the number of annotations in this
+  row.  For boxes along the diagonal it indicates the recall for that label,
+  which is the percentage of true positives among all real events (true
+  positives plus false negatives).  Similarly in the lower left is the
+  precision-- the percentage of true positives among all (both true and false)
+  positives.  It is calculated by dividing the numbers in the upper right corner
+  of each box by the sum of the corresponding column.  In the title are the
+  overall precision and recall, which are calculated as the average of the lower
+  left and upper right numbers along the diagonal.
 
-Similarly in the right panel of "precision-recall.pdf" is the precision and recall
-for each model (as opposed to label) plotted separately.  Small circles with white
-perimeters show the label-specific accuracies and larger circles with black
-perimeters show the average across labels for each model.
+* In the left panel of "precision-recall.pdf" is the precision and recall for
+  each label plotted separately.  These are simply the values in the corners of
+  the boxes along the diagonal of the confusion matrix.  For a perfect
+  classifier they would all be 100.  In this case all of the circles have black
+  perimeters because this logs folder contains just a single trained model, but
+  in the case where there are multiple models in this logs folder each will have
+  it's own point here calculated from their individual confusion matrices.  The
+  model-specific circles will be smaller and have white perimeters, with the
+  larger circles outlined in black being the average across models.
+
+  Similarly in the right panel of "precision-recall.pdf" is the precision and
+  recall for each model (as opposed to label) plotted separately.  Small circles
+  with white perimeters show the label-specific accuracies and larger circles
+  with black perimeters show the average across labels for each model.
 
 * "P-R-F1-label.pdf" plots validation precision, recall, and the F1 score over
-time in the top, middle, and bottom rows respectively with a separate column for
-each label.  Check here to make sure that the accuracy of each label has
-converged.  If there is more than one model in this logs folder, the thin
-colored lines are the accuracies for each model, with the thick black line being
-the average across models.  "P-R-F1-model.pdf" is similar, but the
-columns are the models and the thin colored lines the labels.  Averages across
-all labels and models are plotted in "P-R-F1-average.pdf".
+  time in the top, middle, and bottom rows respectively with a separate column
+  for each label.  Check here to make sure that the accuracy of each label has
+  converged.  If there is more than one model in this logs folder, the thin
+  colored lines are the accuracies for each model, with the thick black line
+  being the average across models.  "P-R-F1-model.pdf" is similar, but the
+  columns are the models and the thin colored lines the labels.  Averages across
+  all labels and models are plotted in "P-R-F1-average.pdf".
 
 * "PvR.pdf" plots, separately for each label and model, the trajectory of the
-validation precision versus recall curve over number of training steps.  The
-leftmost column and topmost row show the averages across models and labels,
-respectively, with the upper left plot showing the average across all models and
-labels.
+  validation precision versus recall curve over number of training steps.  The
+  leftmost column and topmost row show the averages across models and labels,
+  respectively, with the upper left plot showing the average across all models
+  and labels.
 
 * "train_1r/confusion-matrix.ckpt-\*.csv" shows the confusion matrices for each
-checkpoint.
+  checkpoint.
+
+* "train_1r/thresholds.ckpt-\*.csv" lists the label-specific probability
+  thresholds that are used to achieve the precision-recall ratio specified in
+  the `P/Rs` textbox.  One of these files is used when creating ethograms ([see
+  Making Predictions](#making-predictions)).
 
 * "train_1r/precision-recall.ckpt-\*.pdf" and
-"train_1r/sensitivity-specificity.ckpt-\*.pdf" show how the ratio of false
-positives to false negatives changes as the threshold used to call an event
-changes.  The areas underneath these curves are widely-cited metrics of
-performance.
+  "train_1r/sensitivity-specificity.ckpt-\*.pdf" show how the ratio of false
+  positives to false negatives changes as the threshold used to call an event
+  changes.  The areas underneath these curves are widely-cited metrics of
+  performance.  The actual threshold used is indicated in red.  Higher
+  thresholds result in more false negatives, and so would be further up and to
+  the left on this curve.
 
-* "train_1r/probability-density.ckpt-\*.pdf" shows, separately for each word,
-histograms of the values of the classifier's output taps across all of that
-word's annotations.  The difference between a given word's probability
-distribution and the second most probable word can be used as a measure of the
-classifier's confidence.
-
-* "train_1r/thresholds.ckpt-\*.csv" lists the word-specific probability
-thresholds that one can use to achieve a specified precision-recall ratio.  Use
-the `P/Rs` variable to specify which ratios to include.  This file is used when
-creating ethograms ([see Making Predictions](#making-predictions)).
+* "train_1r/probability-density.ckpt-\*.pdf" shows, separately for each label,
+  histograms of the values of the classifier's output taps across all of that
+  label's annotations.  The difference between a given label's probability
+  distribution and the second most probable label can be used as a measure of
+  the classifier's confidence.  The dashed vertical black line is the threshold
+  used for this label.
 
 * The CSV files in the "train_1r/predictions.ckpt-\*" directory list the
-specific annotations in the withheld validation set which were mis-classified
-(plus those that were correct).  The WAV files and time stamps therein can be
-used to look for patterns in the raw data ([see Examining
-Errors](#examining-errors)).
+  specific annotations in the withheld validation set which were misclassified
+  (plus those that were correct).  The WAV files and time stamps therein can be
+  used to look for patterns in the raw data ([see Examining
+  Errors](#examining-errors)).
 
 ## Making Predictions ##
 
@@ -773,12 +810,16 @@ trained classifier find sounds for us instead of using a simple threshold.  And
 we're going to do so with a different recording so that the classifier learns
 to be insensitive to experimental conditions.
 
-First let's get some more data bundled with SongExplorer into your home directory:
+First let's get some more data bundled with SongExplorer into your home
+directory.  Make a new subfolder in "groundtruth-data" called "round2".  Then
+copy "20161207T102314_ch1.wav" from
+"<path-to-unzipped-executable>/songexplorer/bin/songexplorer/data" into there.
+Like this on the command line:
 
     $ mkdir groundtruth-data/round2
 
-    $ cp $CONDA_PREFIX/songexplorer/data/20161207T102314_ch1.wav \
-            $PWD/groundtruth-data/round2
+    $ cd <path-to-unzipped-executable>/songexplorer/bin/songexplorer/data
+    $ cp 20161207T102314_ch1.wav $PWD/groundtruth-data/round2
 
 Use the `Freeze` button to save the classifier's neural network graph
 structure and weight parameters into the file format that TensorFlow needs
@@ -805,15 +846,15 @@ separate WAV files, with the label appended as a suffix:
 
 Discretize these probabilities using thresholds based on a set of
 precision-recall ratios using the `Ethogram` button.  Choose one of the
-"thresholds.ckpt-\*.csv" files in the log files folder using the `File
-Browser`.  These are created by the `Accuracy` button and controlled by the
-`P/Rs` variable at the time you quantified the accuracy.  For convenience you
-can also just leave this text box as it was when freezing or classifying;
-all SongExplorer needs is a filename in the logs folder from which in
-can parse "ckpt-\*".  You'll also need to specify which ".wav" files to
-threshold using the `WAV Files` button.  Again, for convenience, you can
-leave this as it was when classifying, as what is needed here is the ".wav"
-file of the raw recording, not those containing the label probabilities.
+"thresholds.ckpt-\*.csv" files in the log files folder using the `File Browser`.
+These are created by the `Accuracy` button and the values therein are controlled
+by the `P/Rs` variable at the time you quantified the accuracy.  For convenience
+you can also just leave this text box as it was when freezing or classifying;
+all SongExplorer needs is a filename in the logs folder from which in can parse
+"ckpt-\*".  You'll also need to specify which ".wav" files to threshold using
+the `WAV Files` button.  Again, for convenience, you can leave this as it was
+when classifying, as what is needed here is the ".wav" file of the raw
+recording, not those containing the label probabilities.
 
     $ ls -t1 groundtruth-data/round2/ | head -2
     20161207T102314_ch1-ethogram.log
@@ -886,13 +927,13 @@ structure to the clusters even at this early stage of annotation.
 
 To browse through your recordings, click on one of the more dense areas and
 a fuchsia circle (or sphere if the clustering was done in 3D) will appear.
-In the right panel are now displayed snippets of detected waveforms which are
+In the right panel are now displayed snippets of predicted waveforms which are
 within that circle.  The size of the circle can be adjusted with the `Circle
 Radius` slider and the number of snippets displayed with `gui_snippet_n{x,y}`
 in "configuration.py".  The snippets should exhibit some similarity to one
 another since they are neighbors in the clustered space.  They will each be
 labeled "predicted mel-pulse", "predicted mel-sine", or "predicted ambient"
-to indicate which threshold criterion they passed and that they were detected
+to indicate which threshold criterion they passed and that they were predicted
 (as opposed to annotated, detected, or missed; see below).  The color is
 the scale bar-- yellow is loud and purple is quiet.  Clicking on a snippet
 will show it in greater temporal context in the wide context panel below.
@@ -913,8 +954,8 @@ strictly false positives.
 
 ## Correcting Misses ##
 
-It's important that false negatives are corrected as well.  One way find them is
-to click on random snippets and look in the surrounding context in the window
+It's important that false negatives are corrected as well.  One way to find them
+is to click on random snippets and look in the surrounding context in the window
 below for sounds that have not been predicted.  This method is cumbersome in
 that you have to scan through the recording.  A better way is to directly home
 in on detected sounds that don't exceed the probability threshold.
@@ -1551,7 +1592,7 @@ etc.) is backed by a Python script.  At the top of each script is
 documentation showing how to call it.  Here, for example, is the interface for
 `Detect`:
 
-    $ head -n 13 $CONDA_PREFIX/songexplorer/src/time-freq-threshold.py
+    $ head -n 13 <path-to-unzipped-executable>/songexplorer/bin/songexplorer/src/time-freq-threshold.py 
     #!/usr/bin/env python3
 
     # threshold an audio recording in both the time and frequency spaces
@@ -1598,7 +1639,8 @@ buttons:
     import os
 
     # load the GUI
-    sys.path.append(os.path.join(os.environ["CONDA_PREFIX"], "songexplorer", "src", "gui"))
+    sys.path.append(os.path.join(<path-to-unzipped-executable>,
+                                 "songexplorer", "bin", "songexplorer", "src", "gui"))
     import model as M
     import view as V
     import controller as C
@@ -1634,7 +1676,8 @@ buttons:
     # stop the job scheduler
     run(["hstop"], stdout=PIPE, stderr=STDOUT)
 
-For more details see the system tests in $CONDA_PREFIX/songexplorer/test/tutorial.{sh,py}.
+For more details see the system tests in
+<path-to-unzipped-executable>/songexplorer/bin/songexplorer/test/tutorial.{sh,py}.
 These two files implement, as Bash and Python scripts respectively, the entire
 workflow presented in this [Tutorial](#tutorial), from [Detecting
 Sounds](#detecting-sounds) all the way to [Testing Densely](#testing-densely).
@@ -1841,20 +1884,23 @@ can be found in "src/convolutional.py".
 case, kill it with `ps auxc | grep -E '(songexplorer|bokeh)'` and then `kill -9
 <pid>`.  Errant jobs can be killed similarly.
 
+* Full paths on MS Windows are limited to 260 characters
+
+* If Songexplorer doesn't start as usual, try deleting "songexplorer.state.yml"
+  and trying again
+
+* If jobs launched with the red `DoIt!` button seem to hang, check if the
+  computer is busy doing something with `top` (or `Activity Monitor` on MacOS
+  and `Task Monitor` on MS Windows).  If it is not, open a terminal or shell and
+  check SongExplorer's queue of jobs using `songexplorer/bin/hjobs`.  If necessary,
+  use `hkill` to remove a job from the queue, and `hstop` to shut down the queue.
+
 
 # Frequently Asked Questions #
 
 * The `WAV,CSV Files` text box, being plural, can contain multiple
 comma-separated filenames.  Select multiple files in the File Browser using
 shift/command-click as you would in most other file browsers.
-
-* There is (currently) no feature to automatically pre-filter your data
-to get rid of (e.g. low-frequency) noise.  Doing so during training would
-require that each recording get filtered each time it is selected for a batch,
-which would increase the time for each step.  This slow down in learning
-might be mitigated if filtered data were cached, or if SongExplorer's data
-loader were re-worked to run in a separate parallel process.  For now you'll
-need to filter a copy of your data in advance.
 
 
 # Reporting Problems #
@@ -1939,7 +1985,7 @@ asset:
 To upload a tarball to Github, compress the conda environment and drag and drop
 it into the assets section of the releases page:
 
-    $ cd $CONDA_PREFIX/..
+    $ cd $CONDA_PREFIX/envs
     $ tar czf songexplorer-<version>-<architecture>.tar.gz songexplorer
 
 To make changes to the code, do so in the git repository while using the
@@ -2092,10 +2138,4 @@ that everything works both after you've first installed it as well as after any
 changes have been made to the code.  The tests exercise both the Python GUI as
 well as the Linux Bash interfaces.  To run them, simply execute "runtests":
 
-    $ $CONDA_PREFIX/bin/songexplorer/test/runtests
-
-or,
-
-    $ <path-to-extracted-tarball>/bin/songexplorer/test/runtests
-
-
+    $ <path-to-unzipped-executable>/songexplorer/bin/songexplorer/test/runtests

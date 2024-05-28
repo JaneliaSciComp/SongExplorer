@@ -166,7 +166,7 @@ if p.returncode==1:
 else:
     nslots = [int(x) for x in p.stdout.decode('ascii').rstrip().split(',')]
     if nslots != [local_ncpu_cores, local_ngpu_cards, local_ngigabytes_memory]:
-        print("WARNING: SongExplorer's scheduler is already running with local_ncpu_cores, local_ngpu_cards, and local_ngigabytes_memory set to "+str(nslots)+" respectively, which is different than what seems to be the specifications of this machine: "+str([local_ncpu_cores, local_ngpu_cards, local_ngigabytes_memory])+".  To use the latter instead, quit SongExplorer, execute `$SONGEXPLORER_BIN hstop`, and restart SongExplorer.")
+        print("WARNING: SongExplorer's scheduler is already running with local_ncpu_cores, local_ngpu_cards, and local_ngigabytes_memory set to "+str(nslots)+" respectively, which is different than what seems to be the specifications of this machine: "+str([local_ncpu_cores, local_ngpu_cards, local_ngigabytes_memory])+".  To use the latter instead, quit SongExplorer, execute `hstop`, and restart SongExplorer.")
 
 if server_ipaddr:
     p = Popen(["ssh", "-l", server_username, server_ipaddr,
@@ -201,7 +201,7 @@ try:
 except KeyboardInterrupt:
     p = run(["hjobs"], stdout=PIPE, stderr=DEVNULL)
     if len(p.stdout.decode('ascii').splitlines()) - 1 > 0:
-        print("WARNING: jobs are still queued locally; to kill them execute `$SONGEXPLORER_BIN hstop --force`; to stop SongExplorer's scheduler, wait until they are done and execute `$SONGEXPLORER_BIN hstop`")
+        print("WARNING: jobs are still queued locally; to kill them execute `hstop --force`; to stop SongExplorer's scheduler, wait until they are done and execute `hstop`")
     else:
         run(["hstop"])
     if server_ipaddr:
