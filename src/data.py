@@ -465,12 +465,12 @@ class AudioProcessor(object):
                                 frame[:,:,video_channels] - bkg[vidfile][:,:,video_channels]
                 if loss=='exclusive':
                     labels[i - offset] = self.labels_list.index(sound['label'])
-                    sounds.append(sound)
+                    sounds.append({k: v for k,v in sound.items() if k!='overlaps'})
                 else:
                     target = 0 if sound['label'].startswith(overlapped_prefix) else 1
                     root = sound['label'].removeprefix(overlapped_prefix)
                     labels[i - offset, self.labels_list.index(root)] = target
-                    sounds.append([sound])
+                    sounds.append([{k: v for k,v in sound.items() if k!='overlaps'}])
                     for ioverlap in sound['overlaps']:
                         overlapped_sound = self.data_index[mode][ioverlap]
                         if overlapped_sound['ticks'][1] > sound['ticks'][0] and \
@@ -478,7 +478,7 @@ class AudioProcessor(object):
                             target = 0 if overlapped_sound['label'].startswith(overlapped_prefix) else 1
                             root = overlapped_sound['label'].removeprefix(overlapped_prefix)
                             labels[i - offset, self.labels_list.index(root)] = target
-                            sounds[-1].append(overlapped_sound)
+                            sounds[-1].append({k: v for k,v in overlapped_sound.items() if k!='overlaps'})
             if use_audio and use_video:
                 q.put([[audio_slice, video_slice], labels, sounds])
             elif use_audio:
