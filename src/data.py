@@ -376,7 +376,7 @@ class AudioProcessor(object):
                 if 0 < testing_max_sounds < len(self.data_index[set_index]):
                     self.data_index[set_index] = self.np_rng.choice(self.data_index[set_index], \
                                                                     testing_max_sounds,
-                                                                    replace=False)
+                                                                    replace=False).tolist()
             if set_index == 'testing':
                 self.catalog_overlaps(self.data_index['testing'])
                 labels = [sound['label'] for sound in self.data_index['testing']]
