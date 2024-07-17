@@ -18,7 +18,9 @@ bokehlog = logging.getLogger("songexplorer")
 bokehlog.setLevel(logging.INFO)
 #bokehlog.info(...) 
 
-_, version, configuration_file = argv
+_, version, configuration_file, use_aitch = argv
+
+use_aitch = use_aitch == 'True'
 
 import model as M
 import view as V
@@ -26,7 +28,7 @@ import controller as C
 
 doc = curdoc()
 
-M.init(doc, configuration_file)
+M.init(doc, configuration_file, use_aitch)
 V.init(doc)
 C.init(doc)
 
