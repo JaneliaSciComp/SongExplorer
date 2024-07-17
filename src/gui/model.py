@@ -224,8 +224,9 @@ def next_pow2_ms(x_ms):
         return True, next_higher/audio_tic_rate*1000
     return False, x_ms
 
-def init(_bokeh_document, _configuration_file):
+def init(_bokeh_document, _configuration_file, _use_aitch):
     global bokeh_document, configuration_file, bindirs, repodir, srcdir
+    global use_aitch, local_current_job, server_current_job
     global audio_tic_rate, audio_nchannels, video_channels
     global nlabels, gui_width_pix
     global cluster_circle_color, label_palette
@@ -298,6 +299,9 @@ def init(_bokeh_document, _configuration_file):
     is_local_server_or_cluster("congruence_where", congruence_where)
 
     configuration_file = _configuration_file
+    use_aitch = _use_aitch
+    local_current_job = server_current_job = None
+
     audio_tic_rate=int(audio_tic_rate)
     audio_nchannels=int(audio_nchannels)
     snippets_width_ms=float(gui_snippets_width_ms)

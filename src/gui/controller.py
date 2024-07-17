@@ -32,7 +32,6 @@ def generic_actuate(cmd, logfile, where,
     if platform.system()=='Windows':
         cmd = cmd.replace(os.path.sep, os.path.sep+os.path.sep)
         args = [x.replace('<','^^^<').replace('>','^^^>') for x in args]
-    args = ["\'\'" if x=="" else "'"+x+"'" for x in args]
     with open(logfile, 'w') as fid:
         fid.write(cmd+" "+' '.join(args)+'\n')
     localdeps = []
@@ -44,31 +43,52 @@ def generic_actuate(cmd, logfile, where,
             for job in M.waitfor_job:
                clusterflags += "\"done("+job+")\"&&"
             clusterflags = clusterflags[:-2]
+    if M.use_aitch:
+        aitch_cmd = ["hsubmit",
+                     "-o", logfile, "-e", logfile, "-a",
+                     str(ncpu_cores)+','+str(ngpu_cards)+','+str(ngigabyes_memory),
+                     *localdeps, "python"]
+    kwargs = {"process_group": 0} if sys.version_info.major == 3 and sys.version_info.minor >= 11 else {}
     if where == "local":
-        kwargs = {"process_group": 0} if sys.version_info.major == 3 and sys.version_info.minor >= 11 else {}
-        p = Popen(["hsubmit",
-                   "-o", logfile, "-e", logfile, "-a",
-                   str(ncpu_cores)+','+str(ngpu_cards)+','+str(ngigabyes_memory),
-                   *localdeps,
-                   "python",
-                   cmd+" "+' '.join(args)],
-                  stdout=PIPE, **kwargs)
-        jobid = p.stdout.readline().decode('ascii').rstrip()
-        bokehlog.info(jobid)
+        if M.use_aitch:
+            args = ["\'\'" if x=="" else "'"+x+"'" for x in args]
+            p = Popen([*aitch_cmd, cmd+" "+' '.join(args)], stdout=PIPE, **kwargs)
+            jobid = p.stdout.readline().decode('ascii').rstrip()
+            bokehlog.info(jobid)
+        else:
+            if platform.system()=='Windows':
+                cmd = ["python.exe", cmd[2:]]
+            else:
+                cmd = [cmd]
+            args = filter(lambda x: not x.startswith("--igpu"), args)
+            if M.local_current_job:
+                M.local_current_job.wait()
+            with open(logfile, 'a') as fid:
+                M.local_current_job = Popen([*cmd, *args], stdout=fid, stderr=fid, **kwargs)
+            jobid = ''
     elif where == "server":
-        p = Popen(["ssh", "-l", M.server_username, M.server_ipaddr, "export SINGULARITYENV_PREPEND_PATH="+M.source_path+";",
-                   "$SONGEXPLORER_BIN", "hsubmit",
-                   "-o", logfile, "-e", logfile, "-a",
-                   str(ncpu_cores)+','+str(ngpu_cards)+','+str(ngigabyes_memory),
-                   *localdeps,
-                   cmd+" "+' '.join(args).replace('"','\\"')],
-                  stdout=PIPE)
-        jobid = p.stdout.readline().decode('ascii').rstrip()
-        bokehlog.info(jobid)
+        ssh_cmd = ["ssh", "-l", M.server_username, M.server_ipaddr, "export SINGULARITYENV_PREPEND_PATH="+M.source_path+";", "$SONGEXPLORER_BIN"]
+        if M.use_aitch:
+            args = ["\'\'" if x=="" else "'"+x+"'" for x in args]
+            p = Popen([*ssh_cmd, *aitch_cmd, cmd,
+                       ' '.join(args).replace('"','\\"').replace(' ','\\ ').replace('-','\\-')],
+                      stdout=PIPE, **kwargs)
+            jobid = p.stdout.readline().decode('ascii').rstrip()
+            bokehlog.info(jobid)
+        else:
+            args = filter(lambda x: not x.startswith("--igpu"), args)
+            args = ["\'\'" if x=="" else "'"+x+"'" for x in args]
+            if M.server_current_job:
+                M.server_current_job.wait()
+            with open(logfile, 'a') as fid:
+                M.server_current_job = Popen([*ssh_cmd, cmd, *args], stdout=fid, stderr=fid, **kwargs)
+            jobid = ''
     elif where == "cluster":
+        args = filter(lambda x: not x.startswith("--igpu"), args)
+        args = ["\'\'" if x=="" else "'"+x+"'" for x in args]
         pe = Popen(["echo",
                     "export SINGULARITYENV_PREPEND_PATH="+M.source_path+";",
-                    "$SONGEXPLORER_BIN "+cmd+" "+' '.join(filter(lambda x: not x.startswith("'--igpu"), args))],
+                    "$SONGEXPLORER_BIN "+cmd+" "+' '.join(args)],
                    stdout=PIPE)
         if M.cluster_ipaddr:
             ssh_cmd = ["ssh", M.cluster_ipaddr]
@@ -950,9 +970,11 @@ async def _detect_actuate(i, wavfiles, threads, results):
                             "--audio_tic_rate="+str(M.audio_tic_rate), \
                             "--audio_nchannels="+str(M.audio_nchannels),
                             "--audio_read_plugin="+str(M.audio_read_plugin),
-                            "--audio_read_plugin_kwargs='"+json.dumps(M.audio_read_plugin_kwargs)+"'")
+                            "--audio_read_plugin_kwargs="+json.dumps(M.audio_read_plugin_kwargs))
     M.waitfor_job.append(jobid)
-    displaystring = "DETECT "+os.path.basename(wavfile)+" ("+jobid+")"
+    displaystring = "DETECT "+os.path.basename(wavfile)
+    if jobid:
+        displaystring += " ("+jobid+")"
     threads[i] = asyncio.create_task(actuate_monitor(displaystring, results, i, \
                                      lambda l=logfile, t=currtime: \
                                             recent_file_exists(l, t, False), \
@@ -995,7 +1017,9 @@ async def misses_actuate():
                             M.misses_ngigabytes_memory,
                             M.misses_cluster_flags, \
                             V.wavcsv_files.value)
-    displaystring = "MISSES "+wavfile+" ("+jobid+")"
+    displaystring = "MISSES "+wavfile
+    if jobid:
+        displaystring += " ("+jobid+")"
     M.waitfor_job = [jobid]
     V.waitfor_update()
     threads, results = [None], [None]
@@ -1198,8 +1222,9 @@ async def train_actuate():
                                 M.train_cluster_flags,
                                 *args)
         jobids.append(jobid)
-    displaystring = "TRAIN "+os.path.basename(V.logs_folder.value.rstrip(os.sep))+ \
-                    " ("+','.join([str(x) for x in jobids])+")"
+    displaystring = "TRAIN "+os.path.basename(V.logs_folder.value.rstrip(os.sep))
+    if jobid:
+        displaystring += " ("+','.join([str(x) for x in jobids])+")"
     M.waitfor_job = jobids
     V.waitfor_update()
     threads, results = [None], [None]
@@ -1285,8 +1310,9 @@ async def leaveout_actuate(comma):
                                 M.generalize_cluster_flags, \
                                 *args)
         jobids.append(jobid)
-    displaystring = "GENERALIZE "+os.path.basename(V.logs_folder.value.rstrip(os.sep))+ \
-                    " ("+','.join([str(x) for x in jobids])+")"
+    displaystring = "GENERALIZE "+os.path.basename(V.logs_folder.value.rstrip(os.sep))
+    if jobid:
+        displaystring += " ("+','.join([str(x) for x in jobids])+")"
     M.waitfor_job = jobids
     V.waitfor_update()
     logfile1 = os.path.join(V.logs_folder.value, "generalize1.log")
@@ -1351,8 +1377,9 @@ async def xvalidate_actuate():
                                 *args)
         jobids.append(jobid)
 
-    displaystring = "XVALIDATE "+os.path.basename(V.logs_folder.value.rstrip(os.sep))+ \
-                    " ("+','.join([str(x) for x in jobids])+")"
+    displaystring = "XVALIDATE "+os.path.basename(V.logs_folder.value.rstrip(os.sep))
+    if jobid:
+        displaystring += " ("+','.join([str(x) for x in jobids])+")"
     M.waitfor_job = jobids
     V.waitfor_update()
     logfile1 = os.path.join(V.logs_folder.value, "xvalidate1.log")
@@ -1380,8 +1407,9 @@ async def mistakes_actuate():
                             M.mistakes_ngigabytes_memory,
                             M.mistakes_cluster_flags,
                             V.groundtruth_folder.value)
-    displaystring = "MISTAKES "+os.path.basename(V.groundtruth_folder.value.rstrip(os.sep))+ \
-                    " ("+jobid+")"
+    displaystring = "MISTAKES "+os.path.basename(V.groundtruth_folder.value.rstrip(os.sep))
+    if jobid:
+        displaystring += " ("+jobid+")"
     M.waitfor_job = [jobid]
     V.waitfor_update()
     asyncio.create_task(actuate_monitor(displaystring, None, None, \
@@ -1444,8 +1472,9 @@ async def activations_actuate():
                             *args)
 
     displaystring = "ACTIVATIONS " + \
-                    os.path.join(os.path.basename(logdir), model, "ckpt-"+check_point) + \
-                    " ("+jobid+")"
+                    os.path.join(os.path.basename(logdir), model, "ckpt-"+check_point)
+    if jobid:
+        displaystring += " ("+jobid+")"
     M.waitfor_job = [jobid]
     V.waitfor_update()
     asyncio.create_task(actuate_monitor(displaystring, None, None, \
@@ -1480,8 +1509,9 @@ async def cluster_actuate():
                             M.cluster_cluster_flags,
                             *args)
 
-    displaystring = "CLUSTER "+os.path.basename(V.groundtruth_folder.value.rstrip(os.sep))+ \
-                    " ("+jobid+")"
+    displaystring = "CLUSTER "+os.path.basename(V.groundtruth_folder.value.rstrip(os.sep))
+    if jobid:
+        displaystring += " ("+jobid+")"
     M.waitfor_job = [jobid]
     V.waitfor_update()
     asyncio.create_task(actuate_monitor(displaystring, None, None, \
@@ -1543,8 +1573,9 @@ async def delete_ckpts_actuate():
                             M.delete_ckpts_ngigabytes_memory,
                             M.delete_ckpts_cluster_flags,
                             *args)
-    displaystring = "DELETE-CKPTS "+os.path.basename(V.logs_folder.value.rstrip(os.sep))+ \
-                    " ("+jobid+")"
+    displaystring = "DELETE-CKPTS "+os.path.basename(V.logs_folder.value.rstrip(os.sep))
+    if jobid:
+        displaystring += " ("+jobid+")"
     M.waitfor_job = [jobid]
     V.waitfor_update()
     asyncio.create_task(actuate_monitor(displaystring, None, None, \
@@ -1626,8 +1657,9 @@ async def accuracy_actuate():
                             M.accuracy_ngigabytes_memory,
                             M.accuracy_cluster_flags,
                             *args)
-    displaystring = "ACCURACY "+os.path.basename(V.logs_folder.value.rstrip(os.sep))+ \
-                    " ("+jobid+")"
+    displaystring = "ACCURACY "+os.path.basename(V.logs_folder.value.rstrip(os.sep))
+    if jobid:
+        displaystring += " ("+jobid+")"
     M.waitfor_job = [jobid]
     V.waitfor_update()
     asyncio.create_task(actuate_monitor(displaystring, None, None, \
@@ -1676,9 +1708,9 @@ async def _freeze_actuate(ckpts):
                             "--video_frame_width="+str(M.video_frame_width),
                             "--video_channels="+str(M.video_channels),
                             "--igpu=QUEUE1")
-    displaystring = "FREEZE " + \
-                    os.path.join(os.path.basename(logdir), model, "ckpt-"+check_point) + \
-                    " ("+jobid+")"
+    displaystring = "FREEZE " + os.path.join(os.path.basename(logdir), model, "ckpt-"+check_point)
+    if jobid:
+        displaystring += " ("+jobid+")"
     M.waitfor_job.append(jobid)
     asyncio.create_task(actuate_monitor(displaystring, None, None, \
                         lambda l=logfile, t=currtime: recent_file_exists(l, t, False), \
@@ -1758,9 +1790,9 @@ async def ensemble_actuate():
                             "--video_frame_width="+str(M.video_frame_width),
                             "--video_channels="+str(M.video_channels),
                             "--igpu=QUEUE1")
-    displaystring = "ENSEMBLE " + \
-                    os.path.join(os.path.basename(logdir), model) + \
-                    " ("+jobid+")"
+    displaystring = "ENSEMBLE " + os.path.join(os.path.basename(logdir), model)
+    if jobid:
+        displaystring += " ("+jobid+")"
     M.waitfor_job.append(jobid)
     asyncio.create_task(actuate_monitor(displaystring, None, None, \
                         lambda l=logfile, t=currtime: recent_file_exists(l, t, False), \
@@ -1822,7 +1854,9 @@ async def _classify_actuate(wavfiles):
                               M.classify_ngigabytes_memory,
                               M.classify_cluster_flags,
                               *args)
-    displaystring = "CLASSIFY "+os.path.basename(wavfile)+" ("+jobid+")"
+    displaystring = "CLASSIFY "+os.path.basename(wavfile)
+    if jobid:
+        displaystring += " ("+jobid+")"
     M.waitfor_job.append(jobid)
     asyncio.create_task(actuate_monitor(displaystring, None, None, \
                      lambda l=logfile, t=currtime: recent_file_exists(l, t, False), \
@@ -1873,7 +1907,9 @@ async def _ethogram_actuate(i, wavfiles, threads, results):
                             M.ethogram_cluster_flags,
                             logdir, model, thresholds_file, wavfile,
                             str(M.audio_tic_rate))
-    displaystring = "ETHOGRAM "+os.path.basename(wavfile)+" ("+jobid+")"
+    displaystring = "ETHOGRAM "+os.path.basename(wavfile)
+    if jobid:
+        displaystring += " ("+jobid+")"
     M.waitfor_job.append(jobid)
     threads[i] = asyncio.create_task(actuate_monitor(displaystring, results, i, \
                                      lambda l=logfile, t=currtime: \
@@ -1917,8 +1953,9 @@ async def compare_actuate():
                             M.compare_ngigabytes_memory,
                             M.compare_cluster_flags,
                             *args)
-    displaystring = "COMPARE "+os.path.basename(V.logs_folder.value.rstrip(os.sep))+ \
-                    " ("+jobid+")"
+    displaystring = "COMPARE "+os.path.basename(V.logs_folder.value.rstrip(os.sep))
+    if jobid:
+        displaystring += " ("+jobid+")"
     M.waitfor_job = jobid
     V.waitfor_update()
     asyncio.create_task(actuate_monitor(displaystring, None, None, \
@@ -1988,7 +2025,9 @@ async def congruence_actuate():
                             "--nprobabilities="+str(M.nprobabilities),
                             "--audio_tic_rate="+str(M.audio_tic_rate),
                             "--parallelize="+str(M.congruence_parallelize))
-    displaystring = "CONGRUENCE "+os.path.basename(all_files[0])+" ("+jobid+")"
+    displaystring = "CONGRUENCE "+os.path.basename(all_files[0])
+    if jobid:
+        displaystring += " ("+jobid+")"
     M.waitfor_job = [jobid]
     V.waitfor_update()
     regex_files = '('+'|'.join([os.path.splitext(x)[0] for x in all_files])+')*csv'

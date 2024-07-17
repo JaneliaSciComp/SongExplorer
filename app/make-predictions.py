@@ -16,6 +16,8 @@ import tensorflow as tf
 import re
 import platform
 
+use_aitch = False
+
 __dir__ = os.path.dirname(__file__)
 
 sys.path.append(os.path.join(__dir__, "songexplorer", "bin", "songexplorer", "test"))
@@ -28,19 +30,20 @@ import model as M
 import view as V
 import controller as C
 
-M.init(None, os.path.join(__dir__, "configuration.py"))
+M.init(None, os.path.join(__dir__, "configuration.py"), use_aitch)
 V.init(None)
 C.init(None)
 
-local_ncpu_cores = os.cpu_count()
-local_ngpu_cards = len(tf.config.list_physical_devices("GPU"))
-local_ngigabytes_memory = int(psutil.virtual_memory().total/1024/1024/1024)
+if use_aitch:
+    local_ncpu_cores = os.cpu_count()
+    local_ngpu_cards = len(tf.config.list_physical_devices("GPU"))
+    local_ngigabytes_memory = int(psutil.virtual_memory().total/1024/1024/1024)
 
-print("detected "+str(local_ncpu_cores)+" local_ncpu_cores, "+
-                  str(local_ngpu_cards)+" local_ngpu_cards, "+
-                  str(local_ngigabytes_memory)+" local_ngigabytes_memory")
+    print("detected "+str(local_ncpu_cores)+" local_ncpu_cores, "+
+                      str(local_ngpu_cards)+" local_ngpu_cards, "+
+                      str(local_ngigabytes_memory)+" local_ngigabytes_memory")
 
-run(["hstart", str(local_ncpu_cores)+','+str(local_ngpu_cards)+','+str(local_ngigabytes_memory)])
+    run(["hstart", str(local_ncpu_cores)+','+str(local_ngpu_cards)+','+str(local_ngigabytes_memory)])
 
 V.logs_folder.value = os.path.join(os.path.join(__dir__, logdir))
 V.model_file.value = os.path.join(os.path.join(__dir__, logdir, model, ckpt))
@@ -81,14 +84,17 @@ def do_it(wavfile):
     if platform.system()=='Windows':
         cmd = cmd.replace(os.path.sep, os.path.sep+os.path.sep)
         arg = arg.replace(os.path.sep, os.path.sep+os.path.sep)
-    run(["hsubmit",
-         "-o", logfile, "-e", logfile, "-a",
-         str(ncpu_cores)+','+str(ngpu_cards)+','+str(ngigabyes_memory),
-         *localdeps,
-         "python",
-         cmd,
-	 arg],
-        **kwargs)
+    if use_aitch:
+        run(["hsubmit",
+             "-o", logfile, "-e", logfile, "-a",
+             str(ncpu_cores)+','+str(ngpu_cards)+','+str(ngigabyes_memory),
+             *localdeps,
+             "python",
+             cmd,
+         arg],
+            **kwargs)
+    else:
+        run(["python", cmd, arg], **kwargs)
 
 for wavpath in wavpaths:
     if os.path.isdir(wavpath):
