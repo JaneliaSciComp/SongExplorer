@@ -199,7 +199,6 @@ class AudioProcessor(object):
         video_frame_height = model_settings['video_frame_height']
         video_channels = model_settings['video_channels']
         shiftby_tics = int(shiftby_ms * model_settings["audio_tic_rate"] / 1000)
-        search_path = os.path.join(self.data_dir, '*', '*.csv')
         audio_ntics = {}
         video_nframes = {}
         subsample = {x:int(y) for x,y in zip(subsample_label.split(','),subsample_skip.split(','))
@@ -207,8 +206,12 @@ class AudioProcessor(object):
         partition_labels = partition_label.split(',')
         if '' in partition_labels:
             partition_labels.remove('')
-        for csv_path in glob(search_path):
-            with (open(csv_path, 'r')) as csv_file:
+        for csv_path in glob("**/*.csv", root_dir=self.data_dir, recursive=True):
+            csv_dir = os.path.dirname(csv_path)
+            if re.fullmatch('congruence-[0-9]{8}T[0-9]{6}', csv_dir) or \
+               re.fullmatch('oldfiles-[0-9]{8}T[0-9]{6}', csv_dir):
+                continue
+            with (open(os.path.join(self.data_dir, csv_path), 'r')) as csv_file:
                 annotation_reader = csv.reader(csv_file)
                 annotation_list = list(annotation_reader)
             if len(partition_labels)>0:
@@ -226,8 +229,8 @@ class AudioProcessor(object):
                 if (label if loss=='exclusive' else
                     label.removeprefix(overlapped_prefix)) not in labels_touse:
                     continue
-                wav_path=os.path.join(os.path.dirname(csv_path),wavfile)
-                wav_base2=[os.path.basename(os.path.dirname(csv_path)), wavfile]
+                wav_path = os.path.join(self.data_dir, os.path.dirname(csv_path), wavfile)
+                wav_base2 = [os.path.dirname(csv_path), wavfile]
                 if wavfile in validation_files:
                     set_index = 'validation'
                 elif wavfile in testing_files:

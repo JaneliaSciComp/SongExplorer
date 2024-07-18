@@ -15,6 +15,7 @@ import shutil
 import operator
 import platform
 import sys
+import glob
 
 bokehlog = logging.getLogger("songexplorer") 
 #class Object(object):
@@ -1031,41 +1032,24 @@ async def misses_actuate():
                                             misses_succeeded(w, t)))
     asyncio.create_task(actuate_finalize(threads, results, V.groundtruth_update))
 
-def isoldfile(x,subdir,basewavs):
-    return \
-        np.any([x.startswith(b+'-') and x.endswith('.wav') for b in basewavs]) or \
-        x.endswith('-classify.log') or \
-        '-predicted' in x or \
-        x.endswith('-ethogram.log') or \
-        '-missed' in x or \
-        x.endswith('-misses.log') or \
-        x == subdir+'.csv'
+def __validation_test_files(folder, comma):
+    csvfiles = glob.glob("**/*csv", root_dir=folder, recursive=True)
+    csvfiles = list(filter(lambda x: 'oldfiles-' not in x and \
+                                     'congruence-' not in x, csvfiles))
+    dfs = []
+    for csvfile in csvfiles:
+        if os.path.getsize(os.path.join(folder, csvfile)) > 0:
+            dfs.append(pd.read_csv(os.path.join(folder, csvfile), header=None, index_col=False))
+    if dfs:
+        df = pd.concat(dfs)
+        wavfiles = sorted(list(set(df.loc[df[3]=="annotated"][0])))
+        return [','.join(wavfiles)] if comma else list(wavfiles)
 
 def _validation_test_files(files_string, comma=True):
-    if files_string.rstrip(os.sep) == V.groundtruth_folder.value.rstrip(os.sep):
-        dfs = []
-        for subdir in filter(lambda x: os.path.isdir(os.path.join(V.groundtruth_folder.value,x)), \
-                             os.listdir(V.groundtruth_folder.value)):
-            for csvfile in filter(lambda x: x.endswith('.csv'), \
-                                  os.listdir(os.path.join(V.groundtruth_folder.value, \
-                                                          subdir))):
-                filepath = os.path.join(V.groundtruth_folder.value, subdir, csvfile)
-                if os.path.getsize(filepath) > 0:
-                    dfs.append(pd.read_csv(filepath, header=None, index_col=False))
-        if dfs:
-            df = pd.concat(dfs)
-            wavfiles = sorted(list(set(df.loc[df[3]=="annotated"][0])))
-            return [','.join(wavfiles)] if comma else list(wavfiles)
-    elif os.path.dirname(files_string.rstrip(os.sep)) == V.groundtruth_folder.value.rstrip(os.sep):
-        dfs = []
-        for csvfile in filter(lambda x: x.endswith('.csv'), os.listdir(files_string)):
-            filepath = os.path.join(files_string, csvfile)
-            if os.path.getsize(filepath) > 0:
-                dfs.append(pd.read_csv(filepath, header=None, index_col=False))
-        if dfs:
-            df = pd.concat(dfs)
-            wavfiles = sorted(list(set(df.loc[df[3]=="annotated"][0])))
-            return [','.join(wavfiles)] if comma else list(wavfiles)
+    basepath = os.path.commonprefix((V.groundtruth_folder.value.rstrip(os.sep),
+                                     files_string.rstrip(os.sep)))
+    if basepath.startswith(V.groundtruth_folder.value.rstrip(os.sep)):
+        return __validation_test_files(files_string, comma)
     elif files_string.lower().endswith('.wav'):
         return [files_string] if comma else files_string.split(',')
     elif files_string!='':
@@ -1141,31 +1125,37 @@ def sequester_stalefiles():
     M.annotated_csvfiles_all=set([])
     for button in V.nsounds_per_label_buttons:
         button.label = str(0)
-    for subdir in filter(lambda x: os.path.isdir(os.path.join(V.groundtruth_folder.value,x)), \
-                         os.listdir(V.groundtruth_folder.value)):
+
+    def isoldfile(x,curdir,basewavs):
+        return \
+            np.any([x.startswith(b+'-') and x.endswith('.wav') for b in basewavs]) or \
+            x.endswith('-classify.log') or \
+            '-predicted' in x or \
+            x.endswith('-ethogram.log') or \
+            '-missed' in x or \
+            x.endswith('-misses.log') or \
+            x == curdir+'.csv'
+
+    def _sequester(curdir):
         dfs = []
-        for csvfile in filter(lambda x: '-annotated-' in x and x.endswith('.csv'), \
-                              os.listdir(os.path.join(V.groundtruth_folder.value, \
-                                                      subdir))):
-            filepath = os.path.join(V.groundtruth_folder.value, subdir, csvfile)
-            if os.path.getsize(filepath) > 0:
-                dfs.append(pd.read_csv(filepath, header=None, index_col=False))
+        for entry in os.listdir(curdir):
+            if os.path.isdir(os.path.join(curdir, entry)):
+                _sequester(os.path.join(curdir, entry))
+            elif '-annotated-' in entry and entry.endswith('.csv'):
+                filepath = os.path.join(curdir, entry)
+                if os.path.getsize(filepath) > 0:
+                    dfs.append(pd.read_csv(filepath, header=None, index_col=False))
         if dfs:
             df = pd.concat(dfs)
             basewavs = set([os.path.splitext(x)[0] for x in df[0]])
-            oldfiles = []
-            for oldfile in filter(lambda x: isoldfile(x,subdir,basewavs), \
-                                  os.listdir(os.path.join(V.groundtruth_folder.value, \
-                                                          subdir))):
-                oldfiles.append(oldfile)
+            oldfiles = [x for x in os.listdir(curdir) if isoldfile(x, curdir, basewavs)]
             if len(oldfiles)>0:
-                topath = os.path.join(V.groundtruth_folder.value, \
-                                      subdir, \
-                                      'oldfiles-'+M.songexplorer_starttime)
+                topath = os.path.join(curdir, 'oldfiles-'+M.songexplorer_starttime)
                 os.mkdir(topath)
                 for oldfile in oldfiles:
-                    os.rename(os.path.join(V.groundtruth_folder.value, subdir, oldfile), \
-                              os.path.join(topath, oldfile))
+                    os.rename(os.path.join(curdir, oldfile), os.path.join(topath, oldfile))
+
+    _sequester(V.groundtruth_folder.value)
     V.groundtruth_update()
 
 async def train_actuate():
@@ -2010,7 +2000,10 @@ async def congruence_actuate():
     all_files = validation_files + test_files
     if '' in all_files:
         all_files.remove('')
-    logfile = os.path.join(V.groundtruth_folder.value,'congruence.log')
+    timestamp = datetime.strftime(datetime.now(),'%Y%m%dT%H%M%S')
+    congruence_folder = os.path.join(V.groundtruth_folder.value, 'congruence-'+timestamp)
+    os.mkdir(congruence_folder)
+    logfile = os.path.join(congruence_folder, 'congruence.log')
     jobid = generic_actuate("congruence", logfile,
                             M.congruence_where,
                             M.congruence_ncpu_cores,
@@ -2018,6 +2011,8 @@ async def congruence_actuate():
                             M.congruence_ngigabytes_memory,
                             M.congruence_cluster_flags,
                             "--basepath="+V.groundtruth_folder.value,
+                            "--topath="+os.path.join(V.groundtruth_folder.value,
+                                                     'congruence-'+timestamp),
                             "--wavfiles="+','.join(all_files),
                             "--portion="+V.congruence_portion.value,
                             "--convolve_ms="+V.congruence_convolve.value,
@@ -2035,7 +2030,7 @@ async def congruence_actuate():
     threads[0] = asyncio.create_task(actuate_monitor(displaystring, results, 0, \
                                      lambda l=logfile, t=currtime: recent_file_exists(l, t, False), \
                                      lambda l=logfile: contains_two_timestamps(l), \
-                                     lambda l=V.groundtruth_folder.value, t=currtime, r=regex_files,
+                                     lambda l=congruence_folder, t=currtime, r=regex_files,
                                             m=V.congruence_measure.value: congruence_succeeded(l, t, r, m)))
     asyncio.create_task(actuate_finalize(threads, results, V.groundtruth_update))
 

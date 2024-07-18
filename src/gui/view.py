@@ -1398,21 +1398,27 @@ def labelcounts_update():
     if not os.path.isdir(groundtruth_folder.value):
         labelcounts.text = ""
         return dfs, subdirs
-    for subdir in filter(lambda x: os.path.isdir(os.path.join(groundtruth_folder.value,x)), \
-                         os.listdir(groundtruth_folder.value)):
-        for csvfile in filter(lambda x: x.endswith('.csv'), \
-                              os.listdir(os.path.join(groundtruth_folder.value, subdir))):
-            filepath = os.path.join(groundtruth_folder.value, subdir, csvfile)
-            if os.path.getsize(filepath) > 0:
-                try:
-                    df = pd.read_csv(filepath, header=None, index_col=False)
-                except:
-                    bokehlog.info("WARNING: "+csvfile+" is not in the correct format")
-                if 5<=len(df.columns)<=6:
-                    dfs.append(df)
-                    subdirs.append(subdir)
-                else:
-                    bokehlog.info("WARNING: "+csvfile+" is not in the correct format")
+
+    def _labelcounts_update(curdir):
+        for entry in os.listdir(curdir):
+            if os.path.isdir(os.path.join(curdir, entry)):
+                timestamp = datetime.strftime(datetime.now(),'%Y')
+                if "congruence-"+timestamp not in entry and "oldfiles-"+timestamp not in entry:
+                    _labelcounts_update(os.path.join(curdir, entry))
+            elif entry.endswith('.csv'):
+                filepath = os.path.join(curdir, entry)
+                if os.path.getsize(filepath) > 0:
+                    try:
+                        df = pd.read_csv(filepath, header=None, index_col=False)
+                    except:
+                        bokehlog.info("WARNING: "+entry+" is not in the correct format")
+                    if 5<=len(df.columns)<=6:
+                        dfs.append(df)
+                        subdirs.append(curdir[len(groundtruth_folder.value):])
+                    else:
+                        bokehlog.info("WARNING: "+entry+" is not in the correct format")
+    _labelcounts_update(groundtruth_folder.value)
+
     if dfs:
         df = pd.concat(dfs)
         M.kinds = sorted(set(df[3]))

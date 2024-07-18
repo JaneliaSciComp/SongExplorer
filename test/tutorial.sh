@@ -604,11 +604,11 @@ eval $cmd >> $logdir/train_${ireplicates}r/freeze.ckpt-${nsteps}.log 2>&1
 check_file_exists $logdir/train_${ireplicates}r/freeze.ckpt-${nsteps}.log
 check_file_exists $logdir/train_${ireplicates}r/frozen-graph.ckpt-${nsteps}.pb
 
-mkdir $repo_path/test/scratch/tutorial-sh/groundtruth-data/congruence
+mkdir $repo_path/test/scratch/tutorial-sh/groundtruth-data/dense
 cp $repo_path/data/20190122T093303a-7.wav \
-   $repo_path/test/scratch/tutorial-sh/groundtruth-data/congruence
+   $repo_path/test/scratch/tutorial-sh/groundtruth-data/dense
 
-wavpath_noext=$repo_path/test/scratch/tutorial-sh/groundtruth-data/congruence/20190122T093303a-7
+wavpath_noext=$repo_path/test/scratch/tutorial-sh/groundtruth-data/dense/20190122T093303a-7
 cmd="${srcdir}/classify \
       --context_ms=$context_ms \
       --loss=$loss \
@@ -655,15 +655,18 @@ done
 
 wav_file_noext=20190122T093303a-7
 cp $repo_path/data/${wav_file_noext}-annotated-person2.csv \
-   $repo_path/test/scratch/tutorial-sh/groundtruth-data/congruence
+   $repo_path/test/scratch/tutorial-sh/groundtruth-data/dense
 cp $repo_path/data/${wav_file_noext}-annotated-person3.csv \
-   $repo_path/test/scratch/tutorial-sh/groundtruth-data/congruence
+   $repo_path/test/scratch/tutorial-sh/groundtruth-data/dense
 
 portion=union
 convolve_ms=0.0
 measure=both
+congruence_dir=$data_dir/congruence-20YYMMDDTHHMMSS
+mkdir $congruence_dir
 cmd="${srcdir}/congruence \
      --basepath=$data_dir \
+     --topath=$congruence_dir \
      --wavfiles=${wav_file_noext}.wav \
      --portion=$portion \
      --convolve_ms=$convolve_ms \
@@ -671,37 +674,32 @@ cmd="${srcdir}/congruence \
      --nprobabilities=$nprobabilities \
      --audio_tic_rate=$audio_tic_rate \
      --parallelize=$congruence_parallelize"
-echo $cmd >> $data_dir/congruence.log 2>&1
-eval $cmd >> $data_dir/congruence.log 2>&1
+echo $cmd >> $congruence_dir/congruence.log 2>&1
+eval $cmd >> $congruence_dir/congruence.log 2>&1
 
-check_file_exists $data_dir/congruence.log
-mv $data_dir/congruence.log $data_dir/congruence
-check_file_exists $data_dir/congruence/$wav_file_noext-disjoint-everyone.csv
+check_file_exists $congruence_dir/congruence.log
+check_file_exists $congruence_dir/dense/$wav_file_noext-disjoint-everyone.csv
 kinds=(tic label)
 persons=(person2 person3)
 IFS=', ' read -r -a prs <<< "$precision_recall_ratios"
 IFS=', ' read -r -a labels <<< "$labels_touse"
 for kind in ${kinds[@]} ; do
   for label in ${labels[@]} ; do
-    check_file_exists $data_dir/congruence.${kind}.${label}.csv
-    count_lines $data_dir/congruence.${kind}.${label}.csv $(( $nprobabilities + 2 ))
-    check_file_exists $data_dir/congruence.${kind}.${label}.pdf
-    mv $data_dir/congruence.${kind}.${label}.pdf $data_dir/congruence
-    mv $data_dir/congruence.${kind}.${label}.csv $data_dir/congruence
+    check_file_exists $congruence_dir/congruence.${kind}.${label}.csv
+    count_lines $congruence_dir/congruence.${kind}.${label}.csv $(( $nprobabilities + 2 ))
+    check_file_exists $congruence_dir/congruence.${kind}.${label}.pdf
   done
   for pr in ${prs[@]} ; do
     for label in ${labels[@]} ; do
-      check_file_exists $data_dir/congruence.${kind}.${label}.${pr}pr-venn.pdf
-      check_file_exists $data_dir/congruence.${kind}.${label}.${pr}pr.pdf
-      mv $data_dir/congruence.${kind}.${label}.${pr}pr-venn.pdf $data_dir/congruence
-      mv $data_dir/congruence.${kind}.${label}.${pr}pr.pdf $data_dir/congruence
+      check_file_exists $congruence_dir/congruence.${kind}.${label}.${pr}pr-venn.pdf
+      check_file_exists $congruence_dir/congruence.${kind}.${label}.${pr}pr.pdf
     done
-    check_file_exists $data_dir/congruence/$wav_file_noext-disjoint-${kind}-not${pr}pr.csv
-    check_file_exists $data_dir/congruence/$wav_file_noext-disjoint-${kind}-only${pr}pr.csv
+    check_file_exists $congruence_dir/dense/$wav_file_noext-disjoint-${kind}-not${pr}pr.csv
+    check_file_exists $congruence_dir/dense/$wav_file_noext-disjoint-${kind}-only${pr}pr.csv
   done
   for person in ${persons[@]} ; do
-    check_file_exists $data_dir/congruence/$wav_file_noext-disjoint-${kind}-not${person}.csv
-    check_file_exists $data_dir/congruence/$wav_file_noext-disjoint-${kind}-only${person}.csv
+    check_file_exists $congruence_dir/dense/$wav_file_noext-disjoint-${kind}-not${person}.csv
+    check_file_exists $congruence_dir/dense/$wav_file_noext-disjoint-${kind}-only${person}.csv
   done
 done
 
@@ -724,11 +722,11 @@ eval $cmd >> ${logdir}/xvalidate_1k_2k/ensemble.log 2>&1
 check_file_exists ${logdir}/xvalidate_1k_2k/ensemble.log
 check_file_exists ${logdir}/xvalidate_1k_2k/frozen-graph.ckpt-${nsteps}_${nsteps}.pb/saved_model.pb 
 
-mkdir -p $repo_path/test/scratch/tutorial-sh/groundtruth-data/congruence-ensemble
+mkdir -p $repo_path/test/scratch/tutorial-sh/groundtruth-data/dense-ensemble
 cp $repo_path/data/20190122T132554a-14.wav \
-   $repo_path/test/scratch/tutorial-sh/groundtruth-data/congruence-ensemble
+   $repo_path/test/scratch/tutorial-sh/groundtruth-data/dense-ensemble
 
-wavpath_noext=$repo_path/test/scratch/tutorial-sh/groundtruth-data/congruence-ensemble/20190122T132554a-14
+wavpath_noext=$repo_path/test/scratch/tutorial-sh/groundtruth-data/dense-ensemble/20190122T132554a-14
 cmd="${srcdir}/classify \
       --context_ms=$context_ms \
       --loss=$loss \
@@ -778,12 +776,15 @@ count_lines_with_label ${wavpath_noext}-predicted-1.0pr.csv ambient 70 WARNING
 
 wav_file_noext=20190122T132554a-14
 cp $repo_path/data/${wav_file_noext}-annotated-person2.csv \
-   $repo_path/test/scratch/tutorial-sh/groundtruth-data/congruence-ensemble
+   $repo_path/test/scratch/tutorial-sh/groundtruth-data/dense-ensemble
 cp $repo_path/data/${wav_file_noext}-annotated-person3.csv \
-   $repo_path/test/scratch/tutorial-sh/groundtruth-data/congruence-ensemble
+   $repo_path/test/scratch/tutorial-sh/groundtruth-data/dense-ensemble
 
+congruence_dir=$data_dir/congruence-20yymmddthhmmss
+mkdir $congruence_dir
 cmd="${srcdir}/congruence \
      --basepath=$data_dir \
+     --topath=$congruence_dir \
      --wavfiles=${wav_file_noext}.wav \
      --portion=$portion \
      --convolve_ms=$convolve_ms \
@@ -791,32 +792,32 @@ cmd="${srcdir}/congruence \
      --nprobabilities=$nprobabilities \
      --audio_tic_rate=$audio_tic_rate \
      --parallelize=$congruence_parallelize"
-echo $cmd >> $data_dir/congruence.log 2>&1
-eval $cmd >> $data_dir/congruence.log 2>&1
+echo $cmd >> $congruence_dir/congruence.log 2>&1
+eval $cmd >> $congruence_dir/congruence.log 2>&1
 
-check_file_exists $data_dir/congruence.log
-check_file_exists $data_dir/congruence-ensemble/$wav_file_noext-disjoint-everyone.csv
+check_file_exists $congruence_dir/congruence.log
+check_file_exists $congruence_dir/dense-ensemble/$wav_file_noext-disjoint-everyone.csv
 kinds=(tic label)
 persons=(person2 person3)
 IFS=', ' read -r -a prs <<< "$precision_recall_ratios"
 IFS=', ' read -r -a labels <<< "$labels_touse"
 for kind in ${kinds[@]} ; do
   for label in ${labels[@]} ; do
-    check_file_exists $data_dir/congruence.${kind}.${label}.csv
-    count_lines $data_dir/congruence.${kind}.${label}.csv $(( $nprobabilities + 2 ))
-    check_file_exists $data_dir/congruence.${kind}.${label}.pdf
+    check_file_exists $congruence_dir/congruence.${kind}.${label}.csv
+    count_lines $congruence_dir/congruence.${kind}.${label}.csv $(( $nprobabilities + 2 ))
+    check_file_exists $congruence_dir/congruence.${kind}.${label}.pdf
   done
   for pr in ${prs[@]} ; do
     for label in ${labels[@]} ; do
-      check_file_exists $data_dir/congruence.${kind}.${label}.${pr}pr-venn.pdf
-      check_file_exists $data_dir/congruence.${kind}.${label}.${pr}pr.pdf
+      check_file_exists $congruence_dir/congruence.${kind}.${label}.${pr}pr-venn.pdf
+      check_file_exists $congruence_dir/congruence.${kind}.${label}.${pr}pr.pdf
     done
-    check_file_exists $data_dir/congruence-ensemble/$wav_file_noext-disjoint-${kind}-not${pr}pr.csv
-    check_file_exists $data_dir/congruence-ensemble/$wav_file_noext-disjoint-${kind}-only${pr}pr.csv
+    check_file_exists $congruence_dir/dense-ensemble/$wav_file_noext-disjoint-${kind}-not${pr}pr.csv
+    check_file_exists $congruence_dir/dense-ensemble/$wav_file_noext-disjoint-${kind}-only${pr}pr.csv
   done
   for person in ${persons[@]} ; do
-    check_file_exists $data_dir/congruence-ensemble/$wav_file_noext-disjoint-${kind}-not${person}.csv
-    check_file_exists $data_dir/congruence-ensemble/$wav_file_noext-disjoint-${kind}-only${person}.csv
+    check_file_exists $congruence_dir/dense-ensemble/$wav_file_noext-disjoint-${kind}-not${person}.csv
+    check_file_exists $congruence_dir/dense-ensemble/$wav_file_noext-disjoint-${kind}-only${person}.csv
   done
 done
 

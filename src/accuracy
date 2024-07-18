@@ -163,7 +163,7 @@ def doit(logdir, key_to_plot, ckpt, labels, nprobabilities, error_ratios, loss,
   if loss=='exclusive':
       for subdir in set([x['file'][0] for x in validation_sounds]):
           with open(os.path.join(logdir, key_to_plot, 'predictions.ckpt-'+str(ckpt), \
-                                 subdir+'-mistakes.csv'), \
+                                 subdir.replace(os.path.sep,'-')+'-mistakes.csv'), \
                     'w', newline='') as csvfile:
             csvwriter = csv.writer(csvfile, lineterminator='\n')
             for i in range(len(validation_sounds)):
