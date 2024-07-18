@@ -4,6 +4,7 @@
 
 # e.g. congruence \
 #     --basepath=/groups/stern/sternlab/behavior/arthurb/groundtruth/kyriacou2017 \
+#     --topath=/groups/stern/sternlab/behavior/arthurb/groundtruth/kyriacou2017/congruence-20240718T091400 \
 #     --wavfiles=PS_20130625111709_ch3.wav,PS_20130625111709_ch7.wav \
 #     --portion=union \
 #     --convolve_ms=0 \
@@ -146,11 +147,17 @@ def main():
   convolve_tic = int(FLAGS.convolve_ms/2/1000*FLAGS.audio_tic_rate)
 
   wavdirs = {}
-  for subdir in filter(lambda x: os.path.isdir(os.path.join(FLAGS.basepath,x)), \
-                       os.listdir(FLAGS.basepath)):
-    commonsubfiles = wavfiles & set(os.listdir(os.path.join(FLAGS.basepath, subdir)))
-    if len(commonsubfiles) > 0:
-      wavdirs[subdir] = commonsubfiles
+  def traverse(curdir):
+      entries = set()
+      for entry in os.listdir(os.path.join(FLAGS.basepath, curdir)):
+          if os.path.isdir(os.path.join(FLAGS.basepath, curdir, entry)):
+              traverse(os.path.join(curdir, entry))
+          else:
+              entries |= set([entry])
+      commonsubfiles = wavfiles & entries
+      if len(commonsubfiles) > 0:
+        wavdirs[curdir] = commonsubfiles
+  traverse("")
 
   labels=None
   temp_files=[]
@@ -209,6 +216,7 @@ def main():
   annotator_keys = set()
 
   for wavdir in wavdirs:
+    os.makedirs(os.path.join(FLAGS.topath, wavdir), exist_ok=True)
     for csvfile in filter(lambda x: ("-annotated-" in x or "-predicted-" in x) and
                                     x.endswith('.csv'), \
                           os.listdir(os.path.join(FLAGS.basepath,wavdir))):
@@ -468,23 +476,23 @@ def main():
       if do_tic:
         fig_tic.tight_layout()
         plt.figure(fig_tic.number)
-        plt.savefig(os.path.join(FLAGS.basepath, 'congruence.tic.'+label+'.'+pr+'.pdf'))
+        plt.savefig(os.path.join(FLAGS.topath, 'congruence.tic.'+label+'.'+pr+'.pdf'))
         plt.close()
       if do_label:
         fig_label.tight_layout()
         plt.figure(fig_label.number)
-        plt.savefig(os.path.join(FLAGS.basepath, 'congruence.label.'+label+'.'+pr+'.pdf'))
+        plt.savefig(os.path.join(FLAGS.topath, 'congruence.label.'+label+'.'+pr+'.pdf'))
         plt.close()
       if len(sorted_hm)<4:
         if do_tic:
           fig_tic_venn.tight_layout()
           plt.figure(fig_tic_venn.number)
-          plt.savefig(os.path.join(FLAGS.basepath, 'congruence.tic.'+label+'.'+pr+'-venn.pdf'))
+          plt.savefig(os.path.join(FLAGS.topath, 'congruence.tic.'+label+'.'+pr+'-venn.pdf'))
           plt.close()
         if do_label:
           fig_label_venn.tight_layout()
           plt.figure(fig_label_venn.number)
-          plt.savefig(os.path.join(FLAGS.basepath, 'congruence.label.'+label+'.'+pr+'-venn.pdf'))
+          plt.savefig(os.path.join(FLAGS.topath, 'congruence.label.'+label+'.'+pr+'-venn.pdf'))
           plt.close()
 
   if FLAGS.parallelize!=0:
@@ -492,7 +500,7 @@ def main():
 
   def to_csv(intervals, csvbase, whichset):
     filename = os.path.splitext(csvbase)[0]+'-disjoint-'+whichset+'.csv'
-    with open(os.path.join(FLAGS.basepath,filename), 'w') as fid:
+    with open(os.path.join(FLAGS.topath,filename), 'w') as fid:
       csvwriter = csv.writer(fid, lineterminator='\n')
       for ilabel,label in enumerate(timestamps.keys()):
         for i in intervals[ilabel]:
@@ -627,7 +635,7 @@ def main():
         ax2.legend(loc=(1.05, 0.0))
         ax1.legend(loc=(1.2, 0.1))
         fig.tight_layout()
-        plt.savefig(os.path.join(FLAGS.basepath,'congruence.'+measure+'.'+label+'.pdf'))
+        plt.savefig(os.path.join(FLAGS.topath,'congruence.'+measure+'.'+label+'.pdf'))
         plt.close()
 
         inotnan = (~np.isnan(P) & ~np.isnan(R)).nonzero()[0]
@@ -637,7 +645,7 @@ def main():
         else:
           print(measure+' '+label+' area cannot be computed because recall is not monotonic')
 
-      with open(os.path.join(FLAGS.basepath,'congruence.'+measure+'.'+label+'.csv'), 'w') as fid:
+      with open(os.path.join(FLAGS.topath,'congruence.'+measure+'.'+label+'.csv'), 'w') as fid:
         csvwriter = csv.writer(fid, lineterminator='\n')
         rows = roc_table[label].keys()
         cols = roc_table[label][next(iter(rows-thresholds))].keys()
@@ -670,6 +678,9 @@ if __name__ == "__main__":
   parser = argparse.ArgumentParser()
   parser.add_argument(
       '--basepath',
+      type=str)
+  parser.add_argument(
+      '--topath',
       type=str)
   parser.add_argument(
       '--wavfiles',
