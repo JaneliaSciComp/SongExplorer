@@ -371,7 +371,7 @@ def get_shortest_tapped_sound(x_tic, currfile):
 
 def context_doubletap_callback(event, midpoint):
     if not event.x:  return
-    x_tic = int(np.rint(event.x*M.audio_tic_rate))
+    x_tic = int(np.rint(event.x * M.context_time_scale * M.audio_tic_rate))
     currfile = V.recordings.value
     if event.y<midpoint:
         idouble_tapped_sound=-1
@@ -412,7 +412,7 @@ def waveform_pan_start_callback(event):
 
 def waveform_pan_callback(event):
     if not event.x:  return
-    x_tic = int(np.rint(event.x*M.audio_tic_rate))
+    x_tic = int(np.rint(event.x * M.context_time_scale * M.audio_tic_rate))
     left_limit_tic = M.context_midpoint_tic-M.context_width_tic//2 + M.context_offset_tic
     right_limit_tic = left_limit_tic + M.context_width_tic
     if x_tic < left_limit_tic or x_tic > right_limit_tic:
@@ -451,8 +451,8 @@ def waveform_pan_end_callback(event):
             M.context_waveform_low[ichannel], M.context_waveform_high[ichannel] = \
                     _waveform_scale(max(event_wy_end, -1), event_wy_start, ichannel)
     elif pan_start_y<0 and M.state['labels'][M.ilabel]!='':
-        x_tic0 = int(np.rint(event.x*M.audio_tic_rate))
-        x_tic1 = int(np.rint(pan_start_x*M.audio_tic_rate))
+        x_tic0 = int(np.rint(event.x * M.context_time_scale * M.audio_tic_rate))
+        x_tic1 = int(np.rint(pan_start_x * M.context_time_scale * M.audio_tic_rate))
         M.add_annotation({'file':list(os.path.split(V.recordings.value)),
                           'ticks':sorted([x_tic0,x_tic1]),
                           'label':M.state['labels'][M.ilabel]})
@@ -490,93 +490,88 @@ def _spectrogram_window_callback(any_changed):
     V.context_update()
 
 def spectrogram_window_callback(attr, old, new):
-    M.spectrogram_length_ms = [float(x) for x in V.spectrogram_length.value.split(',')]
+    M.spectrogram_length_sec = [float(x) * M.time_scale for x in V.spectrogram_length.value.split(',')]
     any_changed = False
-    for ilength, length_ms in enumerate(M.spectrogram_length_ms):
-        changed, length_ms2 = M.next_pow2_ms(length_ms)
+    for ilength, length_sec in enumerate(M.spectrogram_length_sec):
+        changed, length_sec2 = M.next_pow2_sec(length_sec)
         if changed:
             any_changed = True
             V.spectrogram_length.css_classes = ['changed']
-            M.spectrogram_length_ms[ilength] = length_ms2
+            M.spectrogram_length_sec[ilength] = length_sec2
     if any_changed:
-        V.spectrogram_length.value = ','.join([str(x) for x in M.spectrogram_length_ms])
+        V.spectrogram_length.value = ','.join([str(x / M.time_scale) for x in M.spectrogram_length_sec])
     if bokeh_document:
         bokeh_document.add_next_tick_callback(lambda x=any_changed: _spectrogram_window_callback(x))
     else:
         _spectrogram_window_callback(any_changed)
     
 def zoom_width_callback(attr, old, new):
-    M.context_width_ms = float(new)
-    M.context_width_tic = int(np.rint(M.context_width_ms/1000*M.audio_tic_rate))
+    M.context_width_sec = float(new) * M.time_scale
+    M.context_width_tic = int(np.rint(M.context_width_sec*M.audio_tic_rate))
     M.save_state_callback()
     V.context_update()
 
 def zoom_offset_callback(attr, old, new):
-    M.context_offset_ms = float(new)
-    M.context_offset_tic = int(np.rint(M.context_offset_ms/1000*M.audio_tic_rate))
+    M.context_offset_sec = float(new) * M.time_scale
+    M.context_offset_tic = int(np.rint(M.context_offset_sec*M.audio_tic_rate))
     M.save_state_callback()
     V.context_update()
 
 def zoomin_callback():
     if M.context_width_tic>20:
-        M.context_width_ms /= 2
-        M.context_width_tic = int(np.rint(M.context_width_ms/1000*M.audio_tic_rate))
-        V.zoom_width.value = str(M.context_width_ms)
+        M.context_width_sec /= 2
+        M.context_width_tic = int(np.rint(M.context_width_sec*M.audio_tic_rate))
+        V.zoom_width.value = str(M.context_width_sec / M.time_scale)
     
 def zoomout_callback():
-    limit = M.file_nframes/M.audio_tic_rate*1000
-    M.context_width_ms = np.minimum(limit, 2*M.context_width_ms)
-    M.context_width_tic = int(np.rint(M.context_width_ms/1000*M.audio_tic_rate))
-    V.zoom_width.value = str(M.context_width_ms)
-    limit_lo = (M.context_width_tic//2 - M.context_midpoint_tic) / M.audio_tic_rate*1000
-    limit_hi = (M.file_nframes - M.context_width_tic//2 - M.context_midpoint_tic) / \
-               M.audio_tic_rate*1000
-    M.context_offset_ms = np.clip(M.context_offset_ms, limit_lo, limit_hi)
-    M.context_offset_tic = int(np.rint(M.context_offset_ms/1000*M.audio_tic_rate))
-    V.zoom_offset.value = str(M.context_offset_ms)
+    limit = M.file_nframes/M.audio_tic_rate
+    M.context_width_sec = np.minimum(limit, 2*M.context_width_sec)
+    M.context_width_tic = int(np.rint(M.context_width_sec*M.audio_tic_rate))
+    V.zoom_width.value = str(M.context_width_sec / M.time_scale)
+    limit_lo = (M.context_width_tic//2 - M.context_midpoint_tic) / M.audio_tic_rate
+    limit_hi = (M.file_nframes - M.context_width_tic//2 - M.context_midpoint_tic) / M.audio_tic_rate
+    M.context_offset_sec = np.clip(M.context_offset_sec, limit_lo, limit_hi)
+    M.context_offset_tic = int(np.rint(M.context_offset_sec*M.audio_tic_rate))
+    V.zoom_offset.value = str(M.context_offset_sec / M.time_scale)
     
 def zero_callback():
-    M.context_width_ms = M.context_width_ms0
-    M.context_width_tic = int(np.rint(M.context_width_ms/1000*M.audio_tic_rate))
-    V.zoom_width.value = str(M.context_width_ms)
-    M.context_offset_ms = M.context_offset_ms0
-    M.context_offset_tic = int(np.rint(M.context_offset_ms/1000*M.audio_tic_rate))
-    V.zoom_offset.value = str(M.context_offset_ms)
+    M.context_width_sec = M.context_width_sec0
+    M.context_width_tic = int(np.rint(M.context_width_sec*M.audio_tic_rate))
+    V.zoom_width.value = str(M.context_width_sec / M.time_scale)
+    M.context_offset_sec = M.context_offset_sec0
+    M.context_offset_tic = int(np.rint(M.context_offset_sec*M.audio_tic_rate))
+    V.zoom_offset.value = str(M.context_offset_sec / M.time_scale)
     
 def panleft_callback():
-    limit = (M.context_width_tic//2-M.context_midpoint_tic)/M.audio_tic_rate*1000
-    M.context_offset_ms = np.maximum(limit, M.context_offset_ms-M.context_width_ms//2)
-    M.context_offset_tic = int(np.rint(M.context_offset_ms/1000*M.audio_tic_rate))
-    V.zoom_offset.value = str(M.context_offset_ms)
+    limit = (M.context_width_tic//2-M.context_midpoint_tic)/M.audio_tic_rate
+    M.context_offset_sec = np.maximum(limit, M.context_offset_sec-M.context_width_sec/2)
+    M.context_offset_tic = int(np.rint(M.context_offset_sec*M.audio_tic_rate))
+    V.zoom_offset.value = str(M.context_offset_sec / M.time_scale)
     
 def panright_callback():
-    limit = (M.file_nframes - M.context_width_tic//2 - M.context_midpoint_tic) / \
-            M.audio_tic_rate*1000
-    M.context_offset_ms = np.minimum(limit, M.context_offset_ms+M.context_width_ms//2)
-    M.context_offset_tic = int(np.rint(M.context_offset_ms/1000*M.audio_tic_rate))
-    V.zoom_offset.value = str(M.context_offset_ms)
+    limit = (M.file_nframes - M.context_width_tic//2 - M.context_midpoint_tic) / M.audio_tic_rate
+    M.context_offset_sec = np.minimum(limit, M.context_offset_sec+M.context_width_sec/2)
+    M.context_offset_tic = int(np.rint(M.context_offset_sec*M.audio_tic_rate))
+    V.zoom_offset.value = str(M.context_offset_sec / M.time_scale)
     
 def allleft_callback():
-    M.context_offset_ms = (M.context_width_tic//2 - M.context_midpoint_tic) / \
-                          M.audio_tic_rate*1000
-    M.context_offset_tic = int(np.rint(M.context_offset_ms/1000*M.audio_tic_rate))
-    V.zoom_offset.value = str(M.context_offset_ms)
+    M.context_offset_sec = (M.context_width_tic//2 - M.context_midpoint_tic) / M.audio_tic_rate
+    M.context_offset_tic = int(np.rint(M.context_offset_sec*M.audio_tic_rate))
+    V.zoom_offset.value = str(M.context_offset_sec / M.time_scale)
     
 def allout_callback():
-    M.context_width_ms = M.file_nframes/M.audio_tic_rate*1000
-    M.context_width_tic = int(np.rint(M.context_width_ms/1000*M.audio_tic_rate))
-    V.zoom_width.value = str(M.context_width_ms)
-    M.context_offset_ms = M.context_width_ms//2 - \
-                          M.context_midpoint_tic/M.audio_tic_rate*1000
-    M.context_offset_tic = int(np.rint(M.context_offset_ms/1000*M.audio_tic_rate))
-    V.zoom_offset.value = str(M.context_offset_ms)
+    M.context_width_sec = M.file_nframes/M.audio_tic_rate
+    M.context_width_tic = int(np.rint(M.context_width_sec*M.audio_tic_rate))
+    V.zoom_width.value = str(M.context_width_sec / M.time_scale)
+    M.context_offset_sec = M.context_width_sec/2 - M.context_midpoint_tic/M.audio_tic_rate
+    M.context_offset_tic = int(np.rint(M.context_offset_sec*M.audio_tic_rate))
+    V.zoom_offset.value = str(M.context_offset_sec / M.time_scale)
     
 def allright_callback():
-    M.context_offset_ms = (M.file_nframes-M.context_width_tic//2 - \
-                           M.context_midpoint_tic) / \
-                          M.audio_tic_rate*1000
-    M.context_offset_tic = int(np.rint(M.context_offset_ms/1000*M.audio_tic_rate))
-    V.zoom_offset.value = str(M.context_offset_ms)
+    M.context_offset_sec = (M.file_nframes-M.context_width_tic//2 - \
+                           M.context_midpoint_tic) / M.audio_tic_rate
+    M.context_offset_tic = int(np.rint(M.context_offset_sec*M.audio_tic_rate))
+    V.zoom_offset.value = str(M.context_offset_sec / M.time_scale)
 
 def _label_callback(inequality_fun, idx, button):
     tapped_start = M.context_sound['ticks'][0]
@@ -655,16 +650,16 @@ def spectrogram_mousewheel_callback(event):
         return
     spectrogram_mousewheel_last_change = this_change
     if event.delta<0:
-        if 2*M.spectrogram_length_ms[ichannel] <= float(V.zoom_width.value):
-            M.spectrogram_length_ms[ichannel] = 2*M.spectrogram_length_ms[ichannel]
+        if 2*M.spectrogram_length_sec[ichannel] <= float(V.zoom_width.value) * M.time_scale:
+            M.spectrogram_length_sec[ichannel] = 2*M.spectrogram_length_sec[ichannel]
         else:
             return
     else:
-        if M.spectrogram_length_ms[ichannel]/2 > 1000/M.audio_tic_rate*2:
-            M.spectrogram_length_ms[ichannel] = M.spectrogram_length_ms[ichannel]/2
+        if M.spectrogram_length_sec[ichannel]/2 > 2/M.audio_tic_rate:
+            M.spectrogram_length_sec[ichannel] = M.spectrogram_length_sec[ichannel]/2
         else:
             return
-    V.spectrogram_length.value = ','.join([str(x) for x in M.spectrogram_length_ms])
+    V.spectrogram_length.value = ','.join([str(x / M.time_scale) for x in M.spectrogram_length_sec])
     V.context_update()
 
 def spectrogram_pan_start_callback(event):
@@ -677,7 +672,7 @@ def spectrogram_pan_start_callback(event):
 def spectrogram_pan_callback(event):
     if event.y < math.floor(pan_start_y) or event.y > math.ceil(pan_start_y):
         return
-    x_tic = int(np.rint(event.x*M.audio_tic_rate))
+    x_tic = int(np.rint(event.x * M.context_time_scale * M.audio_tic_rate))
     left_limit_tic = M.context_midpoint_tic-M.context_width_tic//2 + M.context_offset_tic
     right_limit_tic = left_limit_tic + M.context_width_tic
     if x_tic < left_limit_tic or x_tic > right_limit_tic:
@@ -710,8 +705,8 @@ def spectrogram_pan_end_callback(event):
             M.spectrogram_high_hz[ichannel] = (pan_start_y - int(pan_start_y)) * \
                                               freq_range + old_low_hz
     elif M.state['labels'][M.ilabel]!='':
-      x_tic0 = int(np.rint(event.x*M.audio_tic_rate))
-      x_tic1 = int(np.rint(pan_start_x*M.audio_tic_rate))
+      x_tic0 = int(np.rint(event.x * M.context_time_scale * M.audio_tic_rate))
+      x_tic1 = int(np.rint(pan_start_x * M.context_time_scale * M.audio_tic_rate))
       M.add_annotation({'file':list(os.path.split(V.recordings.value)),
                         'ticks':sorted([x_tic0,x_tic1]),
                         'label':M.state['labels'][M.ilabel]})
@@ -719,7 +714,7 @@ def spectrogram_pan_end_callback(event):
     V.context_update()
     
 def spectrogram_tap_callback(event):
-    x_tic = int(np.rint(event.x*M.audio_tic_rate))
+    x_tic = int(np.rint(event.x * M.time_scale * M.audio_tic_rate))
     isounds_shortest = get_shortest_tapped_sound(x_tic, V.recordings.value)
     if np.modf(event.y)[0]<0.5 or len(isounds_shortest)==0 or M.clustered_activations is None:
         idx = len(M.context_spectrogram) - 1 - int(np.floor(event.y))
@@ -742,9 +737,9 @@ def spectrogram_tap_callback(event):
     V.context_update()
     
 def snippets_doubletap_callback(event):
-    x_tic = int(np.rint(event.x/(M.snippets_gap_pix+M.snippets_pix)-0.5))
-    y_tic = int(np.floor(-(event.y-1)/V.snippets_dy))
-    idouble_tapped_sound = M.nearest_sounds[y_tic*M.snippets_nx + x_tic]
+    ix = int(np.rint(event.x/(M.snippets_gap_pix+M.snippets_pix)-0.5))
+    iy = int(np.floor(-(event.y-1)/V.snippets_dy))
+    idouble_tapped_sound = M.nearest_sounds[iy*M.snippets_nx + ix]
     if idouble_tapped_sound!=-1:
         M.toggle_annotation(M.clustered_sounds[idouble_tapped_sound])
 
@@ -792,8 +787,8 @@ def undo_callback():
         _find_nearest_used_sound(M.history_idx)
         M.context_offset_tic = M.history_stack[M.history_idx][1]['ticks'][0] - \
                                M.context_sound['ticks'][0]
-        M.context_offset_ms = M.context_offset_tic/M.audio_tic_rate*1000
-        V.zoom_offset.value = str(M.context_offset_ms)
+        M.context_offset_sec = M.context_offset_tic / M.audio_tic_rate
+        V.zoom_offset.value = str(M.context_offset_sec / M.time_scale)
         V.context_update()
         if bokeh_document:
             bokeh_document.add_next_tick_callback(_undo_callback)
@@ -821,8 +816,8 @@ def redo_callback():
         _find_nearest_used_sound(M.history_idx-1)
         M.context_offset_tic = M.history_stack[M.history_idx-1][1]['ticks'][0] - \
                              M.context_sound['ticks'][0]
-        M.context_offset_ms = M.context_offset_tic/M.audio_tic_rate*1000
-        V.zoom_offset.value = str(M.context_offset_ms)
+        M.context_offset_sec = M.context_offset_tic/M.audio_tic_rate
+        V.zoom_offset.value = str(M.context_offset_sec / M.time_scale)
         V.context_update()
         if bokeh_document:
             bokeh_document.add_next_tick_callback(_redo_callback)
@@ -968,6 +963,10 @@ async def _detect_actuate(i, wavfiles, threads, results):
                             M.detect_cluster_flags,
                             "--filename="+wavfile, \
                             "--parameters="+json.dumps({k:v.value for k,v in V.detect_parameters.items()}), \
+                            "--time_units="+str(M.time_units),
+                            "--freq_units="+str(M.freq_units),
+                            "--time_scale="+str(M.time_scale),
+                            "--freq_scale="+str(M.freq_scale),
                             "--audio_tic_rate="+str(M.audio_tic_rate), \
                             "--audio_nchannels="+str(M.audio_nchannels),
                             "--audio_read_plugin="+str(M.audio_read_plugin),
@@ -1167,8 +1166,8 @@ async def train_actuate():
     nreplicates = int(V.nreplicates.value)
     for ireplicate in range(1, 1+nreplicates, M.models_per_job):
         logfile = os.path.join(V.logs_folder.value, "train"+str(ireplicate)+".log")
-        args = ["--context_ms="+V.context_ms.value, \
-                "--shiftby_ms="+V.shiftby_ms.value, \
+        args = ["--context="+V.context.value, \
+                "--shiftby="+V.shiftby.value, \
                 "--optimizer="+V.optimizer.value, \
                 "--loss="+V.loss.value, \
                 "--overlapped_prefix="+M.overlapped_prefix, \
@@ -1193,6 +1192,10 @@ async def train_actuate():
                 "--validation_percentage="+V.validate_percentage.value, \
                 "--mini_batch="+V.mini_batch.value, \
                 "--testing_files="+test_files, \
+                "--time_units="+str(M.time_units),
+                "--freq_units="+str(M.freq_units),
+                "--time_scale="+str(M.time_scale),
+                "--freq_scale="+str(M.freq_scale),
                 "--audio_tic_rate="+str(M.audio_tic_rate), \
                 "--audio_nchannels="+str(M.audio_nchannels), \
                 "--video_frame_rate="+str(M.video_frame_rate), \
@@ -1255,8 +1258,8 @@ async def leaveout_actuate(comma):
     os.makedirs(V.logs_folder.value, exist_ok=True)
     for ivalidation_file in range(0, len(validation_files), M.models_per_job):
         logfile = os.path.join(V.logs_folder.value, "generalize"+str(1+ivalidation_file)+".log")
-        args = ["--context_ms="+V.context_ms.value, \
-                "--shiftby_ms="+V.shiftby_ms.value, \
+        args = ["--context="+V.context.value, \
+                "--shiftby="+V.shiftby.value, \
                 "--optimizer="+V.optimizer.value, \
                 "--loss="+V.loss.value, \
                 "--overlapped_prefix="+M.overlapped_prefix, \
@@ -1280,6 +1283,10 @@ async def leaveout_actuate(comma):
                 "--save_and_validate_period="+V.save_and_validate_period.value, \
                 "--mini_batch="+V.mini_batch.value, \
                 "--testing_files="+test_files, \
+                "--time_units="+str(M.time_units),
+                "--freq_units="+str(M.freq_units),
+                "--time_scale="+str(M.time_scale),
+                "--freq_scale="+str(M.freq_scale),
                 "--audio_tic_rate="+str(M.audio_tic_rate), \
                 "--audio_nchannels="+str(M.audio_nchannels), \
                 "--video_frame_rate="+str(M.video_frame_rate), \
@@ -1322,8 +1329,8 @@ async def xvalidate_actuate():
     kfolds = int(V.kfold.value)
     for ifold in range(1, 1+kfolds, M.models_per_job):
         logfile = os.path.join(V.logs_folder.value, "xvalidate"+str(ifold)+".log")
-        args = ["--context_ms="+V.context_ms.value, \
-                "--shiftby_ms="+V.shiftby_ms.value, \
+        args = ["--context="+V.context.value, \
+                "--shiftby="+V.shiftby.value, \
                 "--optimizer="+V.optimizer.value, \
                 "--loss="+V.loss.value, \
                 "--overlapped_prefix="+M.overlapped_prefix, \
@@ -1347,6 +1354,10 @@ async def xvalidate_actuate():
                 "--save_and_validate_period="+V.save_and_validate_period.value, \
                 "--mini_batch="+V.mini_batch.value, \
                 "--testing_files="+test_files, \
+                "--time_units="+str(M.time_units),
+                "--freq_units="+str(M.freq_units),
+                "--time_scale="+str(M.time_scale),
+                "--freq_scale="+str(M.freq_scale),
                 "--audio_tic_rate="+str(M.audio_tic_rate), \
                 "--audio_nchannels="+str(M.audio_nchannels), \
                 "--video_frame_rate="+str(M.video_frame_rate), \
@@ -1423,8 +1434,8 @@ async def activations_actuate():
     currtime = time.time()
     logdir, model, _, check_point = M.parse_model_file(V.model_file.value)
     logfile = os.path.join(V.groundtruth_folder.value, "activations.log")
-    args = ["--context_ms="+V.context_ms.value, \
-            "--shiftby_ms="+V.shiftby_ms.value, \
+    args = ["--context="+V.context.value, \
+            "--shiftby="+V.shiftby.value, \
             "--video_findfile="+M.video_findfile_plugin, \
             "--video_bkg_frames="+str(M.video_bkg_frames), \
             "--data_loader_queuesize="+str(M.data_loader_queuesize), \
@@ -1438,6 +1449,10 @@ async def activations_actuate():
             "--testing_equalize_ratio="+V.activations_equalize_ratio.value, \
             "--testing_max_sounds="+V.activations_max_sounds.value, \
             "--batch_size="+V.mini_batch.value, \
+            "--time_units="+str(M.time_units),
+            "--freq_units="+str(M.freq_units),
+            "--time_scale="+str(M.time_scale),
+            "--freq_scale="+str(M.freq_scale),
             "--audio_tic_rate="+str(M.audio_tic_rate),
             "--audio_nchannels="+str(M.audio_nchannels),
             "--audio_read_plugin="+M.audio_read_plugin,
@@ -1686,11 +1701,15 @@ async def _freeze_actuate(ckpts):
                             "--start_checkpoint="+os.path.join(logdir,model,"ckpt-"+check_point), \
                             "--output_file="+os.path.join(logdir,model,"frozen-graph.ckpt-"+check_point+".pb"), \
                             "--labels_touse="+','.join(labels),
-                            "--context_ms="+V.context_ms.value,
+                            "--context="+V.context.value,
                             "--model_architecture="+M.architecture_plugin,
                             "--model_parameters="+json.dumps({k:v.value for k,v in V.model_parameters.items()}),
                             "--loss="+V.loss.value, \
                             "--parallelize="+str(M.classify_parallelize),
+                            "--time_units="+str(M.time_units),
+                            "--freq_units="+str(M.freq_units),
+                            "--time_scale="+str(M.time_scale),
+                            "--freq_scale="+str(M.freq_scale),
                             "--audio_tic_rate="+str(M.audio_tic_rate),
                             "--audio_nchannels="+str(M.audio_nchannels),
                             "--video_frame_rate="+str(M.video_frame_rate),
@@ -1769,10 +1788,14 @@ async def ensemble_actuate():
                             "--output_file="+os.path.join(logdir, model,
                                                           "frozen-graph.ckpt-"+'_'.join(ckpts)+".pb"), \
                             "--labels_touse="+','.join(labels),
-                            "--context_ms="+V.context_ms.value,
+                            "--context="+V.context.value,
                             "--model_architecture="+M.architecture_plugin,
                             "--model_parameters="+json.dumps({k:v.value for k,v in V.model_parameters.items()}),
                             "--parallelize="+str(M.classify_parallelize),
+                            "--time_units="+str(M.time_units),
+                            "--freq_units="+str(M.freq_units),
+                            "--time_scale="+str(M.time_scale),
+                            "--freq_scale="+str(M.freq_scale),
                             "--audio_tic_rate="+str(M.audio_tic_rate),
                             "--audio_nchannels="+str(M.audio_nchannels),
                             "--video_frame_rate="+str(M.video_frame_rate),
@@ -1812,13 +1835,14 @@ async def _classify_actuate(wavfiles):
     currtime = time.time()
     logdir, model, _, check_point = M.parse_model_file(V.model_file.value)
     logfile = os.path.splitext(wavfile)[0]+'-classify.log'
-    args = ["--context_ms="+V.context_ms.value,
-            "--shiftby_ms="+V.shiftby_ms.value,
+    args = ["--context="+V.context.value,
+            "--shiftby="+V.shiftby.value,
             "--loss="+V.loss.value,
             "--model="+os.path.join(logdir,model,"frozen-graph.ckpt-"+check_point+".pb"),
             "--model_labels="+os.path.join(logdir,model,"labels.txt"),
             "--wav="+wavfile,
             "--parallelize="+str(M.classify_parallelize),
+            "--time_scale="+str(M.time_scale),
             "--audio_tic_rate="+str(M.audio_tic_rate),
             "--audio_nchannels="+str(M.audio_nchannels),
             "--video_findfile="+M.video_findfile_plugin,
@@ -2015,7 +2039,7 @@ async def congruence_actuate():
                                                      'congruence-'+timestamp),
                             "--wavfiles="+','.join(all_files),
                             "--portion="+V.congruence_portion.value,
-                            "--convolve_ms="+V.congruence_convolve.value,
+                            "--convolve_sec="+V.congruence_convolve.value,
                             "--measure="+V.congruence_measure.value,
                             "--nprobabilities="+str(M.nprobabilities),
                             "--audio_tic_rate="+str(M.audio_tic_rate),
@@ -2158,12 +2182,12 @@ def _copy_callback():
             if "batch_size = " in line:
                 m=re.search('batch_size = (\d+)', line)
                 V.mini_batch.value = m.group(1)
-            elif "context_ms = " in line:
-                m=re.search('context_ms = (.*)', line)
-                V.context_ms.value = m.group(1)
-            elif "time_shift_ms = " in line:
-                m=re.search('time_shift_ms = (.*)', line)
-                V.shiftby_ms.value = m.group(1)
+            elif "context = " in line:
+                m=re.search('context = (.*)', line)
+                V.context.value = m.group(1)
+            elif "time_shift_sec = " in line:
+                m=re.search('time_shift_sec = (.*)', line)
+                V.shiftby.value = m.group(1)
             elif "data_dir = " in line:
                 m=re.search('data_dir = (.*)', line)
                 V.groundtruth_folder.value = m.group(1)

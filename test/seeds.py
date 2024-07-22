@@ -26,7 +26,7 @@ os.makedirs(os.path.join(repo_path, "test", "scratch", "seeds"))
 shutil.copy(os.path.join(repo_path, "configuration.py"),
             os.path.join(repo_path, "test", "scratch", "seeds"))
 
-M.init(None, os.path.join(repo_path, "test", "scratch", "seeds", "configuration.py"))
+M.init(None, os.path.join(repo_path, "test", "scratch", "seeds", "configuration.py"), True)
 V.init(None)
 C.init(None)
 
@@ -39,8 +39,8 @@ run(["hstart", "1,0,1"])
 shutil.copy(os.path.join(repo_path, "data", "PS_20130625111709_ch3-annotated-person1.csv"),
             os.path.join(repo_path, "test", "scratch", "seeds", "groundtruth-data", "round1"))
 
-V.context_ms.value = "204.8"
-V.shiftby_ms.value = "0.0"
+V.context.value = "204.8"
+V.shiftby.value = "0.0"
 V.optimizer.value = "Adam"
 V.learning_rate.value = "0.0002"
 V.model_parameters["dropout_kind"].value = "unit"
@@ -60,10 +60,10 @@ V.model_parameters["pool_kind"].value = "none"
 V.model_parameters["pool_size"].value = ""
 V.model_parameters["connection_type"].value = "plain"
 V.model_parameters["representation"].value = "mel-cepstrum"
-V.model_parameters["window_ms"].value = "6.4"
-V.model_parameters["stride_ms"].value = "1.6"
+V.model_parameters["window"].value = "6.4"
+V.model_parameters["stride"].value = "1.6"
 V.model_parameters["mel_dct"].value = "7,7"
-V.model_parameters["range_hz"].value = ""
+V.model_parameters["range"].value = ""
 V.groundtruth_folder.value = os.path.join(repo_path, "test", "scratch", "seeds", "groundtruth-data")
 V.labels_touse.value = "mel-pulse,mel-sine,ambient"
 V.kinds_touse.value = "annotated"

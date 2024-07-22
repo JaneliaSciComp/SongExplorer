@@ -102,7 +102,7 @@ class AudioProcessor(object):
     """Handles loading, partitioning, and preparing audio training data."""
 
     def __init__(self, data_dir,
-                 shiftby_ms,
+                 shiftby,
                  labels_touse, kinds_touse,
                  validation_percentage, validation_offset_percentage, validation_files,
                  testing_percentage, testing_files, subsample_skip, subsample_label,
@@ -125,7 +125,7 @@ class AudioProcessor(object):
         self.video_read_plugin = os.path.basename(video_read_plugin)
         self.video_read_plugin_kwargs = video_read_plugin_kwargs
 
-        self.prepare_data_index(shiftby_ms,
+        self.prepare_data_index(shiftby,
                                 labels_touse, kinds_touse,
                                 validation_percentage, validation_offset_percentage, validation_files,
                                 testing_percentage, testing_files, subsample_skip, subsample_label,
@@ -160,7 +160,7 @@ class AudioProcessor(object):
                 data[i]['overlaps'].append(j)
 
     def prepare_data_index(self,
-                           shiftby_ms,
+                           shiftby,
                            labels_touse, kinds_touse,
                            validation_percentage, validation_offset_percentage, validation_files,
                            testing_percentage, testing_files, subsample_skip, subsample_label,
@@ -193,12 +193,14 @@ class AudioProcessor(object):
         self.data_index = {'validation': [], 'testing': [], 'training': []}
         all_labels = {}
         # Look through all the subfolders to find sounds
-        context_tics = int(model_settings['audio_tic_rate'] * model_settings['context_ms'] / 1000)
         video_frame_rate = model_settings['video_frame_rate']
         video_frame_width = model_settings['video_frame_width']
         video_frame_height = model_settings['video_frame_height']
         video_channels = model_settings['video_channels']
-        shiftby_tics = int(shiftby_ms * model_settings["audio_tic_rate"] / 1000)
+        audio_tic_rate = model_settings['audio_tic_rate']
+        time_scale = model_settings['time_scale']
+        context_tics = int(audio_tic_rate * model_settings['context'] * time_scale)
+        shiftby_tics = int(shiftby * audio_tic_rate * time_scale)
         audio_ntics = {}
         video_nframes = {}
         subsample = {x:int(y) for x,y in zip(subsample_label.split(','),subsample_skip.split(','))
@@ -403,7 +405,7 @@ class AudioProcessor(object):
         return len(self.data_index[mode])
 
     def _get_data(self, q, o, how_many, offset, model_settings, loss, overlapped_prefix,
-                  shiftby_ms, mode, use_audio, use_video, video_findfile):
+                  shiftby, mode, use_audio, use_video, video_findfile):
         q.cancel_join_thread()
         while True:
             # Pick one of the partitions to choose sounds from.
@@ -414,16 +416,17 @@ class AudioProcessor(object):
             ncandidates = len(candidates)
             nsounds = min(how_many, ncandidates - offset)
             sounds = []
-            context_tics = int(model_settings['audio_tic_rate'] * model_settings['context_ms'] / 1000)
             audio_tic_rate  = model_settings['audio_tic_rate']
             audio_nchannels = model_settings['audio_nchannels']
             video_frame_rate = model_settings['video_frame_rate']
             video_channels = model_settings['video_channels']
-            shiftby_tics = int(shiftby_ms * audio_tic_rate / 1000)
+            time_scale = model_settings['time_scale']
+            context_tics = int(audio_tic_rate * model_settings['context'] * time_scale)
+            shiftby_tics = int(shiftby * audio_tic_rate * time_scale)
             if use_audio:
                 audio_slice = np.zeros((nsounds, context_tics, audio_nchannels), dtype=np.float32)
             if use_video:
-                nframes = round(model_settings['context_ms'] / 1000 * video_frame_rate)
+                nframes = round(model_settings['context'] * time_scale * video_frame_rate)
                 video_slice = np.zeros((nsounds,
                                         nframes,
                                         model_settings['video_frame_height'],
@@ -490,7 +493,7 @@ class AudioProcessor(object):
                 q.put([video_slice, labels, sounds])
 
     def get_data(self, how_many, offset, model_settings, loss, overlapped_prefix,
-                 shiftby_ms, mode, use_audio, use_video, video_findfile):
+                 shiftby, mode, use_audio, use_video, video_findfile):
         """Gather sounds from the data set, applying transformations as needed.
 
         When the mode is 'training', a random selection of sounds will be returned,
@@ -528,7 +531,7 @@ class AudioProcessor(object):
             p = Process(target=self._get_data,
                         args=(queues[mode], offsets[mode] if mode!='training' else None,
                               how_many, offset, model_settings, loss,
-                              overlapped_prefix, shiftby_ms,
+                              overlapped_prefix, shiftby,
                               mode, use_audio, use_video, video_findfile),
                         daemon=True)
             p.start()

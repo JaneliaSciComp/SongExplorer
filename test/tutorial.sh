@@ -39,11 +39,20 @@ mkdir -p $repo_path/test/scratch/tutorial-sh/groundtruth-data/round1
 cp $repo_path/data/PS_20130625111709_ch3.wav \
    $repo_path/test/scratch/tutorial-sh/groundtruth-data/round1
 
+time_units=ms
+freq_units=Hz
+time_scale=0.001
+freq_scale=1
+
 wavpath_noext=$repo_path/test/scratch/tutorial-sh/groundtruth-data/round1/PS_20130625111709_ch3
-detect_parameters='{"time_sigma":"9,4","time_smooth_ms":"6.4","frequency_n_ms":"25.6","frequency_nw":"4","frequency_p":"0.1,1.0","frequency_range":"0-","frequency_smooth_ms":"25.6","time_sigma_robust":"median"}'
+detect_parameters='{"time_sigma":"9,4","time_smooth":"6.4","frequency_n":"25.6","frequency_nw":"4","frequency_p":"0.1,1.0","frequency_range":"0-","frequency_smooth":"25.6","time_sigma_robust":"median"}'
 cmd="${srcdir}/${detect_plugin}.py \
       --filename=${wavpath_noext}.wav \
       --parameters='$detect_parameters' \
+      --time_units=$time_units \
+      --freq_units=$freq_units \
+      --time_scale=$time_scale \
+      --freq_scale=$freq_scale \
       --audio_tic_rate=$audio_tic_rate \
       --audio_nchannels=$audio_nchannels \
       --audio_read_plugin=$audio_read_plugin \
@@ -60,12 +69,12 @@ count_lines_with_label ${wavpath_noext}-detected.csv neither 1635 ERROR
 cp $repo_path/data/PS_20130625111709_ch3-annotated-person1.csv \
    $repo_path/test/scratch/tutorial-sh/groundtruth-data/round1
 
-context_ms=204.8
-shiftby_ms=0.0
+context=204.8
+shiftby=0.0
 optimizer=Adam
 learning_rate=0.0002
 architecture=convolutional2
-model_parameters='{"representation":"mel-cepstrum","window_ms":"6.4","stride_ms":"1.6","mel_dct":"7,7","range_hz":"","dropout_kind":"unit","dropout_rate":"50","augment_volume":"1,1","augment_noise":"0,0","normalization":"none","kernel_sizes":"5x5,3","nconvlayers":"2","denselayers":"","nfeatures":"64,64","stride_time":"","stride_freq":"","dilate_time":"","dilate_freq":"","pool_kind":"none","pool_size":"","connection_type":"plain"}'
+model_parameters='{"representation":"mel-cepstrum","window":"6.4","stride":"1.6","mel_dct":"7,7","range":"","dropout_kind":"unit","dropout_rate":"50","augment_volume":"1,1","augment_noise":"0,0","normalization":"none","kernel_sizes":"5x5,3","nconvlayers":"2","denselayers":"","nfeatures":"64,64","stride_time":"","stride_freq":"","dilate_time":"","dilate_freq":"","pool_kind":"none","pool_size":"","connection_type":"plain"}'
 logdir=$repo_path/test/scratch/tutorial-sh/trained-classifier1
 data_dir=$repo_path/test/scratch/tutorial-sh/groundtruth-data
 labels_touse=mel-pulse,mel-sine,ambient
@@ -83,8 +92,8 @@ loss=exclusive
 overlapped_prefix=not_
 mkdir $logdir
 cmd="${srcdir}/train \
-     --context_ms=$context_ms \
-     --shiftby_ms=$shiftby_ms \
+     --context=$context \
+     --shiftby=$shiftby \
      --optimizer=$optimizer \
      --loss=$loss \
      --overlapped_prefix=$overlapped_prefix \
@@ -109,6 +118,10 @@ cmd="${srcdir}/train \
      --validation_percentage=$validation_percentage \
      --mini_batch=$mini_batch \
      --testing_files='$testing_files' \
+     --time_units=$time_units \
+     --freq_units=$freq_units \
+     --time_scale=$time_scale \
+     --freq_scale=$freq_scale \
      --audio_tic_rate=$audio_tic_rate \
      --audio_nchannels=$audio_nchannels \
      --video_frame_rate=$video_frame_rate \
@@ -153,7 +166,7 @@ check_file_exists $logdir/P-R-F1-model.pdf
 check_file_exists $logdir/PvR.pdf
 
 cmd="${srcdir}/freeze \
-      --context_ms=$context_ms \
+      --context=$context \
       --loss=$loss \
       --model_architecture=$architecture \
       --model_parameters='$model_parameters' \
@@ -161,6 +174,10 @@ cmd="${srcdir}/freeze \
       --output_file=${logdir}/train_${ireplicates}r/frozen-graph.ckpt-${nsteps}.pb \
       --labels_touse=$labels_touse \
       --parallelize=$classify_parallelize \
+      --time_units=$time_units \
+      --freq_units=$freq_units \
+      --time_scale=$time_scale \
+      --freq_scale=$freq_scale \
       --audio_tic_rate=$audio_tic_rate \
       --audio_nchannels=$audio_nchannels \
       --video_frame_rate=$video_frame_rate \
@@ -180,9 +197,9 @@ cp $repo_path/data/20161207T102314_ch1.wav \
 
 wavpath_noext=$repo_path/test/scratch/tutorial-sh/groundtruth-data/round2/20161207T102314_ch1
 cmd="${srcdir}/classify \
-      --context_ms=$context_ms \
+      --context=$context \
       --loss=$loss \
-      --shiftby_ms=$shiftby_ms \
+      --shiftby=$shiftby \
       --audio_read_plugin=$audio_read_plugin \
       --audio_read_plugin_kwargs=$audio_read_plugin_kwargs \
       --video_read_plugin=$video_read_plugin \
@@ -193,6 +210,7 @@ cmd="${srcdir}/classify \
       --model_labels=$logdir/train_${ireplicates}r/labels.txt \
       --wav=${wavpath_noext}.wav \
       --parallelize=$classify_parallelize \
+      --time_scale=$time_scale \
       --audio_tic_rate=$audio_tic_rate \
       --audio_nchannels=$audio_nchannels \
       --video_frame_rate=$video_frame_rate \
@@ -229,6 +247,10 @@ count_lines_with_label ${wavpath_noext}-predicted-1.0pr.csv ambient 124 WARNING
 cmd="${srcdir}/${detect_plugin}.py\
       --filename=${wavpath_noext}.wav \
       --parameters='$detect_parameters' \
+      --time_units=$time_units \
+      --freq_units=$freq_units \
+      --time_scale=$time_scale \
+      --freq_scale=$freq_scale \
       --audio_tic_rate=$audio_tic_rate \
       --audio_nchannels=$audio_nchannels \
       --audio_read_plugin=$audio_read_plugin \
@@ -255,10 +277,10 @@ kinds_touse=annotated,missed
 equalize_ratio=1000
 max_sounds=10000
 cmd="${srcdir}/activations \
-      --context_ms=$context_ms \
+      --context=$context \
       --loss=$loss \
       --overlapped_prefix=$overlapped_prefix \
-      --shiftby_ms=$shiftby_ms \
+      --shiftby=$shiftby \
       --video_findfile=$video_findfile_plugin \
       --video_bkg_frames=$video_bkg_frames \
       --data_loader_queuesize=$data_loader_queuesize \
@@ -272,6 +294,10 @@ cmd="${srcdir}/activations \
       --testing_equalize_ratio=$equalize_ratio \
       --testing_max_sounds=$max_sounds \
       --batch_size=$mini_batch \
+      --time_units=$time_units \
+      --freq_units=$freq_units \
+      --time_scale=$time_scale \
+      --freq_scale=$freq_scale \
       --audio_tic_rate=$audio_tic_rate \
       --nchannels=$audio_nchannels \
       --validation_percentage=0.0 \
@@ -317,8 +343,8 @@ mkdir $logdir
 ioffsets=$(seq 0 $(( ${#wavfiles[@]} - 1 )) )
 for ioffset in $ioffsets ; do
   cmd="${srcdir}/generalize \
-       --context_ms=$context_ms \
-       --shiftby_ms=$shiftby_ms \
+       --context=$context \
+       --shiftby=$shiftby \
        --optimizer=$optimizer \
        --loss=$loss \
        --overlapped_prefix=$overlapped_prefix \
@@ -342,6 +368,10 @@ for ioffset in $ioffsets ; do
        --save_and_validate_period=$save_and_validate_period \
        --mini_batch=$mini_batch \
        --testing_files='$testing_files' \
+       --time_units=$time_units \
+       --freq_units=$freq_units \
+       --time_scale=$time_scale \
+       --freq_scale=$freq_scale \
        --audio_tic_rate=$audio_tic_rate \
        --audio_nchannels=$audio_nchannels \
        --video_frame_rate=$video_frame_rate \
@@ -412,8 +442,8 @@ for loss in ${losses[@]} ; do
         mkdir $logdir
         for ifold in $ifolds ; do
             cmd="${srcdir}/xvalidate \
-                 --context_ms=$context_ms \
-                 --shiftby_ms=$shiftby_ms \
+                 --context=$context \
+                 --shiftby=$shiftby \
                  --optimizer=$optimizer \
                  --loss=$loss \
                  --overlapped_prefix=$overlapped_prefix \
@@ -437,6 +467,10 @@ for loss in ${losses[@]} ; do
                  --save_and_validate_period=$save_and_validate_period \
                  --mini_batch=$mini_batch \
                  --testing_files='$testing_files' \
+                 --time_units=$time_units \
+                 --freq_units=$freq_units \
+                 --time_scale=$time_scale \
+                 --freq_scale=$freq_scale \
                  --audio_tic_rate=$audio_tic_rate \
                  --audio_nchannels=$audio_nchannels \
                  --video_frame_rate=$video_frame_rate \
@@ -514,8 +548,8 @@ kinds_touse=annotated
 validation_percentage=20
 mkdir $logdir
 cmd="${srcdir}/train \
-     --context_ms=$context_ms \
-     --shiftby_ms=$shiftby_ms \
+     --context=$context \
+     --shiftby=$shiftby \
      --optimizer=$optimizer \
      --loss=$loss \
      --overlapped_prefix=$overlapped_prefix \
@@ -540,6 +574,10 @@ cmd="${srcdir}/train \
      --validation_percentage=$validation_percentage \
      --mini_batch=$mini_batch \
      --testing_files='$testing_files' \
+     --time_units=$time_units \
+     --freq_units=$freq_units \
+     --time_scale=$time_scale \
+     --freq_scale=$freq_scale \
      --audio_tic_rate=$audio_tic_rate \
      --audio_nchannels=$audio_nchannels \
      --video_frame_rate=$video_frame_rate \
@@ -583,7 +621,7 @@ check_file_exists $logdir/P-R-F1-model.pdf
 check_file_exists $logdir/PvR.pdf
 
 cmd="${srcdir}/freeze \
-      --context_ms=$context_ms \
+      --context=$context \
       --loss=$loss \
       --model_architecture=$architecture \
       --model_parameters='$model_parameters' \
@@ -591,6 +629,10 @@ cmd="${srcdir}/freeze \
       --output_file=${logdir}/train_${ireplicates}r/frozen-graph.ckpt-${nsteps}.pb \
       --labels_touse=$labels_touse \
       --parallelize=$classify_parallelize \
+      --time_units=$time_units \
+      --freq_units=$freq_units \
+      --time_scale=$time_scale \
+      --freq_scale=$freq_scale \
       --audio_tic_rate=$audio_tic_rate \
       --audio_nchannels=$audio_nchannels \
       --video_frame_rate=$video_frame_rate \
@@ -610,9 +652,9 @@ cp $repo_path/data/20190122T093303a-7.wav \
 
 wavpath_noext=$repo_path/test/scratch/tutorial-sh/groundtruth-data/dense/20190122T093303a-7
 cmd="${srcdir}/classify \
-      --context_ms=$context_ms \
+      --context=$context \
       --loss=$loss \
-      --shiftby_ms=$shiftby_ms \
+      --shiftby=$shiftby \
       --audio_read_plugin=$audio_read_plugin \
       --audio_read_plugin_kwargs=$audio_read_plugin_kwargs \
       --video_read_plugin=$video_read_plugin \
@@ -623,6 +665,7 @@ cmd="${srcdir}/classify \
       --model_labels=$logdir/train_${ireplicates}r/labels.txt \
       --wav=${wavpath_noext}.wav \
       --parallelize=$classify_parallelize \
+      --time_scale=$time_scale \
       --audio_tic_rate=$audio_tic_rate \
       --audio_nchannels=$audio_nchannels \
       --video_frame_rate=$video_frame_rate \
@@ -660,16 +703,16 @@ cp $repo_path/data/${wav_file_noext}-annotated-person3.csv \
    $repo_path/test/scratch/tutorial-sh/groundtruth-data/dense
 
 portion=union
-convolve_ms=0.0
+convolve=0.0
 measure=both
-congruence_dir=$data_dir/congruence-20YYMMDDTHHMMSS
+congruence_dir=$data_dir/congruence-11112233T445566
 mkdir $congruence_dir
 cmd="${srcdir}/congruence \
      --basepath=$data_dir \
      --topath=$congruence_dir \
      --wavfiles=${wav_file_noext}.wav \
      --portion=$portion \
-     --convolve_ms=$convolve_ms \
+     --convolve=$convolve \
      --measure=$measure \
      --nprobabilities=$nprobabilities \
      --audio_tic_rate=$audio_tic_rate \
@@ -710,10 +753,14 @@ cmd="${srcdir}/ensemble \
       --start_checkpoints=${logdir}/xvalidate_1k/ckpt-${nsteps},${logdir}/xvalidate_2k/ckpt-${nsteps} \
       --output_file=${logdir}/xvalidate_1k_2k/frozen-graph.ckpt-${nsteps}_${nsteps}.pb \
       --labels_touse=mel-pulse,mel-sine,ambient \
-      --context_ms=$context_ms \
+      --context=$context \
       --model_architecture=$architecture \
       --model_parameters='$model_parameters' \
       --parallelize=$classify_parallelize \
+      --time_units=$time_units \
+      --freq_units=$freq_units \
+      --time_scale=$time_scale \
+      --freq_scale=$freq_scale \
       --audio_tic_rate=$audio_tic_rate \
       --nchannels=$audio_nchannels"
 echo $cmd >> ${logdir}/xvalidate_1k_2k/ensemble.log 2>&1
@@ -728,9 +775,9 @@ cp $repo_path/data/20190122T132554a-14.wav \
 
 wavpath_noext=$repo_path/test/scratch/tutorial-sh/groundtruth-data/dense-ensemble/20190122T132554a-14
 cmd="${srcdir}/classify \
-      --context_ms=$context_ms \
+      --context=$context \
       --loss=$loss \
-      --shiftby_ms=$shiftby_ms \
+      --shiftby=$shiftby \
       --audio_read_plugin=$audio_read_plugin \
       --audio_read_plugin_kwargs=$audio_read_plugin_kwargs \
       --video_read_plugin=$video_read_plugin \
@@ -741,6 +788,7 @@ cmd="${srcdir}/classify \
       --model_labels=${logdir}/xvalidate_1k_2k/labels.txt \
       --wav=${wavpath_noext}.wav \
       --parallelize=$classify_parallelize \
+      --time_scale=$time_scale \
       --audio_tic_rate=$audio_tic_rate \
       --audio_nchannels=$audio_nchannels \
       --video_frame_rate=$video_frame_rate \
@@ -780,14 +828,14 @@ cp $repo_path/data/${wav_file_noext}-annotated-person2.csv \
 cp $repo_path/data/${wav_file_noext}-annotated-person3.csv \
    $repo_path/test/scratch/tutorial-sh/groundtruth-data/dense-ensemble
 
-congruence_dir=$data_dir/congruence-20yymmddthhmmss
+congruence_dir=$data_dir/congruence-99998877T665544
 mkdir $congruence_dir
 cmd="${srcdir}/congruence \
      --basepath=$data_dir \
      --topath=$congruence_dir \
      --wavfiles=${wav_file_noext}.wav \
      --portion=$portion \
-     --convolve_ms=$convolve_ms \
+     --convolve=$convolve \
      --measure=$measure \
      --nprobabilities=$nprobabilities \
      --audio_tic_rate=$audio_tic_rate \
@@ -823,9 +871,9 @@ done
 
 wavpath_noext=$repo_path/test/scratch/tutorial-sh/groundtruth-data/round1/PS_20130625111709_ch3
 cmd="${srcdir}/classify \
-      --context_ms=$context_ms \
+      --context=$context \
       --loss=$loss \
-      --shiftby_ms=$shiftby_ms \
+      --shiftby=$shiftby \
       --audio_read_plugin=$audio_read_plugin \
       --audio_read_plugin_kwargs=$audio_read_plugin_kwargs \
       --video_read_plugin=$video_read_plugin \
@@ -836,6 +884,7 @@ cmd="${srcdir}/classify \
       --model_labels=${logdir}/xvalidate_1k_2k/labels.txt \
       --wav=${wavpath_noext}.wav \
       --parallelize=$classify_parallelize \
+      --time_scale=$time_scale \
       --audio_tic_rate=$audio_tic_rate \
       --audio_nchannels=$audio_nchannels \
       --video_frame_rate=$video_frame_rate \

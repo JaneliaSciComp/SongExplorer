@@ -7,7 +7,7 @@
 #     --topath=/groups/stern/sternlab/behavior/arthurb/groundtruth/kyriacou2017/congruence-20240718T091400 \
 #     --wavfiles=PS_20130625111709_ch3.wav,PS_20130625111709_ch7.wav \
 #     --portion=union \
-#     --convolve_ms=0 \
+#     --convolve_sec=0 \
 #     --measure=label \
 #     --nprobabilities=20 \
 #     --audio_tic_rate=2500 \
@@ -144,7 +144,7 @@ def main():
   do_tic = FLAGS.measure=="both" or FLAGS.measure=="tic"
   do_label = FLAGS.measure=="both" or FLAGS.measure=="label"
 
-  convolve_tic = int(FLAGS.convolve_ms/2/1000*FLAGS.audio_tic_rate)
+  convolve_tic = int(FLAGS.convolve_sec/2*FLAGS.audio_tic_rate)
 
   wavdirs = {}
   def traverse(curdir):
@@ -689,7 +689,7 @@ if __name__ == "__main__":
       '--portion',
       type=str)
   parser.add_argument(
-      '--convolve_ms',
+      '--convolve_sec',
       type=float)
   parser.add_argument(
       '--measure',

@@ -157,6 +157,10 @@ def main():
   nlabels = len(labels_touse.split(','))
 
   model_settings = {'nlabels': nlabels,
+                    'time_units': FLAGS.time_units,
+                    'freq_units': FLAGS.freq_units,
+                    'time_scale': FLAGS.time_scale,
+                    'freq_scale': FLAGS.freq_scale,
                     'audio_tic_rate': FLAGS.audio_tic_rate,
                     'audio_nchannels': FLAGS.audio_nchannels,
                     'video_frame_rate': FLAGS.video_frame_rate,
@@ -164,11 +168,11 @@ def main():
                     'video_frame_height': FLAGS.video_frame_height,
                     'video_channels': [int(x)-1 for x in FLAGS.video_channels.split(',')],
                     'parallelize': 1,
-                    'context_ms': FLAGS.context_ms}
+                    'context': FLAGS.context}
 
   audio_processor = data.AudioProcessor(
       FLAGS.data_dir,
-      FLAGS.shiftby_ms,
+      FLAGS.shiftby,
       labels_touse.split(','), FLAGS.kinds_touse.split(','),
       FLAGS.validation_percentage, FLAGS.validation_offset_percentage,
       FLAGS.validation_files.split(','),
@@ -219,7 +223,7 @@ def main():
       # pre-process a batch of data to make sure settings are valid
       train_fingerprints, train_ground_truth, _ = audio_processor.get_data(
           FLAGS.batch_size, 0, model_settings, FLAGS.loss,
-          FLAGS.overlapped_prefix, FLAGS.shiftby_ms, 'training',
+          FLAGS.overlapped_prefix, FLAGS.shiftby, 'training',
           model.use_audio, model.use_video, video_findfile)
       evaluate_fn(thismodel, train_fingerprints, train_ground_truth, False)
       return
@@ -247,7 +251,7 @@ def main():
       # Pull the sounds we'll use for training.
       train_fingerprints, train_ground_truth, _ = audio_processor.get_data(
           FLAGS.batch_size, 0, model_settings, FLAGS.loss,
-          FLAGS.overlapped_prefix, FLAGS.shiftby_ms, 'training',
+          FLAGS.overlapped_prefix, FLAGS.shiftby, 'training',
           model.use_audio, model.use_video, video_findfile)
 
       cross_entropy_mean, train_accuracy = train_step(train_fingerprints, train_ground_truth)
@@ -318,7 +322,7 @@ def validate_and_test(model, loss, set_kind, set_size, model_settings, \
     fingerprints, ground_truth, sounds = (
         audio_processor.get_data(FLAGS.batch_size, isound, model_settings,
                                  FLAGS.loss, FLAGS.overlapped_prefix,
-                                 FLAGS.shiftby_ms, set_kind,
+                                 FLAGS.shiftby, set_kind,
                                  use_audio, use_video, video_findfile))
     logits, accuracy, hidden_activations, cross_entropy_mean, confusion_matrix = \
             validate_test_step(model, loss, nlabels, fingerprints, ground_truth, exclusive)
@@ -405,7 +409,7 @@ if __name__ == '__main__':
       Where to download the speech training data to.
       """)
   parser.add_argument(
-      '--shiftby_ms',
+      '--shiftby',
       type=float,
       default=100.0,
       help="""\
@@ -462,6 +466,26 @@ if __name__ == '__main__':
       default=0,
       help='Which wavs to use as a cross-validation set.')
   parser.add_argument(
+      '--time_units',
+      type=str,
+      default="ms",
+      help='Units of time',)
+  parser.add_argument(
+      '--freq_units',
+      type=str,
+      default="Hz",
+      help='Units of frequency',)
+  parser.add_argument(
+      '--time_scale',
+      type=float,
+      default="ms",
+      help='This many seconds are in time_units',)
+  parser.add_argument(
+      '--freq_scale',
+      type=float,
+      default="Hz",
+      help='This many frequencies are in freq_units',)
+  parser.add_argument(
       '--audio_tic_rate',
       type=int,
       default=16000,
@@ -492,7 +516,7 @@ if __name__ == '__main__':
       default='1',
       help='Comma-separated list of which channels in the video to use',)
   parser.add_argument(
-      '--context_ms',
+      '--context',
       type=float,
       default=1000,
       help='Expected duration in milliseconds of the wavs',)

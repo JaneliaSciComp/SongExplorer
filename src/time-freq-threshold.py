@@ -17,7 +17,11 @@
 
 # e.g. time-freq-threshold.py \
 #     --filename=`pwd`/groundtruth-data/round2/20161207T102314_ch1_p1.wav \
-#     --parameters={"time_sigma":"9,4", "time_smooth_ms":"6.4", "frequency_n_ms":"25.6", "frequency_nw":"4", "frequency_p":"0.1,1.0", "frequency_range":"0-", "frequency_smooth_ms":"25.6", "time_sigma_robust":"median"} \
+#     --parameters={"time_sigma":"9,4", "time_smooth":"6.4", "frequency_n":"25.6", "frequency_nw":"4", "frequency_p":"0.1,1.0", "frequency_range":"0-", "frequency_smooth":"25.6", "time_sigma_robust":"median"} \
+#     --time_units=ms \
+#     --freq_units=Hz \
+#     --time_scale=0.001 \
+#     --freq_scale=1 \
 #     --audio_tic_rate=2500 \
 #     --audio_nchannels=1 \
 #     --audio_read_plugin=load-wav \
@@ -44,35 +48,36 @@ from lib import combine_events
 
 def _frequency_n_callback(M,V,C):
     C.time.sleep(0.5)
-    V.detect_parameters['frequency_n_ms'].css_classes = []
-    V.detect_parameters['frequency_smooth_ms'].css_classes = []
+    V.detect_parameters['frequency_n'].css_classes = []
+    V.detect_parameters['frequency_smooth'].css_classes = []
     M.save_state_callback()
     V.buttons_update()
 
 def frequency_n_callback(n,M,V,C):
-    changed, frequency_n_ms2 = M.next_pow2_ms(float(V.detect_parameters['frequency_n_ms'].value))
+    changed, frequency_n_sec2 = M.next_pow2_sec(float(V.detect_parameters['frequency_n'].value) * M.time_scale)
     if changed:
-        V.detect_parameters['frequency_n_ms'].css_classes = ['changed']
-        V.detect_parameters['frequency_n_ms'].value = str(frequency_n_ms2)
-    if float(V.detect_parameters['frequency_smooth_ms'].value) < float(V.detect_parameters['frequency_n_ms'].value):
-        V.detect_parameters['frequency_smooth_ms'].css_classes = ['changed']
-        V.detect_parameters['frequency_smooth_ms'].value = V.detect_parameters['frequency_n_ms'].value
+        V.detect_parameters['frequency_n'].css_classes = ['changed']
+        V.detect_parameters['frequency_n'].value = str(frequency_n_sec2 / M.time_scale)
+    if float(V.detect_parameters['frequency_smooth'].value) < float(V.detect_parameters['frequency_n'].value):
+        V.detect_parameters['frequency_smooth'].css_classes = ['changed']
+        V.detect_parameters['frequency_smooth'].value = V.detect_parameters['frequency_n'].value
     if V.bokeh_document:
         V.bokeh_document.add_next_tick_callback(lambda: _frequency_n_callback(M,V,C))
     else:
         _frequency_n_callback(M,V,C)
 
 # a list of lists specifying the detect-specific hyperparameters in the GUI
-detect_parameters = [
-    ["time_sigma",          "time σ",        '',        '9,4',     1, [], None,                 True],
-    ["time_smooth_ms",      "time smooth",   '',        '6.4',     1, [], None,                 True],
-    ["frequency_n_ms",      "freq N (msec)", '',        '25.6',    1, [], frequency_n_callback, True],
-    ["frequency_nw",        "freq NW",       '',        '4',       1, [], None,                 True],
-    ["frequency_p",         "freq ρ",        '',        '0.1,1.0', 1, [], None,                 True],
-    ["frequency_range",     "freq range",    '',        '0-',      1, [], None,                 True],
-    ["frequency_smooth_ms", "freq smooth",   '',        '25.6',    1, [], None,                 True],
-    ["time_sigma_robust",   "robust",        ['median',
-                                              'mean'],  'median',  1, [], None,                 True],
+def detect_parameters(time_units, freq_units, time_scale, freq_scale):
+    return [
+        ["time_sigma",        "time σ",                       '',        '9,4',                  1, [], None,                 True],
+        ["time_smooth",       "time smooth ("+time_units+")", '',        str(0.0064/time_scale), 1, [], None,                 True],
+        ["frequency_n",       "freq N ("+time_units+")",      '',        str(0.0256/time_scale), 1, [], frequency_n_callback, True],
+        ["frequency_nw",      "freq NW",                      '',        '4',                    1, [], None,                 True],
+        ["frequency_p",       "freq ρ",                       '',        '0.1,1.0',              1, [], None,                 True],
+        ["frequency_range",   "freq range ("+freq_units+")",  '',        '0-',                   1, [], None,                 True],
+        ["frequency_smooth",  "freq smooth ("+time_units+")", '',        str(0.0256/time_scale), 1, [], None,                 True],
+        ["time_sigma_robust", "robust",                       ['median',
+                                                               'mean'],  'median',               1, [], None,                 True],
     ]
 
 # a function which returns a vector of strings used to annotate the detected events
@@ -90,6 +95,10 @@ def main():
     for key in sorted(flags.keys()):
         print('%s = %s' % (key, flags[key]))
 
+    audio_tic_rate = FLAGS.audio_tic_rate
+    time_scale = FLAGS.time_scale
+    time_units = FLAGS.time_units
+
     sys.path.append(os.path.dirname(FLAGS.audio_read_plugin))
     audio_read_module = importlib.import_module(os.path.basename(FLAGS.audio_read_plugin))
     def audio_read(wav_path, start_tic=None, stop_tic=None):
@@ -98,30 +107,30 @@ def main():
 
     time_sigma_signal, time_sigma_noise = [int(x) for x in FLAGS.parameters['time_sigma'].split(',')]
     
-    time_smooth = round(float(FLAGS.parameters['time_smooth_ms'])/1000*FLAGS.audio_tic_rate)
-    frequency_n = round(float(FLAGS.parameters['frequency_n_ms'])/1000*FLAGS.audio_tic_rate)
+    time_smooth_tic = round(float(FLAGS.parameters['time_smooth']) * time_scale * audio_tic_rate)
+    frequency_n_tic = round(float(FLAGS.parameters['frequency_n']) * time_scale * audio_tic_rate)
     frequency_nw = int(FLAGS.parameters['frequency_nw'])
     frequency_p_signal, frequency_p_noise = [float(x) for x in FLAGS.parameters['frequency_p'].split(',')]
     frequency_range_lo, frequency_range_hi = FLAGS.parameters['frequency_range'].split('-')
     frequency_range_lo = 0.0 if frequency_range_lo=='' else \
-                         float(frequency_range_lo) / FLAGS.audio_tic_rate
+                         float(frequency_range_lo) / audio_tic_rate
     frequency_range_hi = 0.5 if frequency_range_hi=='' else \
-                         float(frequency_range_hi) / FLAGS.audio_tic_rate
-    frequency_smooth = round(float(FLAGS.parameters['frequency_smooth_ms'])/1000*FLAGS.audio_tic_rate) // (frequency_n//2)
+                         float(frequency_range_hi) / audio_tic_rate
+    frequency_smooth_tic = round(float(FLAGS.parameters['frequency_smooth'])*time_scale*audio_tic_rate) // (frequency_n_tic//2)
     time_sigma_robust = FLAGS.parameters['time_sigma_robust']
 
     fs, _, song = audio_read(FLAGS.filename)
-    if fs!=FLAGS.audio_tic_rate:
+    if fs!=audio_tic_rate:
       raise Exception("ERROR: sampling rate of WAV file (="+str(fs)+
-            ") is not the same as specified in the config file (="+str(FLAGS.audio_tic_rate)+")")
+            ") is not the same as specified in the config file (="+str(audio_tic_rate)+")")
 
-    if not (frequency_n & (frequency_n-1) == 0) or frequency_n == 0:
-      next_higher = np.power(2, np.ceil(np.log2(frequency_n))).astype(int)
-      next_lower = np.power(2, np.floor(np.log2(frequency_n))).astype(int)
-      sigdigs = np.ceil(np.log10(next_higher)).astype(int)+1
-      next_higher_ms = np.around(next_higher/FLAGS.audio_tic_rate*1000, decimals=sigdigs)
-      next_lower_ms = np.around(next_lower/FLAGS.audio_tic_rate*1000, decimals=sigdigs)
-      raise Exception("ERROR: 'freq N (msec)' should be a power of two when converted to tics.  "+FLAGS.parameters['frequency_n_ms']+" ms is "+str(frequency_n)+" tics for Fs="+str(FLAGS.audio_tic_rate)+".  try "+str(next_lower_ms)+" ms (="+str(next_lower)+") or "+str(next_higher_ms)+"ms (="+str(next_higher)+") instead.")
+    if not (frequency_n_tic & (frequency_n_tic-1) == 0) or frequency_n_tic == 0:
+      next_higher_tic = np.power(2, np.ceil(np.log2(frequency_n_tic))).astype(int)
+      next_lower_tic = np.power(2, np.floor(np.log2(frequency_n_tic))).astype(int)
+      sigdigs = np.ceil(np.log10(next_higher_tic)).astype(int)+1
+      next_higher_sec = np.around(next_higher_tic/audio_tic_rate, decimals=sigdigs)
+      next_lower_sec = np.around(next_lower_tic/audio_tic_rate, decimals=sigdigs)
+      raise Exception("ERROR: 'freq N ("+time_units+")' should be a power of two when converted to tics.  "+FLAGS.parameters['frequency_n']+" "+time_units+" is "+str(frequency_n_tic)+" tics for Fs="+str(audio_tic_rate)+".  try "+str(next_lower_sec/time_scale)+" "+time_units+" (="+str(next_lower_tic)+") or "+str(next_higher_sec/time_scale)+" "+time_units+" (="+str(next_higher_tic)+") instead.")
 
     nsounds = np.shape(song)[0]
     nchannels = np.shape(song)[1]
@@ -143,7 +152,7 @@ def main():
       return intervals_time
 
 
-    selem = np.ones((time_smooth), dtype=np.uint8)
+    selem = np.ones((time_smooth_tic), dtype=np.uint8)
 
     for ichannel in range(nchannels):
       if time_sigma_robust=='median':
@@ -162,14 +171,14 @@ def main():
       intervals_time_noise = bool2stamp(song_morphed, lambda x,y: (x,y))
 
 
-    N = frequency_n
+    N = frequency_n_tic
     NW = frequency_nw
     fft_pow = int( np.ceil(np.log2(N) + 2) )
     NFFT = 2**fft_pow
     p_signal = 1/NFFT*frequency_p_signal
     p_noise = 1/NFFT*frequency_p_noise
 
-    selem = np.ones((frequency_smooth), dtype=np.uint8)
+    selem = np.ones((frequency_smooth_tic), dtype=np.uint8)
 
     chunk_size_tics = 1024*1024
 
@@ -241,6 +250,26 @@ if __name__ == '__main__':
     parser.add_argument(
         '--parameters',
         type=json.loads)
+    parser.add_argument(
+        '--time_units',
+        type=str,
+        default="ms",
+        help='Units of time',)
+    parser.add_argument(
+        '--freq_units',
+        type=str,
+        default="Hz",
+        help='Units of frequency',)
+    parser.add_argument(
+        '--time_scale',
+        type=float,
+        default="ms",
+        help='This many seconds are in time_units',)
+    parser.add_argument(
+        '--freq_scale',
+        type=float,
+        default="Hz",
+        help='This many frequencies are in freq_units',)
     parser.add_argument(
         '--audio_tic_rate',
         type=int)

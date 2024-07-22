@@ -30,11 +30,23 @@ model_parameters = [
     ["dropout_rate",  "dropout %",          '', '0', 1, [], None, True],
     ]
 
-def load_model(context_ms0, audio_tic_rate0, parallelize0, ckpt_file, io):
+def load_model(context0, audio_tic_rate0, parallelize0, ckpt_file, io):
     logfile = os.path.dirname(ckpt_file)+".log"
     with open(logfile, "r") as fid:
         for line in fid:
-            if "audio_tic_rate = " in line:
+            if "time_units = " in line:
+                m=re.search('time_units = (.*)', line)
+                time_units = int(m.group(1))
+            if "freq_units = " in line:
+                m=re.search('freq_units = (.*)', line)
+                freq_units = int(m.group(1))
+            if "time_scale = " in line:
+                m=re.search('time_scale = (.*)', line)
+                time_scale = int(m.group(1))
+            if "freq_scale = " in line:
+                m=re.search('freq_scale = (.*)', line)
+                freq_scale = int(m.group(1))
+            elif "audio_tic_rate = " in line:
                 m=re.search('audio_tic_rate = (.*)', line)
                 audio_tic_rate = int(m.group(1))
             elif "audio_nchannels = " in line:
@@ -52,9 +64,9 @@ def load_model(context_ms0, audio_tic_rate0, parallelize0, ckpt_file, io):
             elif "video_channels = " in line:
                 m=re.search('video_channels = (.*)', line)
                 video_channels = m.group(1)
-            elif "context_ms = " in line:
-                m=re.search('context_ms = (.*)', line)
-                context_ms = float(m.group(1))
+            elif "context = " in line:
+                m=re.search('context = (.*)', line)
+                context = float(m.group(1))
             elif "labels_touse = " in line:
                 m=re.search('labels_touse = (.*)', line)
                 nlabels = len(m.group(1).split(','))
@@ -67,9 +79,9 @@ def load_model(context_ms0, audio_tic_rate0, parallelize0, ckpt_file, io):
             elif "num validation labels" in line:
                 break
 
-    if context_ms0 != context_ms:
-        raise Exception(f"ERROR:  context_ms of {ckpt_file} is {context_ms} "
-                        f"whereas it is currently {context_ms0} in the settings.")
+    if context0 != context:
+        raise Exception(f"ERROR:  context of {ckpt_file} is {context} "
+                        f"whereas it is currently {context0} in the settings.")
 
     if audio_tic_rate0 != audio_tic_rate:
         print(f"INFO:  audio_tic_rate of {ckpt_file} is {audio_tic_rate} "
@@ -77,6 +89,10 @@ def load_model(context_ms0, audio_tic_rate0, parallelize0, ckpt_file, io):
               f"will resample accordingly.", file=io)
 
     model_settings = {'nlabels': nlabels,
+                      'time_units': time_units,
+                      'freq_units': freq_units,
+                      'time_scale': time_scale,
+                      'freq_scale': freq_scale,
                       'audio_tic_rate': audio_tic_rate,
                       'audio_nchannels': audio_nchannels,
                       'video_frame_rate': video_frame_rate,
@@ -85,7 +101,7 @@ def load_model(context_ms0, audio_tic_rate0, parallelize0, ckpt_file, io):
                       'video_channels': video_channels,
                       'parallelize': parallelize0,
                       'batch_size': 1,
-                      'context_ms': context_ms}  ### ???
+                      'context': context}
 
     srcdir, _, _ = get_srcrepobindirs()
     modeldir = os.path.dirname(model_architecture)
@@ -147,7 +163,7 @@ def create_model(model_settings, model_parameters, io=sys.stdout):
     audio_tic_rates = []
     ninput_tics = None
     for i in range(len(ckpt_files)):
-        model, audio_tic_rate = load_model(model_settings['context_ms'],
+        model, audio_tic_rate = load_model(model_settings['context'],
                                            model_settings['audio_tic_rate'],
                                            model_settings['parallelize'],
                                            ckpt_files[i], io)

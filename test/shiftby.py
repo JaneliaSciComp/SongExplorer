@@ -26,7 +26,7 @@ shutil.copy(os.path.join(repo_path, "data", "PS_20130625111709_ch3-annotated-per
             os.path.join(repo_path, "test", "scratch", "shiftby", "groundtruth-data", "round1"))
 
 parameters = [
-    "--context_ms=204.8",
+    "--context=204.8",
     "--optimizer=Adam",
     "--learning_rate=0.000001",
     "--audio_read_plugin=load-wav",
@@ -39,9 +39,9 @@ parameters = [
     "--data_loader_maxprocs=0",
     "--model_architecture=convolutional",
     '--model_parameters={"representation": "waveform", \
-                         "window_ms": "3.2", \
-                         "stride_ms": "0.8", \
-                         "range_hz": "", \
+                         "window": "3.2", \
+                         "stride": "0.8", \
+                         "range": "", \
                          "mel_dct": "3,3", \
                          "connection_type": "plain", \
                          "nconvlayers": "2", \
@@ -68,6 +68,10 @@ parameters = [
     "--validation_percentage=20",
     "--mini_batch=32",
     "--testing_files=",
+    "--time_units=ms",
+    "--freq_units=Hz",
+    "--time_scale=0.001",
+    "--freq_scale=1",
     "--audio_tic_rate=2500",
     "--audio_nchannels=1",
     "--video_frame_rate=0",
@@ -86,7 +90,7 @@ logdir = os.path.join(repo_path, "test", "scratch", "shiftby", "shiftby-"+str(sh
 
 os.makedirs(logdir)
 cmd = ["python", os.path.join(srcdir, "train"),
-        *parameters, "--shiftby_ms="+str(shiftby), "--logdir="+logdir]
+        *parameters, "--shiftby="+str(shiftby), "--logdir="+logdir]
 with open(os.path.join(logdir, "train1.log"), 'w') as f:
     f.write(str(cmd))
 p = run(cmd, capture_output=True)
@@ -99,7 +103,7 @@ logdir = os.path.join(repo_path, "test", "scratch", "shiftby", "shiftby-"+str(sh
 
 os.makedirs(logdir)
 cmd = ["python", os.path.join(srcdir, "train"),
-        *parameters, "--shiftby_ms="+str(shiftby), "--logdir="+logdir]
+        *parameters, "--shiftby="+str(shiftby), "--logdir="+logdir]
 with open(os.path.join(logdir, "train1.log"), 'w') as f:
     f.write(str(cmd))
 p = run(cmd, capture_output=True)

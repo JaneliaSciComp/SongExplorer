@@ -53,12 +53,12 @@ with open(os.path.join(__dir__, logdir, model+".log"),'r') as fid:
         if "labels_touse = " in line:
             m=re.search('labels_touse = (.+)',line)
             V.labels_touse.value = m.group(1)
-        if "context_ms = " in line:
-            m=re.search('context_ms = (.+)',line)
-            V.context_ms.value = m.group(1)
-        if "shiftby_ms = " in line:
-            m=re.search('shiftby_ms = (.+)',line)
-            V.shiftby_ms.value = m.group(1)
+        if "context = " in line:
+            m=re.search('context = (.+)',line)
+            V.context.value = m.group(1)
+        if "shiftby = " in line:
+            m=re.search('shiftby = (.+)',line)
+            V.shiftby.value = m.group(1)
         if "loss = " in line:
             m=re.search('loss = (.+)',line)
             V.loss.value = m.group(1)

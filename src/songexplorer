@@ -54,16 +54,21 @@ if server_ipaddr:
 def isinteger(x):
     if eval("not isinstance("+x+", int)"):
         print("ERROR: "+x+" is not an integer")
+def isreal(x):
+    if eval("not isinstance("+x+", int) and not isinstance("+x+", float)"):
+        print("ERROR: "+x+" is neither an int nor a float")
 
+isreal("gui_time_scale")
+isreal("gui_freq_scale")
 isinteger("audio_tic_rate")
 isinteger("audio_nchannels")
-isinteger("gui_snippets_width_ms")
+isreal("gui_snippets_width_sec")
 isinteger("gui_snippets_nx")
 isinteger("gui_snippets_ny")
 isinteger("gui_nlabels")
 isinteger("gui_gui_width_pix")
-isinteger("gui_context_width_ms")
-isinteger("gui_context_offset_ms")
+isreal("gui_context_width_sec")
+isreal("gui_context_offset_sec")
 isinteger("gui_context_waveform_height_pix")
 isinteger("gui_context_spectrogram_height_pix")
 isinteger("models_per_job")
@@ -73,9 +78,6 @@ isinteger("accuracy_parallelize")
 isinteger("cluster_parallelize")
 isinteger("congruence_parallelize")
 isinteger("classify_parallelize")
-
-if gui_context_spectrogram_units != "mHz" and gui_context_spectrogram_units != "Hz" and gui_context_spectrogram_units != "kHz" and gui_context_spectrogram_units != "MHz":
-    print("WARNING: gui_context_spectrogram_units should be mHz, Hz, kHz, or MHz")
 
 all_minusone = True
 global_vars = globals().copy()

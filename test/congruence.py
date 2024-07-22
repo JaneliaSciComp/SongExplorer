@@ -9,6 +9,7 @@ from subprocess import run, PIPE, STDOUT
 import asyncio
 import tarfile
 import pandas as pd
+from datetime import datetime
 
 from libtest import wait_for_job, check_file_exists, get_srcrepobindirs
 
@@ -39,7 +40,7 @@ for ethogramfile in filter(lambda x: x.endswith("ethogram.log"), os.listdir(dumm
 shutil.copy(os.path.join(repo_path, "configuration.py"),
             os.path.join(repo_path, "test", "scratch", "congruence"))
 
-M.init(None, os.path.join(repo_path, "test", "scratch", "congruence", "configuration.py"))
+M.init(None, os.path.join(repo_path, "test", "scratch", "congruence", "configuration.py"), True)
 V.init(None)
 C.init(None)
 
@@ -56,15 +57,20 @@ asyncio.run(C.congruence_actuate())
 
 wait_for_job(M.status_ticker_queue)
 
+timestamp = datetime.strftime(datetime.now(),'%Y%m%d')
+congruence_dir = next(filter(lambda x: x.startswith('congruence-'+timestamp),
+                             os.listdir(V.groundtruth_folder.value)))
+
 wavpath_noext = V.validation_files.value[:-4]
-check_file_exists(os.path.join(V.groundtruth_folder.value, "congruence.log"))
+check_file_exists(os.path.join(V.groundtruth_folder.value, congruence_dir, "congruence.log"))
 for i in range(1,8):
-  check_file_exists(os.path.join(V.groundtruth_folder.value,
+  check_file_exists(os.path.join(V.groundtruth_folder.value, congruence_dir,
                                  "congruence.tic.label"+str(i)+".csv"))
-  check_file_exists(os.path.join(V.groundtruth_folder.value,
+  check_file_exists(os.path.join(V.groundtruth_folder.value, congruence_dir,
                                  "congruence.label.label"+str(i)+".csv"))
 
-l1 = pd.read_csv(os.path.join(V.groundtruth_folder.value, "congruence.label.label1.csv"))
+l1 = pd.read_csv(os.path.join(V.groundtruth_folder.value, congruence_dir,
+                              "congruence.label.label1.csv"))
 pr1 = l1.loc[l1['Unnamed: 0'] == '1.0pr']
 
 check_value(pr1, "Everyone", 1)
@@ -75,7 +81,8 @@ check_value(pr1, "not Person1", 5)
 check_value(pr1, "not Person2", 6)
 check_value(pr1, "not 1.0pr", 7)
 
-l2 = pd.read_csv(os.path.join(V.groundtruth_folder.value, "congruence.label.label2.csv"))
+l2 = pd.read_csv(os.path.join(V.groundtruth_folder.value, congruence_dir,
+                              "congruence.label.label2.csv"))
 pr1 = l2.loc[l2['Unnamed: 0'] == '1.0pr']
 
 check_value(pr1, "Everyone", 1)
@@ -85,13 +92,14 @@ check_value(pr1, "only 1.0pr", 0)
 check_value(pr1, "not 1.0pr", 0)
 
 for i in range(3,8):
-  li = pd.read_csv(os.path.join(V.groundtruth_folder.value,
+  li = pd.read_csv(os.path.join(V.groundtruth_folder.value, congruence_dir,
                                 "congruence.label.label"+str(i)+".csv"))
   pr1 = li.loc[li['Unnamed: 0'] == '1.0pr']
   check_value(pr1, "only Person1", 1)
   check_value(pr1, "not Person2", 2)
 
-l1 = pd.read_csv(os.path.join(V.groundtruth_folder.value, "congruence.tic.label1.csv"))
+l1 = pd.read_csv(os.path.join(V.groundtruth_folder.value, congruence_dir,
+                              "congruence.tic.label1.csv"))
 pr1 = l1.loc[l1['Unnamed: 0'] == '1.0pr']
 
 check_value(pr1, "Everyone", 1)
@@ -102,7 +110,8 @@ check_value(pr1, "not Person1", 5)
 check_value(pr1, "not Person2", 6)
 check_value(pr1, "not 1.0pr", 7)
 
-l2 = pd.read_csv(os.path.join(V.groundtruth_folder.value, "congruence.tic.label2.csv"))
+l2 = pd.read_csv(os.path.join(V.groundtruth_folder.value, congruence_dir,
+                              "congruence.tic.label2.csv"))
 pr1 = l2.loc[l2['Unnamed: 0'] == '1.0pr']
 
 check_value(pr1, "Everyone", 1)
@@ -111,7 +120,8 @@ check_value(pr1, "only Person2", 3)
 check_value(pr1, "only 1.0pr", 22)
 check_value(pr1, "not 1.0pr", 0)
 
-l3 = pd.read_csv(os.path.join(V.groundtruth_folder.value, "congruence.tic.label3.csv"))
+l3 = pd.read_csv(os.path.join(V.groundtruth_folder.value, congruence_dir,
+                              "congruence.tic.label3.csv"))
 pr1 = l3.loc[l3['Unnamed: 0'] == '1.0pr']
 
 check_value(pr1, "only 1.0pr", 10)
@@ -122,7 +132,8 @@ check_value(pr1, "only Person2", 0)
 check_value(pr1, "not Person2", 10)
 check_value(pr1, "Everyone", 0)
 
-l4 = pd.read_csv(os.path.join(V.groundtruth_folder.value, "congruence.tic.label4.csv"))
+l4 = pd.read_csv(os.path.join(V.groundtruth_folder.value, congruence_dir,
+                              "congruence.tic.label4.csv"))
 pr1 = l4.loc[l4['Unnamed: 0'] == '1.0pr']
 
 check_value(pr1, "only 1.0pr", 10)
@@ -133,7 +144,8 @@ check_value(pr1, "only Person2", 0)
 check_value(pr1, "not Person2", 9)
 check_value(pr1, "Everyone", 0)
 
-l5 = pd.read_csv(os.path.join(V.groundtruth_folder.value, "congruence.tic.label5.csv"))
+l5 = pd.read_csv(os.path.join(V.groundtruth_folder.value, congruence_dir,
+                              "congruence.tic.label5.csv"))
 pr1 = l5.loc[l5['Unnamed: 0'] == '1.0pr']
 
 check_value(pr1, "only 1.0pr", 10)
@@ -144,7 +156,8 @@ check_value(pr1, "only Person2", 0)
 check_value(pr1, "not Person2", 8)
 check_value(pr1, "Everyone", 0)
 
-l6 = pd.read_csv(os.path.join(V.groundtruth_folder.value, "congruence.tic.label6.csv"))
+l6 = pd.read_csv(os.path.join(V.groundtruth_folder.value, congruence_dir,
+                              "congruence.tic.label6.csv"))
 pr1 = l6.loc[l6['Unnamed: 0'] == '1.0pr']
 
 check_value(pr1, "only 1.0pr", 10)
@@ -155,7 +168,8 @@ check_value(pr1, "only Person2", 0)
 check_value(pr1, "not Person2", 4)
 check_value(pr1, "Everyone", 0)
 
-l7 = pd.read_csv(os.path.join(V.groundtruth_folder.value, "congruence.tic.label7.csv"))
+l7 = pd.read_csv(os.path.join(V.groundtruth_folder.value, congruence_dir,
+                              "congruence.tic.label7.csv"))
 pr1 = l7.loc[l7['Unnamed: 0'] == '1.0pr']
 
 check_value(pr1, "only 1.0pr", 10)
@@ -222,7 +236,7 @@ correctvalues = [
   ]
 
 for filename, correctvalue in correctvalues:
-  filepath = os.path.join(V.groundtruth_folder.value, "dummy-data", filename)
+  filepath = os.path.join(V.groundtruth_folder.value, congruence_dir, "dummy-data", filename)
   if os.path.isfile(filepath) and os.path.getsize(filepath) > 0:
     df = pd.read_csv(filepath, header=None, index_col=False)
   else:

@@ -4,13 +4,17 @@
 # the outputs are simply averaged.
 
 # e.g. ensemble \
-#      --context_ms=204.8 \
+#      --context=204.8 \
 #      --model_architecture=convolutional \
-#      --model_parameters='{"representation":"waveform", "window_ms":6.4, "stride_ms":1.6, "mel_dct":"7,7", "dropout":0.5, "kernel_sizes":5,3,3", last_conv_width":130, "nfeatures":"256,256,256", "dilate_after_layer":65535, "stride_after_layer":65535, "connection_type":"plain"}' \
+#      --model_parameters='{"representation":"waveform", "window":6.4, "stride":1.6, "mel_dct":"7,7", "dropout":0.5, "kernel_sizes":5,3,3", last_conv_width":130, "nfeatures":"256,256,256", "dilate_after_layer":65535, "stride_after_layer":65535, "connection_type":"plain"}' \
 #      --start_checkpoints=`pwd`/trained-classifier/train_1k/ckpt-50,`pwd`/trained-classifier/train_2k/ckpt-50 \
 #      --output_file=`pwd`/trained-classifier/train_1k/frozen-graph.ckpt-50.pb \
 #      --labels_touse=pulse,sine,ambient \
 #      --parallelize=16384 \
+#      --time_units=ms \
+#      --freq_units=Hz \
+#      --time_scale=0.001 \
+#      --freq_scale=1 \
 #      --audio_tic_rate=5000 \
 #      --audio_nchannels=1
 #      --igpu=1 \
@@ -38,18 +42,15 @@ def create_inference_graph():
 
   Uses the supplied arguments to create a model, and inserts the input and
   output nodes that are needed to use the graph for inference.
-
-  Args:
-    labels_touse: Comma-separated list of the labels we're trying to recognize.
-    audio_tic_rate: How many tics per second are in the input audio files.
-    context_ms: How many tics to analyze for the audio pattern.
-    clip_stride_ms: How often to run recognition. Useful for models with cache.
-    model_architecture: Name of the kind of model to generate.
   """
   sys.path.append(os.path.dirname(FLAGS.model_architecture))
   model = importlib.import_module(os.path.basename(FLAGS.model_architecture))
 
   model_settings = {'nlabels': len(FLAGS.labels_touse.split(',')),
+                    'time_units': FLAGS.time_units,
+                    'freq_units': FLAGS.freq_units,
+                    'time_scale': FLAGS.time_scale,
+                    'freq_scale': FLAGS.freq_scale,
                     'audio_tic_rate': FLAGS.audio_tic_rate,
                     'audio_nchannels': FLAGS.audio_nchannels,
                     'video_frame_rate': FLAGS.video_frame_rate,
@@ -58,7 +59,7 @@ def create_inference_graph():
                     'video_channels': [int(x)-1 for x in FLAGS.video_channels.split(',')],
                     'parallelize': FLAGS.parallelize,
                     'batch_size': 1,
-                    'context_ms': FLAGS.context_ms }
+                    'context': FLAGS.context }
 
   thesemodels=[]
   for thischeckpoint in FLAGS.start_checkpoints.split(','):
@@ -138,6 +139,26 @@ def main():
 if __name__ == '__main__':
   parser = argparse.ArgumentParser()
   parser.add_argument(
+      '--time_units',
+      type=str,
+      default="ms",
+      help='Units of time',)
+  parser.add_argument(
+      '--freq_units',
+      type=str,
+      default="Hz",
+      help='Units of frequency',)
+  parser.add_argument(
+      '--time_scale',
+      type=float,
+      default="ms",
+      help='This many seconds are in time_units',)
+  parser.add_argument(
+      '--freq_scale',
+      type=float,
+      default="Hz",
+      help='This many frequencies are in freq_units',)
+  parser.add_argument(
       '--audio_tic_rate',
       type=int,
       default=16000,
@@ -168,7 +189,7 @@ if __name__ == '__main__':
       default='1',
       help='Comma-separated list of which channels in the video to use',)
   parser.add_argument(
-      '--context_ms',
+      '--context',
       type=float,
       default=1000,
       help='Expected duration in milliseconds of the wavs',)
