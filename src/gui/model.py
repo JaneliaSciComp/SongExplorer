@@ -66,8 +66,8 @@ def save_state_callback():
                      'weights_seed': V.weights_seed.value,
                      'labels': str.join(',',[x.value for x in V.label_texts]),
                      'file_dialog_string': V.file_dialog_string.value,
-                     'context_ms': V.context_ms.value,
-                     'shiftby_ms': V.shiftby_ms.value,
+                     'context': V.context.value,
+                     'shiftby': V.shiftby.value,
                      'optimizer': V.optimizer.value,
                      'loss': V.loss.value,
                      'learning_rate': V.learning_rate.value},
@@ -215,14 +215,14 @@ def finalize_annotation(redraw_snippets=True):
         V.snippets_update(False)
     V.context_update()
 
-def next_pow2_ms(x_ms):
-    x = round(x_ms/1000*audio_tic_rate)
+def next_pow2_sec(x_sec):
+    x = round(x_sec*audio_tic_rate)
     if x<=0:
-        return True, 4/audio_tic_rate*1000
+        return True, 4/audio_tic_rate
     if not (x & (x-1) == 0):
         next_higher = max(4, np.power(2, np.ceil(np.log2(x))).astype(int))
-        return True, next_higher/audio_tic_rate*1000
-    return False, x_ms
+        return True, next_higher/audio_tic_rate
+    return False, x_sec
 
 def init(_bokeh_document, _configuration_file, _use_aitch):
     global bokeh_document, configuration_file, bindirs, repodir, srcdir
@@ -230,20 +230,27 @@ def init(_bokeh_document, _configuration_file, _use_aitch):
     global audio_tic_rate, audio_nchannels, video_channels
     global nlabels, gui_width_pix
     global cluster_circle_color, label_palette
-    global snippets_colormap, snippets_width_ms, snippets_nx, snippets_ny, snippets_waveform, snippets_spectrogram
-    global context_width_ms, context_offset_ms, context_waveform, context_waveform_height_pix, context_spectrogram, context_spectrogram_height_pix, context_spectrogram_units, context_probability_height_pix, context_undo_proximity_pix
-    global context_waveform_low, context_waveform_high, context_spectrogram_freq_scale, label_colors
-    global spectrogram_colormap, spectrogram_clip, spectrogram_window, spectrogram_length_ms, spectrogram_overlap, spectrogram_low_hz, spectrogram_high_hz
+    global snippets_colormap, snippets_width_sec, snippets_nx, snippets_ny, snippets_waveform, snippets_spectrogram
+    global context_width_sec, context_offset_sec, context_waveform, context_waveform_height_pix, context_spectrogram, context_spectrogram_height_pix, context_probability_height_pix, context_undo_proximity_pix
+    global time_units, freq_units, context_time_units, context_freq_units
+    global time_scale, freq_scale, context_time_scale, context_freq_scale
+    global context_waveform_low, context_waveform_high, label_colors
+    global spectrogram_colormap, spectrogram_clip, spectrogram_window, spectrogram_length_sec, spectrogram_overlap, spectrogram_low_hz, spectrogram_high_hz
     global overlapped_prefix
     global deterministic
-    global context_width_ms0, context_offset_ms0
-    global xcluster, ycluster, zcluster, ndcluster, tic2pix_max, snippet_width_pix, ilayer, ispecies, iword, inohyphen, ikind, nlayers, layers, species, words, nohyphens, kinds, used_labels, snippets_gap_ms, snippets_tic, snippets_gap_tic, snippets_decimate_by, snippets_pix, snippets_gap_pix, context_decimate_by, context_width_tic, context_offset_tic, context_sound, isnippet, xsnippet, ysnippet, file_nframes, context_midpoint_tic, ilabel, used_sounds, used_starts_sorted, used_stops, iused_stops_sorted, annotated_sounds, annotated_starts_sorted, annotated_stops, iannotated_stops_sorted, annotated_csvfiles_all, nrecent_annotations, clustered_sounds, clustered_activations, used_recording2firstsound, clustered_starts_sorted, clustered_stops, iclustered_stops_sorted, songexplorer_starttime, history_stack, history_idx, wizard, action, function, statepath, state, file_dialog_root, file_dialog_filter, nearest_sounds, status_ticker_queue, waitfor_job, dfs, remaining_isounds
+    global context_width_sec0, context_offset_sec0
+    global xcluster, ycluster, zcluster, ndcluster, tic2pix_max, snippet_width_pix, ilayer, ispecies, iword, inohyphen, ikind, nlayers, layers, species, words, nohyphens, kinds, used_labels, snippets_gap_sec, snippets_tic, snippets_gap_tic, snippets_decimate_by, snippets_pix, snippets_gap_pix, context_decimate_by, context_width_tic, context_offset_tic, context_sound, isnippet, xsnippet, ysnippet, file_nframes, context_midpoint_tic, ilabel, used_sounds, used_starts_sorted, used_stops, iused_stops_sorted, annotated_sounds, annotated_starts_sorted, annotated_stops, iannotated_stops_sorted, annotated_csvfiles_all, nrecent_annotations, clustered_sounds, clustered_activations, used_recording2firstsound, clustered_starts_sorted, clustered_stops, iclustered_stops_sorted, songexplorer_starttime, history_stack, history_idx, wizard, action, function, statepath, state, file_dialog_root, file_dialog_filter, nearest_sounds, status_ticker_queue, waitfor_job, dfs, remaining_isounds
     global user_changed_recording, user_copied_parameters
     global audio_read, video_read, detect_parameters, detect_labels, doubleclick_parameters, doubleclick_annotation, context_data, context_data_istart, model, model_parameters, video_findfile
 
     bokeh_document = _bokeh_document
 
     exec(open(_configuration_file).read(), globals())
+
+    time_units = gui_time_units
+    time_scale = gui_time_scale
+    freq_units = gui_freq_units
+    freq_scale = gui_freq_scale
 
     srcdir, repodir, bindirs = get_srcrepobindirs()
 
@@ -263,17 +270,17 @@ def init(_bokeh_document, _configuration_file, _use_aitch):
 
     sys.path.insert(0,os.path.dirname(detect_plugin))
     tmp = importlib.import_module(os.path.basename(detect_plugin))
-    detect_parameters = tmp.detect_parameters
+    detect_parameters = tmp.detect_parameters(time_units, freq_units, time_scale, freq_scale)
     detect_labels = tmp.detect_labels(int(audio_nchannels))
 
     sys.path.insert(0,os.path.dirname(gui_context_doubleclick_plugin))
     tmp = importlib.import_module(os.path.basename(gui_context_doubleclick_plugin))
-    doubleclick_parameters = tmp.doubleclick_parameters
+    doubleclick_parameters = tmp.doubleclick_parameters(time_units, freq_units, time_scale, freq_scale)
     doubleclick_annotation = tmp.doubleclick_annotation
 
     sys.path.insert(0,os.path.dirname(architecture_plugin))
     model = importlib.import_module(os.path.basename(architecture_plugin))
-    model_parameters = model.model_parameters
+    model_parameters = model.model_parameters(time_units, freq_units, time_scale, freq_scale)
 
     sys.path.insert(0,os.path.dirname(video_findfile_plugin))
     video_findfile = importlib.import_module(os.path.basename(video_findfile_plugin)).video_findfile
@@ -304,7 +311,7 @@ def init(_bokeh_document, _configuration_file, _use_aitch):
 
     audio_tic_rate=int(audio_tic_rate)
     audio_nchannels=int(audio_nchannels)
-    snippets_width_ms=float(gui_snippets_width_ms)
+    snippets_width_sec=float(gui_snippets_width_sec)
     snippets_nx=int(gui_snippets_nx)
     snippets_ny=int(gui_snippets_ny)
 
@@ -324,10 +331,10 @@ def init(_bokeh_document, _configuration_file, _use_aitch):
 
     nlabels=int(gui_nlabels)
     gui_width_pix=int(gui_gui_width_pix)
-    context_width_ms0=float(gui_context_width_ms)
-    context_offset_ms0=float(gui_context_offset_ms)
-    context_width_ms=float(gui_context_width_ms)
-    context_offset_ms=float(gui_context_offset_ms)
+    context_width_sec0=float(gui_context_width_sec)
+    context_offset_sec0=float(gui_context_offset_sec)
+    context_width_sec=float(gui_context_width_sec)
+    context_offset_sec=float(gui_context_offset_sec)
 
     context_waveform_height_pix=int(gui_context_waveform_height_pix)
 
@@ -343,11 +350,16 @@ def init(_bokeh_document, _configuration_file, _use_aitch):
         print("ERROR: max(snippets_waveform) exceeds audio_nchannels ")
         exit()
 
-    context_spectrogram_units=gui_context_spectrogram_units
+    context_time_units = gui_context_time_units
+    context_time_scale = gui_context_time_scale
+
+    context_freq_units = gui_context_freq_units
+    context_freq_scale = gui_context_freq_scale
+
     spectrogram_clip=gui_spectrogram_clip
     spectrogram_colormap=gui_spectrogram_colormap
     spectrogram_window=gui_spectrogram_window
-    spectrogram_length_ms=[next_pow2_ms(float(gui_spectrogram_length_ms))[1]]*audio_nchannels
+    spectrogram_length_sec=[next_pow2_sec(float(gui_spectrogram_length_sec))[1]]*audio_nchannels
     spectrogram_overlap=float(gui_spectrogram_overlap)
     tmp = max(0, min(audio_tic_rate/2, gui_spectrogram_low_hz))
     if tmp != gui_spectrogram_low_hz:
@@ -357,10 +369,6 @@ def init(_bokeh_document, _configuration_file, _use_aitch):
     if tmp != gui_spectrogram_high_hz:
         print('WARNING: gui_spectrogram_high_hz should be between 0 and audio_tic_rate/2')
     spectrogram_high_hz=[float(tmp)]*audio_nchannels
-    context_spectrogram_freq_scale = 0.001 if context_spectrogram_units=='mHz' else \
-                                     1 if context_spectrogram_units=='Hz' else \
-                                  1000 if context_spectrogram_units=='kHz' else \
-                               1000000
 
     context_probability_height_pix=int(gui_context_probability_height_pix)
 
@@ -400,17 +408,17 @@ def init(_bokeh_document, _configuration_file, _use_aitch):
 
     used_labels = []
 
-    snippets_gap_ms=snippets_width_ms/10
+    snippets_gap_sec = snippets_width_sec/10
 
-    snippets_tic = int(np.rint(snippets_width_ms/1000*audio_tic_rate))
-    snippets_gap_tic = int(np.rint(snippets_gap_ms/1000*audio_tic_rate))
+    snippets_tic = int(np.rint(snippets_width_sec*audio_tic_rate))
+    snippets_gap_tic = int(np.rint(snippets_gap_sec*audio_tic_rate))
     tic2pix = (snippets_gap_tic+snippets_tic) / snippet_width_pix
     snippets_decimate_by = round(tic2pix/tic2pix_max) if tic2pix>tic2pix_max else 1
     snippets_pix = round(snippets_tic / snippets_decimate_by)
     snippets_gap_pix = round(snippets_gap_tic / snippets_decimate_by)
 
-    context_width_tic = int(np.rint(context_width_ms/1000*audio_tic_rate))
-    context_offset_tic = int(np.rint(context_offset_ms/1000*audio_tic_rate))
+    context_width_tic = int(np.rint(context_width_sec*audio_tic_rate))
+    context_offset_tic = int(np.rint(context_offset_sec*audio_tic_rate))
 
     context_sound = None
 
@@ -486,8 +494,8 @@ def init(_bokeh_document, _configuration_file, _use_aitch):
                           'weights_seed':'-1', \
                           'labels':','*(nlabels-1), \
                           'file_dialog_string':os.getcwd(), \
-                          'context_ms':'204.8', \
-                          'shiftby_ms':'0.0', \
+                          'context':str(0.2048 / time_scale), \
+                          'shiftby':'0.0', \
                           'optimizer':'Adam', \
                           'loss':'exclusive', \
                           'learning_rate':'0.0002'}, \

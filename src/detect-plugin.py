@@ -2,7 +2,7 @@
 
 # e.g. detect-plugin.py \
 #     --filename=`pwd`/groundtruth-data/round2/20161207T102314_ch1_p1.wav \
-#     --parameters={"time_sigma":"9,4", "time_smooth_ms":"6.4", "frequency_n_ms":"25.6", "frequency_nw":"4", "frequency_p":"0.1,1.0", "frequency_smooth_ms":"25.6", "time_sigma_robust":"median"} \
+#     --parameters={"my-simple-textbox":"16", "a-bounded-value":"1", "a-menu":"that", "a-conditional-param":"6", "an-optional-param":""} \
 #     --audio_tic_rate=2500 \
 #     --audio_nchannels=1 \
 #     --audio_read_plugin=load-wav \
@@ -43,14 +43,15 @@ def callback(n,M,V,C):
             _callback('a-bounded-value',M,V,C)
 
 # a list of lists specifying the detect-specific hyperparameters in the GUI
-detect_parameters = [
-  # [key in `detect_parameters`, title in GUI, "" for textbox or [] for pull-down, default value, width, enable logic, callback, required]
-  ["my-simple-textbox",    "h-parameter 1",    "",              "32",   1, [],                  None,     True],
-  ["a-bounded-value",      "can't be < 0",     "",              "3",    1, [],                  callback, True],
-  ["a-menu",               "choose one",       ["this","that"], "this", 1, [],                  None,     True],
-  ["a-conditional-param",  "that's parameter", "",              "8",    1, ["a-menu",["that"]], None,     True],
-  ["an-optional-param",    "can be blank",     "",              "0.5",  1, [],                  None,     False],
-  ]
+def doubleclick_parameters(time_units, freq_units, time_scale, freq_scale):
+    return [
+        # [key in `detect_parameters`, title in GUI, "" for textbox or [] for pull-down, default value, width, enable logic, callback, required]
+          ["my-simple-textbox",    "h-parameter 1",    "",              "32",   1, [],                  None,     True],
+          ["a-bounded-value",      "can't be < 0",     "",              "3",    1, [],                  callback, True],
+          ["a-menu",               "choose one",       ["this","that"], "this", 1, [],                  None,     True],
+          ["a-conditional-param",  "that's parameter", "",              "8",    1, ["a-menu",["that"]], None,     True],
+          ["an-optional-param",    "can be blank",     "",              "0.5",  1, [],                  None,     False],
+    ]
 
 # a function which returns a vector of strings used to annotate the detected events
 def detect_labels(audio_nchannels):

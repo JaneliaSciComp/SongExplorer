@@ -19,14 +19,14 @@ def _callback(ps,M,V,C):
 
 def window_callback(n,M,V,C):
     ps = []
-    changed, window_ms2 = M.next_pow2_ms(float(V.model_parameters['window_ms'].value))
+    changed, window_sec2 = M.next_pow2_sec(float(V.model_parameters['window'].value) * M.time_scale)
     if changed:
-        bokehlog.info("WARNING:  adjusting `window (msec)` to be a power of two in tics")
-        V.model_parameters['window_ms'].css_classes = ['changed']
-        V.model_parameters['window_ms'].value = str(window_ms2)
-        ps.append('window_ms')
+        bokehlog.info("WARNING:  adjusting `window ("+M.time_units+")` to be a power of two in tics")
+        V.model_parameters['window'].css_classes = ['changed']
+        V.model_parameters['window'].value = str(window_sec2 / M.time_scale)
+        ps.append('window')
     mel, _ = V.model_parameters['mel_dct'].value.split(',')
-    nfreqs = round(window_ms2/1000*M.audio_tic_rate/2+1)
+    nfreqs = round(window_sec2*M.audio_tic_rate/2+1)
     if int(mel) != nfreqs:
         changed=True
         bokehlog.info("WARNING:  adjusting `mel & DCT` to both be equal to the number of frequencies")
@@ -40,21 +40,21 @@ def window_callback(n,M,V,C):
             _callback(ps,M,V,C)
 
 def stride_callback(n,M,V,C):
-    stride_ms = float(V.model_parameters['stride_ms'].value)
-    stride_tics = round(M.audio_tic_rate * stride_ms / 1000)
-    stride_ms2 = stride_tics / M.audio_tic_rate * 1000
+    stride_sec = float(V.model_parameters['stride'].value) * M.time_scale
+    stride_tics = round(M.audio_tic_rate * stride_sec)
+    stride_sec2 = stride_tics / M.audio_tic_rate
     nconvlayers = int(V.model_parameters['nconvlayers'].value)
     nstride_time = len(parse_layers(V.model_parameters['stride_time'].value, nconvlayers))
     downsample_by = 2 ** nstride_time
     output_tic_rate = M.audio_tic_rate / stride_tics / downsample_by
-    if output_tic_rate != round(output_tic_rate) or stride_ms2 != stride_ms:
+    if output_tic_rate != round(output_tic_rate) or stride_sec2 != stride_sec:
         if output_tic_rate == round(output_tic_rate):
-            bokehlog.info("WARNING:  adjusting `stride (msec)` to be an integer number of tics")
+            bokehlog.info("WARNING:  adjusting `stride ("+M.time_units+")` to be an integer number of tics")
         else:
-            bokehlog.info("WARNING:  adjusting `stride (msec)` such that the output sampling rate is an integer number")
+            bokehlog.info("WARNING:  adjusting `stride ("+M.time_units+")` such that the output sampling rate is an integer number")
             downsampled_rate = M.audio_tic_rate / downsample_by
             if downsampled_rate != round(downsampled_rate):
-                stride_ms2 = "-1"
+                stride_sec2 = "-1"
                 bokehlog.info("ERROR:  downsampling achieved by `stride after` results in non-integer sampling rate")
             else:
                 for this_output_tic_rate in [x for x in chain.from_iterable(zip_longest(
@@ -66,16 +66,16 @@ def stride_callback(n,M,V,C):
                     if stride_tics2 == round(stride_tics2):
                         break
                 if stride_tics2 == round(stride_tics2):
-                    stride_ms2 = stride_tics2 / M.audio_tic_rate * 1000
+                    stride_sec2 = stride_tics2 / M.audio_tic_rate
                 else:
-                    stride_ms2 = "-1"
+                    stride_sec2 = "-1"
                     bokehlog.info("ERROR:  downsampling achieved by `stride after` is prime")
-        V.model_parameters['stride_ms'].css_classes = ['changed']
-        V.model_parameters['stride_ms'].value = str(stride_ms2)
+        V.model_parameters['stride'].css_classes = ['changed']
+        V.model_parameters['stride'].value = str(stride_sec2 * M.time_scale)
         if V.bokeh_document:
-            V.bokeh_document.add_next_tick_callback(lambda: _callback(['stride_ms'],M,V,C))
+            V.bokeh_document.add_next_tick_callback(lambda: _callback(['stride_sec'],M,V,C))
         else:
-            _callback(['stride_ms'],M,V,C)
+            _callback(['stride_sec'],M,V,C)
 
 def mel_dct_callback(n,M,V,C):
     if V.model_parameters['mel_dct'].value.count(',') != 1:
@@ -92,21 +92,23 @@ def mel_dct_callback(n,M,V,C):
             _callback(['mel_dct'],M,V,C)
 
 def range_callback(n,M,V,C):
-    if V.model_parameters['range_hz'].value=="":  return
-    if V.model_parameters['range_hz'].value.count('-') != 1:
-        bokehlog.info("ERROR:  `range (Hz)`, if not blank, must to two non-negative numbers separated by a hyphen.")
+    if V.model_parameters['range'].value=="":  return
+    if V.model_parameters['range'].value.count('-') != 1:
+        bokehlog.info("ERROR:  `range ("+M.freq_units+")`, if not blank, must to two non-negative numbers separated by a hyphen.")
         return
-    lo, hi = V.model_parameters['range_hz'].value.split('-')
-    if float(hi) > M.audio_tic_rate//2:  hi=M.audio_tic_rate//2;
-    if float(lo) > float(hi):  lo=0;
-    if V.model_parameters['range_hz'].value != str(lo)+'-'+str(hi):
-        bokehlog.info("WARNING:  adjusting `range (Hz)` such that lower bound is not negative and the higher bound less than the Nyquist frequency.")
-        V.model_parameters['range_hz'].css_classes = ['changed']
-        V.model_parameters['range_hz'].value = str(lo)+'-'+str(hi)
+    lo, hi = V.model_parameters['range'].value.split('-')
+    lo = float(lo) * M.freq_scale
+    hi = float(hi) * M.freq_scale
+    if hi > M.audio_tic_rate // 2:  hi=M.audio_tic_rate // 2;
+    if lo > hi:  lo=0;
+    if V.model_parameters['range'].value != str(lo/M.freq_scale)+'-'+str(hi/M.freq_scale):
+        bokehlog.info("WARNING:  adjusting `range ("+M.freq_units+")` such that lower bound is not negative and the higher bound less than the Nyquist frequency.")
+        V.model_parameters['range'].css_classes = ['changed']
+        V.model_parameters['range'].value = str(lo/M.freq_scale)+'-'+str(hi/M.freq_scale)
         if V.bokeh_document:
-            V.bokeh_document.add_next_tick_callback(lambda: _callback(['range_hz'],M,V,C))
+            V.bokeh_document.add_next_tick_callback(lambda: _callback(['range'],M,V,C))
         else:
-            _callback(['range_hz'],M,V,C)
+            _callback(['range'],M,V,C)
 
 def fused_callback(n,M,V,C):
     dilate_stride_callback("stride_time",n,M,V,C)
@@ -167,53 +169,54 @@ def nlayers_callback(n,M,V,C):
 use_audio=1
 use_video=0
 
-model_parameters = [
-  # key, title in GUI, '' for textbox or [] for pull-down, default value, width, enable logic, callback, required
-  ["representation",  "representation", ['waveform',
-                                         'spectrogram',
-                                         'mel-cepstrum'],     'mel-cepstrum', 1, [],                 None,                                                          True],
-  ["window_ms",       "window (msec)",  '',                   '6.4',          1, ["representation",
-                                                                                  ["spectrogram",
-                                                                                   "mel-cepstrum"]], window_callback,                                               True],
-  ["stride_ms",       "stride (msec)",  '',                   '1.6',          1, ["representation",
-                                                                                  ["spectrogram",
-                                                                                   "mel-cepstrum"]], stride_callback,                                               True],
-  ["range_hz",        "range (Hz)",     '',                   '',             1, ["representation",
-                                                                                  ["spectrogram"]],  range_callback,                                                False],
-  ["mel_dct",         "mel & DCT",      '',                   '7,7',          1, ["representation",
-                                                                                  ["mel-cepstrum"]], mel_dct_callback,                                              True],
-  ["connection_type", "connection",     ['plain',
-                                         'residual'],         'plain',        1, [],                 None,                                                          True],
-  ["nconvlayers",     "# conv layers",  '',                   '2',            1, [],                 nlayers_callback,                                              True],
-  ["kernel_sizes",    "kernels",        '',                   '5x5,3',        1, [],                 None,                                                          True],
-  ["nfeatures",       "# features",     '',                   '64,64',        1, [],                 None,                                                          True],
-  ["dropout_kind",    "dropout kind",   ['none',
-                                         'unit',
-                                         'map'],              'unit',         1, [],                 None,                                                          True],
-  ["dropout_rate",    "dropout %",      '',                   '50',           1, ["dropout_kind",
-                                                                                  ["unit",
-                                                                                   "map"]],          None,                                                          True],
-  ["normalization",   "normalization",  ['none',
-                                         'batch before ReLU',
-                                         'batch after ReLU'], 'none',         1, [],                 None,                                                          True],
-  ["stride_time",     "stride time",    '',                   '',             1, [],                 fused_callback,                                                False],
-  ["stride_freq",     "stride freq",    '',                   '',             1, ["representation",
-                                                                                  ["spectrogram",
-                                                                                   "mel-cepstrum"]], lambda n,M,V,C: dilate_stride_callback("stride_freq",n,M,V,C), False],
-  ["dilate_time",     "dilate time",    '',                   '',             1, [],                 lambda n,M,V,C: dilate_stride_callback("dilate_time",n,M,V,C), False],
-  ["dilate_freq",     "dilate freq",    '',                   '',             1, ["representation",
-                                                                                  ["spectrogram",
-                                                                                   "mel-cepstrum"]], lambda n,M,V,C: dilate_stride_callback("dilate_freq",n,M,V,C), False],
-  ["pool_kind",       "pool kind",      ["none",
-                                         "max",
-                                         "average"],          "none",         1, [],                 None,                                                          True],
-  ["pool_size",       "pool size",      '',                   '2,2',          1, ["pool_kind",
-                                                                                  ["max",
-                                                                                   "average"]],      None,                                                          True],
-  ["denselayers",     "dense layers",   '',                   '',             1, [],                 None,                                                          False],
-  ["augment_volume",  "augment volume", '',                   '1,1',          1, [],                 None,                                                          True],
-  ["augment_noise",   "augment noise",  '',                   '0,0',          1, [],                 None,                                                          True],
-  ]
+def model_parameters(time_units, freq_units, time_scale, freq_scale):
+    return [
+        # key, title in GUI, '' for textbox or [] for pull-down, default value, width, enable logic, callback, required
+        ["representation",  "representation",           ['waveform',
+                                                         'spectrogram',
+                                                         'mel-cepstrum'],     'mel-cepstrum',         1, [],                 None,                                                          True],
+        ["window",          "window ("+time_units+")",  '',                   str(0.0064/time_scale), 1, ["representation",
+                                                                                                          ["spectrogram",
+                                                                                                           "mel-cepstrum"]], window_callback,                                               True],
+        ["stride",          "stride ("+time_units+")",  '',                   str(0.0016/time_scale), 1, ["representation",
+                                                                                                          ["spectrogram",
+                                                                                                           "mel-cepstrum"]], stride_callback,                                               True],
+        ["range",           "range ("+freq_units+")",   '',                   '',                     1, ["representation",
+                                                                                                          ["spectrogram"]],  range_callback,                                                False],
+        ["mel_dct",         "mel & DCT",                '',                   '7,7',                  1, ["representation",
+                                                                                                          ["mel-cepstrum"]], mel_dct_callback,                                              True],
+        ["connection_type", "connection",               ['plain',
+                                                         'residual'],         'plain',                1, [],                 None,                                                          True],
+        ["nconvlayers",     "# conv layers",            '',                   '2',                    1, [],                 nlayers_callback,                                              True],
+        ["kernel_sizes",    "kernels",                  '',                   '5x5,3',                1, [],                 None,                                                          True],
+        ["nfeatures",       "# features",               '',                   '64,64',                1, [],                 None,                                                          True],
+        ["dropout_kind",    "dropout kind",             ['none',
+                                                         'unit',
+                                                         'map'],              'unit',                 1, [],                 None,                                                          True],
+        ["dropout_rate",    "dropout %",                '',                   '50',                   1, ["dropout_kind",
+                                                                                                          ["unit",
+                                                                                                           "map"]],          None,                                                          True],
+        ["normalization",   "normalization",            ['none',
+                                                         'batch before ReLU',
+                                                         'batch after ReLU'], 'none',                 1, [],                 None,                                                          True],
+        ["stride_time",     "stride time",              '',                   '',                     1, [],                 fused_callback,                                                False],
+        ["stride_freq",     "stride freq",              '',                   '',                     1, ["representation",
+                                                                                                          ["spectrogram",
+                                                                                                           "mel-cepstrum"]], lambda n,M,V,C: dilate_stride_callback("stride_freq",n,M,V,C), False],
+        ["dilate_time",     "dilate time",              '',                   '',                     1, [],                 lambda n,M,V,C: dilate_stride_callback("dilate_time",n,M,V,C), False],
+        ["dilate_freq",     "dilate freq",              '',                   '',                     1, ["representation",
+                                                                                                          ["spectrogram",
+                                                                                                           "mel-cepstrum"]], lambda n,M,V,C: dilate_stride_callback("dilate_freq",n,M,V,C), False],
+        ["pool_kind",       "pool kind",                ["none",
+                                                         "max",
+                                                         "average"],          "none",                 1, [],                 None,                                                          True],
+        ["pool_size",       "pool size",                '',                   '2,2',                  1, ["pool_kind",
+                                                                                                          ["max",
+                                                                                                           "average"]],      None,                                                          True],
+        ["denselayers",     "dense layers",             '',                   '',                     1, [],                 None,                                                          False],
+        ["augment_volume",  "augment volume",           '',                   '1,1',                  1, [],                 None,                                                          True],
+        ["augment_noise",   "augment noise",            '',                   '0,0',                  1, [],                 None,                                                          True],
+    ]
 
 class Augment(tf.keras.layers.Layer):
     def __init__(self, volume_range, noise_range, **kwargs):
@@ -369,6 +372,10 @@ def dilation(iconv, dilate_time, dilate_freq):
 
 def create_model(model_settings, model_parameters, io=sys.stdout):
   audio_tic_rate = model_settings['audio_tic_rate']
+  time_units = model_settings['time_units']
+  freq_units = model_settings['freq_units']
+  time_scale = model_settings['time_scale']
+  freq_scale = model_settings['freq_scale']
   representation = model_parameters['representation']
   kernel_sizes = model_parameters['kernel_sizes'].split(',')
   kernel_sizes[0] = [int(x) for x in kernel_sizes[0].split('x')] \
@@ -405,30 +412,30 @@ def create_model(model_settings, model_parameters, io=sys.stdout):
   if representation == "waveform":
     window_tics = stride_tics = 1
   else:
-    window_tics = round(audio_tic_rate * float(model_parameters['window_ms']) / 1000)
-    stride_tics = round(audio_tic_rate * float(model_parameters['stride_ms']) / 1000)
+    window_tics = round(audio_tic_rate * float(model_parameters['window']) * time_scale)
+    stride_tics = round(audio_tic_rate * float(model_parameters['stride']) * time_scale)
 
     if not (window_tics & (window_tics-1) == 0) or window_tics == 0:
-      next_higher = np.power(2, np.ceil(np.log2(window_tics))).astype(int)
-      next_lower = np.power(2, np.floor(np.log2(window_tics))).astype(int)
-      sigdigs = np.ceil(np.log10(next_higher)).astype(int)+1
-      next_higher_ms = np.around(next_higher/audio_tic_rate*1000, decimals=sigdigs)
-      next_lower_ms = np.around(next_lower/audio_tic_rate*1000, decimals=sigdigs)
-      raise Exception("ERROR: 'window (msec)' should be a power of two when converted to tics.  "+
-                      model_parameters['window_ms']+" ms is "+str(window_tics)+" tics for Fs="+
-                      str(audio_tic_rate)+".  try "+str(next_lower_ms)+" ms (="+str(next_lower)+
-                      ") or "+str(next_higher_ms)+"ms (="+str(next_higher)+") instead.")
+      next_higher_tic = np.power(2, np.ceil(np.log2(window_tics))).astype(int)
+      next_lower_tic = np.power(2, np.floor(np.log2(window_tics))).astype(int)
+      sigdigs = np.ceil(np.log10(next_higher_tic)).astype(int)+1
+      next_higher_sec = np.around(next_higher_tic/audio_tic_rate, decimals=sigdigs)
+      next_lower_sec = np.around(next_lower_tic/audio_tic_rate, decimals=sigdigs)
+      raise Exception("ERROR: 'window ("+time_units+")' should be a power of two when converted to tics.  "+
+                      model_parameters['window']+" "+time_units+" is "+str(window_tics)+" tics for Fs="+
+                      str(audio_tic_rate)+".  try "+str(next_lower_sec)+" "+time_units+" (="+str(next_lower_tic)+
+                      ") or "+str(next_higher_sec)+" "+time_units+" (="+str(next_higher_tic)+") instead.")
 
   downsample_by = 2 ** len(stride_time)
   output_tic_rate = audio_tic_rate / stride_tics / downsample_by
   print('downsample_by = '+str(downsample_by), file=io)
   print('output_tic_rate = '+str(output_tic_rate), file=io)
   if output_tic_rate != round(output_tic_rate):
-    raise Exception("ERROR: 1000 / 'stride (msec)' should be an integer multiple of the downsampling rate achieved by `stride after`")
+    raise Exception("ERROR: "+str(1/time_scale)+" / 'stride ("+time_units+")' should be an integer multiple of the downsampling rate achieved by `stride after`")
 
   hidden_layers = []
 
-  context_tics = int(model_settings['audio_tic_rate'] * model_settings['context_ms'] / 1000)
+  context_tics = int(model_settings['audio_tic_rate'] * model_settings['context'] * time_scale)
   ninput_tics = context_tics + (model_settings['parallelize']-1) * stride_tics * downsample_by
   noutput_tics = (context_tics-window_tics) // stride_tics + 1
 
@@ -446,16 +453,20 @@ def create_model(model_settings, model_parameters, io=sys.stdout):
     x = Reshape((ninput_tics,1,model_settings['audio_nchannels']))(x)
   elif representation == "spectrogram":
     x = Spectrogram(window_tics, stride_tics)(x)
-    if model_parameters['range_hz'] != "":
-      lo, hi = model_parameters['range_hz'].split('-')
+    if model_parameters['range'] != "":
+      lo, hi = model_parameters['range'].split('-')
+      lo = float(lo) * freq_scale
+      hi = float(hi) * freq_scale
       nyquist = audio_tic_rate/2
       nfreqs = x.get_shape().as_list()[2]
-      x = Slice([0, 0, round(nfreqs * float(lo) / nyquist), 0],
-                [-1, -1, round(nfreqs * (float(hi) - float(lo)) / nyquist), -1])(x)
+      x = Slice([0, 0, round(nfreqs * lo / nyquist), 0],
+                [-1, -1, round(nfreqs * (hi - lo) / nyquist), -1])(x)
+    hidden_layers.append(x)
   elif representation == "mel-cepstrum":
     filterbank_nchannels, dct_ncoefficients = model_parameters['mel_dct'].split(',')
     x = MelCepstrum(window_tics, stride_tics, audio_tic_rate,
                          int(filterbank_nchannels), int(dct_ncoefficients))(x)
+    hidden_layers.append(x)
   x_shape = x.get_shape().as_list()
 
   receptive_field = [1,1]
@@ -533,10 +544,10 @@ def create_model(model_settings, model_parameters, io=sys.stdout):
 
   receptive_field[0] *= stride_tics
   
-  print("receptive_field_time = %d tics = %f ms" % (receptive_field[0],
-      receptive_field[0]/audio_tic_rate*1000), file=io)
-  print("receptive_field_freq = %d bins = %f Hz" % (receptive_field[1],
-      receptive_field[1] * audio_tic_rate / window_tics), file=io)
+  print("receptive_field_time = %d tics = %f %s" % (receptive_field[0],
+      receptive_field[0] / audio_tic_rate / time_scale, time_units), file=io)
+  print("receptive_field_freq = %d bins = %f %s" % (receptive_field[1],
+      receptive_field[1] * audio_tic_rate / window_tics / freq_scale, freq_units), file=io)
 
   if pool_kind:
     x = pool_kind(pool_size=pool_size, strides=pool_size)(x)

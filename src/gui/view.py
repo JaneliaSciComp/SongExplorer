@@ -631,7 +631,7 @@ def snippets_update(redraw_wavs):
                         ywav[idx]=wavi_trimmed/scale[idx]
                     if ichannel+1 in M.snippets_spectrogram:
                         idx = M.snippets_spectrogram.index(ichannel+1)
-                        window_length = int(round(M.spectrogram_length_ms[ichannel]/1000*M.audio_tic_rate))
+                        window_length = int(round(M.spectrogram_length_sec[ichannel]*M.audio_tic_rate))
                         if window_length > len(wavi):
                             window_length = len(wavi)
                             if not warned_already:
@@ -936,18 +936,19 @@ def context_update():
                     ywav[idx] = (wavi_zoomed - M.context_waveform_low[ichannel]) / \
                                 (M.context_waveform_high[ichannel] - M.context_waveform_low[ichannel]) \
                                 * 2 - 1
-                    xwav[idx]=[(istart+i*context_decimate_by)/M.audio_tic_rate \
+                    xwav[idx]=[(istart+i*context_decimate_by) / M.audio_tic_rate / M.context_time_scale \
                                for i in range(len(wavi_trimmed))]
 
                 if ichannel+1 in M.context_spectrogram:
                     idx = M.context_spectrogram.index(ichannel+1)
-                    window_length = int(round(M.spectrogram_length_ms[ichannel]/1000*M.audio_tic_rate))
+                    window_length = int(round(M.spectrogram_length_sec[ichannel]*M.audio_tic_rate))
                     gram_freq[idx], gram_time[idx], gram_image[idx] = \
                             spectrogram(wavi,
                                         fs=M.audio_tic_rate,
                                         window=M.spectrogram_window,
                                         nperseg=window_length,
                                         noverlap=round(window_length*M.spectrogram_overlap))
+                    gram_time[idx] /= M.context_time_scale
                     ilow[idx] = np.argmin(np.abs(gram_freq[idx] - \
                                                  M.spectrogram_low_hz[ichannel]))
                     ihigh[idx] = np.argmin(np.abs(gram_freq[idx] - \
@@ -971,10 +972,8 @@ def context_update():
 
             if M.context_spectrogram:
                 p_spectrogram.yaxis.formatter = FuncTickFormatter(
-                    args=dict(low_hz=[gram_freq[i][x] / M.context_spectrogram_freq_scale \
-                                      for i,x in enumerate(ilow)],
-                              high_hz=[gram_freq[i][x] / M.context_spectrogram_freq_scale \
-                                       for i,x in enumerate(ihigh)]),
+                    args=dict(low_hz=[gram_freq[i][x] / M.context_freq_scale for i,x in enumerate(ilow)],
+                              high_hz=[gram_freq[i][x] / M.context_freq_scale for i,x in enumerate(ihigh)]),
                     code="""
                          if (tick==0) {
                              return low_hz[low_hz.length-1] }
@@ -1008,22 +1007,24 @@ def context_update():
                 if L>istart and R<istart+M.context_width_tic and \
                         M.used_sounds[isound]['label'] in M.state['labels']:
                     M.remaining_isounds.append(isound)
-                xlabel_used.append((L+R)/2/M.audio_tic_rate)
+                xlabel_used.append((L+R)/2 / M.audio_tic_rate / M.context_time_scale)
                 tlabel_used.append(M.used_sounds[isound]['kind']+'\n'+\
                               M.used_sounds[isound]['label'])
-                left_used.append(L/M.audio_tic_rate)
-                right_used.append(R/M.audio_tic_rate)
+                left_used.append(L / M.audio_tic_rate / M.context_time_scale)
+                right_used.append(R / M.audio_tic_rate / M.context_time_scale)
                 if M.context_sound==M.used_sounds[isound]:
                     if M.context_waveform:
-                        waveform_quad_fuchsia.data.update(left=[L/M.audio_tic_rate],
-                                                          right=[R/M.audio_tic_rate],
-                                                          top=[1],
-                                                          bottom=[0])
+                        waveform_quad_fuchsia.data.update(
+                                left=[L / M.audio_tic_rate / M.context_time_scale],
+                                right=[R / M.audio_tic_rate / M.context_time_scale],
+                                top=[1],
+                                bottom=[0])
                     if M.context_spectrogram:
-                        spectrogram_quad_fuchsia.data.update(left=[L/M.audio_tic_rate],
-                                                             right=[R/M.audio_tic_rate],
-                                                             top=[len(M.context_spectrogram)],
-                                                             bottom=[len(M.context_spectrogram)/2])
+                        spectrogram_quad_fuchsia.data.update(
+                                left=[L / M.audio_tic_rate / M.context_time_scale],
+                                right=[R / M.audio_tic_rate / M.context_time_scale],
+                                top=[len(M.context_spectrogram)],
+                                bottom=[len(M.context_spectrogram)/2])
                     tapped_wav_in_view = True
             if delete_tapped_sound:
                 M.used_sounds.pop()
@@ -1066,10 +1067,10 @@ def context_update():
                     L = np.max([istart, M.annotated_sounds[isound]['ticks'][0]])
                     R = np.min([istart+M.context_width_tic,
                                 M.annotated_sounds[isound]['ticks'][1]])
-                    xlabel_annotated.append((L+R)/2/M.audio_tic_rate)
+                    xlabel_annotated.append((L+R) / 2 / M.audio_tic_rate / M.context_time_scale)
                     tlabel_annotated.append(M.annotated_sounds[isound]['label'])
-                    left_annotated.append(L/M.audio_tic_rate)
-                    right_annotated.append(R/M.audio_tic_rate)
+                    left_annotated.append(L / M.audio_tic_rate / M.context_time_scale)
+                    right_annotated.append(R / M.audio_tic_rate / M.context_time_scale)
     else:
         play.disabled=True
         video_toggle.disabled=True
@@ -1113,10 +1114,10 @@ def context_update():
         if ichannel+1 in M.context_spectrogram:
             idx = M.context_spectrogram.index(ichannel+1)
             if not np.isnan(gram_time[idx][0]):
-                spectrogram_glyph[idx].glyph.x = istart/M.audio_tic_rate
+                spectrogram_glyph[idx].glyph.x = istart / M.audio_tic_rate / M.context_time_scale
                 spectrogram_glyph[idx].glyph.y = len(M.context_spectrogram) - 1 - idx
                 spectrogram_glyph[idx].glyph.dw = gram_time[idx][-1] + \
-                        M.spectrogram_length_ms[ichannel] / 1000 * M.gui_spectrogram_overlap
+                        M.spectrogram_length_sec[ichannel] / M.context_time_scale * M.gui_spectrogram_overlap
                 spectrogram_glyph[idx].glyph.dh = 1
                 log_img = np.log10(1e-15 + gram_image[idx][ilow[idx] : 1+ihigh[idx], :])
                 clip_vals = np.percentile(log_img, M.spectrogram_clip)
@@ -1198,7 +1199,7 @@ def recordings_update():
         wavfiles = set()
         M.used_sounds = []
         M.used_recording2firstsound = {}
-        for df,subdir in zip(M.dfs,M.subdirs):
+        for df,subdir in zip(M.dfs, M.subdirs):
             bidx = np.logical_and(np.array(df[3].apply(lambda x: x in kinds)),
                                   np.array(df[4].apply(lambda x: x in labels)))
             if any(bidx):
@@ -1402,8 +1403,8 @@ def labelcounts_update():
     def _labelcounts_update(curdir):
         for entry in os.listdir(curdir):
             if os.path.isdir(os.path.join(curdir, entry)):
-                timestamp = datetime.strftime(datetime.now(),'%Y')
-                if "congruence-"+timestamp not in entry and "oldfiles-"+timestamp not in entry:
+                if not re.fullmatch('congruence-[0-9]{8}T[0-9]{6}', entry) and \
+                   not re.fullmatch('oldfiles-[0-9]{8}T[0-9]{6}', entry):
                     _labelcounts_update(os.path.join(curdir, entry))
             elif entry.endswith('.csv'):
                 filepath = os.path.join(curdir, entry)
@@ -1414,7 +1415,7 @@ def labelcounts_update():
                         bokehlog.info("WARNING: "+entry+" is not in the correct format")
                     if 5<=len(df.columns)<=6:
                         dfs.append(df)
-                        subdirs.append(curdir[len(groundtruth_folder.value):])
+                        subdirs.append(curdir[len(groundtruth_folder.value):].lstrip(os.path.sep))
                     else:
                         bokehlog.info("WARNING: "+entry+" is not in the correct format")
     _labelcounts_update(groundtruth_folder.value)
@@ -1476,6 +1477,10 @@ async def status_ticker_update():
 
 def model_summary_update():
     model_settings = {'nlabels': len(labels_touse.value.split(',')),
+                      'time_units': M.time_units,
+                      'freq_units': M.freq_units,
+                      'time_scale': M.time_scale,
+                      'freq_scale': M.freq_scale,
                       'audio_tic_rate': M.audio_tic_rate,
                       'audio_nchannels': M.audio_nchannels,
                       'video_frame_rate': M.video_frame_rate,
@@ -1484,7 +1489,7 @@ def model_summary_update():
                       'video_channels': [int(x)-1 for x in M.video_channels.split(',')],
                       'parallelize': 1,
                       'batch_size': int(mini_batch.value),
-                      'context_ms': float(context_ms.value) }
+                      'context': float(context.value) }
     tf.keras.backend.clear_session()
     out = io.StringIO()
     try:
@@ -1517,7 +1522,7 @@ def init(_bokeh_document):
     global detect, misses, train, leaveoneout, leaveallout, xvalidate, mistakes, activations, cluster, visualize, accuracy, freeze, ensemble, classify, ethogram, compare, congruence
     global status_ticker, waitfor, deletefailures
     global file_dialog_source, configuration_contents
-    global logs_folder_button, logs_folder, model_file_button, model_file, wavcsv_files_button, wavcsv_files, groundtruth_folder_button, groundtruth_folder, validation_files_button, test_files_button, validation_files, test_files, labels_touse_button, labels_touse, kinds_touse_button, kinds_touse, prevalences_button, prevalences, delete_ckpts, copy, labelsounds, makepredictions, fixfalsepositives, fixfalsenegatives, generalize, tunehyperparameters, findnovellabels, examineerrors, testdensely, doit, nsteps, restore_from, save_and_validate_period, validate_percentage, mini_batch, kfold, activations_equalize_ratio, activations_max_sounds, pca_fraction_variance_to_retain, tsne_perplexity, tsne_exaggeration, umap_neighbors, umap_distance, cluster_algorithm, cluster_these_layers, precision_recall_ratios, congruence_portion, congruence_convolve, congruence_measure, context_ms, shiftby_ms, optimizer, loss, learning_rate, nreplicates, batch_seed, weights_seed, file_dialog_string, file_dialog_table, readme_contents, model_summary, labelcounts, wizard_buttons, action_buttons, parameter_buttons, parameter_textinputs, wizard2actions, action2parameterbuttons, action2parametertextinputs, status_ticker_update, status_ticker_pre, status_ticker_post
+    global logs_folder_button, logs_folder, model_file_button, model_file, wavcsv_files_button, wavcsv_files, groundtruth_folder_button, groundtruth_folder, validation_files_button, test_files_button, validation_files, test_files, labels_touse_button, labels_touse, kinds_touse_button, kinds_touse, prevalences_button, prevalences, delete_ckpts, copy, labelsounds, makepredictions, fixfalsepositives, fixfalsenegatives, generalize, tunehyperparameters, findnovellabels, examineerrors, testdensely, doit, nsteps, restore_from, save_and_validate_period, validate_percentage, mini_batch, kfold, activations_equalize_ratio, activations_max_sounds, pca_fraction_variance_to_retain, tsne_perplexity, tsne_exaggeration, umap_neighbors, umap_distance, cluster_algorithm, cluster_these_layers, precision_recall_ratios, congruence_portion, congruence_convolve, congruence_measure, context, shiftby, optimizer, loss, learning_rate, nreplicates, batch_seed, weights_seed, file_dialog_string, file_dialog_table, readme_contents, model_summary, labelcounts, wizard_buttons, action_buttons, parameter_buttons, parameter_textinputs, wizard2actions, action2parameterbuttons, action2parametertextinputs, status_ticker_update, status_ticker_pre, status_ticker_post
     global detect_parameters, detect_parameters_enable_logic, detect_parameters_required, detect_parameters_partitioned
     global doubleclick_parameters, doubleclick_parameters_enable_logic, doubleclick_parameters_required
     global model_parameters, model_parameters_enable_logic, model_parameters_required, model_parameters_partitioned
@@ -1625,7 +1630,7 @@ def init(_bokeh_document):
     if M.context_spectrogram:
         p_waveform.xaxis.visible = False
     else:
-        p_waveform.xaxis.axis_label = 'Time (sec)'
+        p_waveform.xaxis.axis_label = "Time ("+M.context_time_units+")"
     p_waveform.yaxis.axis_label = ""
     p_waveform.yaxis.ticker = []
     p_waveform.x_range.range_padding = p_waveform.y_range.range_padding = 0.0
@@ -1681,8 +1686,8 @@ def init(_bokeh_document):
     p_spectrogram.x_range.range_padding = p_spectrogram.y_range.range_padding = 0
     p_spectrogram.xgrid.visible = False
     p_spectrogram.ygrid.visible = True
-    p_spectrogram.xaxis.axis_label = 'Time (sec)'
-    p_spectrogram.yaxis.axis_label = 'Frequency (' + M.context_spectrogram_units + ')'
+    p_spectrogram.xaxis.axis_label = "Time ("+M.context_time_units+")"
+    p_spectrogram.yaxis.axis_label = 'Frequency (' + M.context_freq_units + ')'
     p_spectrogram.yaxis.ticker = list(range(1+len(M.context_spectrogram)))
 
     spectrogram_source = [None]*len(M.context_spectrogram)
@@ -1798,18 +1803,19 @@ def init(_bokeh_document):
     cluster_update()
 
     if M.gui_snippets_spectrogram or M.gui_context_spectrogram:
-        spectrogram_length = TextInput(value=','.join([str(x) for x in M.spectrogram_length_ms]), \
-                                       title="length (msec)", \
+        spectrogram_length = TextInput(value=','.join([str(x / M.time_scale)
+                                                       for x in M.spectrogram_length_sec]), \
+                                       title="length ("+M.time_units+")", \
                                        disabled=False)
         spectrogram_length.on_change('value', C.spectrogram_window_callback)
 
-    zoom_width = TextInput(value=str(M.context_width_ms),
-                             title="width (msec):",
+    zoom_width = TextInput(value=str(M.context_width_sec / M.time_scale),
+                             title="width ("+M.time_units+"):",
                              disabled=True)
     zoom_width.on_change("value", C.zoom_width_callback)
 
-    zoom_offset = TextInput(value=str(M.context_offset_ms),
-                            title="offset (msec):",
+    zoom_offset = TextInput(value=str(M.context_offset_sec / M.time_scale),
+                            title="offset ("+M.time_units+"):",
                             disabled=True)
     zoom_offset.on_change("value", C.zoom_offset_callback)
 
@@ -2120,7 +2126,7 @@ def init(_bokeh_document):
     congruence_portion.on_change('value', lambda a,o,n: C.generic_parameters_callback(''))
 
     congruence_convolve = TextInput(value=M.state['congruence_convolve'], \
-                                                   title="convolve (msec)", \
+                                                   title="convolve ("+M.time_units+")", \
                                                    disabled=False)
     congruence_convolve.on_change('value', lambda a,o,n: C.generic_parameters_callback(n))
     
@@ -2129,15 +2135,15 @@ def init(_bokeh_document):
                                 options=["label", "tic", "both"])
     congruence_measure.on_change('value', lambda a,o,n: C.generic_parameters_callback(''))
 
-    context_ms = TextInput(value=M.state['context_ms'], \
-                                  title="context (msec)", \
-                                  disabled=False)
-    context_ms.on_change('value', lambda a,o,n: C.context_callback(n))
+    context = TextInput(value=M.state['context'], \
+                        title="context ("+M.time_units+")", \
+                        disabled=False)
+    context.on_change('value', lambda a,o,n: C.context_callback(n))
 
-    shiftby_ms = TextInput(value=M.state['shiftby_ms'], \
-                                  title="shift by (msec)", \
-                                  disabled=False)
-    shiftby_ms.on_change('value', lambda a,o,n: C.generic_parameters_callback(n))
+    shiftby = TextInput(value=M.state['shiftby'], \
+                        title="shift by ("+M.time_units+")", \
+                        disabled=False)
+    shiftby.on_change('value', lambda a,o,n: C.generic_parameters_callback(n))
 
     optimizer = Select(title="optimizer", height=50, \
                        value=M.state['optimizer'], \
@@ -2342,8 +2348,8 @@ def init(_bokeh_document):
         batch_seed,
         weights_seed,
 
-        context_ms,
-        shiftby_ms,
+        context,
+        shiftby,
         optimizer,
         loss,
         learning_rate] +
@@ -2386,19 +2392,19 @@ def init(_bokeh_document):
 
     action2parametertextinputs = {
             detect: [wavcsv_files] + list(detect_parameters.values()),
-            train: [context_ms, shiftby_ms, optimizer, loss, learning_rate, nreplicates, batch_seed, weights_seed, logs_folder, groundtruth_folder, test_files, labels_touse, kinds_touse, nsteps, restore_from, save_and_validate_period, validate_percentage, mini_batch] + list(model_parameters.values()),
-            leaveoneout: [context_ms, shiftby_ms, optimizer, loss, learning_rate, batch_seed, weights_seed, logs_folder, groundtruth_folder, validation_files, test_files, labels_touse, kinds_touse, nsteps, restore_from, save_and_validate_period, mini_batch] + list(model_parameters.values()),
-            leaveallout: [context_ms, shiftby_ms, optimizer, loss, learning_rate, batch_seed, weights_seed, logs_folder, groundtruth_folder, validation_files, test_files, labels_touse, kinds_touse, nsteps, restore_from, save_and_validate_period, mini_batch] + list(model_parameters.values()),
-            xvalidate: [context_ms, shiftby_ms, optimizer, loss, learning_rate, batch_seed, weights_seed, logs_folder, groundtruth_folder, test_files, labels_touse, kinds_touse, nsteps, restore_from, save_and_validate_period, mini_batch, kfold] + list(model_parameters.values()),
+            train: [context, shiftby, optimizer, loss, learning_rate, nreplicates, batch_seed, weights_seed, logs_folder, groundtruth_folder, test_files, labels_touse, kinds_touse, nsteps, restore_from, save_and_validate_period, validate_percentage, mini_batch] + list(model_parameters.values()),
+            leaveoneout: [context, shiftby, optimizer, loss, learning_rate, batch_seed, weights_seed, logs_folder, groundtruth_folder, validation_files, test_files, labels_touse, kinds_touse, nsteps, restore_from, save_and_validate_period, mini_batch] + list(model_parameters.values()),
+            leaveallout: [context, shiftby, optimizer, loss, learning_rate, batch_seed, weights_seed, logs_folder, groundtruth_folder, validation_files, test_files, labels_touse, kinds_touse, nsteps, restore_from, save_and_validate_period, mini_batch] + list(model_parameters.values()),
+            xvalidate: [context, shiftby, optimizer, loss, learning_rate, batch_seed, weights_seed, logs_folder, groundtruth_folder, test_files, labels_touse, kinds_touse, nsteps, restore_from, save_and_validate_period, mini_batch, kfold] + list(model_parameters.values()),
             mistakes: [groundtruth_folder],
-            activations: [context_ms, shiftby_ms, logs_folder, model_file, groundtruth_folder, labels_touse, kinds_touse, activations_equalize_ratio, activations_max_sounds, mini_batch, batch_seed] + list(model_parameters.values()),
+            activations: [context, shiftby, logs_folder, model_file, groundtruth_folder, labels_touse, kinds_touse, activations_equalize_ratio, activations_max_sounds, mini_batch, batch_seed] + list(model_parameters.values()),
             cluster: [groundtruth_folder, cluster_algorithm, cluster_these_layers, pca_fraction_variance_to_retain, tsne_perplexity, tsne_exaggeration, umap_neighbors, umap_distance],
             visualize: [groundtruth_folder],
             accuracy: [logs_folder, precision_recall_ratios, loss],
             delete_ckpts: [logs_folder],
-            freeze: [context_ms, logs_folder, model_file, loss] + list(model_parameters.values()),
-            ensemble: [context_ms, logs_folder, model_file] + list(model_parameters.values()),
-            classify: [context_ms, shiftby_ms, logs_folder, model_file, wavcsv_files, labels_touse, prevalences, loss],
+            freeze: [context, logs_folder, model_file, loss] + list(model_parameters.values()),
+            ensemble: [context, logs_folder, model_file] + list(model_parameters.values()),
+            classify: [context, shiftby, logs_folder, model_file, wavcsv_files, labels_touse, prevalences, loss],
             ethogram: [model_file, wavcsv_files],
             misses: [wavcsv_files],
             compare: [logs_folder, loss],

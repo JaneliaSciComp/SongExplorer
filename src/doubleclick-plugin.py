@@ -23,14 +23,15 @@ def callback(n,M,V,C):
             _callback('a-bounded-value',M,V,C)
 
 # a list of lists specifying the doubleclick-specific hyperparameters in the GUI.
-doubleclick_parameters = [
-  # [key in `detect_parameters`, title in GUI, "" for textbox or [] for pull-down, default value, width, enable logic, callback, required]
-  ["my-simple-textbox",    "h-parameter 1",    "",              "32",   1, [],                  None,     True],
-  ["a-bounded-value",      "can't be < 0",     "",              "3",    1, [],                  callback, True],
-  ["a-menu",               "choose one",       ["this","that"], "this", 1, [],                  None,     True],
-  ["a-conditional-param",  "that's parameter", "",              "8",    1, ["a-menu",["that"]], None,     True],
-  ["an-optional-param",    "can be blank",     "",              "0.5",  1, [],                  None,     False],
-  ]
+def doubleclick_parameters(time_units, freq_units):
+    return = [
+        # [key in `detect_parameters`, title in GUI, "" for textbox or [] for pull-down, default value, width, enable logic, callback, required]
+        ["my-simple-textbox",    "h-parameter 1",    "",              "32",   1, [],                  None,     True],
+        ["a-bounded-value",      "can't be < 0",     "",              "3",    1, [],                  callback, True],
+        ["a-menu",               "choose one",       ["this","that"], "this", 1, [],                  None,     True],
+        ["a-conditional-param",  "that's parameter", "",              "8",    1, ["a-menu",["that"]], None,     True],
+        ["an-optional-param",    "can be blank",     "",              "0.5",  1, [],                  None,     False],
+    ]
 
 # a function which returns the start and stop times of the annotation given the location the user double clicked.
 # `context_data` is a list of the waveforms displayed in the context window for each channel.

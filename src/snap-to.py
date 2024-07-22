@@ -1,18 +1,19 @@
 import numpy as np
 
 # a list of lists specifying the doubleclick-specific hyperparameters in the GUI
-doubleclick_parameters = [
-    ["search", "search (msec)", "", "10", 1, [], None, True],
-    ["range",  "range (msec)",  "", "1",  1, [], None, True],
+def doubleclick_parameters(time_units, freq_units, time_scale, freq_scale):
+    return [
+        ["search", "search ("+time_units+")", "", str(0.010/time_scale), 1, [], None, True],
+        ["range",  "range ("+time_units+")",  "", str(0.001/time_scale), 1, [], None, True],
     ]
 
 # a function which returns the start and stop times of the annotation given the location the user double clicked.
 def doubleclick_annotation(context_data, context_data_istart, audio_tic_rate, doublclick_parameters, x_tic):
-    search_ms = float(doublclick_parameters["search"].value)
-    range_ms = float(doublclick_parameters["range"].value)
+    search_sec = float(doublclick_parameters["search"].value) * time_units
+    range_sec = float(doublclick_parameters["range"].value) * time_units
 
-    search_tic = int(search_ms/1000*audio_tic_rate)
-    half_range_tic = int(range_ms/1000*audio_tic_rate/2)
+    search_tic = int(search_sec * audio_tic_rate)
+    half_range_tic = int(range_sec * audio_tic_rate / 2)
 
     if search_tic==0:
         imax = 0

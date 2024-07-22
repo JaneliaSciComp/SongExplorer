@@ -3,8 +3,8 @@
 # train several networks on different subsets of the annotations
 
 # e.g. xvalidate \
-#     --context_ms=204.8 \
-#     --shiftby_ms=0.0 \
+#     --context=204.8 \
+#     --shiftby=0.0 \
 #     --optimizer=Adam \
 #     --loss=exclusive \
 #     --overlapped_prefix=not_ \
@@ -18,7 +18,7 @@
 #     --data_loader_queuesize=0 \
 #     --data_loader_maxprocs=1 \
 #     --model_architecture=convolutional \
-#     --model_parameters='{"representation":"waveform", "window_ms":6.4, "stride_ms":1.6, "mel_dct":"7,7", "dropout":0.5, "kernel_sizes":5,128", last_conv_width":130, "nfeatures":"256,256", "dilate_after_layer":65535, "stride_after_layer":65535, "connection_type":"plain"}' \
+#     --model_parameters='{"representation":"waveform", "window":6.4, "stride":1.6, "mel_dct":"7,7", "dropout":0.5, "kernel_sizes":5,128", last_conv_width":130, "nfeatures":"256,256", "dilate_after_layer":65535, "stride_after_layer":65535, "connection_type":"plain"}' \
 #     --logdir=`pwd`/cross-validate \
 #     --data_dir=`pwd`/groundtruth-data \
 #     --labels_touse=mel-pulse,mel-sine,ambient,other \
@@ -28,6 +28,10 @@
 #     --save_and_validate_period=10 \
 #     --mini_batch=32 \
 #     --testing_files="" \
+#     --time_units=ms \
+#     --freq_units=Hz \
+#     --time_scale=0.001 \
+#     --freq_scale=1 \
 #     --audio_tic_rate=5000 \
 #     --audio_nchannels=1 \
 #     --video_frame_rate=0 \
@@ -94,8 +98,8 @@ def main():
       kpercent=100/FLAGS.kfold
       koffset=kpercent * (int(ifold) - 1)
       expr=["python", os.path.join(srcdir,"loop"),
-            "--context_ms="+str(FLAGS.context_ms),
-            "--shiftby_ms="+str(FLAGS.shiftby_ms),
+            "--context="+str(FLAGS.context),
+            "--shiftby="+str(FLAGS.shiftby),
             "--optimizer="+FLAGS.optimizer,
             "--loss="+FLAGS.loss,
             "--overlapped_prefix="+FLAGS.overlapped_prefix,
@@ -119,6 +123,10 @@ def main():
             "--validate_step_period="+str(FLAGS.save_and_validate_period),
             "--batch_size="+str(FLAGS.mini_batch),
             "--testing_files="+FLAGS.testing_files,
+            "--time_units="+str(FLAGS.time_units),
+            "--freq_units="+str(FLAGS.freq_units),
+            "--time_scale="+str(FLAGS.time_scale),
+            "--freq_scale="+str(FLAGS.freq_scale),
             "--audio_tic_rate="+str(FLAGS.audio_tic_rate),
             "--audio_nchannels="+str(FLAGS.audio_nchannels),
             "--video_frame_rate="+str(FLAGS.video_frame_rate),
@@ -155,7 +163,7 @@ if __name__ == '__main__':
       Where to download the speech training data to.
       """)
   parser.add_argument(
-      '--shiftby_ms',
+      '--shiftby',
       type=float,
       default=100.0,
       help="""\
@@ -166,6 +174,26 @@ if __name__ == '__main__':
       type=str,
       default='',
       help='Which wav files to use as a test set.')
+  parser.add_argument(
+      '--time_units',
+      type=str,
+      default="ms",
+      help='Units of time',)
+  parser.add_argument(
+      '--freq_units',
+      type=str,
+      default="Hz",
+      help='Units of frequency',)
+  parser.add_argument(
+      '--time_scale',
+      type=float,
+      default="ms",
+      help='This many seconds are in time_units',)
+  parser.add_argument(
+      '--freq_scale',
+      type=float,
+      default="Hz",
+      help='This many frequencies are in freq_units',)
   parser.add_argument(
       '--audio_tic_rate',
       type=int,
@@ -197,7 +225,7 @@ if __name__ == '__main__':
       default='1',
       help='Comma-separated list of which channels in the video to use',)
   parser.add_argument(
-      '--context_ms',
+      '--context',
       type=float,
       default=1000,
       help='Expected duration in milliseconds of the wavs',)

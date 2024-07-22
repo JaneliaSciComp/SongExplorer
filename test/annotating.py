@@ -54,7 +54,7 @@ os.makedirs(os.path.join(repo_path, "test", "scratch", "annotating"))
 shutil.copy(os.path.join(repo_path, "configuration.py"),
             os.path.join(repo_path, "test", "scratch", "annotating"))
 
-M.init(None, os.path.join(repo_path, "test", "scratch", "annotating", "configuration.py"))
+M.init(None, os.path.join(repo_path, "test", "scratch", "annotating", "configuration.py"), True)
 V.init(None)
 C.init(None)
 

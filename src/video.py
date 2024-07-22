@@ -358,7 +358,7 @@ def get_model(PARAMS):
 def create_model(model_settings, model_parameters, io=sys.stdout):
     downsample_by = 1
     params = { **model_settings.copy(), **model_parameters.copy() }
-    params['context_frames'] = round(params['context_ms'] / 1000 * params['video_frame_rate'])
+    params['context_frames'] = round(params['context'] * params['time_scale'] * params['video_frame_rate'])
     params['clip_frames'] = params['context_frames']+(params["parallelize"]-1)*downsample_by
     params['spatial_height'] = int(params['video_frame_height'])
     params['spatial_width'] = int(params['video_frame_width'])

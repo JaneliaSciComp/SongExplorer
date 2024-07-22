@@ -8,7 +8,7 @@ import shutil
 import glob
 from subprocess import run, PIPE, STDOUT
 import asyncio
-from datetime import datetime
+import re
 
 from libtest import wait_for_job, check_file_exists, count_lines_with_label, count_lines, get_srcrepobindirs
 
@@ -41,12 +41,12 @@ wavpath_noext = os.path.join(repo_path,
                              "test", "scratch", "tutorial-py", "groundtruth-data", "round1", "PS_20130625111709_ch3")
 V.wavcsv_files.value = wavpath_noext+".wav"
 V.detect_parameters["time_sigma"].value = "9,4"
-V.detect_parameters["time_smooth_ms"].value = "6.4"
-V.detect_parameters["frequency_n_ms"].value = "25.6"
+V.detect_parameters["time_smooth"].value = "6.4"
+V.detect_parameters["frequency_n"].value = "25.6"
 V.detect_parameters["frequency_nw"].value = "4"
 V.detect_parameters["frequency_p"].value = "0.1,1.0"
 V.detect_parameters["frequency_range"].value = "0-"
-V.detect_parameters["frequency_smooth_ms"].value = "25.6"
+V.detect_parameters["frequency_smooth"].value = "25.6"
 V.detect_parameters["time_sigma_robust"].value = "median"
 asyncio.run(C.detect_actuate())
 
@@ -61,8 +61,8 @@ count_lines_with_label(wavpath_noext+"-detected.csv", "neither", 1635, "ERROR")
 shutil.copy(os.path.join(repo_path, "data", "PS_20130625111709_ch3-annotated-person1.csv"),
             os.path.join(repo_path, "test", "scratch", "tutorial-py", "groundtruth-data", "round1"))
 
-V.context_ms.value = "204.8"
-V.shiftby_ms.value = "0.0"
+V.context.value = "204.8"
+V.shiftby.value = "0.0"
 V.optimizer.value = "Adam"
 V.learning_rate.value = "0.0002"
 V.model_parameters["dropout_kind"].value = "unit"
@@ -82,10 +82,10 @@ V.model_parameters["pool_kind"].value = "none"
 V.model_parameters["pool_size"].value = ""
 V.model_parameters["connection_type"].value = "plain"
 V.model_parameters["representation"].value = "mel-cepstrum"
-V.model_parameters["window_ms"].value = "6.4"
-V.model_parameters["stride_ms"].value = "1.6"
+V.model_parameters["window"].value = "6.4"
+V.model_parameters["stride"].value = "1.6"
 V.model_parameters["mel_dct"].value = "7,7"
-V.model_parameters["range_hz"].value = ""
+V.model_parameters["range"].value = ""
 V.logs_folder.value = os.path.join(repo_path, "test", "scratch", "tutorial-py", "trained-classifier1")
 V.groundtruth_folder.value = os.path.join(repo_path, "test", "scratch", "tutorial-py", "groundtruth-data")
 V.labels_touse.value = "mel-pulse,mel-sine,ambient"
