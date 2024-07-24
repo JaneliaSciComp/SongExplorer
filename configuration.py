@@ -70,7 +70,7 @@ gui_spectrogram_high_hz=1250
 gui_spectrogram_clip=[1,99]
 
 # neural network architecture to use
-architecture_plugin="convolutional2"
+architecture_plugin="convolutional"
 overlapped_prefix="not_"
 
 # on what computer to do the computation
