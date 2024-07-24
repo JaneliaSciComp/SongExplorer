@@ -20,6 +20,7 @@ import logging
 import base64
 import io
 from natsort import natsorted
+import re
 
 try:
     import av
@@ -1307,22 +1308,7 @@ def buttons_update():
     okay=True if M.action else False
     for textinput in parameter_textinputs:
         if textinput in action2parametertextinputs[M.action]:
-            if textinput==pca_fraction_variance_to_retain:
-                pca_fraction_variance_to_retain.disabled=False \
-                        if cluster_algorithm.value[:4] in ['tSNE','UMAP'] else True
-            elif textinput==tsne_perplexity:
-                tsne_perplexity.disabled=False \
-                        if cluster_algorithm.value.startswith('tSNE') else True
-            elif textinput==tsne_exaggeration:
-                tsne_exaggeration.disabled=False \
-                        if cluster_algorithm.value.startswith('tSNE') else True
-            elif textinput==umap_neighbors:
-                umap_neighbors.disabled=False \
-                        if cluster_algorithm.value.startswith('UMAP') else True
-            elif textinput==umap_distance:
-                umap_distance.disabled=False \
-                        if cluster_algorithm.value.startswith('UMAP') else True
-            elif textinput==prevalences:
+            if textinput==prevalences:
                 prevalences.disabled = loss.value=='overlapped'
             elif textinput in detect_parameters.values():
                 thislogic = detect_parameters_enable_logic[textinput]
@@ -1334,6 +1320,12 @@ def buttons_update():
                 thislogic = model_parameters_enable_logic[textinput]
                 if thislogic:
                     textinput.disabled = model_parameters[thislogic[0]].value not in thislogic[1]
+                else:
+                    textinput.disabled = False
+            elif textinput in cluster_parameters.values():
+                thislogic = cluster_parameters_enable_logic[textinput]
+                if thislogic:
+                    textinput.disabled = cluster_parameters[thislogic[0]].value not in thislogic[1]
                 else:
                     textinput.disabled = False
             else:
@@ -1350,6 +1342,9 @@ def buttons_update():
                         okay=False
                 elif textinput in model_parameters.values():
                     if model_parameters_required[textinput]:
+                        okay=False
+                elif textinput in cluster_parameters.values():
+                    if cluster_parameters_required[textinput]:
                         okay=False
                 else:
                     if textinput not in [test_files, restore_from]:
@@ -1522,10 +1517,11 @@ def init(_bokeh_document):
     global detect, misses, train, leaveoneout, leaveallout, xvalidate, mistakes, activations, cluster, visualize, accuracy, freeze, ensemble, classify, ethogram, compare, congruence
     global status_ticker, waitfor, deletefailures
     global file_dialog_source, configuration_contents
-    global logs_folder_button, logs_folder, model_file_button, model_file, wavcsv_files_button, wavcsv_files, groundtruth_folder_button, groundtruth_folder, validation_files_button, test_files_button, validation_files, test_files, labels_touse_button, labels_touse, kinds_touse_button, kinds_touse, prevalences_button, prevalences, delete_ckpts, copy, labelsounds, makepredictions, fixfalsepositives, fixfalsenegatives, generalize, tunehyperparameters, findnovellabels, examineerrors, testdensely, doit, nsteps, restore_from, save_and_validate_period, validate_percentage, mini_batch, kfold, activations_equalize_ratio, activations_max_sounds, pca_fraction_variance_to_retain, tsne_perplexity, tsne_exaggeration, umap_neighbors, umap_distance, cluster_algorithm, cluster_these_layers, precision_recall_ratios, congruence_portion, congruence_convolve, congruence_measure, context, shiftby, optimizer, loss, learning_rate, nreplicates, batch_seed, weights_seed, file_dialog_string, file_dialog_table, readme_contents, model_summary, labelcounts, wizard_buttons, action_buttons, parameter_buttons, parameter_textinputs, wizard2actions, action2parameterbuttons, action2parametertextinputs, status_ticker_update, status_ticker_pre, status_ticker_post
+    global logs_folder_button, logs_folder, model_file_button, model_file, wavcsv_files_button, wavcsv_files, groundtruth_folder_button, groundtruth_folder, validation_files_button, test_files_button, validation_files, test_files, labels_touse_button, labels_touse, kinds_touse_button, kinds_touse, prevalences_button, prevalences, delete_ckpts, copy, labelsounds, makepredictions, fixfalsepositives, fixfalsenegatives, generalize, tunehyperparameters, findnovellabels, examineerrors, testdensely, doit, nsteps, restore_from, save_and_validate_period, validate_percentage, mini_batch, kfold, activations_equalize_ratio, activations_max_sounds, cluster_these_layers, precision_recall_ratios, congruence_portion, congruence_convolve, congruence_measure, context, shiftby, optimizer, loss, learning_rate, nreplicates, batch_seed, weights_seed, file_dialog_string, file_dialog_table, readme_contents, model_summary, labelcounts, wizard_buttons, action_buttons, parameter_buttons, parameter_textinputs, wizard2actions, action2parameterbuttons, action2parametertextinputs, status_ticker_update, status_ticker_pre, status_ticker_post
     global detect_parameters, detect_parameters_enable_logic, detect_parameters_required, detect_parameters_partitioned
     global doubleclick_parameters, doubleclick_parameters_enable_logic, doubleclick_parameters_required
     global model_parameters, model_parameters_enable_logic, model_parameters_required, model_parameters_partitioned
+    global cluster_parameters, cluster_parameters_enable_logic, cluster_parameters_required, cluster_parameters_partitioned
     global context_cache_file, context_cache_data
 
     context_cache_file, context_cache_data = None, None
@@ -2090,31 +2086,6 @@ def init(_bokeh_document):
                                           disabled=False)
     activations_max_sounds.on_change('value', lambda a,o,n: C.generic_parameters_callback(n))
 
-    pca_fraction_variance_to_retain = TextInput(value=M.state['pca_fraction_variance_to_retain'], \
-                                                       title="PCA fraction", \
-                                                       disabled=False)
-    pca_fraction_variance_to_retain.on_change('value', lambda a,o,n: C.generic_parameters_callback(n))
-
-    tsne_perplexity = TextInput(value=M.state['tsne_perplexity'], \
-                                       title="perplexity", \
-                                       disabled=False)
-    tsne_perplexity.on_change('value', lambda a,o,n: C.generic_parameters_callback(n))
-
-    tsne_exaggeration = TextInput(value=M.state['tsne_exaggeration'], \
-                                        title="exaggeration", \
-                                        disabled=False)
-    tsne_exaggeration.on_change('value', lambda a,o,n: C.generic_parameters_callback(n))
-
-    umap_neighbors = TextInput(value=M.state['umap_neighbors'], \
-                                      title="neighbors", \
-                                      disabled=False)
-    umap_neighbors.on_change('value', lambda a,o,n: C.generic_parameters_callback(n))
-
-    umap_distance = TextInput(value=M.state['umap_distance'], \
-                                     title="distance", \
-                                     disabled=False)
-    umap_distance.on_change('value', lambda a,o,n: C.generic_parameters_callback(n))
-
     precision_recall_ratios = TextInput(value=M.state['precision_recall_ratios'], \
                                                title="P/Rs", \
                                                disabled=False)
@@ -2202,6 +2173,7 @@ def init(_bokeh_document):
     detect_parameters, detect_parameters_enable_logic, detect_parameters_required, detect_parameters_partitioned = parse_plugin_parameters(M.detect_parameters, 8)
     doubleclick_parameters, doubleclick_parameters_enable_logic, doubleclick_parameters_required, _ = parse_plugin_parameters(M.doubleclick_parameters, 1)
     model_parameters, model_parameters_enable_logic, model_parameters_required, model_parameters_partitioned = parse_plugin_parameters(M.model_parameters, 6, True)
+    cluster_parameters, cluster_parameters_enable_logic, cluster_parameters_required, cluster_parameters_partitioned = parse_plugin_parameters(M.cluster_parameters, 2)
 
     file_dialog_source = ColumnDataSource(data=dict(names=[], sizes=[], dates=[]))
     file_dialog_source.selected.on_change('indices', C.file_dialog_callback)
@@ -2226,13 +2198,6 @@ def init(_bokeh_document):
         with open(M.configuration_file, 'r') as fid:
             configuration_contents.value = fid.read()
 
-
-    cluster_algorithm = Select(title="cluster", height=50, \
-                               value=M.state['cluster_algorithm'], \
-                               options=["PCA 2D", "PCA 3D", \
-                                        "tSNE 2D", "tSNE 3D", \
-                                        "UMAP 2D", "UMAP 3D"])
-    cluster_algorithm.on_change('value', lambda a,o,n: C.generic_parameters_callback(''))
 
     cluster_these_layers = MultiSelect(title='layers', \
                                        value=M.state['cluster_these_layers'], \
@@ -2333,12 +2298,6 @@ def init(_bokeh_document):
         kfold,
         activations_equalize_ratio,
         activations_max_sounds,
-        pca_fraction_variance_to_retain,
-        tsne_perplexity,
-        tsne_exaggeration,
-        umap_neighbors,
-        umap_distance,
-        cluster_algorithm,
         cluster_these_layers,
         precision_recall_ratios,
         congruence_portion,
@@ -2355,7 +2314,8 @@ def init(_bokeh_document):
         learning_rate] +
 
         list(detect_parameters.values()) +
-        list(model_parameters.values()))
+        list(model_parameters.values()) +
+        list(cluster_parameters.values()))
 
     wizard2actions = {
             labelsounds: [detect, train, activations, cluster, visualize, delete_ckpts],
@@ -2398,7 +2358,7 @@ def init(_bokeh_document):
             xvalidate: [context, shiftby, optimizer, loss, learning_rate, batch_seed, weights_seed, logs_folder, groundtruth_folder, test_files, labels_touse, kinds_touse, nsteps, restore_from, save_and_validate_period, mini_batch, kfold] + list(model_parameters.values()),
             mistakes: [groundtruth_folder],
             activations: [context, shiftby, logs_folder, model_file, groundtruth_folder, labels_touse, kinds_touse, activations_equalize_ratio, activations_max_sounds, mini_batch, batch_seed] + list(model_parameters.values()),
-            cluster: [groundtruth_folder, cluster_algorithm, cluster_these_layers, pca_fraction_variance_to_retain, tsne_perplexity, tsne_exaggeration, umap_neighbors, umap_distance],
+            cluster: [groundtruth_folder]+ list(cluster_parameters.values()),
             visualize: [groundtruth_folder],
             accuracy: [logs_folder, precision_recall_ratios, loss],
             delete_ckpts: [logs_folder],

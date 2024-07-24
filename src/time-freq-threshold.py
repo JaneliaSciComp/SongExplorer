@@ -42,7 +42,6 @@ from itertools import cycle
 from datetime import datetime
 import socket
 import json
-import shutil
 
 from lib import combine_events
 
@@ -66,7 +65,6 @@ def frequency_n_callback(n,M,V,C):
     else:
         _frequency_n_callback(M,V,C)
 
-# a list of lists specifying the detect-specific hyperparameters in the GUI
 def detect_parameters(time_units, freq_units, time_scale, freq_scale):
     return [
         ["time_sigma",        "time σ",                       '',        '9,4',                  1, [], None,                 True],
@@ -80,7 +78,6 @@ def detect_parameters(time_units, freq_units, time_scale, freq_scale):
                                                                'mean'],  'median',               1, [], None,                 True],
     ]
 
-# a function which returns a vector of strings used to annotate the detected events
 def detect_labels(audio_nchannels):
     labels=[]
     for i in range(audio_nchannels):
