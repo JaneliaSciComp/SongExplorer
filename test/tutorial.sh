@@ -313,21 +313,15 @@ check_file_exists $data_dir/activations.npz
 
 groundtruth_directory=$data_dir
 these_layers=2,3
-pca_fraction_variance_to_retain=1.0
 pca_batch_size=0
-cluster_algorithm=UMAP
-cluster_ndims=3
 cluster_parallelize=1
-cluster_args='{\"n_neighbors\":10, \"min_distance\":0.1}'
-cmd="${srcdir}/cluster \
+cluster_parameters='{"ndims":3,"pca-fraction":1.0,"neighbors":10,"distance":0.1}'
+cmd="${srcdir}/${cluster_plugin}.py \
      --data_dir=$groundtruth_directory \
      --layers=$these_layers \
-     --pca_fraction_variance_to_retain=$pca_fraction_variance_to_retain \
      --pca_batch_size=$pca_batch_size \
-     --algorithm=$cluster_algorithm \
-     --ndims=$cluster_ndims \
      --parallelize=$cluster_parallelize \
-     --kwargs=\"$cluster_args\""
+     --parameters='$cluster_parameters'"
 echo $cmd >> $data_dir/cluster.log 2>&1
 eval $cmd >> $data_dir/cluster.log 2>&1
 

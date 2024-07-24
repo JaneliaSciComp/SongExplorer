@@ -40,6 +40,7 @@ Table of Contents
       * [Event Detection](#event-detection)
       * [Double-Click Annotations](#double-click-annotations)
       * [Network Architecture](#network-architecture)
+      * [Clustering Algorithm](#clustering-algorithm)
    * [Troubleshooting](#troubleshooting)
    * [Frequently Asked Questions](#frequently-asked-questions)
    * [Reporting Problems](#reporting-problems)
@@ -904,21 +905,21 @@ in the `Ground Truth` directory: "activations.log", "activations-samples.log",
 and "activations.npz".  The two ending in ".log" report any errors, and the
 ".npz" file contains the actual data in binary format.
 
-Now reduce the dimensionality of the hidden state activations
-to either two or three dimensions with the `Cluster` button.
-Choose to do so using either UMAP ([McInnes, Healy, and Melville
-(2018)](https://arxiv.org/abs/1802.03426)), t-SNE ([van der Maaten and
-Hinton (2008)](http://www.jmlr.org/papers/v9/vandermaaten08a.html)), or PCA.
-UMAP and t-SNE are each controlled by separate parameters (`neighbors` and
-`distance`, and `perplexity` and `exaggeration` respectively), a description
-of which can be found in the aforementioned articles.  UMAP and t-SNE can
-also be optionally preceded by PCA, in which case you'll need to specify
-the fraction of coefficients to retain using `PCA fraction`.  You'll also
-need to choose to cluster just the last hidden layer using the "layers"
-multi-select box.  Output are two or three files in the `Ground Truth`
-directory: "cluster.log" contains any errors, "cluster.npz" contains binary
-data, and "cluster-pca.pdf" shows the results of the principal components
-analysis (PCA) if one was performed.
+Now reduce the dimensionality of the hidden state activations to either two or
+three dimensions with the `Cluster` button.  By default, Songexplorer uses the
+UMAP algorithm ([McInnes, Healy, and Melville
+(2018)](https://arxiv.org/abs/1802.03426)), but tSNE and PCA can be used
+instead via a plugin (see [Clustering Algorithm](#clustering-algorithm)).  For
+now, leave the `neighbors` and `distance` parameters set to their default
+values.  A description of how they change the resulting clusters can be found
+in the aforementioned article.  Also leave the `PCA fraction` parameter at its
+default.  In future, if you find clustering slow for larger data sets, UMAP can
+be preceded by PCA, and the fraction of coefficients that are retained is
+specified using `PCA fraction`.  Lastly, choose to cluster just the last hidden
+layer using the "layers" multi-select box.  Output are two or three files in
+the `Ground Truth` directory: "cluster.log" contains any errors, "cluster.npz"
+contains binary data, and "cluster-pca.pdf" shows the results of the principal
+components analysis (PCA) if one was performed.
 
 Finally, click on the `Visualize` button to render the clusters in the
 left-most panel.  Adjust the size and transparency of the markers using
@@ -1756,46 +1757,7 @@ supply your own code instead.  Simply put in a python file a list called
 script which uses those parameters to generate a "detected.csv" given a WAV
 file.  Then change the "detect_plugin" variable in your "configuration.py"
 file to point to the full path of this python file, without the ".py"
-extension.  See the minimal example in "src/detect-plugin.py" for a template,
-a pared down version of which is as follows:
-
-    #!/usr/bin/python3
-
-    # a list of lists specifying the detect-specific hyperparameters in the GUI
-    detect_parameters = [
-        ["my-simple-textbox", "h-parameter 1", "", "32", [], None, True],
-        ]
-
-    # a function which returns a vector of strings used to annotate the detected events
-    def detect_labels(audio_nchannels):
-        # kinds = [... ]
-        return kinds
-
-    # a script which inputs a WAV file and outputs a CSV file
-    if __name__ == '__main__':
-
-        import os
-        import scipy.io.wavfile as spiowav
-        import sys
-        import csv
-        import json
-
-
-        _, filename, detect_parameters, audio_tic_rate, audio_nchannels = sys.argv
-
-        detect_parameters = json.loads(detect_parameters)
-        hyperparameter1 = int(detect_parameters["my-simple-textbox"])
-
-        _, song = spiowav.read(filename)
-
-        # add logic here to find events of interest
-        # events = [...]  # e.g. a list of 3-tuples with start, stop, kind
-
-        basename = os.path.basename(filename)
-        with open(os.path.splitext(filename)[0]+'-detected.csv', 'w') as fid:
-            csvwriter = csv.writer(fid)
-            for e in range(events):
-                csvwriter.writerow([basename, e[0], e[1], 'detected', e[2]])
+extension.  See the minimal example in "src/detect-plugin.py" for a template.
 
 ## Double-Click Annotations ##
 
@@ -1829,54 +1791,29 @@ The default network architecture is a set of layered convolutions, the depth
 and width of which can be configured as described above.  Should this not prove
 flexible enough, SongExplorer is designed with a means to supply your own
 TensorFlow code that implements a whiz bang architecture of any arbitrary
-design.  See the minimal example in "src/architecture-plugin.py" for a
-template of how this works, a pared down version of which is as follows:
+design.  See the minimal example in "src/architecture-plugin.py" for a template
+of how this works.  In brief, two objects must be supplied in a python file:
+(1) a list named `model_parameters` which defines the variable names, titles,
+and default values, etc. to appear in the GUI, and (2) a function
+`create_model` which builds and returns the network graph.  Specify as the
+`architecture_plugin` in "configuration.py" the full path to this file, without
+the ".py" extension.  The buttons immediately above the configuration textbox
+in the GUI will change to reflect the different hyperparameters used by this
+architecture.  All the workflows described above (detecting sounds, making
+predicions, fixing mistakes, etc) can be used with this custom network in an
+identical manner.  The default convolutional architecture is itself written as
+a plug-in, and can be found in "src/convolutional.py".
 
-    import tensorflow as tf
+## Clustering Algorithm ##
 
-    # a list of lists specifying the architecture-specific hyperparameters in the GUI
-    model_parameters = [
-      # each hyperparameter is described by a list with these entries:
-      # [ key in `model_settings`,
-      #   title in GUI,
-      #   "" for textbox or [] for pull-down,
-      #   default value,
-      #   enable logic,
-      #   callback,
-      #   required ]
-      ]
-
-    # a function which returns a keras model
-    def create_model(model_settings):
-        # `model_settings` is a superset of the hyperparameters above.  see src/models.py
-
-        # hidden_layers is used to visualize intermediate clusters in the GUI
-        hidden_layers = []
-
-        # 'parallelize' specifies the number of output tics to classify simultaneously
-        ninput_tics = model_settings["context_tics"] + model_settings["parallelize"] - 1
-        input_layer = Input(shape=(ninput_tics, model_settings["nchannels"]))
-
-        # add custom layers here, e.g. x = Conv1D()(x)
-        # append interesting ones to hidden_layers
-
-        # last layer must be convolutional with nlabels as the output size
-        output_layer = Conv1D(model_settings['nlabels'], 1)(x)
-
-        return tf.keras.Model(inputs=input_layer, outputs=[hidden_layers, output_layer])
-
-In brief, two objects must be supplied in a python file:  (1) a list named
-`model_parameters` which defines the variable names, titles, and default
-values, etc. to appear in the GUI, and (2) a function `create_model` which
-builds and returns the network graph.  Specify as the `architecture_plugin` in
-"configuration.py" the full path to this file, without the ".py" extension.
-The buttons immediately above the configuration textbox in the GUI will
-change to reflect the different hyperparameters used by this architecture.
-All the workflows described above (detecting sounds, making predicions, fixing
-mistakes, etc) can be used with this custom network in an identical manner.
-The default convolutional architecture is itself written as a plug-in, and
-can be found in "src/convolutional.py".
-
+The method used to reduce the dimensionality of the activations for
+visualization is also a plugin.  By default, the UMAP algorithm is used, but
+also included are plugins for t-SNE ([van der Maaten and Hinton
+(2008)](http://www.jmlr.org/papers/v9/vandermaaten08a.html)) and PCA.  To use
+these alternatives change "cluster_plugin" in "configuration.py" to "tSNE" or
+"PCA", respectively.  To create your own plugin, write a script which defines a
+list called `cluster_parameters`, inputs "activations.npz" and outputs
+"cluster.npz".  See "src/cluster-plugin.py" for a template.
 
 # Troubleshooting #
 

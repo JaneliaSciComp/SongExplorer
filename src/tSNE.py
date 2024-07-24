@@ -1,54 +1,75 @@
 #!/usr/bin/env python3
 
-# reduce dimensionality of internal activation states
+# reduce dimensionality of internal activation states with tSNE.  optionally
+# reducing with PCA first too
 
-# e.g. cluster \
+# e.g. tSNE.py \
 #     --data_dir=`pwd`/groundtruth-data \
 #     --layers=0,1,2,3,4 \
-#     --pca_fraction_variance_to_retain=1 \
 #     --pca_batch_size=5 \
-#     --algorithm=UMAP \
-#     --ndims=3 \
 #     --parallelize=0 \
-#     --kwargs='{"n_neighbors": 10, "min_distance": 0.1}'
+#     --parameters='{"ndims":2, "pca_fraction":1, "perplexity":30, "exaggeration":12.0}'
  
 import argparse
 import os
 import numpy as np
 import sys
 from sklearn.decomposition import PCA, IncrementalPCA
-from umap import UMAP
-from openTSNE import TSNE
 from natsort import natsorted
 from datetime import datetime
 import socket
 from itertools import repeat
+from openTSNE import TSNE
 
 import json
 
-def do_cluster(activations_tocluster, ilayer, layers, algorithm, ndims, kwargs):
-  if algorithm=="PCA":
-    return activations_tocluster[ilayer][:,:ndims]
-  elif algorithm=="tSNE":
-    print("reducing dimensionality with t-SNE...")
+def _callback(p,M,V,C):
+    C.time.sleep(0.5)
+    V.cluster_parameters[p].css_classes = []
+    M.save_state_callback()
+    V.buttons_update()
+
+def pca_fraction_callback(n,M,V,C):
+    pca_fraction = float(V.cluster_parameters['pca-fraction'].value)
+    if not 0 < pca_fraction <= 1:
+        V.cluster_parameters['pca-fraction'].css_classes = ['changed']
+        V.cluster_parameters['pca-fraction'].value = str(min(1, max(0, pca_fraction)))
+        bokehlog.info("WARNING:  `PCA fraction` must be between 0 and 1")
+        if V.bokeh_document:
+            V.bokeh_document.add_next_tick_callback(lambda: _callback('pca-fraction',M,V,C))
+        else:
+            _callback('pca-fraction',M,V,C)
+
+def positive_callback(key,n,M,V,C):
+    value = float(V.cluster_parameters[key].value)
+    if value <= 0:
+        V.cluster_parameters[key].css_classes = ['changed']
+        V.cluster_parameters[key].value = "1"
+        bokehlog.info("WARNING:  `"+key+"` must be positive")
+        if V.bokeh_document:
+            V.bokeh_document.add_next_tick_callback(lambda: _callback(key,M,V,C))
+        else:
+            _callback(key,M,V,C)
+
+def cluster_parameters():
+    return [
+          ["ndims",        "# dims",       ["2","3"], "2",    1, [], None,                                                      True],
+          ["pca-fraction", "PCA fraction", "",        "1",    1, [], pca_fraction_callback,                                     True],
+          ["perplexity",   "perplexity",   "",        "30",   1, [], lambda n,M,V,C: positive_callback("neighbors",n,M,V,C),    True],
+          ["exaggeration", "exaggeration", "",        "12.0", 1, [], lambda n,M,V,C: positive_callback("distance",n,M,V,C),     True],
+    ]
+
+def do_cluster(activations_tocluster, ilayer, layers, parameters):
     if ilayer in layers:
-      fit = TSNE(n_components=ndims, verbose=3, \
-                 perplexity=kwargs["perplexity"], \
-                 early_exaggeration=kwargs["exaggeration"] \
-                ).fit(activations_tocluster[ilayer])
-      return fit, np.array(fit)
+        print("reducing dimensionality of layer "+str(ilayer)+" with t-SNE...")
+        fit = TSNE(verbose = 3,
+                   n_components = int(parameters["ndims"]),
+                   perplexity = float(parameters["perplexity"]),
+                   early_exaggeration = float(parameters["exaggeration"])
+                  ).fit(activations_tocluster[ilayer])
+        return fit, np.array(fit)
     else:
-      return None, None
-  elif algorithm=="UMAP":
-    print("reducing dimensionality with UMAP...")
-    if ilayer in layers:
-      fit = UMAP(n_components=ndims, verbose=3, \
-                 n_neighbors=kwargs["n_neighbors"], \
-                 min_dist=kwargs["min_distance"] \
-                ).fit(activations_tocluster[ilayer])
-      return fit, fit.embedding_
-    else:
-      return None, None
+        return None, None
 
 FLAGS = None
 
@@ -58,10 +79,6 @@ def main():
     print('%s = %s' % (key, flags[key]))
 
   layers = [int(x) for x in FLAGS.layers.split(',')]
-
-  if FLAGS.algorithm not in ["PCA", "tSNE", "UMAP"]:
-    print('cluster_algorithm must be one of PCA, tSNE or UMAP')
-    exit()
 
   print("loading data...")
   activations=[]
@@ -82,24 +99,18 @@ def main():
       count = sum([label==x['label'] and kind==x['kind'] for x in sounds])
       print(count,label)
 
-
   activations_flattened = [None]*nlayers
-  for ilayer in range(nlayers):
-    if ilayer not in layers:
-      continue
+  for ilayer in layers:
     nsounds = np.shape(activations[ilayer])[0]
     activations_flattened[ilayer] = np.reshape(activations[ilayer],(nsounds,-1))
-    print(np.shape(activations_flattened[ilayer]))
-
+    print("shape of layer "+str(ilayer)+" is "+str(np.shape(activations_flattened[ilayer])))
 
   fits_pca = [None]*nlayers
-  if FLAGS.pca_fraction_variance_to_retain<1 or FLAGS.algorithm=="PCA":
-    print("reducing dimensionality with PCA...")
-
+  pca_fraction = float(FLAGS.parameters["pca-fraction"])
+  if pca_fraction < 1:
     activations_scaled = [None]*nlayers
-    for ilayer in range(nlayers):
-      if ilayer not in layers:
-        continue
+    for ilayer in layers:
+      print("reducing dimensionality of layer "+str(ilayer)+" with PCA...")
       mu = np.mean(activations_flattened[ilayer], axis=0)
       sigma = np.std(activations_flattened[ilayer], axis=0)
       activations_scaled[ilayer] = (activations_flattened[ilayer]-mu)/sigma
@@ -109,7 +120,6 @@ def main():
         nfeatures = np.shape(activations_scaled[ilayer])[1]
         pca = IncrementalPCA(batch_size=FLAGS.pca_batch_size*nfeatures)
       fits_pca[ilayer] =  pca.fit(activations_scaled[ilayer])
-      print(np.shape(fits_pca[ilayer]))
 
     import matplotlib as mpl
     mpl.use('Agg')
@@ -119,19 +129,14 @@ def main():
     activations_kept = [None]*nlayers
     fig = plt.figure()
     ax = fig.add_subplot(111)
-    for ilayer in range(nlayers):
-      if ilayer not in layers:
-        continue
+    for ilayer in layers:
       cumsum = np.cumsum(fits_pca[ilayer].explained_variance_ratio_)
-      ncomponents = np.where(cumsum>=FLAGS.pca_fraction_variance_to_retain)[0][0]
       line, = ax.plot(cumsum)
       activations_transformed = fits_pca[ilayer].transform(activations_scaled[ilayer])
-      if FLAGS.algorithm=="PCA":
-        line.set_label('layer '+str(ilayer)+', n='+str(np.shape(activations_transformed)[1]))
-        activations_kept[ilayer] = activations_transformed
-      else:
-        line.set_label('layer '+str(ilayer)+', n='+str(ncomponents+1))
-        activations_kept[ilayer] = activations_transformed[:,0:ncomponents+1]
+      ncomponents = np.where(cumsum>=pca_fraction)[0][0]
+      line.set_label('layer '+str(ilayer)+', n='+str(ncomponents+1))
+      activations_kept[ilayer] = activations_transformed[:,0:ncomponents+1]
+      print("shape of layer "+str(ilayer)+" after PCA is "+str(np.shape(activations_kept[ilayer])))
 
     ax.set_ylabel('cumsum explained variance')
     ax.set_xlabel('# of components')
@@ -150,20 +155,16 @@ def main():
                                                    zip(repeat(activations_tocluster),
                                                        range(len(activations_tocluster)),
                                                        repeat(layers),
-                                                       repeat(FLAGS.algorithm),
-                                                       repeat(FLAGS.ndims),
-                                                       repeat(FLAGS.kwargs))))
+                                                       repeat(FLAGS.parameters))))
   else:
     fits = [None]*nlayers
     activations_clustered = [None]*nlayers
     for ilayer in layers:
-      print('layer '+str(ilayer))
+      print("reducing dimensionality of layer "+str(ilayer)+" with t-SNE...")
       fits[ilayer], activations_clustered[ilayer] = do_cluster(activations_tocluster, \
                                                                ilayer, \
                                                                layers, \
-                                                               FLAGS.algorithm, \
-                                                               FLAGS.ndims, \
-                                                               FLAGS.kwargs)
+                                                               FLAGS.parameters)
 
   np.savez(os.path.join(FLAGS.data_dir, 'cluster'), \
            sounds = sounds,
@@ -190,27 +191,16 @@ if __name__ == "__main__":
       '--layers',
       type=str)
   parser.add_argument(
-      '--pca_fraction_variance_to_retain',
-      type=float)
-  parser.add_argument(
       '--pca_batch_size',
       type=int)
-  parser.add_argument(
-      '--algorithm',
-      type=str,
-      default='UMAP')
-  parser.add_argument(
-      '--ndims',
-      type=int,
-      default=2)
   parser.add_argument(
       '--parallelize',
       type=int,
       default=0)
   parser.add_argument(
-      '--kwargs',
+      '--parameters',
       type=json.loads,
-      default='{"n_neighbors": 10, "min_distance": 0.1}')
+      default='{"perplexity": 30, "exaggeration": 12.0}')
   parser.add_argument(
       '--save_fits',
       type=str2bool,

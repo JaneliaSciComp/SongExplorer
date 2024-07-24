@@ -171,7 +171,6 @@ use_video=0
 
 def model_parameters(time_units, freq_units, time_scale, freq_scale):
     return [
-        # key, title in GUI, '' for textbox or [] for pull-down, default value, width, enable logic, callback, required
         ["representation",  "representation",           ['waveform',
                                                          'spectrogram',
                                                          'mel-cepstrum'],     'mel-cepstrum',         1, [],                 None,                                                          True],

@@ -16,7 +16,6 @@ import csv
 import socket
 import json
 from datetime import datetime
-import shutil
 
 # use bokehlog.info() to print debugging messages
 import logging 
@@ -25,25 +24,25 @@ bokehlog = logging.getLogger("songexplorer")
 # optional callbacks can be used to validate user input
 def _callback(p,M,V,C):
     C.time.sleep(0.5)
-    V.model_parameters[p].css_classes = []
+    V.detect_parameters[p].css_classes = []
     M.save_state_callback()
     V.buttons_update()
 
 def callback(n,M,V,C):
     # M, V, C are the model, view, and controller in src/gui
-    # access the hyperparameters below with the V.model_parameters dictionary
+    # access the hyperparameters below with the V.detect_parameters dictionary
     # the value is stored in .value, and the appearance can be controlled with .css_classes
-    if int(V.model_parameters['a-bounded-value'].value) < 0:
-        #bokehlog.info("a-bounded-value = "+str(V.model_parameters['a-bounded-value'].value))  # uncomment to debug
-        V.model_parameters['a-bounded-value'].css_classes = ['changed']
-        V.model_parameters['a-bounded-value'].value = "0"
+    if int(V.detect_parameters['a-bounded-value'].value) < 0:
+        #bokehlog.info("a-bounded-value = "+str(V.detect_parameters['a-bounded-value'].value))  # uncomment to debug
+        V.detect_parameters['a-bounded-value'].css_classes = ['changed']
+        V.detect_parameters['a-bounded-value'].value = "0"
         if V.bokeh_document:  # if interactive
             V.bokeh_document.add_next_tick_callback(lambda: _callback('a-bounded-value',M,V,C))
         else:  # if scripted
             _callback('a-bounded-value',M,V,C)
 
 # a list of lists specifying the detect-specific hyperparameters in the GUI
-def doubleclick_parameters(time_units, freq_units, time_scale, freq_scale):
+def detect_parameters(time_units, freq_units, time_scale, freq_scale):
     return [
         # [key in `detect_parameters`, title in GUI, "" for textbox or [] for pull-down, default value, width, enable logic, callback, required]
           ["my-simple-textbox",    "h-parameter 1",    "",              "32",   1, [],                  None,     True],

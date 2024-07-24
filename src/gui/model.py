@@ -49,13 +49,6 @@ def save_state_callback():
                      'kfold': V.kfold.value,
                      'activations_equalize_ratio': V.activations_equalize_ratio.value,
                      'activations_max_sounds': V.activations_max_sounds.value,
-                     'pca_fraction_variance_to_retain': \
-                             V.pca_fraction_variance_to_retain.value,
-                     'tsne_perplexity': V.tsne_perplexity.value,
-                     'tsne_exaggeration': V.tsne_exaggeration.value,
-                     'umap_neighbors': V.umap_neighbors.value,
-                     'umap_distance': V.umap_distance.value,
-                     'cluster_algorithm': V.cluster_algorithm.value,
                      'cluster_these_layers': [x for x in V.cluster_these_layers.value],
                      'precision_recall_ratios': V.precision_recall_ratios.value,
                      'congruence_portion': V.congruence_portion.value,
@@ -73,7 +66,8 @@ def save_state_callback():
                      'learning_rate': V.learning_rate.value},
                   **{k:v.value for k,v in V.detect_parameters.items()},
                   **{k:v.value for k,v in V.doubleclick_parameters.items()},
-                  **{k:v.value for k,v in V.model_parameters.items()}},
+                  **{k:v.value for k,v in V.model_parameters.items()},
+                  **{k:v.value for k,v in V.cluster_parameters.items()}},
                  fid)
 
 def isannotated(sound):
@@ -241,7 +235,8 @@ def init(_bokeh_document, _configuration_file, _use_aitch):
     global context_width_sec0, context_offset_sec0
     global xcluster, ycluster, zcluster, ndcluster, tic2pix_max, snippet_width_pix, ilayer, ispecies, iword, inohyphen, ikind, nlayers, layers, species, words, nohyphens, kinds, used_labels, snippets_gap_sec, snippets_tic, snippets_gap_tic, snippets_decimate_by, snippets_pix, snippets_gap_pix, context_decimate_by, context_width_tic, context_offset_tic, context_sound, isnippet, xsnippet, ysnippet, file_nframes, context_midpoint_tic, ilabel, used_sounds, used_starts_sorted, used_stops, iused_stops_sorted, annotated_sounds, annotated_starts_sorted, annotated_stops, iannotated_stops_sorted, annotated_csvfiles_all, nrecent_annotations, clustered_sounds, clustered_activations, used_recording2firstsound, clustered_starts_sorted, clustered_stops, iclustered_stops_sorted, songexplorer_starttime, history_stack, history_idx, wizard, action, function, statepath, state, file_dialog_root, file_dialog_filter, nearest_sounds, status_ticker_queue, waitfor_job, dfs, remaining_isounds
     global user_changed_recording, user_copied_parameters
-    global audio_read, video_read, detect_parameters, detect_labels, doubleclick_parameters, doubleclick_annotation, context_data, context_data_istart, model, model_parameters, video_findfile
+    global audio_read, video_read, detect_labels, doubleclick_annotation, context_data, context_data_istart, model, video_findfile
+    global detect_parameters, doubleclick_parameters, model_parameters, cluster_parameters
 
     bokeh_document = _bokeh_document
 
@@ -281,6 +276,10 @@ def init(_bokeh_document, _configuration_file, _use_aitch):
     sys.path.insert(0,os.path.dirname(architecture_plugin))
     model = importlib.import_module(os.path.basename(architecture_plugin))
     model_parameters = model.model_parameters(time_units, freq_units, time_scale, freq_scale)
+
+    sys.path.insert(0,os.path.dirname(cluster_plugin))
+    tmp = importlib.import_module(os.path.basename(cluster_plugin))
+    cluster_parameters = tmp.cluster_parameters()
 
     sys.path.insert(0,os.path.dirname(video_findfile_plugin))
     video_findfile = importlib.import_module(os.path.basename(video_findfile_plugin)).video_findfile
@@ -477,13 +476,7 @@ def init(_bokeh_document, _configuration_file, _use_aitch):
                           'kfold':'4', \
                           'activations_equalize_ratio':'10', \
                           'activations_max_sounds':'1000', \
-                          'pca_fraction_variance_to_retain':'1.0', \
-                          'tsne_perplexity':'30', \
-                          'tsne_exaggeration':'12.0', \
-                          'umap_neighbors':'10', \
-                          'umap_distance':'0.1', \
                           # https://github.com/plotly/plotly.js/issues/5158
-                          'cluster_algorithm':'UMAP 2D', \
                           'cluster_these_layers':['0'], \
                           'precision_recall_ratios':'1.0', \
                           'congruence_portion':'union', \
@@ -501,7 +494,8 @@ def init(_bokeh_document, _configuration_file, _use_aitch):
                           'learning_rate':'0.0002'}, \
                        **{x[0]:x[3] for x in detect_parameters}, \
                        **{x[0]:x[3] for x in doubleclick_parameters}, \
-                       **{x[0]:x[3] for x in model_parameters}},
+                       **{x[0]:x[3] for x in model_parameters},
+                       **{x[0]:x[3] for x in cluster_parameters}},
                       fid)
 
     with open(statepath, 'r') as fid:

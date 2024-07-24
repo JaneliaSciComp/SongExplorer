@@ -115,12 +115,12 @@ check_file_exists(os.path.join(V.groundtruth_folder.value, "activations.log"))
 check_file_exists(os.path.join(V.groundtruth_folder.value, "activations.npz"))
 
 V.cluster_these_layers.value = ["2","3"]
-V.pca_fraction_variance_to_retain.value = "1.0"
+V.cluster_parameters["ndims"].value = "2"
+V.cluster_parameters["pca-fraction"].value = "1.0"
+V.cluster_parameters["neighbors"].value = "10"
+V.cluster_parameters["distance"].value = "0.1"
 M.pca_batch_size = "0"
-V.cluster_algorithm.value = "UMAP 2D"
 M.cluster_parallelize=1
-V.umap_neighbors.value = "10"
-V.umap_distance.value = "0.1"
 asyncio.run(C.cluster_actuate())
 
 wait_for_job(M.status_ticker_queue)

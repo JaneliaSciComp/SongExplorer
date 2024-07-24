@@ -60,7 +60,7 @@ gui_context_spectrogram=1   # comma-separated list of channels to display, or ()
 gui_context_spectrogram_height_pix=150
 gui_context_probability_height_pix=75
 gui_context_undo_proximity_pix=3
-gui_context_doubleclick_plugin="point"
+gui_context_doubleclick_plugin="point"  # or snap-to
 gui_spectrogram_colormap="Viridis256"
 gui_spectrogram_window="hann"
 gui_spectrogram_length_sec=0.010
@@ -126,6 +126,7 @@ cluster_ncpu_cores=-1
 cluster_ngpu_cards=-1
 cluster_ngigabytes_memory=-1
 cluster_cluster_flags=""
+cluster_plugin="UMAP"  # or tSNE, PCA
 
 accuracy_where=default_where
 accuracy_ncpu_cores=-1

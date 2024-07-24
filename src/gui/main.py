@@ -37,6 +37,7 @@ os.environ['PATH'] = os.pathsep.join([*M.bindirs, *os.environ['PATH'].split(os.p
 detect_parameters = list(V.detect_parameters.values())
 doubleclick_parameters = list(V.doubleclick_parameters.values())
 model_parameters = list(V.model_parameters.values())
+cluster_parameters = list(V.cluster_parameters.values())
 
 spacer_width = 790 + 100*(len(M.snippets_spectrogram)>0) + 103*len(doubleclick_parameters)
 main_content = row(column(row(V.which_layer, V.which_species, V.which_word,
@@ -167,18 +168,13 @@ main_content = row(column(row(V.which_layer, V.which_species, V.which_word,
                                   V.cluster_these_layers,
                                   width=105),
                            column(
-                               row(V.cluster_algorithm,
-                                   V.pca_fraction_variance_to_retain,
-                                   V.congruence_portion,
-                                   width=315),
-                               row(V.tsne_perplexity,
-                                   V.tsne_exaggeration,
-                                   V.congruence_convolve,
-                                   width=315),
-                               row(V.umap_neighbors,
-                                   V.umap_distance,
-                                   V.congruence_measure,
-                                   width=315))),
+                               *[row([cluster_parameters[x] for x in p],
+                                     width=210)
+                                 for p in V.cluster_parameters_partitioned]),
+                           column(V.congruence_portion,
+                                  V.congruence_convolve,
+                                  V.congruence_measure,
+                                  width=105)),
                        row(column(V.file_dialog_string,
                                   V.file_dialog_table),
                            column(*[row([model_parameters[x] for x in p])

@@ -1490,29 +1490,19 @@ async def activations_actuate():
 
 async def cluster_actuate():
     currtime = time.time()
-    algorithm, ndims = V.cluster_algorithm.value[:-1].split(' ')
     these_layers = ','.join([x for x in V.cluster_these_layers.value])
     logfile = os.path.join(V.groundtruth_folder.value, "cluster.log")
-    args = ["--data_dir="+V.groundtruth_folder.value, \
-            "--layers="+these_layers, \
-            "--pca_fraction_variance_to_retain="+V.pca_fraction_variance_to_retain.value, \
-            "--pca_batch_size="+str(M.pca_batch_size), \
-            "--algorithm="+algorithm, 
-            "--ndims="+ndims, 
-            "--parallelize="+str(M.cluster_parallelize)]
-    if algorithm == "tSNE":
-        args.append('--kwargs={"perplexity":'+V.tsne_perplexity.value+
-                    ',"exaggeration":'+V.tsne_exaggeration.value+'}')
-    elif algorithm == "UMAP":
-        args.append('--kwargs={"n_neighbors":'+V.umap_neighbors.value+
-                    ',"min_distance":'+V.umap_distance.value+'}')
-    jobid = generic_actuate("cluster", logfile,
+    jobid = generic_actuate(M.cluster_plugin+".py", logfile,
                             M.cluster_where,
                             M.cluster_ncpu_cores,
                             M.cluster_ngpu_cards,
                             M.cluster_ngigabytes_memory,
                             M.cluster_cluster_flags,
-                            *args)
+                            "--data_dir="+V.groundtruth_folder.value, \
+                            "--layers="+these_layers, \
+                            "--pca_batch_size="+str(M.pca_batch_size), \
+                            "--parallelize="+str(M.cluster_parallelize),
+                            "--parameters="+json.dumps({k:v.value for k,v in V.cluster_parameters.items()}))
 
     displaystring = "CLUSTER "+os.path.basename(V.groundtruth_folder.value.rstrip(os.sep))
     if jobid:
