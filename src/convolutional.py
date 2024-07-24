@@ -190,8 +190,7 @@ def model_parameters(time_units, freq_units, time_scale, freq_scale):
         ["kernel_sizes",    "kernels",                  '',                   '5x5,3',                1, [],                 None,                                                          True],
         ["nfeatures",       "# features",               '',                   '64,64',                1, [],                 None,                                                          True],
         ["dropout_kind",    "dropout kind",             ['none',
-                                                         'unit',
-                                                         'map'],              'unit',                 1, [],                 None,                                                          True],
+                                                         'unit'],             'unit',                 1, [],                 None,                                                          True],
         ["dropout_rate",    "dropout %",                '',                   '50',                   1, ["dropout_kind",
                                                                                                           ["unit",
                                                                                                            "map"]],          None,                                                          True],
@@ -392,8 +391,6 @@ def create_model(model_settings, model_parameters, io=sys.stdout):
   dropout_rate = float(model_parameters['dropout_rate'])/100
   if model_parameters['dropout_kind']=='unit':
     dropout_kind = Dropout
-  elif model_parameters['dropout_kind']=='map':
-    dropout_kind = SpatialDropout2D
   else:
     def Identity(x): return lambda x: x
     dropout_kind = Identity
@@ -500,10 +497,9 @@ def create_model(model_settings, model_parameters, io=sys.stdout):
     hidden_layers.append(conv)
     if normalize_before:
       conv = BatchNormalization()(conv)
-    relu = ReLU()(conv)
+    x = ReLU()(conv)
     if normalize_after:
-      relu = BatchNormalization()(relu)
-    x = dropout_kind(dropout_rate)(relu)
+      x = BatchNormalization()(x)
     x_shape = x.get_shape().as_list()
     noutput_tics = math.ceil((noutput_tics - dilated_kernel_size[0] + 1) / strides[0])
     iconv += 1
@@ -531,10 +527,9 @@ def create_model(model_settings, model_parameters, io=sys.stdout):
     hidden_layers.append(conv)
     if normalize_before:
       conv = BatchNormalization()(conv)
-    relu = ReLU()(conv)
+    x = ReLU()(conv)
     if normalize_after:
-      relu = BatchNormalization()(relu)
-    x = dropout_kind(dropout_rate)(relu)
+      x = BatchNormalization()(x)
     x_shape = x.get_shape().as_list()
     noutput_tics = math.ceil((noutput_tics - dilated_kernel_size + 1) / strides[0])
     iconv += 1
@@ -548,6 +543,8 @@ def create_model(model_settings, model_parameters, io=sys.stdout):
   print("receptive_field_freq = %d bins = %f %s" % (receptive_field[1],
       receptive_field[1] * audio_tic_rate / window_tics / freq_scale, freq_units), file=io)
 
+  x = dropout_kind(dropout_rate)(x)
+
   if pool_kind:
     x = pool_kind(pool_size=pool_size, strides=pool_size)(x)
     x_shape = x.get_shape().as_list()
@@ -559,9 +556,10 @@ def create_model(model_settings, model_parameters, io=sys.stdout):
       relu = ReLU()(x)
       x = dropout_kind(dropout_rate)(relu)
     x = Conv2D(nunits, (noutput_tics if idense==0 else 1, x_shape[2]))(x)
+    hidden_layers.append(conv)
     x_shape = x.get_shape().as_list()
 
   final = Reshape((-1,model_settings['nlabels']))(x)
 
-  print('convolutional.py version = 0.1', file=io)
+  print('convolutional.py version = 0.1.1', file=io)
   return tf.keras.Model(inputs=inputs, outputs=[hidden_layers, final], name="convolutional")
