@@ -1073,7 +1073,7 @@ def _train_succeeded(logdir, kind, model, reftime):
     if "labels.txt" not in train_files:
         bokehlog.info("ERROR: "+train_dir+os.sep+"labels.txt does not exist.")
         return False
-    validate_step_period = save_step_period = how_many_training_steps = None
+    validate_step_period = save_step_period = how_many_training_steps = start_checkpoint = None
     with open(train_dir+".log") as fid:
         for line in fid:
             if "validate_step_period = " in line:
@@ -1085,22 +1085,35 @@ def _train_succeeded(logdir, kind, model, reftime):
             if "how_many_training_steps = " in line:
                 m=re.search('how_many_training_steps = (\d+)',line)
                 how_many_training_steps = int(m.group(1))
+            if "start_checkpoint = " in line:
+                m=re.search('start_checkpoint = .*ckpt-(\d+)',line)
+                if m: start_checkpoint = int(m.group(1))
     if validate_step_period is None or save_step_period is None or how_many_training_steps is None:
         bokehlog.info("ERROR: "+train_dir+".log should contain `validate_step_period`, `save_step_period`, and `how_many_training_steps`")
         return False
+    if save_step_period != validate_step_period:
+        bokehlog.info("ERROR: `save_step_period` is not the same as `validate_step_period`")
+        return False
     if save_step_period>0:
-        nckpts = how_many_training_steps // save_step_period + 1
-        if len(list(filter(lambda x: x.startswith("ckpt-"), \
-                           train_files))) != 2*nckpts:
-            bokehlog.info("ERROR: "+train_dir+os.sep+" should contain "+ \
-                          str(2*nckpts)+" ckpt-* files.")
+        start = save_step_period
+        if start_checkpoint: start += start_checkpoint
+        ckpts_config = set(range(start, how_many_training_steps+1, save_step_period))
+        ckpts_index = set()
+        ckpts_data = set()
+        logits_saved = set()
+        for train_file in train_files:
+            index = re.fullmatch("ckpt-([0-9]+)\.index", train_file)
+            if index:  ckpts_index |= set([int(index[1])])
+            data = re.match("ckpt-([0-9]+)\.data", train_file)
+            if data:  ckpts_data |= set([int(data[1])])
+            logits = re.fullmatch("logits.validation.ckpt-([0-9]+)\.npz", train_file)
+            if logits:  logits_saved |= set([int(logits[1])])
+        ckpts_saved = ckpts_index & ckpts_data
+        if ckpts_config - ckpts_saved:
+            bokehlog.info("ERROR: "+train_dir+os.sep+" is missing ckpt files for steps "+str(ckpts_config-ckpts_saved))
             return False
-    if validate_step_period>0:
-        nevals = how_many_training_steps // validate_step_period 
-        if len(list(filter(lambda x: x.startswith("logits.validation.ckpt-"), \
-                           train_files))) != nevals:
-            bokehlog.info("ERROR: "+train_dir+os.sep+" should contain "+str(nevals)+\
-                  " logits.validation.ckpt-* files.")
+        if ckpts_config - logits_saved:
+            bokehlog.info("ERROR: "+train_dir+os.sep+" is missing logit.validation files for steps "+str(ckpts_config-logits_saved))
             return False
     return True
 
