@@ -1247,33 +1247,36 @@ samples are drawn from the ground-truth data set during training.  A value of
 -1 results in a different order for each fold and run;  any other number
 results in a unique order specific to that number across folds and runs.
 
-To perform a simple grid search for the optimal value for a particular
+To perform a simple grid search for the optimal value of a particular
 hyperparameter, first choose how many folds you want to partition your
-ground-truth data into using `k-fold`.  Then set the hyperparameter of interest
-to the first value you want to try and choose a name for the `Logs Folder` such
-that its prefix will be shared across all of the hyperparameter values you plan
-to validate.  Suffix any additional hyperparameters of interest using
-underscores.  (For example, to search mini-batch and keep track of kernel size
-and feature maps, use "mb-64_ks129_fm64".)  If your model is small, use
-`models_per_job` in "configuration.py" to train multiple folds on a GPU.
-Click the `X-Validate` button and then `DoIt!`.  One classifier will be trained
-for each fold, using it as the validation set and the remaining folds for
-training.  Separate files and subdirectories are created in the `Logs Folder`
-that are suffixed by the fold number and the letter "k".  Plot overlayed
-training curves with the `Accuracy` button, as before.  Repeat the above
-procedure for each of remaining hyperparameter values you want to try (e.g.
-"mb-128_ks129_fm64", "mb-256_ks129_fm64", etc.).  Then use the `Compare` button
-to create a figure of the cross-validation data over the hyperparameter values,
-specifying the prefix that the logs folders have in common ("mb" in this case).
-Output are three files:
+ground-truth data into using `k-fold`.  More folds permit characterizing the
+variance better, but take longer to train and also result in fewer annotations
+to measure the accuracy.  Ensure that you have at least 10 annotations for each
+label in the validation set if using many folds.  Then set the hyperparameter
+of interest to the first value you want to optimize and use the name of the
+hyperparameter and it's value as the `Logs Folder` (e.g. "mb64" for a
+mini-batch size of 64).  Suffix any additional hyperparameters of interest
+using underscores (e.g. "mb64_ks129_fm64" for a kernel size of 129 and 64
+feature maps).  If your model is small, use `models_per_job` in
+"configuration.py" to train multiple folds on a GPU.  Click the `X-Validate`
+button and then `DoIt!`.  One classifier will be trained for each fold, using
+it as the validation set and the remaining folds for training.  Separate files
+and subdirectories are created in the `Logs Folder` that are suffixed by the
+fold number and the letter "k".  Plot training curves with the `Accuracy`
+button, as before.  Repeat the above procedure for each of remaining
+hyperparameter values you want to try (e.g. "mb128_ks129_fm64",
+"mb256_ks129_fm64", etc.).  Then use the `Compare` button to create a figure of
+the cross-validation data over the hyperparameter values, specifying for the
+`Logs Folder` the independent variable (e.g. "mb") suffixed with the fixed
+hyperparameters of interest (e.g. "mb_ks128_fm64").  Output are three files:
 
-* "[suffix]-compare-confusion-matrices.pdf" contains the summed confusion matrix
+* "[prefix]-compare-confusion-matrices.pdf" contains the summed confusion matrix
 for each of the values tested.
 
-* "[suffix]-compare-overall-params-speed.pdf" plots the accuracy, number of
+* "[prefix]-compare-overall-params-speed.pdf" plots the accuracy, number of
 trainable parameters, and training time for each model.
 
-* "[suffix]-compare-precision-recall.pdf" shows the final error rates for each
+* "[prefix]-compare-precision-recall.pdf" shows the final error rates for each
 model and wanted word.
 
 Training multiple models like this with the same hyperparameters is not

@@ -22,7 +22,7 @@ def jitter_plot(ax, data, orientation='vertical', reverse=False, \
     if len(d)<3:
       continue
     y = np.nanmean(d)
-    h = np.nanstdev(d)
+    h = np.nanstd(d)
     if orientation=='vertical':
       aveboxes.append(Rectangle((x-0.25,y-h),0.5,2*h))
       ax.plot([x-0.25,x+0.25],[y,y],'w-')
