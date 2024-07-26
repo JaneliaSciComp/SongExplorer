@@ -1960,7 +1960,7 @@ def compare_succeeded(logdirprefix, reftime):
 async def compare_actuate():
     currtime = time.time()
     logfile = V.logs_folder.value+'-compare.log'
-    args = ["--logdirs_prefix="+V.logs_folder.value, \
+    args = ["--logdirs_filter="+V.logs_folder.value, \
             "--loss="+V.loss.value, \
             "--overlapped_prefix="+M.overlapped_prefix]
     jobid = generic_actuate("compare", logfile,

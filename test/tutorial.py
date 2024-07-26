@@ -276,7 +276,7 @@ for loss in ["exclusive", "overlapped"]:
 
     for nfeatures in nfeaturess:
         V.logs_folder.value = os.path.join(repo_path,
-                                           "test", "scratch", "tutorial-py", logdirs_prefix+"-"+nfeatures.split(',')[0])
+                                           "test", "scratch", "tutorial-py", logdirs_prefix+nfeatures.split(',')[0])
         V.model_parameters["nfeatures"].value = nfeatures
         V.kfold.value = "2"
         asyncio.run(C.xvalidate_actuate())
@@ -295,7 +295,7 @@ for loss in ["exclusive", "overlapped"]:
     V.precision_recall_ratios.value = "1.0"
     for nfeatures in nfeaturess:
         V.logs_folder.value = os.path.join(repo_path,
-                                           "test", "scratch", "tutorial-py", logdirs_prefix+"-"+nfeatures.split(',')[0])
+                                           "test", "scratch", "tutorial-py", logdirs_prefix+nfeatures.split(',')[0])
         asyncio.run(C.accuracy_actuate())
 
     wait_for_job(M.status_ticker_queue)
@@ -459,7 +459,7 @@ for kind in kinds:
     check_file_exists(os.path.join(V.groundtruth_folder.value, congruence_dir, "dense",
                                    wavpath_noext+"-disjoint-"+kind+"-only"+person+".csv"))
 
-V.logs_folder.value = os.path.join(repo_path, "test", "scratch", "tutorial-py", "nfeaturesexclusive-64")
+V.logs_folder.value = os.path.join(repo_path, "test", "scratch", "tutorial-py", "nfeaturesexclusive64")
 V.model_file.value = os.path.join(V.logs_folder.value, "xvalidate_1k", "ckpt-"+V.nsteps.value)+','+ \
                      os.path.join(V.logs_folder.value, "xvalidate_2k", "ckpt-"+V.nsteps.value)
 

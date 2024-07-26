@@ -430,7 +430,7 @@ for loss in ${losses[@]} ; do
         labels_touse=mel-pulse,mel-sine
     fi;
     for nfeatures in ${nfeaturess[@]} ; do
-        logdir=$repo_path/test/scratch/tutorial-sh/nfeatures$loss-${nfeatures%%,*}
+        logdir=$repo_path/test/scratch/tutorial-sh/nfeatures${loss}${nfeatures%%,*}
         kfold=2
         ifolds=$(seq 1 $kfold)
         mkdir $logdir
@@ -516,7 +516,7 @@ for loss in ${losses[@]} ; do
 
     logdirs_prefix=$repo_path/test/scratch/tutorial-sh/nfeatures$loss
     cmd="${srcdir}/compare \
-         --logdirs_prefix=$logdirs_prefix \
+         --logdirs_filter=$logdirs_prefix \
          --loss=$loss \
          --overlapped_prefix=$overlapped_prefix"
     echo $cmd >> ${logdirs_prefix}-compare.log 2>&1
@@ -740,7 +740,7 @@ for kind in ${kinds[@]} ; do
   done
 done
 
-logdir=${repo_path}/test/scratch/tutorial-sh/nfeaturesexclusive-64
+logdir=${repo_path}/test/scratch/tutorial-sh/nfeaturesexclusive64
 
 mkdir ${logdir}/xvalidate_1k_2k
 cmd="${srcdir}/ensemble \
