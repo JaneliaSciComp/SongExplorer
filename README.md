@@ -135,6 +135,10 @@ D Ye, JT Walsh, IP Junker, Y Ding (2024)
 Changes in the cellular makeup of motor patterning circuits drive courtship song evolution in Drosophila
 [bioRxiv](https://www.biorxiv.org/content/10.1101/2024.01.23.576861v1.full)
 
+T Wiesner (2023)
+How good is SongExplorer, a machine learning based classifier, at recognising the electrical signals of Apteronotus leptorhynchus?
+Bachelor's Thesis, Humboldt Universitat zu Berlin
+
 HM Shiozaki, K Wang, JL Lillvis, M Xu, BJ Dickson, DL Stern (2023)
 Combinatorial circuit dynamics orchestrate flexible motor patterns in Drosophila
 [bioRxiv](https://www.biorxiv.org/content/10.1101/2022.12.14.520499v2.full)
