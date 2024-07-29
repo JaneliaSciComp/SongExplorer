@@ -1256,7 +1256,7 @@ def generalize_xvalidate_succeeded(kind, logdir, currtime):
         bokehlog.info("ERROR: different numbers of summary directories, "+kind+\
               " directories, and "+kind+" log files.")
         return False
-    for wk in [x.split('_')[1] for x in summary_dirs]:
+    for wk in [x.split('_')[1] for x in kind_dirs]:
         if not _train_succeeded(logdir, kind, wk, currtime):
             return False
     return True
