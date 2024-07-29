@@ -748,12 +748,12 @@ def _find_nearest_used_sound(history_idx):
                                  M.history_stack[history_idx][1]['ticks'][0])
     delta=0
     while True:
-        if icontext_sound+delta < len(M.used_sounds) and \
+        if 0 <= icontext_sound+delta < len(M.used_sounds) and \
                   M.used_sounds[icontext_sound+delta]['file'] == \
                   M.history_stack[history_idx][1]['file']:
             icontext_sound += delta
             break
-        elif icontext_sound-delta >= 0 and \
+        elif 0 <= icontext_sound-delta < len(M.used_sounds) and \
                   M.used_sounds[icontext_sound-delta]['file'] == \
                   M.history_stack[history_idx][1]['file']:
             icontext_sound -= delta

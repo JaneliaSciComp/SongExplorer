@@ -1194,12 +1194,23 @@ def cluster_these_layers_update():
         cluster_these_layers.options = []
 
 def recordings_update():
-    if M.dfs:
+    M.used_sounds = []
+    if kinds_touse.value=="" or labels_touse.value=="":
+        wavfiles = []
+        for ext in M.audio_read_exts():
+            wavfiles.extend(glob.glob("**/*"+ext,
+                                      root_dir=groundtruth_folder.value, recursive=True))
+        wavfiles = list(filter(lambda x: 'oldfiles-' not in x and \
+                                         'congruence-' not in x, wavfiles))
+        if len(M.audio_read_rec2ch()) > 1:
+            wavfiles = [w+'-'+k for w in wavfiles for k in M.audio_read_rec2ch().keys()]
+        for wavfile in wavfiles:
+            M.used_sounds.append({'file': list(os.path.split(wavfile)),
+                                  'ticks': [1, 1], 'kind': '', 'label': ' '})
+    elif M.dfs:
+        wavfiles = set()
         kinds = kinds_touse.value.split(',')
         labels = labels_touse.value.split(',')
-        wavfiles = set()
-        M.used_sounds = []
-        M.used_recording2firstsound = {}
         for df,subdir in zip(M.dfs, M.subdirs):
             bidx = np.logical_and(np.array(df[3].apply(lambda x: x in kinds)),
                                   np.array(df[4].apply(lambda x: x in labels)))
@@ -1212,6 +1223,7 @@ def recordings_update():
                                                          1)))
                 wavfiles |= set(df[bidx].apply(lambda x: os.path.join(subdir,x[0]), 1))
 
+    if M.used_sounds:
         M.used_starts_sorted = [x['ticks'][0] for x in M.used_sounds]
         isort = np.argsort(M.used_starts_sorted)
         M.used_sounds = [M.used_sounds[x] for x in isort]
@@ -1220,6 +1232,7 @@ def recordings_update():
         M.iused_stops_sorted = np.argsort(M.used_stops)
 
         recordings.options = sorted(list(wavfiles))
+        M.used_recording2firstsound = {}
         for recording in recordings.options:
             M.used_recording2firstsound[recording] = \
                   next(filter(lambda x: os.path.join(*x[1]['file'])==recording,
