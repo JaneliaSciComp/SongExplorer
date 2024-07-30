@@ -879,8 +879,8 @@ def context_update():
         M.file_nframes = np.shape(context_cache_data)[0]
         probs = [None]*len(M.used_labels)
         for ilabel,label in enumerate(M.used_labels):
-            prob_wavfile = os.path.join(groundtruth_folder.value,
-                                        *M.context_sound['file'])[:-4]+'-'+label+'.wav'
+            prob_wavfile = M.trim_ext(os.path.join(groundtruth_folder.value,
+                                                   *M.context_sound['file']))+'-'+label+'.wav'
             if os.path.isfile(prob_wavfile):
                 prob_tic_rate, probs[ilabel] = spiowav.read(prob_wavfile, mmap=True)
         if istart+M.context_width_tic>0 and istart<M.file_nframes:

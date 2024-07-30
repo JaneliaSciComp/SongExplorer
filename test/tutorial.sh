@@ -232,7 +232,7 @@ done
 
 cmd="${srcdir}/ethogram \
       $logdir train_${ireplicates}r thresholds.ckpt-${nsteps}.csv \
-      ${wavpath_noext}.wav $audio_tic_rate"
+      ${wavpath_noext}.wav $audio_tic_rate False"
 echo $cmd >> ${wavpath_noext}-ethogram.log 2>&1
 eval $cmd >> ${wavpath_noext}-ethogram.log 2>&1
 
@@ -681,7 +681,7 @@ done
 
 cmd="${srcdir}/ethogram \
       $logdir train_${ireplicates}r thresholds.ckpt-${nsteps}.csv \
-      ${wavpath_noext}.wav $audio_tic_rate"
+      ${wavpath_noext}.wav $audio_tic_rate False"
 echo $cmd >> ${wavpath_noext}-ethogram.log 2>&1
 eval $cmd >> ${wavpath_noext}-ethogram.log 2>&1
 
@@ -710,7 +710,8 @@ cmd="${srcdir}/congruence \
      --measure=$measure \
      --nprobabilities=$nprobabilities \
      --audio_tic_rate=$audio_tic_rate \
-     --parallelize=$congruence_parallelize"
+     --parallelize=$congruence_parallelize \
+     --has_rec=False"
 echo $cmd >> $congruence_dir/congruence.log 2>&1
 eval $cmd >> $congruence_dir/congruence.log 2>&1
 
@@ -804,7 +805,7 @@ done
 
 cmd="${srcdir}/ethogram \
       $logdir xvalidate_1k thresholds.ckpt-${nsteps}.csv \
-      ${wavpath_noext}.wav $audio_tic_rate"
+      ${wavpath_noext}.wav $audio_tic_rate False"
 echo $cmd >> ${wavpath_noext}-ethogram.log 2>&1
 eval $cmd >> ${wavpath_noext}-ethogram.log 2>&1
 
@@ -833,7 +834,8 @@ cmd="${srcdir}/congruence \
      --measure=$measure \
      --nprobabilities=$nprobabilities \
      --audio_tic_rate=$audio_tic_rate \
-     --parallelize=$congruence_parallelize"
+     --parallelize=$congruence_parallelize \
+     --has_rec=False"
 echo $cmd >> $congruence_dir/congruence.log 2>&1
 eval $cmd >> $congruence_dir/congruence.log 2>&1
 
@@ -903,7 +905,7 @@ mv ${logdir}/xvalidate_1k/${thresholds_dense_file} ${logdir}/xvalidate_1k_2k
 
 cmd="${srcdir}/ethogram \
       $logdir xvalidate_1k_2k ${thresholds_dense_file} \
-      ${wavpath_noext}.wav $audio_tic_rate"
+      ${wavpath_noext}.wav $audio_tic_rate False"
 echo $cmd >> ${wavpath_noext}-ethogram.log 2>&1
 eval $cmd >> ${wavpath_noext}-ethogram.log 2>&1
 

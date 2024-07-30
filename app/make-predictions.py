@@ -75,7 +75,7 @@ def do_it(wavfile):
     V.waitfor.active = True
     asyncio.run(C.ethogram_actuate())
 
-    logfile = os.path.splitext(wavfile)[0]+"-post-process.log"
+    logfile = wavfile+"-post-process.log"
     ncpu_cores, ngpu_cards, ngigabyes_memory  = 1, 0, 8
     localdeps = ["-d "+M.waitfor_job.pop()]
     kwargs = {"process_group": 0} if sys.version_info.major == 3 and sys.version_info.minor >= 11 else {}
@@ -96,12 +96,17 @@ def do_it(wavfile):
     else:
         run(["python", cmd, arg], **kwargs)
 
+wavfiles = []
 for wavpath in wavpaths:
     if os.path.isdir(wavpath):
-        for wavfile in os.listdir(wavpath):
-            do_it(os.path.join(wavpath, wavfile))
+        for ext in M.audio_read_exts():
+            wavfiles.extend(glob.glob("**/*"+ext, root_dir=wavpath, recursive=True))
     else:
-        do_it(wavpath)
+        wavfiles.append(wavpath)
+if len(M.audio_read_rec2ch()) > 1:
+    wavfiles = [w+'-'+k for w in wavfiles for k in M.audio_read_rec2ch().keys()]
+for wavfile in wavfiles:
+    do_it(wavfile)
 
 wait_for_job(M.status_ticker_queue)
 

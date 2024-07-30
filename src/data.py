@@ -118,12 +118,15 @@ class AudioProcessor(object):
         self.np_rng = np.random.default_rng(None if random_seed_batch==-1 else random_seed_batch)
 
         sys.path.append(os.path.dirname(audio_read_plugin))
-        self.audio_read_plugin = os.path.basename(audio_read_plugin)
+        audio_read_plugin = os.path.basename(audio_read_plugin)
         self.audio_read_plugin_kwargs = audio_read_plugin_kwargs
+        self.audio_read_module = importlib.import_module(audio_read_plugin)
+        self.audio_read_module.audio_read_init(**self.audio_read_plugin_kwargs)
 
         sys.path.append(os.path.dirname(video_read_plugin))
-        self.video_read_plugin = os.path.basename(video_read_plugin)
+        video_read_plugin = os.path.basename(video_read_plugin)
         self.video_read_plugin_kwargs = video_read_plugin_kwargs
+        self.video_read_module = importlib.import_module(video_read_plugin)
 
         self.prepare_data_index(shiftby,
                                 labels_touse, kinds_touse,
@@ -139,14 +142,12 @@ class AudioProcessor(object):
         signal.signal(signal.SIGTERM, term)
 
     def audio_read(self, fullpath, start_tic=None, stop_tic=None):
-        audio_read_module = importlib.import_module(self.audio_read_plugin)
-        return audio_read_module.audio_read(fullpath, start_tic, stop_tic,
-                                            **self.audio_read_plugin_kwargs)
+        return self.audio_read_module.audio_read(fullpath, start_tic, stop_tic,
+                                                 **self.audio_read_plugin_kwargs)
 
     def video_read(self, fullpath, start_frame=None, stop_frame=None):
-        video_read_module = importlib.import_module(self.video_read_plugin)
-        return video_read_module.video_read(fullpath, start_frame, stop_frame,
-                                            **self.video_read_plugin_kwargs)
+        return self.video_read_module.video_read(fullpath, start_frame, stop_frame,
+                                                 **self.video_read_plugin_kwargs)
 
     def catalog_overlaps(self, data):
         data.sort(key=lambda x: x['ticks'][0])

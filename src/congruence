@@ -11,7 +11,8 @@
 #     --measure=label \
 #     --nprobabilities=20 \
 #     --audio_tic_rate=2500 \
-#     --parallelize=1
+#     --parallelize=1 \
+#     --has_rec=False
 
 import argparse
 import sys
@@ -164,7 +165,12 @@ def main():
   thresholds=set()
   for wavdir in wavdirs:
     for wavfile in wavdirs[wavdir]:
-      wavfile_noext = os.path.splitext(wavfile)[0]
+      if FLAGS.has_rec == "False":
+        wavfile_noext  = os.path.splitext(wavfile)[0]
+      else:
+        tmp = wavfile.split('-')
+        withext, rec = '-'.join(tmp[:-1]), tmp[-1]
+        wavfile_noext  = os.path.splitext(withext)[0]+'-'+rec
 
       if not labels:
         with open(os.path.join(FLAGS.basepath,wavdir,wavfile_noext+'-ethogram.log'), 'r') as fid:
@@ -704,6 +710,10 @@ if __name__ == "__main__":
       '--parallelize',
       default=0,
       type=int)
+  parser.add_argument(
+      '--has_rec',
+      default='False',
+      type=str)
 
   FLAGS, unparsed = parser.parse_known_args()
 

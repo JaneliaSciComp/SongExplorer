@@ -78,6 +78,8 @@ def main():
   def audio_read(wav_path, start_tic=None, stop_tic=None):
       return audio_read_module.audio_read(wav_path, start_tic, stop_tic,
                                           **FLAGS.audio_read_plugin_kwargs)
+  def audio_read_rec2ch():
+      return audio_read_module.audio_read_rec2ch(**FLAGS.audio_read_plugin_kwargs)
 
   sys.path.append(os.path.dirname(FLAGS.video_read_plugin))
   video_read_module = importlib.import_module(os.path.basename(FLAGS.video_read_plugin))
@@ -244,7 +246,13 @@ def main():
     else:
       adjusted_probability = probability_matrix[:,ch]
     waveform = adjusted_probability*np.iinfo(np.int16).max
-    filename = os.path.splitext(FLAGS.wav)[0]+'-'+labels[ch]+'.wav'
+    if len(audio_read_rec2ch()) == 1:
+      withoutext = os.path.splitext(FLAGS.wav)[0]
+    else:
+      tmp = FLAGS.wav.split('-')
+      withext, rec = '-'.join(tmp[:-1]), tmp[-1]
+      withoutext = os.path.splitext(withext)[0]+'-'+rec
+    filename = withoutext+'-'+labels[ch]+'.wav'
     wavfile.write(filename, int(sample_rate), waveform.astype('int16'))
 
 if __name__ == '__main__':

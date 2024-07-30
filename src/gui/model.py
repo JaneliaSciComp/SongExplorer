@@ -78,14 +78,27 @@ def isused(sound):
     return np.where([x['file']==sound['file'] and x['ticks']==sound['ticks'] \
                      for x in used_sounds])[0]
 
+def trim_ext(wavfile):
+    if len(audio_read_rec2ch()) == 1:
+        withoutext = os.path.splitext(wavfile)[0]
+    else:
+        tmp = wavfile.split('-')
+        withext, rec = '-'.join(tmp[:-1]), tmp[-1]
+        withoutext = os.path.splitext(withext)[0]+'-'+rec
+    return withoutext
+
 def save_annotations():
     global nrecent_annotations
     if nrecent_annotations>0:
         fids = {}
         csvwriters = {}
         csvfiles_current = set([])
-        for wavfile in set([os.path.join(*x['file']) for x in annotated_sounds if x["label"]!=""]):
-            csvfile = wavfile[:-4]+"-annotated-"+songexplorer_starttime+".csv"
+        wavfiles = set()
+        for sound in annotated_sounds:
+            if not sound["label"]:  continue
+            wavfiles |= set([trim_ext(os.path.join(*sound["file"]))])
+        for wavfile in wavfiles:
+            csvfile = wavfile+"-annotated-"+songexplorer_starttime+".csv"
             annotated_csvfiles_all.add(csvfile)
             csvfiles_current.add(csvfile)
             fids[wavfile] = open(os.path.join(V.groundtruth_folder.value, csvfile),
@@ -98,10 +111,11 @@ def save_annotations():
         corrected_sounds=[]
         for annotation in annotated_sounds:
             if annotation['label']!="" and not annotation['label'].isspace():
-                csvwriters[os.path.join(*annotation['file'])].writerow(
+                wavfile_noext = trim_ext(os.path.join(*annotation['file']))
+                csvwriters[wavfile_noext].writerow(
                         [annotation['file'][1],
-                        annotation['ticks'][0], annotation['ticks'][1],
-                        'annotated', annotation['label']])
+                         annotation['ticks'][0], annotation['ticks'][1],
+                         'annotated', annotation['label']])
             iused = isused(annotation)
             if len(iused)>0 and used_sounds[iused[0]]['kind']=='annotated':
                 corrected_sounds.append(annotation)
@@ -110,10 +124,14 @@ def save_annotations():
                                           x['ticks'][1], 'annotated', x['label']] \
                                          for x in corrected_sounds], \
                                         columns=['file','start','stop','kind','label'])
-            for wavfile in set([os.path.join(*x['file']) for x in corrected_sounds]):
+            wavfiles = set()
+            for sound in corrected_sounds:
+                wavfile_noext = trim_ext(os.path.join(*sound["file"]))
+                wavfiles |= set([wavfile_noext])
+            for wavfile in wavfiles:
                 wavdir, wavbase = os.path.split(wavfile)
                 wavpath = os.path.join(V.groundtruth_folder.value, wavdir)
-                for csvbase in filter(lambda x: x.startswith(wavbase[:-4]) and
+                for csvbase in filter(lambda x: x.startswith(os.path.splitext(wavbase)[0]) and
                                                 x.endswith(".csv") and
                                                 "-annotated" in x and
                                                 songexplorer_starttime not in x,
@@ -235,7 +253,8 @@ def init(_bokeh_document, _configuration_file, _use_aitch):
     global context_width_sec0, context_offset_sec0
     global xcluster, ycluster, zcluster, ndcluster, tic2pix_max, snippet_width_pix, ilayer, ispecies, iword, inohyphen, ikind, nlayers, layers, species, words, nohyphens, kinds, used_labels, snippets_gap_sec, snippets_tic, snippets_gap_tic, snippets_decimate_by, snippets_pix, snippets_gap_pix, context_decimate_by, context_width_tic, context_offset_tic, context_sound, isnippet, xsnippet, ysnippet, file_nframes, context_midpoint_tic, ilabel, used_sounds, used_starts_sorted, used_stops, iused_stops_sorted, annotated_sounds, annotated_starts_sorted, annotated_stops, iannotated_stops_sorted, annotated_csvfiles_all, nrecent_annotations, clustered_sounds, clustered_activations, used_recording2firstsound, clustered_starts_sorted, clustered_stops, iclustered_stops_sorted, songexplorer_starttime, history_stack, history_idx, wizard, action, function, statepath, state, file_dialog_root, file_dialog_filter, nearest_sounds, status_ticker_queue, waitfor_job, dfs, remaining_isounds
     global user_changed_recording, user_copied_parameters
-    global audio_read, video_read, detect_labels, doubleclick_annotation, context_data, context_data_istart, model, video_findfile
+    global audio_read, audio_read_exts, audio_read_rec2ch
+    global video_read, detect_labels, doubleclick_annotation, context_data, context_data_istart, model, video_findfile
     global detect_parameters, doubleclick_parameters, model_parameters, cluster_parameters
 
     bokeh_document = _bokeh_document
@@ -253,9 +272,11 @@ def init(_bokeh_document, _configuration_file, _use_aitch):
 
     sys.path.insert(0,os.path.dirname(audio_read_plugin))
     audio_read_module = importlib.import_module(os.path.basename(audio_read_plugin))
+    audio_read_module.audio_read_init(**audio_read_plugin_kwargs)
     def audio_read(wav_path, start_tic=None, stop_tic=None):
-        return audio_read_module.audio_read(wav_path, start_tic, stop_tic,
-                                            **audio_read_plugin_kwargs)
+        return audio_read_module.audio_read(wav_path, start_tic, stop_tic, **audio_read_plugin_kwargs)
+    def audio_read_exts(): return audio_read_module.audio_read_exts(**audio_read_plugin_kwargs)
+    def audio_read_rec2ch(): return audio_read_module.audio_read_rec2ch(**audio_read_plugin_kwargs)
 
     sys.path.insert(0,os.path.dirname(video_read_plugin))
     video_read_module = importlib.import_module(os.path.basename(video_read_plugin))

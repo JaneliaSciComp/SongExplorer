@@ -33,3 +33,12 @@ def audio_read(wav_path, start_tic, stop_tic, cutoff=1, order=2):
     data_unpadded = data_filtered[padlenL:-padlenR or None, :]
 
     return sampling_rate, data.shape, data_unpadded
+
+def audio_read_exts(**kw):
+    return ['.wav', '.WAV']
+
+def audio_read_rec2ch(**kw):
+    return {'A':[0]}
+
+def audio_read_init(**kw):
+    pass

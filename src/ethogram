@@ -2,10 +2,10 @@
 
 # apply per-class thresholds to discretize probabilities
  
-# ethogram <logdir> <model> <thresholds-file> <wav-file> <wav-tic-rate>
+# ethogram <logdir> <model> <thresholds-file> <wav-file> <wav-tic-rate> <has_rec>
 
 # e.g.
-# ethogram `pwd`/trained-classifier 1k 50 `pwd`/groundtruth-data/round1/20161207T102314_ch1_p1.wav 5000
+# ethogram `pwd`/trained-classifier 1k 50 `pwd`/groundtruth-data/round1/20161207T102314_ch1_p1.wav 5000 False
 
 import sys
 import os
@@ -29,19 +29,28 @@ print("hostname = "+socket.gethostname())
 
 try:
 
-  _,logdir,model,thresholds_file,wav_file,audio_tic_rate = argv
+  _,logdir,model,thresholds_file,wav_file,audio_tic_rate,has_rec = argv
   print('logdir: '+logdir)
   print('model: '+model)
   print('thresholds_file: '+thresholds_file)
   print('wav_file: '+wav_file)
   print('audio_tic_rate: '+audio_tic_rate)
+  print('has_rec: '+has_rec)
   audio_tic_rate=float(audio_tic_rate)
 
-  if not os.path.isfile(wav_file):
-    print('cannot find WAV file')
-    exit()
   wavpath, wavname = os.path.split(wav_file)
-  wavname_noext = os.path.splitext(wavname)[0]
+  if has_rec == "False":
+    if not os.path.isfile(wav_file):
+      print('cannot find WAV file')
+      exit()
+    wavname_noext  = os.path.splitext(wavname)[0]
+  else:
+    tmp = wavname.split('-')
+    withext, rec = '-'.join(tmp[:-1]), tmp[-1]
+    wavname_noext  = os.path.splitext(withext)[0]+'-'+rec
+    if not os.path.isfile(os.path.join(wavpath, withext)):
+      print('cannot find WAV file')
+      exit()
 
   precision_recall_ratios, thresholds = read_thresholds(logdir, model, thresholds_file)
 

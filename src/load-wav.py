@@ -19,3 +19,12 @@ def audio_read(wav_path, start_tic, stop_tic, mmap=True):
     data_sliced = data[start_tic_clamped : stop_tic_clamped, :]
 
     return sampling_rate, data.shape, data_sliced
+
+def audio_read_exts(**kw):
+    return ['.wav', '.WAV']
+
+def audio_read_rec2ch(**kw):
+    return {'A':[0]}
+
+def audio_read_init(**kw):
+    pass
