@@ -1,11 +1,9 @@
-# to analyze Electrical Penetration Graph (EGP; https://epgsystems.eu) data,
-# first create a lookup table using load-epg-make-lut.py.  then use the .aq8
-# files directly using this plugin.  the .D0x files that stylet+ automatically
-# creates can be deleted (as can any .A0x files).
+# .aq8 files from Electrical Penetration Graph (EGP; https://epgsystems.eu)
+# systems can be read in directly.  the .D0x files that stylet+ automatically
+# creates are not needed (nor are any .A0x files).
 
 #audio_read_plugin="load-epg"
-#audio_read_plugin_kwargs={"nchan":8, "lut_file":"load-epg-lut.npy",
-#                          "ncomments":3, "Fs":"smpl.frq= ([0-9.]+)Hz"}
+#audio_read_plugin_kwargs={"nchan":8, ncomments":3, "Fs":"smpl.frq= ([0-9.]+)Hz"}
 
 import re
 import numpy as np
@@ -31,15 +29,13 @@ def audio_read(fullpath_aq8_rec, start_tic, stop_tic,
         fid.seek(4*nchan*start_tic, 1)
         b = fid.read(4*nchan*(stop_tic-start_tic))
 
-    v = np.frombuffer(b, dtype=np.uint32)
+    v = np.frombuffer(b, dtype=np.float32)
     a = np.reshape(v, (-1,nchan))
 
     chs = audio_read_rec2ch()[rec]
     s = a[:, chs]
 
-    i = np.searchsorted(lut[:,0], s)
-    m = np.take(lut[:,1], i)
-    c = (m / 10 * np.iinfo(np.int16).max).astype(np.int16)
+    c = (s / 10 * np.iinfo(np.int16).max).astype(np.int16)
 
     return sampling_rate, (nsamples,len(chs)), c
 
@@ -49,6 +45,5 @@ def audio_read_exts(nchan=8, **kw):
 def audio_read_rec2ch(nchan=8, **kw):
     return {"rec"+chr(65+i):[i] for i in range(nchan)}
 
-def audio_read_init(lut_file="load-epg-lut.npy", **kw):
-    script_dir = os.path.abspath(os.path.dirname(__file__))
-    global lut = np.load(os.path.join(script_dir, lut_file))
+def audio_read_init(**kw):
+    pass
