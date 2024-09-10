@@ -131,6 +131,10 @@ hardware used (e.g. GPU make and model).
 
 # Citations and Repositories
 
+Lee S (2024)
+Studying Aphid feeding behavior using the Electrical Penetration Graph
+Janelia Meyerhoff Undergraduate Scholars Symposium
+
 D Ye, JT Walsh, IP Junker, Y Ding (2024)
 Changes in the cellular makeup of motor patterning circuits drive courtship song evolution in Drosophila
 [bioRxiv](https://www.biorxiv.org/content/10.1101/2024.01.23.576861v1.full)
@@ -140,8 +144,8 @@ How good is SongExplorer, a machine learning based classifier, at recognising th
 Bachelor's Thesis, Humboldt Universitat zu Berlin
 
 HM Shiozaki, K Wang, JL Lillvis, M Xu, BJ Dickson, DL Stern (2023)
-Combinatorial circuit dynamics orchestrate flexible motor patterns in Drosophila
-[bioRxiv](https://www.biorxiv.org/content/10.1101/2022.12.14.520499v2.full)
+Activity of nested neural circuits drives different courtship songs in Drosophila
+[Nat. Neurosci.](https://doi.org/10.1038/s41593-024-01738-9) [bioRxiv](https://www.biorxiv.org/content/10.1101/2022.12.14.520499v2.full)
 
 JL Lillvis, K Wang, HM Shiozaki, M Xu,  DL Stern, BJ Dickson (2023)
 Nested neural circuits generate distinct acoustic signals during Drosophila courtship
