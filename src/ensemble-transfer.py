@@ -22,12 +22,12 @@ use_video=0
 
 model_parameters = [
     # key, title in GUI, '' for textbox or [] for pull-down, default value, width, enable logic, callback, required
-    ["ckpt_files",    "checkpoint file(s)", '', '',  6, [], None, True],
-    ["trainable",     "trainable?",         '', '',  1, [], None, False],
-    ["splice_layers", "layer(s)",           '', '',  1, [], None, False],
-    ["conv_layers",   "conv",               '', '',  2, [], None, False],
-    ["dense_layers",  "dense",              '', '',  1, [], None, False],
-    ["dropout_rate",  "dropout %",          '', '0', 1, [], None, True],
+    ["ckpt_files",    "checkpoint file(s)", '', '',   6, [], None, True],
+    ["trainable",     "trainable?",         '', '',   1, [], None, False],
+    ["splice_layers", "layer(s)",           '', '',   1, [], None, False],
+    ["conv_layers",   "conv",               '', '',   2, [], None, False],
+    ["dense_layers",  "dense",              '', '',   1, [], None, False],
+    ["dropout",       "dropout %",          '', '50', 1, [], None, True],
     ]
 
 def load_model(context0, audio_tic_rate0, parallelize0, ckpt_file, io):
@@ -155,7 +155,7 @@ def create_model(model_settings, model_parameters, io=sys.stdout):
                         for x in model_parameters['conv_layers'].split(',')]
     dense_layers = [] if model_parameters['dense_layers']=='' \
                    else [int(x) for x in model_parameters['dense_layers'].split(',')]
-    dropout_rate = float(model_parameters['dropout_rate'])/100
+    dropout = float(model_parameters['dropout'])/100
 
     hidden_layers = []
 
@@ -190,8 +190,8 @@ def create_model(model_settings, model_parameters, io=sys.stdout):
         if fs==model_settings['audio_tic_rate']:
             x = Identity()
         else:
-            l = Resample(model_settings['audio_tic_rate'], fs)
-        x = l(inputs)
+            x = Resample(model_settings['audio_tic_rate'], fs)
+        x = x(inputs)
         x = m(x)
         hidden_layers.extend(x[0])
         lowerlegs.append(tf.keras.Model(inputs=inputs, outputs=x[1]))
@@ -210,8 +210,8 @@ def create_model(model_settings, model_parameters, io=sys.stdout):
     for idense, nunits in enumerate(dense_layers+[model_settings['nlabels']]):
         if idense>0:
             x = ReLU()(x)
-        if dropout_rate>0:
-            x = Dropout(dropout_rate)(x)
+            if dropout>0:
+                x = Dropout(dropout)(x)
         x = Conv1D(nunits, 1)(x)
         hidden_layers.append(x)
     

@@ -24,7 +24,7 @@ model_parameters = [
                                                'both',
                                                'neither'], 'neither',  1, [], None, False],
     ["dense_layers", "dense",                 '',          '',         1, [], None, False],
-    ["dropout_rate", "dropout %",             '',          '0',        1, [], None, True],
+    ["dropout",      "dropout %",             '',          '0',        1, [], None, True],
     ]
 
 def load_model(model_settings, ckpt):
@@ -69,7 +69,7 @@ def create_model(model_settings, model_parameters):
     trainable = model_parameters['trainable']
     dense_layers = [] if model_parameters['dense_layers']=='' \
                    else [int(x) for x in model_parameters['dense_layers'].split(',')]
-    dropout_rate = float(model_parameters['dropout_rate'])/100
+    dropout = float(model_parameters['dropout'])/100
 
     hidden_layers = []
 
@@ -88,8 +88,8 @@ def create_model(model_settings, model_parameters):
     for idense, nunits in enumerate(dense_layers+[model_settings['nlabels']]):
         if idense>0:
             x = ReLU()(x)
-        if dropout_rate>0:
-            x = Dropout(dropout_rate)(x)
+            if dropout>0:
+                x = Dropout(dropout)(x)
         x = Conv1D(nunits, 1)(x)
         hidden_layers.append(x)
     

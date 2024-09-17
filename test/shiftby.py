@@ -47,8 +47,7 @@ parameters = [
                          "nconvlayers": "2", \
                          "kernel_sizes": "3x3,32", \
                          "nfeatures": "8,8", \
-                         "dropout_kind": "unit", \
-                         "dropout_rate": "50", \
+                         "dropout": "50", \
                          "normalization": "none", \
                          "stride_time": "2", \
                          "stride_freq": "", \

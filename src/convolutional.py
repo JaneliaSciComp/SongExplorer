@@ -189,11 +189,7 @@ def model_parameters(time_units, freq_units, time_scale, freq_scale):
         ["nconvlayers",     "# conv layers",            '',                   '2',                    1, [],                 nlayers_callback,                                              True],
         ["kernel_sizes",    "kernels",                  '',                   '5x5,3',                1, [],                 None,                                                          True],
         ["nfeatures",       "# features",               '',                   '64,64',                1, [],                 None,                                                          True],
-        ["dropout_kind",    "dropout kind",             ['none',
-                                                         'unit'],             'unit',                 1, [],                 None,                                                          True],
-        ["dropout_rate",    "dropout %",                '',                   '50',                   1, ["dropout_kind",
-                                                                                                          ["unit",
-                                                                                                           "map"]],          None,                                                          True],
+        ["dropout",         "dropout %",                '',                   '50',                   1, [],                 None,                                                          True],
         ["normalization",   "normalization",            ['none',
                                                          'batch before ReLU',
                                                          'batch after ReLU'], 'none',                 1, [],                 None,                                                          True],
@@ -388,12 +384,7 @@ def create_model(model_settings, model_parameters, io=sys.stdout):
   dilate_time = parse_layers(model_parameters['dilate_time'], nconvlayers)
   dilate_freq = parse_layers(model_parameters['dilate_freq'], nconvlayers)
   use_residual = model_parameters['connection_type']=='residual'
-  dropout_rate = float(model_parameters['dropout_rate'])/100
-  if model_parameters['dropout_kind']=='unit':
-    dropout_kind = Dropout
-  else:
-    def Identity(x): return lambda x: x
-    dropout_kind = Identity
+  dropout = float(model_parameters['dropout'])/100
   if model_parameters['pool_kind']=='max':
     pool_kind = MaxPool2D
   elif model_parameters['pool_kind']=='average':
@@ -543,7 +534,8 @@ def create_model(model_settings, model_parameters, io=sys.stdout):
   print("receptive_field_freq = %d bins = %f %s" % (receptive_field[1],
       receptive_field[1] * audio_tic_rate / window_tics / freq_scale, freq_units), file=io)
 
-  x = dropout_kind(dropout_rate)(x)
+  if dropout>0:
+      x = Dropout(dropout)(x)
 
   if pool_kind:
     x = pool_kind(pool_size=pool_size, strides=pool_size)(x)
@@ -553,8 +545,9 @@ def create_model(model_settings, model_parameters, io=sys.stdout):
   # final dense layers (or actually, pan-freq pan-time 2D convs)
   for idense, nunits in enumerate(denselayers+[model_settings['nlabels']]):
     if idense>0:
-      relu = ReLU()(x)
-      x = dropout_kind(dropout_rate)(relu)
+      x = ReLU()(x)
+      if dropout>0:
+          x = Dropout(dropout)(x)
     x = Conv2D(nunits, (noutput_tics if idense==0 else 1, x_shape[2]))(x)
     hidden_layers.append(conv)
     x_shape = x.get_shape().as_list()
