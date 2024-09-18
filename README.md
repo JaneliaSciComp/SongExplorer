@@ -28,6 +28,7 @@ Table of Contents
       * [Searching Hyperparameters](#searching-hyperparameters)
       * [Examining Errors](#examining-errors)
       * [Ensemble Models](#ensemble-models)
+      * [Transfer Learning](#transfer-learning)
       * [Testing Densely](#testing-densely)
       * [Discovering Novel Sounds](#discovering-novel-sounds)
       * [Overlapped Classes](#overlapped-classes)
@@ -1501,6 +1502,36 @@ the thresholds file of one of the constituent models, and (3) calculate the
 `Congruence`.  A new thresholds file suffixed with "-dense" will be created.
 Manually copy this file into the newly created ensemble folder, and use
 it whenever classifying recordings with this ensemble model.
+
+## Transfer Learning ##
+
+Manually annotation can be a lot of work.  Fortunately, the effort spent doing
+so can be reduced by leveraging someone else's work.  Let's say your colleague
+Alice has trained a model to do a task similar to what you need.  You can take
+her model, keep the first few layers intact with their learned weights, replace
+the last couple of layers with randomly initialized ones of your own, and then
+iteratively train and annotate as described above.  The features in the early
+layers will already be quite rich, and so the new latter layers will not need
+as much ground truth data to learn your task.  Moreover, if your colleagues Bob
+and Carol also have similar trained models, you can combine all three in a
+similar fashion.
+
+SongExplorer comes with an architecture plugin (see [Customizing with
+Plug-ins](#customizing-with-plug-ins) for details on how plugins work) called
+"ensemble-transfer" that makes all this easy.  Modify the `architecture_plugin`
+variable in your "configuration.py" file to be "ensemble-transfer".  Then in
+the SongExplorer GUI specify (1) the checkpoint(s) of the pretrained model(s)
+you want to use, (2) whether you want to update the weights of the pretrained
+model when you train with your data (or just the new layers), (3) how many of
+the layers of the pretrained model(s) you want to use, (4) how many new
+convolutional layers you want to add (for each layer: kernel time size x kernel
+frequency size x num. features; e.g. "5x5x32,10x10x64"), (5) how many new dense
+layers you want to add (for each layer: num. units; e.g. "128,32,8"), and (6)
+the dropout rate (e.g. 50).  Then iteratively train and fix mistakes as before.
+
+Note that the pretrained models do *not* necessarily have to use the sampling
+rate-- the "ensemble-transfer" plugin will automatically insert a resampling
+layer if necessary.
 
 ## Discovering Novel Sounds ##
 
