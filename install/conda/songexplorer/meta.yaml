@@ -16,9 +16,9 @@ requirements:
     - python <=3.10
     - numpy
     - tensorflow >=2.8,<2.14  # [linux]
-    - cudatoolkit  # [not osx]
-    - cudnn  # [not osx]
-    - cuda-nvcc  # [not osx]
+    - cudatoolkit  # [win]
+    - cudnn  # [win]
+    - cuda-nvcc  # [win]
     - bokeh >=2,<3
     - matplotlib-base
     - natsort 

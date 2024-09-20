@@ -1912,12 +1912,12 @@ build command.  These only need to be done once:
 
 Then build:
 
-    $ conda build <path-to-songexplorer-repo>/install/conda/songexplorer -c nvidia -c conda-forge
+    $ conda build <path-to-songexplorer-repo>/install/conda/songexplorer -c conda-forge
 
 To install directly from this local build:
 
     $ conda create --name songexplorer
-    $ conda install -n songexplorer --use-local songexplorer -c nvidia -c conda-forge
+    $ conda install -n songexplorer --use-local songexplorer -c conda-forge
 
 Pay attention to the notice at the end demarcated with "*** IMPORTANT
 !!! ***".  Follow the directions therein to install platform-specific
