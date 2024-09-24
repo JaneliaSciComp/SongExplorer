@@ -356,7 +356,7 @@ ZIP file or container image, "configuration.py", and all of your data.
 * Set the PATH environment variable on the remote machine, either directly or by
 specifying it in `SONGEXPLORER_BIN` as follows.
 
-On MacOS (and Linux), put this definition in your .zshenv file:
+On MacOS (and Linux), put this definition in your .bashrc file:
 
     export SONGEXPLORER_BIN='PATH=<path-to-unzipped-executable>/songexplorer/bin:$PATH'
 
@@ -452,6 +452,14 @@ allocate those same resources.
     $ grep -E train.*cluster configuration.py
     train_cluster_flags="-n 2 -gpu 'num=1' -q gpu_rtx"
     train_cluster_flags="-n 12"
+
+LSF, and maybe other schedulers, does not honor bash's optional variable
+assignments.  So one cannot use SONGEXPLORER_BIN as described in [Another
+Workstation](#another-workstation) to specify the path to the SongExplorer
+executable.  If modifying your .bashrc file to export a modified PATH is not an
+option, then specify the `-env` flag in your configuration.py:
+
+	cluster_cmd="bsub -env 'all, PATH=<path-to-unzipped-executable>/songexplorer/bin:<paths-to-everything-else>'"
 
 
 # Tutorial #
