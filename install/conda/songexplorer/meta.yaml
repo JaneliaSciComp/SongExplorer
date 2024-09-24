@@ -14,11 +14,11 @@ build:
 requirements:
   run:
     - python <=3.10
-    - numpy
+    - numpy <2
     - tensorflow >=2.8,<2.14  # [linux]
-    - cudatoolkit  # [win]
-    - cudnn  # [win]
-    - cuda-nvcc  # [win]
+    - cudatoolkit=11  # [win]
+    - cudnn=8  # [win]
+    - cuda-nvcc=11  # [win]
     - bokeh >=2,<3
     - matplotlib-base
     - natsort 

@@ -65,6 +65,12 @@ from lib import compute_background
 FLAGS = None
 
 def main():
+  flags = vars(FLAGS)
+  for key in sorted(flags.keys()):
+    print('%s = %s' % (key, flags[key]))
+
+  audio_tic_rate = FLAGS.audio_tic_rate
+
   os.environ['TF_DETERMINISTIC_OPS']=FLAGS.deterministic
   os.environ['TF_DISABLE_SPARSE_SOFTMAX_XENT_WITH_LOGITS_OP_DETERMINISM_EXCEPTIONS']=FLAGS.deterministic
 
@@ -86,11 +92,6 @@ def main():
   def video_read(fullpath, start_frame=None, stop_frame=None):
       return video_read_module.video_read(fullpath, start_frame, stop_frame,
                                           **FLAGS.video_read_plugin_kwargs)
-
-  audio_tic_rate = FLAGS.audio_tic_rate
-
-  print('model = '+str(FLAGS.model))
-  print('audio_tic_rate = '+str(audio_tic_rate))
 
   with open(FLAGS.model_labels, 'r') as fid:
     model_labels = fid.read().splitlines()

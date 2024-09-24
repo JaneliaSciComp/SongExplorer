@@ -18,13 +18,14 @@ import platform
 
 use_aitch = False
 
+_, *wavpaths = sys.argv
+print("wavepaths = ", *wavpaths)
+  
 __dir__ = os.path.dirname(__file__)
 
 sys.path.append(os.path.join(__dir__, "songexplorer", "bin", "songexplorer", "test"))
 from libtest import wait_for_job
 
-_, *wavpaths = sys.argv
-  
 sys.path.append(os.path.join(__dir__, "songexplorer", "bin", "songexplorer", "src", "gui"))
 import model as M
 import view as V
@@ -75,7 +76,7 @@ def do_it(wavfile):
     V.waitfor.active = True
     asyncio.run(C.ethogram_actuate())
 
-    logfile = wavfile+"-post-process.log"
+    logfile = M.trim_ext(wavfile)+"-post-process.log"
     ncpu_cores, ngpu_cards, ngigabyes_memory  = 1, 0, 8
     localdeps = ["-d "+M.waitfor_job.pop()]
     kwargs = {"process_group": 0} if sys.version_info.major == 3 and sys.version_info.minor >= 11 else {}
