@@ -366,6 +366,7 @@ privileges:
     > $tbpath="<path-to-unzipped-executable>"
     > [Environment]::SetEnvironmentVariable("SONGEXPLORER_BIN",
             $tbpath + ";" +
+            $tbpath + "\bin\songexplorer\src;" +
             $tbpath + "\Library\mingw-w64\bin;" +
             $tbpath + "\Library\usr\bin;" +
             $tbpath + "\Library\bin;" +
@@ -1925,7 +1926,7 @@ Then build:
 To install directly from this local build:
 
     $ conda create --name songexplorer
-    $ conda install -n songexplorer --use-local songexplorer -c conda-forge
+    $ conda install -n songexplorer --use-local songexplorer -c conda-forge -c nvidia
 
 Pay attention to the notice at the end demarcated with "*** IMPORTANT
 !!! ***".  Follow the directions therein to install platform-specific
