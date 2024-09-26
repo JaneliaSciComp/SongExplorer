@@ -248,6 +248,7 @@ def init(_bokeh_document, _configuration_file, _use_aitch):
     global time_scale, freq_scale, context_time_scale, context_freq_scale
     global context_waveform_low, context_waveform_high, label_colors
     global spectrogram_colormap, spectrogram_clip, spectrogram_window, spectrogram_length_sec, spectrogram_overlap, spectrogram_low_hz, spectrogram_high_hz
+    global probability_style
     global overlapped_prefix
     global deterministic
     global context_width_sec0, context_offset_sec0
@@ -375,6 +376,8 @@ def init(_bokeh_document, _configuration_file, _use_aitch):
 
     context_freq_units = gui_context_freq_units
     context_freq_scale = gui_context_freq_scale
+
+    probability_style=gui_probability_style
 
     spectrogram_clip=gui_spectrogram_clip
     spectrogram_colormap=gui_spectrogram_colormap
