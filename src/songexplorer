@@ -24,7 +24,10 @@ os.environ['PATH'] = os.pathsep.join([*bindirs, *os.environ['PATH'].split(os.pat
 
 _, configuration_file, port = sys.argv
 
-exec(open(configuration_file).read(), globals())
+sys.path.append(os.path.join(os.path.dirname(__file__), "src"))
+from lib import check_config
+
+use_aitch, server_username, server_ipaddr = check_config(configuration_file)
 
 local_ncpu_cores = os.cpu_count()
 local_ngpu_cards = len(tf.config.list_physical_devices("GPU"))
@@ -51,57 +54,6 @@ if server_ipaddr:
                       str(server_ngpu_cards)+" server_ngpu_cards, "+
                       str(server_ngigabytes_memory)+" server_ngigabytes_memory")
 
-def isinteger(x):
-    if eval("not isinstance("+x+", int)"):
-        print("ERROR: "+x+" is not an integer")
-def isreal(x):
-    if eval("not isinstance("+x+", int) and not isinstance("+x+", float)"):
-        print("ERROR: "+x+" is neither an int nor a float")
-
-isreal("gui_time_scale")
-isreal("gui_freq_scale")
-isinteger("audio_tic_rate")
-isinteger("audio_nchannels")
-isreal("gui_snippets_width_sec")
-isinteger("gui_snippets_nx")
-isinteger("gui_snippets_ny")
-isinteger("gui_nlabels")
-isinteger("gui_gui_width_pix")
-isreal("gui_context_width_sec")
-isreal("gui_context_offset_sec")
-isinteger("gui_context_waveform_height_pix")
-isinteger("gui_context_spectrogram_height_pix")
-isinteger("models_per_job")
-isinteger("pca_batch_size")
-isinteger("nprobabilities")
-isinteger("accuracy_parallelize")
-isinteger("cluster_parallelize")
-isinteger("congruence_parallelize")
-isinteger("classify_parallelize")
-
-all_minusone = True
-global_vars = globals().copy()
-for resource_kind in ["ncpu_cores", "ngpu_cards", "ngigabytes_memory"]:
-    for job_resource_name in filter(lambda x: resource_kind in x, global_vars.keys()):
-        isinteger(job_resource_name)
-        if "local_" in job_resource_name or "server_" in job_resource_name:  continue
-        job_resource_value = global_vars[job_resource_name]
-        all_minusone &= job_resource_value == -1
-        local_resource_name = "local_"+resource_kind
-        local_resource_value = global_vars[local_resource_name]
-        if job_resource_value > local_resource_value:
-              print("WARNING: "+job_resource_name+" exceeds "+
-                    str(local_resource_value)+" "+local_resource_name)
-        if server_ipaddr:
-            server_resource_name = "server_"+resource_kind
-            server_resource_value = global_vars[server_resource_name]
-            if job_resource_value > server_resource_value:
-                  print("WARNING: "+job_resource_name+" exceeds "+
-                        str(server_resource_value)+" "+server_resource_name)
-
-if all_minusone:
-    print("INFO: all job resources are -1 so only one job will be run at a time")
-
 repodir = os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
 with open(os.path.join(repodir,"VERSION.txt"), 'r') as fid:
     version = fid.read().replace('\n', ' ')
@@ -124,7 +76,7 @@ ipaddr=thisip
 print(ipaddr+":"+port)
 
 
-if not all_minusone:
+if use_aitch:
     p = run(["hnslots"], stdout=PIPE, stderr=DEVNULL)
     if p.returncode==1:
         run(["hstart",
@@ -161,10 +113,10 @@ try:
          *[x for y in [["--allow-websocket-origin", x] for x in allow_websockets] for x in y],
          *maybeshow,
          "--port", port,
-         "--args", version, configuration_file, str(not all_minusone)])
+         "--args", version, configuration_file, str(use_aitch)])
 
 except KeyboardInterrupt:
-    if not all_minusone:
+    if use_aitch:
         p = run(["hjobs"], stdout=PIPE, stderr=DEVNULL)
         if len(p.stdout.decode('ascii').splitlines()) - 1 > 0:
             print("WARNING: jobs are still queued locally; to kill them execute `hstop --force`; to stop SongExplorer's scheduler, wait until they are done and execute `hstop`")

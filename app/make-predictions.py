@@ -2,6 +2,8 @@
 
 # run classify and ethogram on the input recordings using the enclosed model
 
+# ./make-predictions.py <paths-to-wavfiles-or-folders-of-wavfiles>
+
 logdir = "trained-classifier2"
 model = "train_1r"
 ckpt = "ckpt-300.index"
@@ -16,8 +18,6 @@ import tensorflow as tf
 import re
 import platform
 
-use_aitch = False
-
 _, *wavpaths = sys.argv
 print("wavepaths = ", *wavpaths)
   
@@ -30,6 +30,11 @@ sys.path.append(os.path.join(__dir__, "songexplorer", "bin", "songexplorer", "sr
 import model as M
 import view as V
 import controller as C
+
+sys.path.append(os.path.join(__dir__, "songexplorer", "bin", "songexplorer", "src"))
+from lib import check_config
+
+use_aitch, _, _ = check_config(os.path.join(__dir__, "configuration.py"))
 
 M.init(None, os.path.join(__dir__, "configuration.py"), use_aitch)
 V.init(None)
@@ -67,6 +72,8 @@ with open(os.path.join(__dir__, logdir, model+".log"),'r') as fid:
 V.prevalences.value = ""
 
 def do_it(wavfile):
+    print(wavfile)
+
     V.wavcsv_files.value = os.path.join(wavfile)
 
     V.waitfor.active = False
