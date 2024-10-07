@@ -271,7 +271,7 @@ class AudioProcessor(object):
                 if use_audio:
                     if ticks[1] < context_tics//2 + shiftby_tics or \
                        ticks[0] > (audio_ntics[wav_path] - context_tics//2 + shiftby_tics):
-                        print(f"WARNING: {str(annotation)} is too close to both edges of recording.  "
+                        print(f"WARNING: {str(annotation)} is too close to an edge of the recording.  "
                               f"not using at all")
                         continue
                     if ticks[0] < context_tics//2 + shiftby_tics:
