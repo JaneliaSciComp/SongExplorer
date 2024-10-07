@@ -76,6 +76,7 @@ import argparse
 import os.path
 import sys
 import re
+import gc
 
 import numpy as np
 import tensorflow as tf
@@ -274,6 +275,7 @@ def main():
     if validation_set_size>0 and \
        training_step != FLAGS.how_many_training_steps and \
        (FLAGS.validate_step_period > 0 and training_step % FLAGS.validate_step_period == 0):
+      gc.collect()
       validate_and_test(thismodel, thisloss, 'validation', validation_set_size, model_settings, \
                         audio_processor, False, training_step, t0, nlabels, \
                         validation_writer, model.use_audio, model.use_video,
