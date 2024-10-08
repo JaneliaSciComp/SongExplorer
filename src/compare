@@ -117,7 +117,7 @@ def main():
             ax.plot(recalls_all[-1], precisions_all[-1], 'o', markeredgecolor='w', color=color)
         precisions_mean.append(np.nanmean(precisions_all))
         recalls_mean.append(np.nanmean(recalls_all))
-        ax.plot(recalls_mean[-1], precisions_mean[-1], 'o', markeredgecolor='k', color=color)
+        ax.plot(recalls_mean[-1], precisions_mean[-1], 'o', markeredgecolor='k', color=color, zorder=10)
     label_precisions_recall(ax, recalls_mean, precisions_mean, "", False)
 
     ax = fig.add_subplot(2,2,2)
@@ -270,7 +270,7 @@ def main():
             precisions_mean.append(np.nanmean(precisions_all))
             recalls_mean.append(np.nanmean(recalls_all))
             ax.plot(recalls_mean[-1], precisions_mean[-1],
-                    'o', markeredgecolor='k', color=color)
+                    'o', markeredgecolor='k', color=color, zorder=10)
         label_precisions_recall(ax, recalls_mean, precisions_mean, label+"\n")
 
     fig.suptitle(','.join(list(commonparameters)), fontsize='xx-large')
