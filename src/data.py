@@ -88,14 +88,20 @@ def which_set(filename, validation_percentage, validation_offset_percentage, tes
     percentage_hash = ((int(hash_name_hashed, 16) %
                         (MAX_NUM_WAVS_PER_CLASS + 1)) *
                        (100.0 / MAX_NUM_WAVS_PER_CLASS))
+
+    # if validation_{offset}_percentage is negative, the absolute value of that
+    # portion is used for training instead (of validation).  this permits k-fold
+    # cross validation to use training sets that are smaller than validation sets,
+    # which is useful for determining if model accuracy is limited by data size
+
     if percentage_hash < testing_percentage:
         result = 'testing'
-    elif (testing_percentage + validation_offset_percentage) < \
+    elif (testing_percentage + abs(validation_offset_percentage)) < \
          percentage_hash < \
-         (testing_percentage + validation_offset_percentage + validation_percentage):
-        result = 'validation'
+         (testing_percentage + abs(validation_offset_percentage) + abs(validation_percentage)):
+        result = 'validation' if validation_percentage>=0 else 'training'
     else:
-        result = 'training'
+        result = 'training' if validation_percentage>=0 else 'validation'
     return result
 
 class AudioProcessor(object):

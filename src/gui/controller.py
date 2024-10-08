@@ -1346,7 +1346,7 @@ async def xvalidate_actuate():
     currtime = time.time()
     jobids = []
     os.makedirs(V.logs_folder.value, exist_ok=True)
-    kfolds = int(V.kfold.value)
+    kfolds = abs(int(V.kfold.value))  # negative means the train set is smaller
     for ifold in range(1, 1+kfolds, M.models_per_job):
         logfile = os.path.join(V.logs_folder.value, "xvalidate"+str(ifold)+".log")
         args = ["--context="+V.context.value, \

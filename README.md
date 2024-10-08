@@ -26,6 +26,7 @@ Table of Contents
       * [Double Checking Annotations](#double-checking-annotations)
       * [Measuring Generalization](#measuring-generalization)
       * [Searching Hyperparameters](#searching-hyperparameters)
+      * [Limiting Ground Truth](#limiting-ground-truth)
       * [Examining Errors](#examining-errors)
       * [Ensemble Models](#ensemble-models)
       * [Transfer Learning](#transfer-learning)
@@ -1298,6 +1299,33 @@ only useful for quantifying the variability in the accuracy, but can also
 be used to reduce that same variability by averaging the outputs across all
 of the folds.  [Ensemble Models](#ensemble-models) describes how to
 do just this by combining multiple models into a single one.
+
+## Limiting Ground Truth ##
+
+If no amount of hyperparameter optimization improves the accuracy to your
+satisfaction, you might just need more ground truth annotations.  To predict
+whether more ground truth will help, train a model using only a fraction of
+what is currently available and compare the accuracy to a model which uses all
+of it.  In this way you can extrapolate whether it would be worth spending the
+time to annotate.
+
+The cross validation procedures used in the previous section ([Searching
+Hyperparameters](#searching-hyperparameters)) makes limiting ground truth in
+this way easy.  Simply specify a k-fold of "2" and compare it to a k-fold of
+say "10".  The former two models are each trained with a different 50% of the
+data and the latter ten with 90%.  Were the amount of ground truth a limiting
+factor in model accuracy, then the accuracy would be higher for the 10-fold
+models, and one could reasonably expect that annotating more ground truth would
+increase it further.
+
+Ground truth can be limited even further by entering negative numbers into the
+"k-fold" textbox.  "-4" for example would train four models each of which used
+a different 25% of the data for training (compared to "4" for which each would
+use 75%).  Similarly, "-10" would train 10 each with 10%.  Only integers can be
+used here; "-2" is the same as "2"; and "-1", "0", and "1" are nonsensical.
+Also keep in mind to not partition your data such that either the training or
+validation sets have a small number of annotations for any label.
+
 
 ## Examining Errors ##
 
