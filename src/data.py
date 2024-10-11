@@ -32,7 +32,7 @@ import numpy as np
 import tifffile
 
 import signal
-from multiprocessing import Process, Queue, cpu_count
+from multiprocessing import Process, Queue, cpu_count, set_start_method
 
 import importlib
 
@@ -41,6 +41,8 @@ MAX_NUM_WAVS_PER_CLASS = 2**27 - 1  # ~134M
 queues = {}
 processes = {}
 offsets = {}
+
+set_start_method('fork')
 
 def term(signum, frame):
     for ps in processes.values():
