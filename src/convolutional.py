@@ -445,7 +445,7 @@ def create_model(model_settings, model_parameters, io=sys.stdout):
       lo = float(lo) * freq_scale
       hi = float(hi) * freq_scale
       nyquist = audio_tic_rate/2
-      nfreqs = x.get_shape().as_list()[2]
+      nfreqs = x.shape[2]
       x = Slice([0, 0, round(nfreqs * lo / nyquist), 0],
                 [-1, -1, round(nfreqs * (hi - lo) / nyquist), -1])(x)
     hidden_layers.append(x)
@@ -454,7 +454,7 @@ def create_model(model_settings, model_parameters, io=sys.stdout):
     x = MelCepstrum(window_tics, stride_tics, audio_tic_rate,
                          int(filterbank_nchannels), int(dct_ncoefficients))(x)
     hidden_layers.append(x)
-  x_shape = x.get_shape().as_list()
+  x_shape = x.shape
 
   receptive_field = [1,1]
   sum_of_strides = [0,0]
@@ -478,8 +478,8 @@ def create_model(model_settings, model_parameters, io=sys.stdout):
     sum_of_strides[0] += strides[0] - 1
     sum_of_strides[1] += strides[1] - 1
     if use_residual and iconv%2==0 and iconv>1:
-      bypass_shape = bypass.get_shape().as_list()
-      conv_shape = conv.get_shape().as_list()
+      bypass_shape = bypass.shape
+      conv_shape = conv.shape
       if bypass_shape[3]==conv_shape[3]:
         hoffset = (bypass_shape[1] - conv_shape[1]) // 2
         woffset = (bypass_shape[2] - conv_shape[2]) // 2
@@ -491,7 +491,7 @@ def create_model(model_settings, model_parameters, io=sys.stdout):
     x = ReLU()(conv)
     if normalize_after:
       x = BatchNormalization()(x)
-    x_shape = x.get_shape().as_list()
+    x_shape = x.shape
     noutput_tics = math.ceil((noutput_tics - dilated_kernel_size[0] + 1) / strides[0])
     iconv += 1
     dilation_rate = dilation(iconv+1, dilate_time, dilate_freq)
@@ -510,8 +510,8 @@ def create_model(model_settings, model_parameters, io=sys.stdout):
     receptive_field[0] += (dilated_kernel_size - 1) * 2**sum_of_strides[0]
     sum_of_strides[0] += strides[0] - 1
     if use_residual and iconv%2==0 and iconv>1:
-      bypass_shape = bypass.get_shape().as_list()
-      conv_shape = conv.get_shape().as_list()
+      bypass_shape = bypass.shape
+      conv_shape = conv.shape
       if bypass_shape[2]==conv_shape[2] and bypass_shape[3]==conv_shape[3]:
         offset = (bypass_shape[1] - conv_shape[1]) // 2
         conv = Add()([conv, Slice([0,offset,0,0],[-1,conv_shape[1],-1,-1])(bypass)])
@@ -521,7 +521,7 @@ def create_model(model_settings, model_parameters, io=sys.stdout):
     x = ReLU()(conv)
     if normalize_after:
       x = BatchNormalization()(x)
-    x_shape = x.get_shape().as_list()
+    x_shape = x.shape
     noutput_tics = math.ceil((noutput_tics - dilated_kernel_size + 1) / strides[0])
     iconv += 1
     dilation_rate = dilation(iconv+1, dilate_time, dilate_freq)
@@ -539,7 +539,7 @@ def create_model(model_settings, model_parameters, io=sys.stdout):
 
   if pool_kind:
     x = pool_kind(pool_size=pool_size, strides=pool_size)(x)
-    x_shape = x.get_shape().as_list()
+    x_shape = x.shape
     noutput_tics = math.floor(noutput_tics / pool_size[0])
 
   # final dense layers (or actually, pan-freq pan-time 2D convs)
@@ -550,7 +550,7 @@ def create_model(model_settings, model_parameters, io=sys.stdout):
           x = Dropout(dropout)(x)
     x = Conv2D(nunits, (noutput_tics if idense==0 else 1, x_shape[2]))(x)
     hidden_layers.append(conv)
-    x_shape = x.get_shape().as_list()
+    x_shape = x.shape
 
   final = Reshape((-1,model_settings['nlabels']))(x)
 

@@ -304,7 +304,7 @@ def network(PARAMS, inputs):
     i = PARAMS['data_format'] == 'channels_first'
     x = layers.Conv3D(
         filters=PARAMS['num_labels'],
-        kernel_size=[PARAMS["noutput_tics"], *x.get_shape().as_list()[(i+2):(i+4)]],
+        kernel_size=[PARAMS["noutput_tics"], *x.shape[(i+2):(i+4)]],
         use_bias=PARAMS['use_bias'],
         kernel_initializer=PARAMS['initializer'],
         kernel_regularizer=regularizer(PARAMS),
