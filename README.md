@@ -2004,6 +2004,11 @@ it into the assets section of the releases page:
     $ cd $CONDA_PREFIX/envs
     $ tar czf songexplorer-<version>-<architecture>.tar.gz songexplorer
 
+After downloading, some users will need to re-install some pip dependencies
+(e.g. tensorflow-metal on MacOS) as they are not in general relocatable:
+
+    $ pip3 install --target <path-to-unzipped-tarball>/songexplorer/lib/python3.10/site-packages tensorflow-metal
+
 To make changes to the code, do so in the git repository while using the
 dependent packages in the conda environment:
 
