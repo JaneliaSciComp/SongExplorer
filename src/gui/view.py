@@ -1135,14 +1135,13 @@ def context_update():
                                        colors=[M.label_colors[x] for x in M.used_labels],
                                        labels=list(M.used_labels))
     else:
-        if len(xprob)>1:
-            probability_source.data.update(**{'x'+str(i):(xprob[i] if i<len(xprob) else xprob[0])
-                                              for i in range(M.nlabels)},
-                                           **{'y'+str(i):(yprob[i] if i<len(yprob) else [0]*len(yprob[0]))
-                                              for i in range(M.nlabels)})
-            if len(xprob[0])>1:
-                for g in probability_glyphs:
-                    g.glyph.width = xprob[0][1] - xprob[0][0]
+        probability_source.data.update(**{'x'+str(i):(xprob[i] if i<len(xprob) else xprob[0] if len(xprob)>0 else [])
+                                          for i in range(M.nlabels)},
+                                       **{'y'+str(i):(yprob[i] if i<len(yprob) else [0]*len(yprob[0]) if len(yprob)>0 else [])
+                                          for i in range(M.nlabels)})
+        if len(xprob)>0 and len(xprob[0])>1:
+            for g in probability_glyphs:
+                g.glyph.width = xprob[0][1] - xprob[0][0]
 
     if M.context_waveform:
         waveform_quad_grey_used.data.update(left=left_used,
