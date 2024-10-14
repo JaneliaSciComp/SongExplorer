@@ -2002,7 +2002,7 @@ To upload a tarball to Github, compress the conda environment and drag and drop
 it into the assets section of the releases page:
 
     $ cd $CONDA_PREFIX/envs
-    $ tar czf songexplorer-<version>-<architecture>.tar.gz songexplorer
+    $ tar czf songexplorer-<version>-<architecture>.tar.gz [--tape-length=2G] songexplorer
 
 After downloading, some users will need to re-install some pip dependencies
 (e.g. tensorflow-metal on MacOS) as they are not in general relocatable:
