@@ -626,7 +626,6 @@ def main():
     print('recalls =', [recalls[model] for model in keys_to_plot])
 
 
-
     if FLAGS.loss=='exclusive':
         fig = plt.figure(figsize=(6.4, 4.8))
         ax = plt.subplot(1,1,1)
@@ -653,6 +652,10 @@ def main():
                           labels if FLAGS.loss=='exclusive' else
                               ["song", FLAGS.overlapped_prefix+"song"],
                           precision_summed, recall_summed)
+    print('precisions_summed =', precision_summed_matrix)
+    print('recalls_summed =', recall_summed_matrix)
+    print('precisions_summed_ave =', precision_summed)
+    print('recalls_summed_ave =', recall_summed)
     if FLAGS.loss=='overlapped':
         for ilabel in range(len(labels)):
             ax = plt.subplot(nrows,ncols,2+ilabel)
@@ -672,6 +675,10 @@ def main():
                                   "",
                                   [labels[ilabel], FLAGS.overlapped_prefix+labels[ilabel]],
                                   precision_summed, recall_summed)
+            print('precisions_summed_', labels[ilabel], ' =', precision_summed_matrix)
+            print('recalls_summed_', labels[ilabel], ' =', recall_summed_matrix)
+            print('precisions_summed_ave_', labels[ilabel], ' =', precision_summed)
+            print('recalls_summed_ave_', labels[ilabel], ' =', recall_summed)
 
     fig.tight_layout()
     plt.savefig(os.path.join(FLAGS.logdir,'confusion-matrix.pdf'))

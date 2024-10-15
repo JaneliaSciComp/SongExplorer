@@ -494,7 +494,6 @@ def calculate_precision_recall_specificity(validation_ground_truth, test_logits,
   pr_areas = {}
   roc_areas = {}
   for ilabel in range(len(labels)):
-    print(ilabel, end="\r", flush=True)
     if loss=='exclusive':
         itrue = validation_ground_truth==ilabel
         ifalse = validation_ground_truth!=ilabel
