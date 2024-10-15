@@ -171,63 +171,72 @@ use_video=0
 
 def model_parameters(time_units, freq_units, time_scale, freq_scale):
     return [
-        ["representation",  "representation",           ['waveform',
-                                                         'spectrogram',
-                                                         'mel-cepstrum'],     'mel-cepstrum',         1, [],                 None,                                                          True],
-        ["window",          "window ("+time_units+")",  '',                   str(0.0064/time_scale), 1, ["representation",
-                                                                                                          ["spectrogram",
-                                                                                                           "mel-cepstrum"]], window_callback,                                               True],
-        ["stride",          "stride ("+time_units+")",  '',                   str(0.0016/time_scale), 1, ["representation",
-                                                                                                          ["spectrogram",
-                                                                                                           "mel-cepstrum"]], stride_callback,                                               True],
-        ["range",           "range ("+freq_units+")",   '',                   '',                     1, ["representation",
-                                                                                                          ["spectrogram"]],  range_callback,                                                False],
-        ["mel_dct",         "mel & DCT",                '',                   '7,7',                  1, ["representation",
-                                                                                                          ["mel-cepstrum"]], mel_dct_callback,                                              True],
-        ["connection_type", "connection",               ['plain',
-                                                         'residual'],         'plain',                1, [],                 None,                                                          True],
-        ["nconvlayers",     "# conv layers",            '',                   '2',                    1, [],                 nlayers_callback,                                              True],
-        ["kernel_sizes",    "kernels",                  '',                   '5x5,3',                1, [],                 None,                                                          True],
-        ["nfeatures",       "# features",               '',                   '64,64',                1, [],                 None,                                                          True],
-        ["normalization",   "normalization",            ['none',
-                                                         'batch before ReLU',
-                                                         'batch after ReLU'], 'none',                 1, [],                 None,                                                          True],
-        ["stride_time",     "stride time",              '',                   '',                     1, [],                 fused_callback,                                                False],
-        ["stride_freq",     "stride freq",              '',                   '',                     1, ["representation",
-                                                                                                          ["spectrogram",
-                                                                                                           "mel-cepstrum"]], lambda n,M,V,C: dilate_stride_callback("stride_freq",n,M,V,C), False],
-        ["dilate_time",     "dilate time",              '',                   '',                     1, [],                 lambda n,M,V,C: dilate_stride_callback("dilate_time",n,M,V,C), False],
-        ["dilate_freq",     "dilate freq",              '',                   '',                     1, ["representation",
-                                                                                                          ["spectrogram",
-                                                                                                           "mel-cepstrum"]], lambda n,M,V,C: dilate_stride_callback("dilate_freq",n,M,V,C), False],
-        ["dropout",         "dropout %",                '',                   '50',                   1, [],                 None,                                                          True],
-        ["pool_kind",       "pool kind",                ["none",
-                                                         "max",
-                                                         "average"],          "none",                 1, [],                 None,                                                          True],
-        ["pool_size",       "pool size",                '',                   '2,2',                  1, ["pool_kind",
-                                                                                                          ["max",
-                                                                                                           "average"]],      None,                                                          True],
-        ["denselayers",     "dense layers",             '',                   '',                     1, [],                 None,                                                          False],
-        ["augment_volume",  "augment volume",           '',                   '1,1',                  1, [],                 None,                                                          True],
-        ["augment_noise",   "augment noise",            '',                   '0,0',                  1, [],                 None,                                                          True],
+        ["representation",  "representation",          ['waveform',
+                                                        'spectrogram',
+                                                        'mel-cepstrum'],     'mel-cepstrum',         1, [],                 None,                                                          True],
+        ["window",          "window ("+time_units+")", '',                   str(0.0064/time_scale), 1, ["representation",
+                                                                                                         ["spectrogram",
+                                                                                                          "mel-cepstrum"]], window_callback,                                               True],
+        ["stride",          "stride ("+time_units+")", '',                   str(0.0016/time_scale), 1, ["representation",
+                                                                                                         ["spectrogram",
+                                                                                                          "mel-cepstrum"]], stride_callback,                                               True],
+        ["range",           "range ("+freq_units+")",  '',                   '',                     1, ["representation",
+                                                                                                         ["spectrogram"]],  range_callback,                                                False],
+        ["mel_dct",         "mel & DCT",               '',                   '7,7',                  1, ["representation",
+                                                                                                         ["mel-cepstrum"]], mel_dct_callback,                                              True],
+        ["connection_type", "connection",              ['plain',
+                                                        'residual'],         'plain',                1, [],                 None,                                                          True],
+        ["nconvlayers",     "# conv layers",           '',                   '2',                    1, [],                 nlayers_callback,                                              True],
+        ["kernel_sizes",    "kernels",                 '',                   '5x5,3',                1, [],                 None,                                                          True],
+        ["nfeatures",       "# features",              '',                   '64,64',                1, [],                 None,                                                          True],
+        ["normalization",   "normalization",           ['none',
+                                                        'batch before ReLU',
+                                                        'batch after ReLU'], 'none',                 1, [],                 None,                                                          True],
+        ["stride_time",     "stride time",             '',                   '',                     1, [],                 fused_callback,                                                False],
+        ["stride_freq",     "stride freq",             '',                   '',                     1, ["representation",
+                                                                                                         ["spectrogram",
+                                                                                                          "mel-cepstrum"]], lambda n,M,V,C: dilate_stride_callback("stride_freq",n,M,V,C), False],
+        ["dilate_time",     "dilate time",             '',                   '',                     1, [],                 lambda n,M,V,C: dilate_stride_callback("dilate_time",n,M,V,C), False],
+        ["dilate_freq",     "dilate freq",             '',                   '',                     1, ["representation",
+                                                                                                         ["spectrogram",
+                                                                                                          "mel-cepstrum"]], lambda n,M,V,C: dilate_stride_callback("dilate_freq",n,M,V,C), False],
+        ["dropout",         "dropout %",               '',                   '50',                   1, [],                 None,                                                          True],
+        ["pool_kind",       "pool kind",               ["none",
+                                                        "max",
+                                                        "average"],          "none",                 1, [],                 None,                                                          True],
+        ["pool_size",       "pool size",               '',                   '2,2',                  1, ["pool_kind",
+                                                                                                         ["max",
+                                                                                                          "average"]],      None,                                                          True],
+        ["denselayers",     "dense layers",            '',                   '',                     1, [],                 None,                                                          False],
+        ["augment_volume",  "augment volume",          '',                   '1,1',                  1, [],                 None,                                                          True],
+        ["augment_noise",   "augment noise",           '',                   '0,0',                  1, [],                 None,                                                          True],
+        ["augment_dc",      "augment DC",              '',                   '0,0',                  1, [],                 None,                                                          True],
+        ["augment_reverse", "augment reverse",         ["yes", "no"],        'no',                   1, [],                 None,                                                          True],
+        ["augment_invert",  "augment invert",          ["yes", "no"],        'no',                   1, [],                 None,                                                          True],
     ]
 
 class Augment(tf.keras.layers.Layer):
-    def __init__(self, volume_range, noise_range, **kwargs):
+    def __init__(self, volume_range, noise_range, baseline_range, reverse_bool, invert_bool, **kwargs):
         super(Augment, self).__init__(**kwargs)
         self.volume_range = volume_range
         self.noise_range = noise_range
+        self.baseline_range = baseline_range
+        self.reverse_bool = reverse_bool
+        self.invert_bool = invert_bool
     def get_config(self):
         config = super().get_config().copy()
         config.update({
             'volume_range': self.volume_range,
             'noise_range': self.noise_range,
+            'baseline_range': self.baseline_range,
+            'reverse_bool': self.reverse_bool,
+            'invert_bool': self.invert_bool,
         })
         return config
     def call(self, inputs, training=None):
         if not training:
             return inputs
-        if self.volume_range != [1,1] or self.noise_range != [0,0]:
+        if self.volume_range != [1,1] or self.noise_range != [0,0] or self.baseline_range != [0,0]:
             nbatch_1_nchannel = tf.stack((tf.shape(inputs)[0], 1, tf.shape(inputs)[2]), axis=0)
         if self.volume_range != [1,1]:
             volume_ranges = tf.random.uniform(nbatch_1_nchannel, *self.volume_range)
@@ -236,6 +245,20 @@ class Augment(tf.keras.layers.Layer):
             noise_ranges = tf.random.uniform(nbatch_1_nchannel, *self.noise_range)
             noises = tf.random.normal(tf.shape(inputs), 0, noise_ranges)
             inputs = tf.math.add(noises, inputs)
+        if self.baseline_range != [0,0]:
+            baseline_ranges = tf.random.uniform(nbatch_1_nchannel, *self.baseline_range)
+            inputs = tf.math.add(baseline_ranges, inputs)
+        if self.reverse_bool:
+            ireverse = tf.squeeze(tf.random.categorical(tf.math.log([[0.5, 0.5]]),
+                                                        tf.shape(inputs)[0], dtype=tf.int32))
+            ireverse *= tf.shape(inputs)[1]
+            inputs = tf.reverse_sequence(inputs, ireverse, seq_axis=1, batch_axis=0)
+        if self.invert_bool:
+            iinvert = tf.squeeze(tf.random.categorical(tf.math.log([[0.5, 0.5]]),
+                                                       tf.shape(inputs)[0], dtype=tf.int32))
+            iinvert = tf.cast(iinvert, tf.float32)*2-1
+            iinvert = tf.expand_dims(tf.expand_dims(iinvert, axis=1), axis=1)
+            inputs *= iinvert
         return inputs
 
 class Spectrogram(tf.keras.layers.Layer):
@@ -431,8 +454,11 @@ def create_model(model_settings, model_parameters, io=sys.stdout):
   
   volume_range = [float(x) for x in model_parameters['augment_volume'].split(',')]
   noise_range = [float(x) for x in model_parameters['augment_noise'].split(',')]
-  if volume_range != [1,1] or noise_range != [0,0]:
-    x = Augment(volume_range, noise_range)(inputs)
+  dc_range = [float(x) for x in model_parameters['augment_dc'].split(',')]
+  reverse_bool = model_parameters['augment_reverse'] == 'yes'
+  invert_bool = model_parameters['augment_invert'] == 'yes'
+  if volume_range != [1,1] or noise_range != [0,0] or dc_range != [0,0]:
+    x = Augment(volume_range, noise_range, dc_range, reverse_bool, invert_bool)(inputs)
   else:
     x = inputs
 
@@ -554,5 +580,5 @@ def create_model(model_settings, model_parameters, io=sys.stdout):
 
   final = Reshape((-1,model_settings['nlabels']))(x)
 
-  print('convolutional.py version = 0.1.1', file=io)
+  print('convolutional.py version = 0.2', file=io)
   return tf.keras.Model(inputs=inputs, outputs=[hidden_layers, final], name="convolutional")
