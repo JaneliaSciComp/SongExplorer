@@ -20,15 +20,16 @@ bokehlog = logging.getLogger("songexplorer")
 use_audio=1
 use_video=0
 
-model_parameters = [
-    # key, title in GUI, '' for textbox or [] for pull-down, default value, width, enable logic, callback, required
-    ["ckpt_files",    "checkpoint file(s)", '', '',   6, [], None, True],
-    ["trainable",     "trainable?",         '', '',   1, [], None, False],
-    ["splice_layers", "layer(s)",           '', '',   1, [], None, False],
-    ["conv_layers",   "conv",               '', '',   2, [], None, False],
-    ["dense_layers",  "dense",              '', '',   1, [], None, False],
-    ["dropout",       "dropout %",          '', '50', 1, [], None, True],
-    ]
+def model_parameters(time_units, freq_units, time_scale, freq_scale):
+    return [
+        # key, title in GUI, '' for textbox or [] for pull-down, default value, width, enable logic, callback, required
+        ["ckpt_files",    "checkpoint file(s)", '', '',   6, [], None, True],
+        ["trainable",     "trainable?",         '', '',   1, [], None, False],
+        ["splice_layers", "layer(s)",           '', '',   1, [], None, False],
+        ["conv_layers",   "conv",               '', '',   2, [], None, False],
+        ["dense_layers",  "dense",              '', '',   1, [], None, False],
+        ["dropout",       "dropout %",          '', '50', 1, [], None, True],
+        ]
 
 def load_model(context0, audio_tic_rate0, parallelize0, ckpt_file, io):
     logfile = os.path.dirname(ckpt_file)+".log"
@@ -36,16 +37,16 @@ def load_model(context0, audio_tic_rate0, parallelize0, ckpt_file, io):
         for line in fid:
             if "time_units = " in line:
                 m=re.search('time_units = (.*)', line)
-                time_units = int(m.group(1))
+                time_units = m.group(1)
             if "freq_units = " in line:
                 m=re.search('freq_units = (.*)', line)
-                freq_units = int(m.group(1))
+                freq_units = m.group(1)
             if "time_scale = " in line:
                 m=re.search('time_scale = (.*)', line)
-                time_scale = int(m.group(1))
+                time_scale = float(m.group(1))
             if "freq_scale = " in line:
                 m=re.search('freq_scale = (.*)', line)
-                freq_scale = int(m.group(1))
+                freq_scale = float(m.group(1))
             elif "audio_tic_rate = " in line:
                 m=re.search('audio_tic_rate = (.*)', line)
                 audio_tic_rate = int(m.group(1))

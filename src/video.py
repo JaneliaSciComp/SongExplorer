@@ -32,32 +32,33 @@ import importlib
 use_audio=0
 use_video=1
 
-model_parameters = [
-  # key, title in GUI, '' for textbox or [] for pull-down, default value, width, enable logic, callback, required
-  ["use_bias",         "use bias",         ["yes", "no"],        "yes",          1, [], None, True],
-  ["augmentation",     "augmentation",     ['none',
-                                            'flip',
-                                            'rotate',
-                                            'both'],             'both',         1, [], None, True],
-  ["initializer",      "initializer",      ['he_normal',
-                                            'glorot_normal',
-                                            'lecun_normal',
-                                            'random_normal',
-                                            'truncated_normal'], 'he_normal',    1, [], None, True],
-  ["dropout_rate",     "dropout %",        '',                   '50',           1, [], None, True],
-  ["nstride2",         "# stride by 2",    '',                   '0',            1, [], None, True],
-  ["num_blocks",       "# blocks",         '',                   '1,1,1,1',      1, [], None, True],
-  ["nfilters",         "# filters",        '',                   '256',          1, [], None, True],
-  ["pool_size_stride", "pool size&stride", '',                   '11',           1, [], None, True],
-  ["kernel_size",      "kernel size",      '',                   '3',            1, [], None, True],
-  ["bn_momentum",      "BN momentum",      '',                   '0.9',          1, [], None, True],
-  ["epsilon",          "BN epsilon",       '',                   '0.0001',       1, [], None, True],
-  ["arch",             "architecture",     ['ip-csn',
-                                            'ir-csn',
-                                            'ip'],                'ip-csn',      1, [], None, True],
-  ["regularization",   "regularization",   ['weight_decay',
-                                            'l2'],               'weight_decay', 1, [], None, True],
-  ]
+def model_parameters(time_units, freq_units, time_scale, freq_scale):
+    return [
+        # key, title in GUI, '' for textbox or [] for pull-down, default value, width, enable logic, callback, required
+        ["use_bias",         "use bias",         ["yes", "no"],        "yes",          1, [], None, True],
+        ["augmentation",     "augmentation",     ['none',
+                                                  'flip',
+                                                  'rotate',
+                                                  'both'],             'both',         1, [], None, True],
+        ["initializer",      "initializer",      ['he_normal',
+                                                  'glorot_normal',
+                                                  'lecun_normal',
+                                                  'random_normal',
+                                                  'truncated_normal'], 'he_normal',    1, [], None, True],
+        ["dropout_rate",     "dropout %",        '',                   '50',           1, [], None, True],
+        ["nstride2",         "# stride by 2",    '',                   '0',            1, [], None, True],
+        ["num_blocks",       "# blocks",         '',                   '1,1,1,1',      1, [], None, True],
+        ["nfilters",         "# filters",        '',                   '256',          1, [], None, True],
+        ["pool_size_stride", "pool size&stride", '',                   '11',           1, [], None, True],
+        ["kernel_size",      "kernel size",      '',                   '3',            1, [], None, True],
+        ["bn_momentum",      "BN momentum",      '',                   '0.9',          1, [], None, True],
+        ["epsilon",          "BN epsilon",       '',                   '0.0001',       1, [], None, True],
+        ["arch",             "architecture",     ['ip-csn',
+                                                  'ir-csn',
+                                                  'ip'],                'ip-csn',      1, [], None, True],
+        ["regularization",   "regularization",   ['weight_decay',
+                                                'l2'],               'weight_decay', 1, [], None, True],
+    ]
 
 import math
 
