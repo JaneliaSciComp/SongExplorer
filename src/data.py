@@ -494,6 +494,31 @@ class AudioProcessor(object):
                             root = overlapped_sound['label'].removeprefix(overlapped_prefix)
                             labels[i - offset, self.labels_list.index(root)] = target
                             sounds[-1].append({k: v for k,v in overlapped_sound.items() if k!='overlaps'})
+
+            # augmentation
+            if use_audio and mode=='training':
+                volume_range = [float(x) for x in model_settings['augment_volume'].split(',')]
+                noise_range = [float(x) for x in model_settings['augment_noise'].split(',')]
+                dc_range = [float(x) for x in model_settings['augment_dc'].split(',')]
+                reverse_bool = model_settings['augment_reverse'] == 'yes'
+                invert_bool = model_settings['augment_invert'] == 'yes'
+                if volume_range != [1,1]:
+                    volume_ranges = np.random.uniform(*volume_range, (nsounds,1,audio_nchannels))
+                    audio_slice *= volume_ranges
+                if noise_range != [0,0]:
+                    noise_ranges = np.random.uniform(*noise_range, (nsounds,1,audio_nchannels))
+                    noises = np.random.normal(0, noise_ranges, audio_slice.shape)
+                    audio_slice += noises
+                if dc_range != [0,0]:
+                    dc_ranges = np.random.uniform(*dc_range, (nsounds,1,audio_nchannels))
+                    audio_slice += dc_ranges
+                if reverse_bool:
+                    ireverse = np.random.choice([False,True], nsounds)
+                    audio_slice[ireverse] = np.flip(audio_slice[ireverse], axis=1)
+                if invert_bool:
+                    iinvert = np.random.choice([-1,1], (nsounds,1,1))
+                    audio_slice *= iinvert
+
             if use_audio and use_video:
                 q.put([[audio_slice, video_slice], labels, sounds])
             elif use_audio:
