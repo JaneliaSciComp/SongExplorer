@@ -41,6 +41,11 @@
 #     --video_channels=0 \
 #     --batch_seed=-1 \
 #     --weights_seed=-1 \
+#     --augment_volume=1,1 \
+#     --augment_noise=0,0 \
+#     --augment_dc=0,0 \
+#     --augment_reverse=no \
+#     --augment_invert=no \
 #     --deterministic=0 \
 #     --igpu=1,2,3,4 \
 #     --ireplicates=0 \
@@ -135,6 +140,11 @@ def main():
             "--video_channels="+FLAGS.video_channels,
             "--random_seed_batch="+str(FLAGS.batch_seed),
             "--random_seed_weights="+str(FLAGS.weights_seed),
+            "--augment_volume="+str(FLAGS.augment_volume),
+            "--augment_noise="+str(FLAGS.augment_noise),
+            "--augment_dc="+str(FLAGS.augment_dc),
+            "--augment_reverse="+str(FLAGS.augment_reverse),
+            "--augment_invert="+str(FLAGS.augment_invert),
             "--deterministic="+FLAGS.deterministic,
             "--train_dir="+os.path.join(FLAGS.logdir,"train_"+model),
             "--summaries_dir="+os.path.join(FLAGS.logdir,"summaries_"+model),
@@ -304,6 +314,31 @@ if __name__ == '__main__':
       type=int,
       default=59185,
       help='Randomize weight initialization if -1; otherwise use supplied number as seed.')
+  parser.add_argument(
+      '--augment_volume',
+      type=str,
+      default='1,1',
+      help='Multiply each annotation by a uniform random number in this interval when training')
+  parser.add_argument(
+      '--augment_noise',
+      type=str,
+      default='0,0',
+      help='Add noise to each annotation with a uniform random std dev in this interval when training')
+  parser.add_argument(
+      '--augment_dc',
+      type=str,
+      default='0,0',
+      help='Add to each annotation a uniform random number in this interval when training')
+  parser.add_argument(
+      '--augment_reverse',
+      type=str,
+      default='no',
+      help='Flip in time with a probability of half each annotation when training')
+  parser.add_argument(
+      '--augment_invert',
+      type=str,
+      default='no',
+      help='Negate with a probability of half each annotation when training')
   parser.add_argument(
       '--model_architecture',
       type=str,

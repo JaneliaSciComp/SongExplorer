@@ -208,58 +208,7 @@ def model_parameters(time_units, freq_units, time_scale, freq_scale):
                                                                                                          ["max",
                                                                                                           "average"]],      None,                                                          True],
         ["denselayers",     "dense layers",            '',                   '',                     1, [],                 None,                                                          False],
-        ["augment_volume",  "augment volume",          '',                   '1,1',                  1, [],                 None,                                                          True],
-        ["augment_noise",   "augment noise",           '',                   '0,0',                  1, [],                 None,                                                          True],
-        ["augment_dc",      "augment DC",              '',                   '0,0',                  1, [],                 None,                                                          True],
-        ["augment_reverse", "augment reverse",         ["yes", "no"],        'no',                   1, [],                 None,                                                          True],
-        ["augment_invert",  "augment invert",          ["yes", "no"],        'no',                   1, [],                 None,                                                          True],
     ]
-
-class Augment(tf.keras.layers.Layer):
-    def __init__(self, volume_range, noise_range, baseline_range, reverse_bool, invert_bool, **kwargs):
-        super(Augment, self).__init__(**kwargs)
-        self.volume_range = volume_range
-        self.noise_range = noise_range
-        self.baseline_range = baseline_range
-        self.reverse_bool = reverse_bool
-        self.invert_bool = invert_bool
-    def get_config(self):
-        config = super().get_config().copy()
-        config.update({
-            'volume_range': self.volume_range,
-            'noise_range': self.noise_range,
-            'baseline_range': self.baseline_range,
-            'reverse_bool': self.reverse_bool,
-            'invert_bool': self.invert_bool,
-        })
-        return config
-    def call(self, inputs, training=None):
-        if not training:
-            return inputs
-        if self.volume_range != [1,1] or self.noise_range != [0,0] or self.baseline_range != [0,0]:
-            nbatch_1_nchannel = tf.stack((tf.shape(inputs)[0], 1, tf.shape(inputs)[2]), axis=0)
-        if self.volume_range != [1,1]:
-            volume_ranges = tf.random.uniform(nbatch_1_nchannel, *self.volume_range)
-            inputs = tf.math.multiply(volume_ranges, inputs)
-        if self.noise_range != [0,0]:
-            noise_ranges = tf.random.uniform(nbatch_1_nchannel, *self.noise_range)
-            noises = tf.random.normal(tf.shape(inputs), 0, noise_ranges)
-            inputs = tf.math.add(noises, inputs)
-        if self.baseline_range != [0,0]:
-            baseline_ranges = tf.random.uniform(nbatch_1_nchannel, *self.baseline_range)
-            inputs = tf.math.add(baseline_ranges, inputs)
-        if self.reverse_bool:
-            ireverse = tf.squeeze(tf.random.categorical(tf.math.log([[0.5, 0.5]]),
-                                                        tf.shape(inputs)[0], dtype=tf.int32))
-            ireverse *= tf.shape(inputs)[1]
-            inputs = tf.reverse_sequence(inputs, ireverse, seq_axis=1, batch_axis=0)
-        if self.invert_bool:
-            iinvert = tf.squeeze(tf.random.categorical(tf.math.log([[0.5, 0.5]]),
-                                                       tf.shape(inputs)[0], dtype=tf.int32))
-            iinvert = tf.cast(iinvert, tf.float32)*2-1
-            iinvert = tf.expand_dims(tf.expand_dims(iinvert, axis=1), axis=1)
-            inputs *= iinvert
-        return inputs
 
 class Spectrogram(tf.keras.layers.Layer):
     def __init__(self, window_tics, stride_tics, **kwargs):
@@ -452,20 +401,10 @@ def create_model(model_settings, model_parameters, io=sys.stdout):
   inputs = Input(shape=(ninput_tics, model_settings['audio_nchannels']))
   hidden_layers.append(inputs)
   
-  volume_range = [float(x) for x in model_parameters['augment_volume'].split(',')]
-  noise_range = [float(x) for x in model_parameters['augment_noise'].split(',')]
-  dc_range = [float(x) for x in model_parameters['augment_dc'].split(',')]
-  reverse_bool = model_parameters['augment_reverse'] == 'yes'
-  invert_bool = model_parameters['augment_invert'] == 'yes'
-  if volume_range != [1,1] or noise_range != [0,0] or dc_range != [0,0]:
-    x = Augment(volume_range, noise_range, dc_range, reverse_bool, invert_bool)(inputs)
-  else:
-    x = inputs
-
   if representation == "waveform":
-    x = Reshape((ninput_tics,1,model_settings['audio_nchannels']))(x)
+    x = Reshape((ninput_tics,1,model_settings['audio_nchannels']))(inputs)
   elif representation == "spectrogram":
-    x = Spectrogram(window_tics, stride_tics)(x)
+    x = Spectrogram(window_tics, stride_tics)(inputs)
     if model_parameters['range'] != "":
       lo, hi = model_parameters['range'].split('-')
       lo = float(lo) * freq_scale
@@ -478,7 +417,7 @@ def create_model(model_settings, model_parameters, io=sys.stdout):
   elif representation == "mel-cepstrum":
     filterbank_nchannels, dct_ncoefficients = model_parameters['mel_dct'].split(',')
     x = MelCepstrum(window_tics, stride_tics, audio_tic_rate,
-                         int(filterbank_nchannels), int(dct_ncoefficients))(x)
+                         int(filterbank_nchannels), int(dct_ncoefficients))(inputs)
     hidden_layers.append(x)
   x_shape = x.shape
 
