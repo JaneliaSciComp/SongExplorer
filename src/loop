@@ -168,6 +168,11 @@ def main():
                     'video_frame_width': FLAGS.video_frame_width,
                     'video_frame_height': FLAGS.video_frame_height,
                     'video_channels': [int(x)-1 for x in FLAGS.video_channels.split(',')],
+                    'augment_volume': FLAGS.augment_volume,
+                    'augment_noise': FLAGS.augment_noise,
+                    'augment_dc': FLAGS.augment_dc,
+                    'augment_reverse': FLAGS.augment_reverse,
+                    'augment_invert': FLAGS.augment_invert,
                     'parallelize': 1,
                     'context': FLAGS.context}
 
@@ -598,6 +603,31 @@ if __name__ == '__main__':
       type=int,
       default=59185,
       help='Randomize weight initialization if -1; otherwise use supplied number as seed.')
+  parser.add_argument(
+      '--augment_volume',
+      type=str,
+      default='1,1',
+      help='Multiply each annotation by a uniform random number in this interval when training')
+  parser.add_argument(
+      '--augment_noise',
+      type=str,
+      default='0,0',
+      help='Add noise to each annotation with a uniform random std dev in this interval when training')
+  parser.add_argument(
+      '--augment_dc',
+      type=str,
+      default='0,0',
+      help='Add to each annotation a uniform random number in this interval when training')
+  parser.add_argument(
+      '--augment_reverse',
+      type=str,
+      default='no',
+      help='Flip in time with a probability of half each annotation when training')
+  parser.add_argument(
+      '--augment_invert',
+      type=str,
+      default='no',
+      help='Negate with a probability of half each annotation when training')
   parser.add_argument(
       '--testing_equalize_ratio',
       type=int,

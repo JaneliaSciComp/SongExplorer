@@ -55,9 +55,7 @@ parameters = [
                          "dilate_freq": "", \
                          "pool_kind": "none", \
                          "pool_size": "", \
-                         "denselayers": "", \
-                         "augment_volume": "1,1", \
-                         "augment_noise": "0,0"}',
+                         "denselayers": ""}',
     "--data_dir="+os.path.join(repo_path, "test", "scratch", "shiftby", "groundtruth-data"),
     "--labels_touse=mel-pulse,mel-sine,ambient",
     "--kinds_touse=annotated",

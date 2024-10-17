@@ -57,6 +57,11 @@ def save_state_callback():
                      'nreplicates': V.nreplicates.value,
                      'batch_seed': V.batch_seed.value,
                      'weights_seed': V.weights_seed.value,
+                     'augment_volume': V.augment_volume.value,
+                     'augment_noise': V.augment_noise.value,
+                     'augment_dc': V.augment_dc.value,
+                     'augment_reverse': V.augment_reverse.value,
+                     'augment_invert': V.augment_invert.value,
                      'labels': str.join(',',[x.value for x in V.label_texts]),
                      'file_dialog_string': V.file_dialog_string.value,
                      'context': V.context.value,
@@ -510,6 +515,11 @@ def init(_bokeh_document, _configuration_file, _use_aitch):
                           'nreplicates':'1', \
                           'batch_seed':'-1', \
                           'weights_seed':'-1', \
+                          'augment_volume':'1,1', \
+                          'augment_noise':'0,0', \
+                          'augment_dc':'0,0', \
+                          'augment_reverse':'no', \
+                          'augment_invert':'no', \
                           'labels':','*(nlabels-1), \
                           'file_dialog_string':os.getcwd(), \
                           'context':str(0.2048 / time_scale), \

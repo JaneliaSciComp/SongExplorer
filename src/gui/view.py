@@ -1546,7 +1546,7 @@ def init(_bokeh_document):
     global detect, misses, train, leaveoneout, leaveallout, xvalidate, mistakes, activations, cluster, visualize, accuracy, freeze, ensemble, classify, ethogram, compare, congruence
     global status_ticker, waitfor, deletefailures
     global file_dialog_source, configuration_contents
-    global logs_folder_button, logs_folder, model_file_button, model_file, wavcsv_files_button, wavcsv_files, groundtruth_folder_button, groundtruth_folder, validation_files_button, test_files_button, validation_files, test_files, labels_touse_button, labels_touse, kinds_touse_button, kinds_touse, prevalences_button, prevalences, delete_ckpts, copy, labelsounds, makepredictions, fixfalsepositives, fixfalsenegatives, generalize, tunehyperparameters, findnovellabels, examineerrors, testdensely, doit, nsteps, restore_from, save_and_validate_period, validate_percentage, mini_batch, kfold, activations_equalize_ratio, activations_max_sounds, cluster_these_layers, precision_recall_ratios, congruence_portion, congruence_convolve, congruence_measure, context, shiftby, optimizer, loss, learning_rate, nreplicates, batch_seed, weights_seed, file_dialog_string, file_dialog_table, readme_contents, model_summary, labelcounts, wizard_buttons, action_buttons, parameter_buttons, parameter_textinputs, wizard2actions, action2parameterbuttons, action2parametertextinputs, status_ticker_update, status_ticker_pre, status_ticker_post
+    global logs_folder_button, logs_folder, model_file_button, model_file, wavcsv_files_button, wavcsv_files, groundtruth_folder_button, groundtruth_folder, validation_files_button, test_files_button, validation_files, test_files, labels_touse_button, labels_touse, kinds_touse_button, kinds_touse, prevalences_button, prevalences, delete_ckpts, copy, labelsounds, makepredictions, fixfalsepositives, fixfalsenegatives, generalize, tunehyperparameters, findnovellabels, examineerrors, testdensely, doit, nsteps, restore_from, save_and_validate_period, validate_percentage, mini_batch, kfold, activations_equalize_ratio, activations_max_sounds, cluster_these_layers, precision_recall_ratios, congruence_portion, congruence_convolve, congruence_measure, context, shiftby, optimizer, loss, learning_rate, nreplicates, batch_seed, weights_seed, augment_volume, augment_noise, augment_dc, augment_reverse, augment_invert, file_dialog_string, file_dialog_table, readme_contents, model_summary, labelcounts, wizard_buttons, action_buttons, parameter_buttons, parameter_textinputs, wizard2actions, action2parameterbuttons, action2parametertextinputs, status_ticker_update, status_ticker_pre, status_ticker_post
     global detect_parameters, detect_parameters_enable_logic, detect_parameters_required, detect_parameters_partitioned
     global doubleclick_parameters, doubleclick_parameters_enable_logic, doubleclick_parameters_required
     global model_parameters, model_parameters_enable_logic, model_parameters_required, model_parameters_partitioned
@@ -2172,8 +2172,8 @@ def init(_bokeh_document):
     optimizer.on_change('value', lambda a,o,n: C.generic_parameters_callback(''))
 
     loss = Select(title="loss", height=50, \
-                       value=M.state['loss'], \
-                       options=["exclusive", "overlapped"])
+                  value=M.state['loss'], \
+                  options=["exclusive", "overlapped"])
     loss.on_change('value', lambda a,o,n: C.generic_parameters_callback(''))
 
     learning_rate = TextInput(value=M.state['learning_rate'], \
@@ -2257,19 +2257,42 @@ def init(_bokeh_document):
     cluster_these_layers_update()
 
     nreplicates = TextInput(value=M.state['nreplicates'], \
-                                  title="# replicates", \
-                                  disabled=False)
+                            title="# replicates", \
+                            disabled=False)
     nreplicates.on_change('value', lambda a,o,n: C.generic_parameters_callback(n))
 
     batch_seed = TextInput(value=M.state['batch_seed'], \
-                                  title="batch seed", \
-                                  disabled=False)
+                           title="batch seed", \
+                           disabled=False)
     batch_seed.on_change('value', lambda a,o,n: C.generic_parameters_callback(n))
 
     weights_seed = TextInput(value=M.state['weights_seed'], \
-                                    title="weights seed", \
-                                    disabled=False)
+                             title="weights seed", \
+                             disabled=False)
     weights_seed.on_change('value', lambda a,o,n: C.generic_parameters_callback(n))
+
+
+    augment_volume = TextInput(value=M.state['augment_volume'], \
+                               title="augment volume")
+    augment_volume.on_change('value', lambda a,o,n: C.generic_parameters_callback(n))
+
+    augment_noise = TextInput(value=M.state['augment_noise'], \
+                              title="augment noise")
+    augment_noise.on_change('value', lambda a,o,n: C.generic_parameters_callback(n))
+
+    augment_dc = TextInput(value=M.state['augment_dc'], \
+                           title="augment DC")
+    augment_dc.on_change('value', lambda a,o,n: C.generic_parameters_callback(n))
+
+    augment_reverse = Select(value=M.state['augment_reverse'], \
+                             title="augment reverse", \
+                             options=["no", "yes"])
+    augment_reverse.on_change('value', lambda a,o,n: C.generic_parameters_callback(n))
+
+    augment_invert = Select(value=M.state['augment_invert'], \
+                            title="augment invert", \
+                            options=["no", "yes"])
+    augment_invert.on_change('value', lambda a,o,n: C.generic_parameters_callback(n))
 
     file_dialog_string = TextInput(disabled=False)
     file_dialog_string.on_change("value", C.file_dialog_path_callback)
@@ -2357,6 +2380,12 @@ def init(_bokeh_document):
         batch_seed,
         weights_seed,
 
+        augment_volume,
+        augment_noise,
+        augment_dc,
+        augment_reverse,
+        augment_invert,
+
         context,
         shiftby,
         optimizer,
@@ -2402,10 +2431,10 @@ def init(_bokeh_document):
 
     action2parametertextinputs = {
             detect: [wavcsv_files] + list(detect_parameters.values()),
-            train: [context, shiftby, optimizer, loss, learning_rate, nreplicates, batch_seed, weights_seed, logs_folder, groundtruth_folder, test_files, labels_touse, kinds_touse, nsteps, restore_from, save_and_validate_period, validate_percentage, mini_batch] + list(model_parameters.values()),
-            leaveoneout: [context, shiftby, optimizer, loss, learning_rate, batch_seed, weights_seed, logs_folder, groundtruth_folder, validation_files, test_files, labels_touse, kinds_touse, nsteps, restore_from, save_and_validate_period, mini_batch] + list(model_parameters.values()),
-            leaveallout: [context, shiftby, optimizer, loss, learning_rate, batch_seed, weights_seed, logs_folder, groundtruth_folder, validation_files, test_files, labels_touse, kinds_touse, nsteps, restore_from, save_and_validate_period, mini_batch] + list(model_parameters.values()),
-            xvalidate: [context, shiftby, optimizer, loss, learning_rate, batch_seed, weights_seed, logs_folder, groundtruth_folder, test_files, labels_touse, kinds_touse, nsteps, restore_from, save_and_validate_period, mini_batch, kfold] + list(model_parameters.values()),
+            train: [context, shiftby, optimizer, loss, learning_rate, nreplicates, batch_seed, weights_seed, augment_volume, augment_noise, augment_dc, augment_reverse, augment_invert, logs_folder, groundtruth_folder, test_files, labels_touse, kinds_touse, nsteps, restore_from, save_and_validate_period, validate_percentage, mini_batch] + list(model_parameters.values()),
+            leaveoneout: [context, shiftby, optimizer, loss, learning_rate, batch_seed, weights_seed, augment_volume, augment_noise, augment_dc, augment_reverse, augment_invert, logs_folder, groundtruth_folder, validation_files, test_files, labels_touse, kinds_touse, nsteps, restore_from, save_and_validate_period, mini_batch] + list(model_parameters.values()),
+            leaveallout: [context, shiftby, optimizer, loss, learning_rate, batch_seed, weights_seed, augment_volume, augment_noise, augment_dc, augment_reverse, augment_invert, logs_folder, groundtruth_folder, validation_files, test_files, labels_touse, kinds_touse, nsteps, restore_from, save_and_validate_period, mini_batch] + list(model_parameters.values()),
+            xvalidate: [context, shiftby, optimizer, loss, learning_rate, batch_seed, weights_seed, augment_volume, augment_noise, augment_dc, augment_reverse, augment_invert, logs_folder, groundtruth_folder, test_files, labels_touse, kinds_touse, nsteps, restore_from, save_and_validate_period, mini_batch, kfold] + list(model_parameters.values()),
             mistakes: [groundtruth_folder],
             activations: [context, shiftby, logs_folder, model_file, groundtruth_folder, labels_touse, kinds_touse, activations_equalize_ratio, activations_max_sounds, mini_batch, batch_seed] + list(model_parameters.values()),
             cluster: [groundtruth_folder]+ list(cluster_parameters.values()),
