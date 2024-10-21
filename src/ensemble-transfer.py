@@ -178,7 +178,7 @@ def create_model(model_settings, model_parameters, io=sys.stdout):
             ninput_tics = model.input.shape[1]
         model.trainable = trainable[i]
         truncated_model = tf.keras.Model(inputs=model.inputs,
-                                         outputs=[model.output[0][1:splice_layers[i]],
+                                         outputs=[model.output[0][:splice_layers[i]],
                                                   model.output[0][splice_layers[i]]])
         models.append(truncated_model)
         audio_tic_rates.append(audio_tic_rate)
@@ -195,11 +195,10 @@ def create_model(model_settings, model_parameters, io=sys.stdout):
         x = x(inputs)
         x = m(x)
         hidden_layers.extend(x[0])
-        lowerlegs.append(tf.keras.Model(inputs=inputs, outputs=x[1]))
+        lowerlegs.append(x[1])
 
     upperlegs = []
-    for leg in lowerlegs:
-        x = leg.output
+    for x in lowerlegs:
         for (t,f,m) in conv_layers:
             x = ReLU()(x)
             x = Conv2D(m, (t,f))(x)
@@ -207,6 +206,9 @@ def create_model(model_settings, model_parameters, io=sys.stdout):
         upperlegs.append(x)
 
     x = Concatenate()([Reshape((1,-1))(x) for x in upperlegs])
+
+    if dropout>0:
+        x = Dropout(dropout)(x)
 
     for idense, nunits in enumerate(dense_layers+[model_settings['nlabels']]):
         if idense>0:
