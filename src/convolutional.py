@@ -514,7 +514,7 @@ def create_model(model_settings, model_parameters, io=sys.stdout):
       if dropout>0:
           x = Dropout(dropout)(x)
     x = Conv2D(nunits, (noutput_tics if idense==0 else 1, x_shape[2]))(x)
-    hidden_layers.append(conv)
+    hidden_layers.append(x)
     x_shape = x.shape
 
   final = Reshape((-1,model_settings['nlabels']))(x)
