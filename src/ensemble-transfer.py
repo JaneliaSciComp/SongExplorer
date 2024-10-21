@@ -7,6 +7,7 @@ import sys
 import re
 import importlib
 import json
+from math import inf
 
 import tensorflow as tf
 from tensorflow.keras.layers import *
@@ -178,7 +179,7 @@ def create_model(model_settings, model_parameters, io=sys.stdout):
             ninput_tics = model.input.shape[1]
         model.trainable = trainable[i]
         truncated_model = tf.keras.Model(inputs=model.inputs,
-                                         outputs=[model.output[0][1:splice_layers[i]],
+                                         outputs=[model.output[0][:splice_layers[i]],
                                                   model.output[0][splice_layers[i]]])
         models.append(truncated_model)
         audio_tic_rates.append(audio_tic_rate)
@@ -187,36 +188,46 @@ def create_model(model_settings, model_parameters, io=sys.stdout):
                         model_settings['audio_tic_rate'])
     inputs = Input(shape=(ninput_tics, model_settings['audio_nchannels']))
     lowerlegs = []
+    minshape1 = minshape2 = inf
     for (m,fs) in zip(models, audio_tic_rates):
         if fs==model_settings['audio_tic_rate']:
-            x = Identity()
+            x = inputs
         else:
-            x = Resample(model_settings['audio_tic_rate'], fs)
-        x = x(inputs)
+            x = Resample(model_settings['audio_tic_rate'], fs)(inputs)
         x = m(x)
         hidden_layers.extend(x[0])
-        lowerlegs.append(tf.keras.Model(inputs=inputs, outputs=x[1]))
+        lowerlegs.append(x[1])
+        minshape1 = min(minshape1, x[1].shape[1])
+        minshape2 = min(minshape2, x[1].shape[2])
 
-    upperlegs = []
-    for leg in lowerlegs:
-        x = leg.output
-        for (t,f,m) in conv_layers:
-            x = ReLU()(x)
-            x = Conv2D(m, (t,f))(x)
-            hidden_layers.append(x)
-        upperlegs.append(x)
+    if len(lowerlegs)>1:
+        upperlegs = []
+        for x in lowerlegs:
+            if minshape1 != x.shape[1] or minshape2 != x.shape[2]:
+                x = Conv2D(x.shape[3], (x.shape[1] - minshape1 + 1, x.shape[2] - minshape2 + 1))(x)
+                hidden_layers.append(x)
+            upperlegs.append(x)
+        x = Concatenate()(upperlegs)
+    else:
+        x = lowerlegs[0]
 
-    x = Concatenate()([Reshape((1,-1))(x) for x in upperlegs])
+    for (t,f,m) in conv_layers:
+        x = ReLU()(x)
+        x = Conv2D(m, (t,f))(x)
+        hidden_layers.append(x)
+
+    if dropout>0:
+        x = Dropout(dropout)(x)
 
     for idense, nunits in enumerate(dense_layers+[model_settings['nlabels']]):
         if idense>0:
             x = ReLU()(x)
             if dropout>0:
                 x = Dropout(dropout)(x)
-        x = Conv1D(nunits, 1)(x)
+        x = Conv2D(nunits, (x.shape[1]-model_settings['parallelize']+1 if idense==0 else 1, x.shape[2]))(x)
         hidden_layers.append(x)
     
     final = Reshape((-1,model_settings['nlabels']))(x)
 
-    print('ensemble-transfer.py version = 0.1', file=io)
+    print('ensemble-transfer.py version = 0.2', file=io)
     return tf.keras.Model(inputs=inputs, outputs=[hidden_layers, final], name="ensemble-transfer")
