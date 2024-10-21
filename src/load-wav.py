@@ -23,8 +23,11 @@ def audio_read(wav_path, start_tic, stop_tic, mmap=True):
 def audio_read_exts(**kw):
     return ['.wav', '.WAV']
 
-def audio_read_rec2ch(**kw):
-    return {'A':[0]}
+def audio_read_rec2ch(wav_path, **kw):
+    return {'recA':[0]}
+
+def audio_read_strip_rec(wav_path, **kw):
+    return wav_path
 
 def audio_read_init(**kw):
     pass

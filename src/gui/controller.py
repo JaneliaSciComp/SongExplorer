@@ -1049,13 +1049,9 @@ def _validation_test_files(files_string, comma=True):
                                      files_string.rstrip(os.sep)))
     if basepath.startswith(V.groundtruth_folder.value.rstrip(os.sep)):
         return __validation_test_files(files_string, comma)
-    else:
+    elif files_string:
         lastfile = files_string.split(',')[-1]
-        if len(M.audio_read_rec2ch())>1:
-            norec = '-'.join(lastfile.split('-')[:-1])
-            ext = os.path.splitext(norec)[1]
-        else:
-            ext = os.path.splitext(lastfile)[1]
+        ext = os.path.splitext(M.audio_read_strip_rec(lastfile))
         if ext in M.audio_read_exts():
             return [files_string] if comma else files_string.split(',')
         elif os.path.isdir(files_string):
@@ -1064,7 +1060,9 @@ def _validation_test_files(files_string, comma=True):
             wavfiles = [x.strip() for x in wavfiles]
             return [','.join(wavfiles)] if comma else wavfiles
         else:
-            return ['']
+            bokehlog.info("ERROR: invalid value for validation / test files.")
+    else:
+        return ['']
 
 def _train_succeeded(logdir, kind, model, reftime):
     train_dir = os.path.join(logdir, kind+"_"+model)
@@ -1931,7 +1929,7 @@ async def _ethogram_actuate(i, wavfiles, threads, results):
                             M.ethogram_cluster_flags,
                             logdir, model, thresholds_file, wavfile,
                             str(M.audio_tic_rate),
-                            "False" if len(M.audio_read_rec2ch()) == 1 else "True")
+                            "True" if len(M.audio_read_rec2ch(M.audio_read_strip_rec(wavfile)))>1 else "False")
     displaystring = "ETHOGRAM "+os.path.basename(wavfile)
     if jobid:
         displaystring += " ("+jobid+")"
@@ -2035,6 +2033,7 @@ async def congruence_actuate():
     all_files = validation_files + test_files
     if '' in all_files:
         all_files.remove('')
+    has_rec = ["True" if len(M.audio_read_rec2ch(M.audio_read_strip_rec(f)))>1 else "False" for f in all_files]
     timestamp = datetime.strftime(datetime.now(),'%Y%m%dT%H%M%S')
     congruence_folder = os.path.join(V.groundtruth_folder.value, 'congruence-'+timestamp)
     os.mkdir(congruence_folder)
@@ -2055,7 +2054,7 @@ async def congruence_actuate():
                             "--nprobabilities="+str(M.nprobabilities),
                             "--audio_tic_rate="+str(M.audio_tic_rate),
                             "--parallelize="+str(M.congruence_parallelize),
-                            "--has_rec="+("False" if len(M.audio_read_rec2ch()) == 1 else "True"))
+                            "--has_rec="+','.join(has_rec))
     displaystring = "CONGRUENCE "+os.path.basename(all_files[0])
     if jobid:
         displaystring += " ("+jobid+")"
@@ -2109,11 +2108,11 @@ def wavcsv_files_callback():
     for i in range(len(V.file_dialog_source.selected.indices)):
         filename = V.file_dialog_source.data['names'][V.file_dialog_source.selected.indices[i]]
         if os.path.splitext(filename)[1] in M.audio_read_exts():
-            if len(M.audio_read_rec2ch()) == 1:
-                files.append(os.path.join(M.file_dialog_root, filename))
-            else:
+            if len(M.audio_read_rec2ch(filename)) > 1:
                 files.extend([os.path.join(M.file_dialog_root, filename)+'-'+k
-                              for k in M.audio_read_rec2ch().keys()])
+                              for k in M.audio_read_rec2ch(filename).keys()])
+            else:
+                files.append(os.path.join(M.file_dialog_root, filename))
         else:
             files.append(os.path.join(M.file_dialog_root, filename))
     V.wavcsv_files.value = ','.join(files)
@@ -2137,11 +2136,11 @@ def _validation_test_files_callback():
       filepath = os.path.join(M.file_dialog_root, filename)
     if nindices<2:
         if os.path.splitext(filepath)[1] in M.audio_read_exts():
-            if len(M.audio_read_rec2ch()) == 1:
-                return os.path.basename(filepath)
-            else:
+            if len(M.audio_read_rec2ch(filepath)) > 1:
                 return ','.join([os.path.basename(filepath)+'-'+k
-                                 for k in M.audio_read_rec2ch().keys()])
+                                 for k in M.audio_read_rec2ch(filepath).keys()])
+            else:
+                return os.path.basename(filepath)
         else:
             return filepath
     else:

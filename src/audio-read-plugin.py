@@ -14,8 +14,12 @@ def audio_read_exts(**kw):
     return []  # e.g. ['.wav', '.WAV']
 
 # a function that returns a dictionary that maps logical recordings to channels in the file
-def audio_read_rec2ch(**kw):
+def audio_read_rec2ch(fullpath, **kw):
     return {}  # e.g. {'A':[0], 'B':[1]}, or {'A':[0,1]}
+
+# a function that strips the recording suffix, if any
+def audio_read_strip_rec(fullpath, **kw):
+    return {}  # e.g. foo.wav-recA -> foo.wav
 
 def audio_read_init(**kw):
     pass

@@ -142,6 +142,7 @@ def main():
     print('%s = %s' % (key, flags[key]))
 
   wavfiles=set([os.path.basename(x) for x in FLAGS.wavfiles.split(',')])
+  has_rec = {wf:hr for (wf, hr) in zip(FLAGS.wavfiles.split(','), FLAGS.has_rec.split(','))}
   do_tic = FLAGS.measure=="both" or FLAGS.measure=="tic"
   do_label = FLAGS.measure=="both" or FLAGS.measure=="label"
 
@@ -165,7 +166,7 @@ def main():
   thresholds=set()
   for wavdir in wavdirs:
     for wavfile in wavdirs[wavdir]:
-      if FLAGS.has_rec == "False":
+      if has_rec[wavfile] == "False":
         wavfile_noext  = os.path.splitext(wavfile)[0]
       else:
         tmp = wavfile.split('-')

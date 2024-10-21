@@ -1205,14 +1205,18 @@ def cluster_these_layers_update():
 def recordings_update():
     M.used_sounds = []
     if kinds_touse.value=="" or labels_touse.value=="":
-        wavfiles = []
+        _wavfiles = []
         for ext in M.audio_read_exts():
-            wavfiles.extend(glob.glob("**/*"+ext,
+            _wavfiles.extend(glob.glob("**/*"+ext,
                                       root_dir=groundtruth_folder.value, recursive=True))
-        wavfiles = list(filter(lambda x: 'oldfiles-' not in x and \
-                                         'congruence-' not in x, wavfiles))
-        if len(M.audio_read_rec2ch()) > 1:
-            wavfiles = [w+'-'+k for w in wavfiles for k in M.audio_read_rec2ch().keys()]
+        _wavfiles = list(filter(lambda x: 'oldfiles-' not in x and \
+                                          'congruence-' not in x, _wavfiles))
+        wavfiles = []
+        for wavfile in _wavfiles:
+            if len(M.audio_read_rec2ch(wavfile)) > 1:
+                wavfiles.extend([wavfile+'-'+k for k in M.audio_read_rec2ch(wavfile).keys()])
+            else:
+                wavfiles.append(wavfile)
         for wavfile in wavfiles:
             M.used_sounds.append({'file': list(os.path.split(wavfile)),
                                   'ticks': [1, 1], 'kind': '', 'label': ' '})
