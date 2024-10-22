@@ -34,7 +34,7 @@ import controller as C
 sys.path.append(os.path.join(__dir__, "songexplorer", "bin", "songexplorer", "src"))
 from lib import check_config
 
-use_aitch, _, _ = check_config(os.path.join(__dir__, "configuration.py"))
+use_aitch, _, _, _, _ = check_config(os.path.join(__dir__, "configuration.py"))
 
 M.init(None, os.path.join(__dir__, "configuration.py"), use_aitch)
 V.init(None)

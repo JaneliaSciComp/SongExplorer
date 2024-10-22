@@ -59,27 +59,32 @@ def check_config(configuration_file):
     isinteger(locals(), "classify_parallelize")
 
     all_minusone = True
-    global_vars = globals().copy()
+    local_vars = locals().copy()
     for resource_kind in ["ncpu_cores", "ngpu_cards", "ngigabytes_memory"]:
-        for job_resource_name in filter(lambda x: resource_kind in x, global_vars.keys()):
-            isinteger(job_resource_name)
-            job_resource_value = global_vars[job_resource_name]
+        for job_resource_name in filter(lambda x: resource_kind in x, local_vars.keys()):
+            isinteger(locals(), job_resource_name)
+            job_resource_value = local_vars[job_resource_name]
             all_minusone &= job_resource_value == -1
+    if all_minusone:
+        print("INFO: all job resources are -1 so only one job will be run at a time")
+
+    return not all_minusone, locals()["server_username"], locals()["server_ipaddr"], local_vars, locals()["source_path"]
+
+def check_config2(config_vars, resource_vars, server_ipaddr):
+    for resource_kind in ["ncpu_cores", "ngpu_cards", "ngigabytes_memory"]:
+        for job_resource_name in filter(lambda x: resource_kind in x, config_vars.keys()):
+            job_resource_value = config_vars[job_resource_name]
             local_resource_name = "local_"+resource_kind
-            local_resource_value = global_vars[local_resource_name]
+            local_resource_value = resource_vars[local_resource_name]
             if job_resource_value > local_resource_value:
                   print("WARNING: "+job_resource_name+" exceeds "+
                         str(local_resource_value)+" "+local_resource_name)
             if server_ipaddr:
                 server_resource_name = "server_"+resource_kind
-                server_resource_value = global_vars[server_resource_name]
+                server_resource_value = resource_vars[server_resource_name]
                 if job_resource_value > server_resource_value:
                       print("WARNING: "+job_resource_name+" exceeds "+
                             str(server_resource_value)+" "+server_resource_name)
-
-    if all_minusone:
-        print("INFO: all job resources are -1 so only one job will be run at a time")
-    return not all_minusone, locals()["server_username"], locals()["server_ipaddr"]
 
 
 def get_srcrepobindirs():

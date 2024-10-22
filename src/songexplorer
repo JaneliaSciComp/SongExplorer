@@ -25,13 +25,18 @@ os.environ['PATH'] = os.pathsep.join([*bindirs, *os.environ['PATH'].split(os.pat
 _, configuration_file, port = sys.argv
 
 sys.path.append(os.path.join(os.path.dirname(__file__), "src"))
-from lib import check_config
+from lib import check_config, check_config2
 
-use_aitch, server_username, server_ipaddr = check_config(configuration_file)
+use_aitch, server_username, server_ipaddr, config_vars, source_path = check_config(configuration_file)
 
 local_ncpu_cores = os.cpu_count()
 local_ngpu_cards = len(tf.config.list_physical_devices("GPU"))
 local_ngigabytes_memory = int(psutil.virtual_memory().total/1024/1024/1024)
+
+resource_vars = {
+    "local_ncpu_cores":local_ncpu_cores,
+    "local_ngpu_cards":local_ngpu_cards,
+    "local_ngigabytes_memory":local_ngigabytes_memory}
 
 print("detected "+str(local_ncpu_cores)+" local_ncpu_cores, "+
                   str(local_ngpu_cards)+" local_ngpu_cards, "+
@@ -50,9 +55,17 @@ if server_ipaddr:
             stdout=PIPE)
     server_ngigabytes_memory = int(p.stdout.decode('ascii').rstrip())
 
+    resource_vars.update({
+        "server_ncpu_cores":server_ncpu_cores,
+        "server_ngpu_cards":server_ngpu_cards,
+        "server_ngigabytes_memory":server_ngigabytes_memory})
+
     print("detected "+str(server_ncpu_cores)+" server_ncpu_cores, "+
                       str(server_ngpu_cards)+" server_ngpu_cards, "+
                       str(server_ngigabytes_memory)+" server_ngigabytes_memory")
+
+check_config2(config_vars, resource_vars, server_ipaddr)
+
 
 repodir = os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
 with open(os.path.join(repodir,"VERSION.txt"), 'r') as fid:
