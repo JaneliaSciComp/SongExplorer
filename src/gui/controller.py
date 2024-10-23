@@ -31,7 +31,8 @@ def generic_actuate(cmd, logfile, where,
     # https://github.com/rust-lang/rust/issues/94743
     cmd = os.path.join(M.srcdir, cmd)
     if platform.system()=='Windows':
-        cmd = cmd.replace(os.path.sep, os.path.sep+os.path.sep)
+        if M.use_aitch:
+            cmd = cmd.replace(os.path.sep, os.path.sep+os.path.sep)
         args = [x.replace('<','^^^<').replace('>','^^^>') for x in args]
     with open(logfile, 'w') as fid:
         fid.write(cmd+" "+' '.join(args)+'\n')
