@@ -10,7 +10,6 @@
  
 import argparse
 import os
-import importlib
 import sys
 import csv
 import socket
@@ -64,11 +63,8 @@ def main():
   for key in sorted(flags.keys()):
     print('%s = %s' % (key, flags[key]))
 
-  sys.path.append(os.path.dirname(FLAGS.audio_read_plugin))
-  audio_read_module = importlib.import_module(os.path.basename(FLAGS.audio_read_plugin))
-  def audio_read(wav_path, start_tic=None, stop_tic=None):
-      return audio_read_module.audio_read(wav_path, start_tic, stop_tic,
-                                          **FLAGS.audio_read_plugin_kwargs)
+  load_audio_read_plugin(FLAGS.audio_read_plugin, FLAGS.audio_read_plugin_kwargs)
+  from lib import audio_read, trim_ext
 
   hyperparameter1 = int(FLAGS.parameters["my-simple-textbox"])
 
@@ -79,7 +75,7 @@ def main():
   amplitude = scipy.signal.medfilt(song)
 
   basename = os.path.basename(FLAGS.filename)
-  with open(os.path.splitext(FLAGS.filename)[0]+'-detected.csv', 'w') as fid:
+  with open(trim_ext(FLAGS.filename)+'-detected.csv', 'w') as fid:
       csvwriter = csv.writer(fid, lineterminator='\n')
       for i in range(1,len(amplitude)-1):
           if amplitude[i] > hyperparameter1:

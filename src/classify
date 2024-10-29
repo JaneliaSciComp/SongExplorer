@@ -60,7 +60,7 @@ import importlib
 from lib import log_nvidia_smi_output, select_GPUs
 
 import tifffile
-from lib import compute_background
+from lib import compute_background, load_audio_read_plugin
 
 FLAGS = None
 
@@ -79,15 +79,8 @@ def main():
   sys.path.append(os.path.dirname(FLAGS.video_findfile))
   video_findfile = importlib.import_module(os.path.basename(FLAGS.video_findfile)).video_findfile
 
-  sys.path.append(os.path.dirname(FLAGS.audio_read_plugin))
-  audio_read_module = importlib.import_module(os.path.basename(FLAGS.audio_read_plugin))
-  def audio_read(wav_path, start_tic=None, stop_tic=None):
-      return audio_read_module.audio_read(wav_path, start_tic, stop_tic,
-                                          **FLAGS.audio_read_plugin_kwargs)
-  def audio_read_rec2ch(wavfile):
-      return audio_read_module.audio_read_rec2ch(wavfile, **FLAGS.audio_read_plugin_kwargs)
-  def audio_read_strip_rec(wavfile):
-      return audio_read_module.audio_read_strip_rec(wavfile, **FLAGS.audio_read_plugin_kwargs)
+  load_audio_read_plugin(FLAGS.audio_read_plugin, FLAGS.audio_read_plugin_kwargs)
+  from lib import  audio_read, trim_ext
 
   sys.path.append(os.path.dirname(FLAGS.video_read_plugin))
   video_read_module = importlib.import_module(os.path.basename(FLAGS.video_read_plugin))
@@ -249,12 +242,7 @@ def main():
     else:
       adjusted_probability = probability_matrix[:,ch]
     waveform = adjusted_probability*np.iinfo(np.int16).max
-    if len(audio_read_rec2ch(audio_read_strip_rec(FLAGS.wav))) > 1:
-      tmp = FLAGS.wav.split('-')
-      withext, rec = '-'.join(tmp[:-1]), tmp[-1]
-      withoutext = os.path.splitext(withext)[0]+'-'+rec
-    else:
-      withoutext = os.path.splitext(FLAGS.wav)[0]
+    withoutext = trim_ext(FLAGS.wav)
     filename = withoutext+'-'+labels[ch]+'.wav'
     wavfile.write(filename, int(sample_rate), waveform.astype('int16'))
 
