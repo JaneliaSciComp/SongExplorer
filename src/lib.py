@@ -20,12 +20,37 @@ from natsort import realsorted
 from scipy.io import wavfile
 import csv
 from datetime import datetime
+import importlib
 
 import tifffile
 
 import tensorflow as tf
 import platform
 from subprocess import run, PIPE, STDOUT
+
+def load_audio_read_plugin(audio_read_plugin, audio_read_plugin_kwargs):
+    sys.path.append(os.path.dirname(audio_read_plugin))
+    audio_read_module = importlib.import_module(os.path.basename(audio_read_plugin))
+    global audio_read, audio_read_exts, audio_read_rec2ch, audio_read_strip_rec
+    def audio_read(wav_path, start_tic=None, stop_tic=None):
+        return audio_read_module.audio_read(wav_path, start_tic, stop_tic,
+                                            **audio_read_plugin_kwargs)
+    def audio_read_exts():
+         return audio_read_module.audio_read_exts(**audio_read_plugin_kwargs)
+    def audio_read_rec2ch(wavfile):
+         return audio_read_module.audio_read_rec2ch(wavfile, **audio_read_plugin_kwargs)
+    def audio_read_strip_rec(recfile):
+         return audio_read_module.audio_read_strip_rec(recfile, **audio_read_plugin_kwargs)
+    return audio_read_module.audio_read_init(**audio_read_plugin_kwargs)
+
+def trim_ext(wavfile):
+    if len(audio_read_rec2ch(audio_read_strip_rec(wavfile))) > 1:
+        tmp = wavfile.split('-')
+        withext, rec = '-'.join(tmp[:-1]), tmp[-1]
+        withoutext = os.path.splitext(withext)[0]+'-'+rec
+    else:
+        withoutext = os.path.splitext(wavfile)[0]
+    return withoutext
 
 def check_config(configuration_file):
     exec(open(configuration_file).read())

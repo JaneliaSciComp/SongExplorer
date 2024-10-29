@@ -30,7 +30,6 @@
 import argparse
 import os
 import numpy as np
-import importlib
 import skimage
 from skimage.morphology import closing, opening
 import nitime.utils as utils
@@ -43,7 +42,7 @@ from datetime import datetime
 import socket
 import json
 
-from lib import combine_events
+from lib import combine_events, load_audio_read_plugin
 
 def _frequency_n_callback(M,V,C):
     C.time.sleep(0.5)
@@ -96,11 +95,8 @@ def main():
     time_scale = FLAGS.time_scale
     time_units = FLAGS.time_units
 
-    sys.path.append(os.path.dirname(FLAGS.audio_read_plugin))
-    audio_read_module = importlib.import_module(os.path.basename(FLAGS.audio_read_plugin))
-    def audio_read(wav_path, start_tic=None, stop_tic=None):
-        return audio_read_module.audio_read(wav_path, start_tic, stop_tic,
-                                            **FLAGS.audio_read_plugin_kwargs)
+    load_audio_read_plugin(FLAGS.audio_read_plugin, FLAGS.audio_read_plugin_kwargs)
+    from lib import audio_read, trim_ext
 
     time_sigma_signal, time_sigma_noise = [int(x) for x in FLAGS.parameters['time_sigma'].split(',')]
     
@@ -229,7 +225,7 @@ def main():
 
 
     basename = os.path.basename(FLAGS.filename)
-    with open(os.path.splitext(FLAGS.filename)[0]+'-detected.csv', 'w') as fid:
+    with open(trim_ext(FLAGS.filename)+'-detected.csv', 'w') as fid:
       csvwriter = csv.writer(fid, lineterminator='\n')
       for i in intervals_time_signal:
         csvwriter.writerow([basename,i[1],i[2],'detected','time'+i[3]])

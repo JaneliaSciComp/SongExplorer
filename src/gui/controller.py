@@ -937,10 +937,10 @@ def pbfile_succeeded(pbfile, reftime):
     return recent_file_exists(pbfile, reftime, True)
     
 def detect_succeeded(wavfile, reftime):
-    logfile = wavfile[:-4]+'-detect.log'
+    logfile = M.trim_ext(wavfile)+'-detect.log'
     if not logfile_succeeded(logfile, reftime):
         return False
-    csvfile = wavfile[:-4]+'-detected.csv'
+    csvfile = M.trim_ext(wavfile)+'-detected.csv'
     if not csvfile_succeeded(csvfile, reftime):
         return False
     return True
@@ -955,7 +955,7 @@ async def detect_actuate():
 async def _detect_actuate(i, wavfiles, threads, results):
     wavfile = wavfiles.pop(0)
     currtime = time.time()
-    logfile = os.path.splitext(wavfile)[0]+'-detect.log'
+    logfile = M.trim_ext(wavfile)+'-detect.log'
     jobid = generic_actuate(M.detect_plugin+".py", logfile, \
                             M.detect_where,
                             M.detect_ncpu_cores,
