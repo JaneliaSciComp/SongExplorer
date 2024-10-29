@@ -120,7 +120,7 @@ def create_inference_graph():
           hidden, output = self.thismodel(waveform, training=False)
           if FLAGS.loss=='exclusive':
               output = tf.nn.softmax(output)
-          else:
+          elif FLAGS.loss=='overlapped':
               output = tf.math.sigmoid(output)
           return hidden, output
 
@@ -231,8 +231,8 @@ if __name__ == '__main__':
       '--loss',
       type=str,
       default='exclusive',
-      choices=['exclusive', 'overlapped'],
-      help='Sigmoid cross entropy is used for "overlapped" labels while softmax cross entropy is used for "exclusive" labels.')
+      choices=['exclusive', 'overlapped', 'autoencoder'],
+      help='Sigmoid cross entropy is used for "overlapped" or "autoencoder" labels while softmax cross entropy is used for "exclusive" labels.')
   parser.add_argument(
       '--labels_touse',
       type=str,

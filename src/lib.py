@@ -336,14 +336,15 @@ def layout(nplots):
   return nrows, ncols
 
 
-def read_log(frompath, logfile):
+def read_log(frompath, logfile, loss='exclusive'):
   train_accuracy=[]; train_loss=[]; train_time=[]; train_step=[]
   validation_time=[]; validation_step=[]
   validation_precision=[]; validation_recall=[]
-  validation_precision_mean=[]; validation_recall_mean=[]
+  validation_precision_mean=[]; validation_recall_mean=[]; validation_loss=[]
   test_precision=[]; test_recall=[]
-  test_precision_mean=[]; test_recall_mean=[]
+  test_precision_mean=[]; test_recall_mean=[]; test_loss=[]
   nlayers=0
+  bottleneck=math.inf
   with open(os.path.join(frompath,logfile),'r') as fid:
     train_restart_correction=0.0
     validation_restart_correction=0.0
@@ -389,6 +390,10 @@ def read_log(frompath, logfile):
           nlayers += 1
         m=re.search('[^,] (\d+)',line)
         nparameters_finallayer = int(m.group(1))
+      elif 'None' in line:
+        m=re.search('None, (\d+), (\d+), (\d+)',line)
+        if m:
+            bottleneck = min(bottleneck, int(m.group(1)) * int(m.group(2)) * int(m.group(3)))
       elif "Confusion Matrix" in line:
           conf_matrix_state=True
       elif conf_matrix_state and " [" in line and " ['" not in line and 'None' not in line:
@@ -411,24 +416,34 @@ def read_log(frompath, logfile):
               conf_matrix_state=False
               confusion_string=""
       elif "Validation\n" in line:
-        validation_precision.append(precision)
-        validation_recall.append(recall)
-        validation_precision_mean.append(precision_mean)
-        validation_recall_mean.append(recall_mean)
-        m=re.search('^([0-9.]+),([0-9]+),[0-9.]+ Validation$',line)
+        m=re.search('^([0-9.]+),([0-9]+),([0-9.]+) Validation$',line)
         validation_time_value = float(m.group(1))
+        if loss != 'autoencoder':
+            validation_precision.append(precision)
+            validation_recall.append(recall)
+            validation_precision_mean.append(precision_mean)
+            validation_recall_mean.append(recall_mean)
+        else:
+            validation_loss.append(float(m.group(3)))
         if len(validation_time)>0 and \
                 (validation_time_value+validation_restart_correction)<validation_time[-1]:
           validation_restart_correction = validation_time[-1]
         validation_time.append(validation_time_value+validation_restart_correction)
         validation_step.append(int(m.group(2)))
       elif "Testing\n" in line:
-        test_precision.append(precision)
-        test_recall.append(recall)
-        test_precision_mean.append(precision_mean)
-        test_recall_mean.append(recall_mean)
+        if loss != 'autoencoder':
+            test_precision.append(precision)
+            test_recall.append(recall)
+            test_precision_mean.append(precision_mean)
+            test_recall_mean.append(recall_mean)
+        else:
+            m=re.search('^([0-9.]+),([0-9]+),([0-9.]+) Testing$',line)
+            test_loss_mean.append(float(m.group(3)))
       else:
-        m=re.search('^([0-9.]+),([0-9]+),([0-9.]+),([0-9.]+)$', line)
+        if loss != 'autoencoder':
+            m=re.search('^([0-9.]+),([0-9]+),([0-9.]+),([0-9.]+)$', line)
+        else:
+            m=re.search('^([0-9.]+),([0-9]+),([0-9.]+)$', line)
         if m:
           train_time_value = float(m.group(1))
           if len(train_time)>0 and \
@@ -436,31 +451,35 @@ def read_log(frompath, logfile):
             train_restart_correction = train_time[-1]
           train_time.append(train_time_value+train_restart_correction)
           train_step.append(int(m.group(2)))
-          train_accuracy.append(float(m.group(3)))
-          train_loss.append(float(m.group(4)))
+          if loss != 'autoencoder':
+            train_accuracy.append(float(m.group(3)))
+            train_loss.append(float(m.group(4)))
+          else:
+            train_loss.append(float(m.group(3)))
 
   return train_accuracy, train_loss, train_time, train_step, \
          validation_precision, validation_recall, \
          validation_precision_mean, validation_recall_mean, \
-         validation_time, validation_step, \
-         test_precision, test_recall, test_precision_mean, test_recall_mean, \
+         validation_time, validation_step, validation_loss, \
+         test_precision, test_recall, test_precision_mean, test_recall_mean, test_loss, \
          labels_touse, label_counts, \
-         nparameters_total, nparameters_finallayer, \
+         nparameters_total, nparameters_finallayer, bottleneck, \
          batch_size, nlayers
          #test_accuracy, \
 
 
-def read_logs(frompath):
+def read_logs(frompath, loss='exclusive'):
   train_accuracy={}; train_loss={}; train_time={}; train_step={}
   validation_precision={}; validation_recall={}
   validation_precision_mean={}; validation_recall_mean={}
-  validation_time={}; validation_step={}
+  validation_time={}; validation_step={}; validation_loss={}
   test_precision={}; test_recall={}
-  test_precision_mean={}; test_recall_mean={}
+  test_precision_mean={}; test_recall_mean={}; test_loss={}
   labels_touse={}
   label_counts={}
   nparameters_total={}
   nparameters_finallayer={}
+  bottleneck={}
   batch_size={}
   nlayers={}
   for logfile in filter(lambda x: re.match('(train|xvalidate|generalize)_.*log',x), \
@@ -469,23 +488,23 @@ def read_logs(frompath):
     train_accuracy[model], train_loss[model], train_time[model], train_step[model], \
           validation_precision[model], validation_recall[model], \
           validation_precision_mean[model], validation_recall_mean[model], \
-          validation_time[model], validation_step[model], \
+          validation_time[model], validation_step[model], validation_loss[model], \
           test_precision[model], test_recall[model], \
-          test_precision_mean[model], test_recall_mean[model], \
+          test_precision_mean[model], test_recall_mean[model], test_loss[model], \
           labels_touse[model], label_counts[model], \
-          nparameters_total[model], nparameters_finallayer[model], \
+          nparameters_total[model], nparameters_finallayer[model], bottleneck[model], \
           batch_size[model], nlayers[model] = \
-          read_log(frompath, logfile)
+          read_log(frompath, logfile, loss)
           #test_accuracy[model], \
 
   return train_accuracy, train_loss, train_time, train_step, \
          validation_precision, validation_recall, \
          validation_precision_mean, validation_recall_mean, \
-         validation_time, validation_step, \
+         validation_time, validation_step, validation_loss, \
          test_precision, test_recall, \
-         test_precision_mean, test_recall_mean, \
+         test_precision_mean, test_recall_mean, test_loss, \
          labels_touse, label_counts, \
-         nparameters_total, nparameters_finallayer, \
+         nparameters_total, nparameters_finallayer, bottleneck, \
          batch_size, nlayers
          #test_accuracy, \
 

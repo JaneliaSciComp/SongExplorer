@@ -30,6 +30,7 @@ Table of Contents
       * [Examining Errors](#examining-errors)
       * [Ensemble Models](#ensemble-models)
       * [Transfer Learning](#transfer-learning)
+      * [Autoencoding](#autoencoding)
       * [Testing Densely](#testing-densely)
       * [Discovering Novel Sounds](#discovering-novel-sounds)
       * [Overlapped Classes](#overlapped-classes)
@@ -1569,6 +1570,39 @@ the dropout rate (e.g. 50).  Then iteratively train and fix mistakes as before.
 Note that the pretrained models do *not* necessarily have to use the sampling
 rate-- the "ensemble-transfer" plugin will automatically insert a resampling
 layer if necessary.
+
+## Autoencoding ##
+
+There is an unsupervised variation of transfer learning that is particularly
+useful if you have a lot of unlabelled data.  You start by training a model
+whose output layer is identical in shape to its input layer and inbetween there
+is a layer with much fewer units.  The task is to reconstruct the input at the
+output despite this bottleneck, thereby learning a compact representation of
+the domain.  One of the hidden layers, typically the smallest one, is then used
+as the input to a second model which is trained in a supervised manner with
+the few labels you have.  Typically this second model is architecturally very
+simple, maybe consisting of just a single layer.
+
+To use this workflow in SongExplorer, manually create an "autoencoded.csv" file
+for each recording which has a single row whose start and stop tics correspond
+to the beginning and end of the file.  Something like this:
+
+    PS_20130625111709_ch3.wav,1,2500,autoencoded,all
+
+Set the `architecture_plugin` to "autoencoder", and devise an architecture
+whose first few layers are similar to that which you would normally use for a
+supervised task.  These will then be automatically mirrored.
+
+Choose "autoencoder" for the "loss" pull-down menu in the GUI.  Train and
+search the hyperparameter space as usual.  The "train-validation-loss.pdf"
+plots will not show the precision and recall curves, and rather add the
+validation loss to compare with the train loss.  Similarly the precision and
+recall scatter plots are not drawn for `compare`, and instead the validation
+loss curves are overlayed and the size of the bottleneck is shown.
+
+`classify` a withheld recording to see how faithful the reconstruction is.  If
+it looks reasonable, change the `architecture_plugin` to "ensemble-transfer"
+and proceed as described in [Transfer Learning](#transfer-learning).
 
 ## Discovering Novel Sounds ##
 

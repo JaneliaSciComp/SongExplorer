@@ -1219,7 +1219,7 @@ def recordings_update():
                 wavfiles.append(wavfile)
         for wavfile in wavfiles:
             M.used_sounds.append({'file': list(os.path.split(wavfile)),
-                                  'ticks': [1, 1], 'kind': '', 'label': ' '})
+                                  'ticks': [1, 1], 'kind': '', 'label': ''})
     elif M.dfs:
         wavfiles = set()
         kinds = kinds_touse.value.split(',')
@@ -2173,7 +2173,7 @@ def init(_bokeh_document):
 
     loss = Select(title="loss", height=50, \
                   value=M.state['loss'], \
-                  options=["exclusive", "overlapped"])
+                  options=["exclusive", "overlapped", "autoencoder"])
     loss.on_change('value', lambda a,o,n: C.generic_parameters_callback(''))
 
     learning_rate = TextInput(value=M.state['learning_rate'], \

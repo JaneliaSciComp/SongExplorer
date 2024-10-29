@@ -96,25 +96,35 @@ from lib import log_nvidia_smi_output, select_GPUs
 FLAGS = None
 
 # Create the back propagation and training evaluation machinery
+
 def masked_sigmoid_cross_entropy_with_logits(labels, logits):
     loss = tf.nn.sigmoid_cross_entropy_with_logits(labels, logits)
     mask = tf.math.not_equal(labels, 2)
     return loss * tf.cast(mask, tf.float32)
 
-def loss_fn(fn, logits, ground_truth_input):
-    return fn(labels=ground_truth_input, logits=logits[:,0,:])
+def mean_square_error(labels, logits):
+    return tf.keras.losses.MSE(labels, logits)
 
-def evaluate_fn(model, fingerprint_input, ground_truth_input, istraining):
+def loss_fn(fn, logits, ground_truth_input):
+    if FLAGS.loss != 'autoencoder':
+        return fn(labels=ground_truth_input, logits=logits[:,0,:])
+    else:
+        return fn(labels=ground_truth_input, logits=logits)
+
+def evaluate_fn(loss, model, fingerprint_input, ground_truth_input, istraining):
     hidden_activations, logits = model(fingerprint_input, training=istraining)
-    if ground_truth_input.dtype == tf.int32:
+    if loss == 'exclusive':
         predicted_indices = tf.cast(tf.math.argmax(logits, 2)[:,0], tf.int32)
         correct_predictions = tf.equal(predicted_indices, ground_truth_input)
         mask = None
-    else:
+    elif loss == 'overlapped':
         predicted_indices = tf.cast(logits > 0.5, tf.float32)[:,0,:]
         all_predictions = tf.equal(predicted_indices, ground_truth_input)
         mask = tf.math.not_equal(ground_truth_input, 2)
         correct_predictions = tf.boolean_mask(all_predictions, mask)
+    elif loss == 'autoencoder':
+        correct_predictions = tf.math.abs(logits - ground_truth_input)
+        predicted_indices = mask = None
     accuracy = tf.reduce_mean(tf.cast(correct_predictions, tf.float32))
     return logits, accuracy, predicted_indices, hidden_activations, mask
 
@@ -199,8 +209,12 @@ def main():
 
   thisoptimizer = getattr(tf.keras.optimizers, FLAGS.optimizer)(learning_rate=FLAGS.learning_rate)
 
-  thisloss = tf.nn.sparse_softmax_cross_entropy_with_logits if FLAGS.loss=='exclusive' else \
-             masked_sigmoid_cross_entropy_with_logits
+  if FLAGS.loss=='exclusive':
+      thisloss = tf.nn.sparse_softmax_cross_entropy_with_logits
+  elif FLAGS.loss=='overlapped':
+      thisloss = masked_sigmoid_cross_entropy_with_logits
+  elif FLAGS.loss=='autoencoder':
+      thisloss = mean_square_error
 
   start_step = 1
 
@@ -231,7 +245,7 @@ def main():
           FLAGS.batch_size, 0, model_settings, FLAGS.loss,
           FLAGS.overlapped_prefix, FLAGS.shiftby, 'training',
           model.use_audio, model.use_video, video_findfile)
-      evaluate_fn(thismodel, train_fingerprints, train_ground_truth, False)
+      evaluate_fn(FLAGS.loss, thismodel, train_fingerprints, train_ground_truth, False)
       return
 
   training_set_size = audio_processor.set_size('training')
@@ -242,8 +256,8 @@ def main():
   def train_step(train_fingerprints, train_ground_truth):
     # Run the graph with this batch of training data.
     with tf.GradientTape() as tape:
-      logits, train_accuracy, _, _, _ = evaluate_fn(thismodel, train_fingerprints,
-                                                 train_ground_truth, True)
+      logits, train_accuracy, _, _, _ = evaluate_fn(FLAGS.loss, thismodel, train_fingerprints,
+                                                    train_ground_truth, True)
       loss_value = loss_fn(thisloss, logits, train_ground_truth)
     gradients = tape.gradient(loss_value, thismodel.trainable_variables)
     thisoptimizer.apply_gradients(zip(gradients, thismodel.trainable_variables))
@@ -251,7 +265,10 @@ def main():
     return cross_entropy_mean, train_accuracy
 
   # Training loop.
-  print('line format is Elapsed %f, Step #%d, Train accuracy %.1f, cross entropy %f')
+  if FLAGS.loss != 'autoencoder':
+    print('line format is Elapsed %f, Step #%d, Train accuracy %.1f, cross entropy %f')
+  else:
+    print('line format is Elapsed %f, Step #%d, Train cross entropy %f')
   for training_step in range(start_step, FLAGS.how_many_training_steps + 1):
     if training_set_size>0:
       # Pull the sounds we'll use for training.
@@ -267,9 +284,12 @@ def main():
         tf.summary.scalar('cross_entropy', cross_entropy_mean, step=training_step)
         tf.summary.scalar('accuracy', train_accuracy, step=training_step)
 
-      print('%f,%d,%.1f,%f' %
-                      (t1.total_seconds(), training_step,
-                       train_accuracy.numpy() * 100, cross_entropy_mean.numpy()))
+      if FLAGS.loss != 'autoencoder':
+        print('%f,%d,%.1f,%f' %
+                        (t1.total_seconds(), training_step,
+                         train_accuracy.numpy() * 100, cross_entropy_mean.numpy()))
+      else:
+        print('%f,%d,%f' % (t1.total_seconds(), training_step, cross_entropy_mean.numpy()))
 
       # Save the model checkpoint periodically.
       if ((FLAGS.save_step_period > 0 and training_step % FLAGS.save_step_period == 0) or
@@ -284,30 +304,30 @@ def main():
       validate_and_test(thismodel, thisloss, 'validation', validation_set_size, model_settings, \
                         audio_processor, False, training_step, t0, nlabels, \
                         validation_writer, model.use_audio, model.use_video,
-                        video_findfile, FLAGS.loss=='exclusive')
+                        video_findfile, FLAGS.loss)
 
   if validation_set_size>0:
     validate_and_test(thismodel, thisloss, 'validation', validation_set_size, model_settings, \
                       audio_processor, True, FLAGS.how_many_training_steps, t0, nlabels, \
                       validation_writer, model.use_audio, model.use_video,
-                      video_findfile, FLAGS.loss=='exclusive')
+                      video_findfile, FLAGS.loss)
   if testing_set_size>0:
     validate_and_test(thismodel, thisloss, 'testing', testing_set_size, model_settings, \
                       audio_processor, True, FLAGS.how_many_training_steps, t0, nlabels, \
                       validation_writer, model.use_audio, model.use_video,
-                      video_findfile, FLAGS.loss=='exclusive')
+                      video_findfile, FLAGS.loss)
 
 @tf.function
-def validate_test_step(model, loss, nlabels, fingerprints, ground_truth, exclusive):
-  logits, accuracy, predicted_indices, hidden_activations, mask = evaluate_fn(model,
+def validate_test_step(model, loss, nlabels, fingerprints, ground_truth, loss_str):
+  logits, accuracy, predicted_indices, hidden_activations, mask = evaluate_fn(FLAGS.loss, model,
           fingerprints, ground_truth, False)
   loss_value = loss_fn(loss, logits, ground_truth)
   cross_entropy_mean = tf.math.reduce_mean(loss_value)
-  if exclusive:
+  if loss_str == 'exclusive':
       confusion_matrix = tf.math.confusion_matrix(ground_truth,
                                                   predicted_indices,
                                                   num_classes=nlabels)
-  else:
+  elif loss_str == 'overlapped':
     confusion_matrices = []
     for ilabel in range(nlabels):
         confusion_matrices.append(tf.math.confusion_matrix(
@@ -315,12 +335,14 @@ def validate_test_step(model, loss, nlabels, fingerprints, ground_truth, exclusi
                 tf.boolean_mask(1-predicted_indices[:,ilabel], mask[:,ilabel]),
                 num_classes=2))
     confusion_matrix = tf.stack(confusion_matrices)
+  elif loss_str == 'autoencoder':
+    confusion_matrix = None
   return logits, accuracy, hidden_activations, cross_entropy_mean, confusion_matrix
 
 def validate_and_test(model, loss, set_kind, set_size, model_settings, \
                       audio_processor, is_last_step, training_step, t0, nlabels, \
                       validation_writer, use_audio, use_video, video_findfile,
-                      exclusive):
+                      loss_str):
   total_accuracy = 0
   total_conf_matrix = None
   isound = 0
@@ -332,7 +354,7 @@ def validate_and_test(model, loss, set_kind, set_size, model_settings, \
                                  FLAGS.shiftby, set_kind,
                                  use_audio, use_video, video_findfile))
     logits, accuracy, hidden_activations, cross_entropy_mean, confusion_matrix = \
-            validate_test_step(model, loss, nlabels, fingerprints, ground_truth, exclusive)
+            validate_test_step(model, loss, nlabels, fingerprints, ground_truth, loss_str)
 
     with validation_writer.as_default():
       tf.summary.scalar('cross_entropy', cross_entropy_mean, step=training_step)
@@ -340,17 +362,24 @@ def validate_and_test(model, loss, set_kind, set_size, model_settings, \
 
     this_batch_size = fingerprints[0].shape[0] if use_audio and use_video else fingerprints.shape[0]
     total_accuracy += (accuracy * this_batch_size) / set_size
-    if total_conf_matrix is None:
-      total_conf_matrix = confusion_matrix
-    else:
-      total_conf_matrix += confusion_matrix
+    if loss_str != 'autoencoder':
+      if total_conf_matrix is None:
+        total_conf_matrix = confusion_matrix
+      else:
+        total_conf_matrix += confusion_matrix
     if isound==0:
       sounds_data = [None]*set_size
-      groundtruth_data = np.empty((set_size, nlabels) if ground_truth.ndim>1 else (set_size,))
-      logit_data = np.empty((set_size,np.shape(logits)[2]))
+      groundtruth_data = np.empty((set_size, *(np.shape(ground_truth)[1:])))
+      if loss_str == 'autoencoder':
+          logit_data = np.empty((set_size, *(np.shape(logits)[1:])))
+      else:
+          logit_data = np.empty((set_size,np.shape(logits)[2]))
     sounds_data[isound:isound+this_batch_size] = sounds
     groundtruth_data[isound:isound+this_batch_size] = ground_truth
-    logit_data[isound:isound+this_batch_size,:] = logits[:,0,:]
+    if loss_str == 'autoencoder':
+        logit_data[isound:isound+this_batch_size,:] = logits
+    else:
+        logit_data[isound:isound+this_batch_size,:] = logits[:,0,:]
     if is_last_step:
       if FLAGS.save_hidden:
         if isound==0:
@@ -377,12 +406,18 @@ def validate_and_test(model, loss, set_kind, set_size, model_settings, \
           input_layer[0][isound:isound+this_batch_size,...] = fingerprints[0]
           input_layer[1][isound:isound+this_batch_size,...] = fingerprints[1]
     isound += this_batch_size
-  print('Confusion Matrix:\n %s\n %s' % \
-                  (audio_processor.labels_list, total_conf_matrix.numpy()))
-  t1=datetime.now()-t0
-  print('%f,%d,%.1f %s' %
-                  (t1.total_seconds(), training_step, \
-                   total_accuracy * 100, set_kind.capitalize()))
+  if loss_str != 'autoencoder':
+    print('Confusion Matrix:\n %s\n %s' % \
+                    (audio_processor.labels_list, total_conf_matrix.numpy()))
+    t1=datetime.now()-t0
+    print('%f,%d,%.1f %s' %
+                    (t1.total_seconds(), training_step, \
+                     total_accuracy * 100, set_kind.capitalize()))
+  else:
+    t1=datetime.now()-t0
+    print('%f,%d,%f %s' %
+                    (t1.total_seconds(), training_step, \
+                     cross_entropy_mean.numpy(), set_kind.capitalize()))
   np.savez(os.path.join(FLAGS.train_dir,
                         'logits.'+set_kind+'.ckpt-'+str(training_step)+'.npz'), \
            sounds=np.asarray(sounds_data, dtype="object"),
@@ -541,8 +576,8 @@ if __name__ == '__main__':
       '--loss',
       type=str,
       default='exclusive',
-      choices=['exclusive', 'overlapped'],
-      help='Sigmoid cross entropy is used for "overlapped" labels while softmax cross entropy is used for "exclusive" labels.')
+      choices=['exclusive', 'overlapped', 'autoencoder'],
+      help='Sigmoid cross entropy is used for "overlapped" and "autoencoder" labels while softmax cross entropy is used for "exclusive" labels.')
   parser.add_argument(
       '--overlapped_prefix',
       type=str,
