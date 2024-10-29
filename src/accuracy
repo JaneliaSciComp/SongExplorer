@@ -228,10 +228,10 @@ def main():
     train_accuracy, train_loss, train_time, train_step, \
           validation_precision, validation_recall, \
           validation_precision_mean, validation_recall_mean, \
-          validation_time, validation_step, \
-          _, _, _, _, \
-          labels_touse, label_counts, _, _, batch_size, _ = \
-          read_logs(FLAGS.logdir)
+          validation_time, validation_step, validation_loss, \
+          _, _, _, _, _, \
+          labels_touse, label_counts, _, _, _, batch_size, _ = \
+          read_logs(FLAGS.logdir, FLAGS.loss)
     training_set_size = {k: len(label_counts[k]["training"]) * \
                             np.max(list(label_counts[k]["training"].values())) \
                          for k in label_counts.keys()}
@@ -245,46 +245,58 @@ def main():
       ax4 = fig.add_subplot(nrows, ncols, imodel+1)
       nx = len(train_step[model])
       idx = range(nx) if nx<10000 else np.round(np.linspace(0, nx-1, 10000)).astype(int)
+      loss_color = 'g' if FLAGS.loss!='autoencoder' else 'b'
       ax4.plot(np.array(train_step[model])[idx],
-               np.array(train_loss[model])[idx],
-               'g', alpha=0.5, label='Loss')
+               np.log10(np.array(train_loss[model])[idx]),
+               loss_color, alpha=0.5, label='Train Loss')
       ax4.set_xlabel('Step')
-      ax4.set_ylabel('Loss', color='g')
-      ax4.tick_params(axis='y', labelcolor='g')
-      ax1 = ax4.twinx()
-      ax1.plot(np.array(train_step[model])[idx],
-               np.array(train_accuracy[model])[idx],
-               'b', alpha=0.5, label='Train')
+      loss_color = 'g' if FLAGS.loss!='autoencoder' else 'k'
+      ax4.set_ylabel('log10 Loss', color=loss_color)
+      ax4.tick_params(axis='y', labelcolor=loss_color)
       validation_intervals = list(zip(validation_step[model][0:-1], \
                                       validation_step[model][1:]))
-      train_accuracy_ave = [np.mean(train_accuracy[model][train_step[model].index(x): \
-                                                          train_step[model].index(y)]) \
-                            for (x,y) in validation_intervals]
-      ax1.plot([(x+y)/2 for (x,y) in validation_intervals], train_accuracy_ave, 'c', label='Train mean')
+      loss_color = 'm' if FLAGS.loss!='autoencoder' else 'c'
       train_loss_ave = [np.mean(train_loss[model][train_step[model].index(x): \
                                                   train_step[model].index(y)]) \
                             for (x,y) in validation_intervals]
-      ax4.plot([(x+y)/2 for (x,y) in validation_intervals], train_loss_ave, 'm', label='Loss mean')
-      if validation_recall_mean[model]:
-        ax1.plot(validation_step[model], validation_recall_mean[model], 'r', label='Validation')
-        ax1.set_title(model+"   "+str(round(max(validation_recall_mean[model]),1))+'%')
-        ax1.set_ylim(bottom=min(validation_recall_mean[model]))
-      ax1.set_ylim(top=100)
-      ax1.set_ylabel('Overall recall')
-      ax1.set_xlim(0,1+len(train_step[model]))
+      ax4.plot([(x+y)/2 for (x,y) in validation_intervals], np.log10(train_loss_ave), loss_color, label='Train Loss mean')
+      if validation_loss[model]:
+          ax4.plot(validation_step[model],
+                   np.log10(np.array(validation_loss[model])),
+                   'r', label='Validation Loss')
+
+      ax1 = None
+      if train_accuracy[model] and validation_recall_mean[model]:
+          ax1 = ax4.twinx()
+          ax1.plot(np.array(train_step[model])[idx],
+                   np.array(train_accuracy[model])[idx],
+                   'b', alpha=0.5, label='Train')
+          train_accuracy_ave = [np.mean(train_accuracy[model][train_step[model].index(x): \
+                                                              train_step[model].index(y)]) \
+                                for (x,y) in validation_intervals]
+          ax1.plot([(x+y)/2 for (x,y) in validation_intervals], train_accuracy_ave, 'c', label='Train mean')
+          ax1.plot(validation_step[model], validation_recall_mean[model], 'r', label='Validation')
+          ax1.set_title(model+"   "+str(round(max(validation_recall_mean[model]),1))+'%')
+          ax1.set_ylim(bottom=min(validation_recall_mean[model]))
+          ax1.set_ylim(top=100)
+          ax1.set_ylabel('Overall recall')
+          ax1.set_xlim(0,1+len(train_step[model]))
+      else:
+          ax4.set_title(model+"   "+str(round(np.log10(min(validation_loss[model])),1)))
 
       if imodel==len(keys_to_plot)-1:
-        handles1, labels1 = ax1.get_legend_handles_labels()
+        handles1, labels1 = ax1.get_legend_handles_labels() if ax1 else ([], [])
         handles4, labels4 = ax4.get_legend_handles_labels()
-        ax1.legend(handles1+handles4, labels1+labels4, loc=(1.45, 0.0)) #loc='upper center')
+        ax4.legend(handles1+handles4, labels1+labels4, loc=(1.45 if ax1 else 1.05, 0.0))
 
-      ax5 = ax4.twinx()
-      train_accuracy_ave_diff = [train_accuracy_ave[i+1] - train_accuracy_ave[i] \
-                                 for i in range(-1+len(train_accuracy_ave))]
-      ax5.plot([(x+y)/2 for (x,y) in validation_intervals[1:]], train_accuracy_ave_diff, 'y', label='Train diff')
-      ax5.spines["right"].set_position(("axes", 1.2))
-      ax5.set_ylabel('Train mean diff', color='y')
-      ax5.tick_params(axis='y', labelcolor='y')
+      if train_accuracy[model]:
+          ax5 = ax4.twinx()
+          train_accuracy_ave_diff = [train_accuracy_ave[i+1] - train_accuracy_ave[i] \
+                                     for i in range(-1+len(train_accuracy_ave))]
+          ax5.plot([(x+y)/2 for (x,y) in validation_intervals[1:]], train_accuracy_ave_diff, 'y', label='Train diff')
+          ax5.spines["right"].set_position(("axes", 1.2))
+          ax5.set_ylabel('Train mean diff', color='y')
+          ax5.tick_params(axis='y', labelcolor='y')
 
       ax2 = ax4.twiny()
       ax2.xaxis.set_ticks_position("bottom")
@@ -316,6 +328,10 @@ def main():
     plt.savefig(os.path.join(FLAGS.logdir,'train-validation-loss.pdf'))
     plt.close()
   
+    if FLAGS.loss=='autoencoder':
+        print('ckpts =', [str(validation_step[k][np.argmin(validation_loss[k])]) for k in keys_to_plot])
+        print('models =', keys_to_plot)
+        return
 
     def PvR(ax, precision, recall, validation_step, minp, minr):
         minp = min(minp, min(precision))
@@ -781,8 +797,8 @@ if __name__ == "__main__":
       '--loss',
       type=str,
       default='exclusive',
-      choices=['exclusive', 'overlapped'],
-      help='Sigmoid cross entropy is used for "overlapped" labels while softmax cross entropy is used for "exclusive" labels.')
+      choices=['exclusive', 'overlapped', 'autoencoder'],
+      help='Sigmoid cross entropy is used for "overlapped" or "autoencoder" labels while softmax cross entropy is used for "exclusive" labels.')
   parser.add_argument(
       '--overlapped_prefix',
       type=str,

@@ -445,7 +445,7 @@ class AudioProcessor(object):
                 bkg = {}
             if loss=='exclusive':
                 labels = np.zeros(nsounds, dtype=np.int32)
-            else:
+            elif loss=='overlapped':
                 labels = 2*np.ones((nsounds, len(self.labels_list)), dtype=np.float32)
             # repeatedly to generate the final output sound data we'll use in training.
             for i in range(offset, offset + nsounds):
@@ -481,7 +481,7 @@ class AudioProcessor(object):
                 if loss=='exclusive':
                     labels[i - offset] = self.labels_list.index(sound['label'])
                     sounds.append({k: v for k,v in sound.items() if k!='overlaps'})
-                else:
+                elif loss=='overlapped':
                     target = 0 if sound['label'].startswith(overlapped_prefix) else 1
                     root = sound['label'].removeprefix(overlapped_prefix)
                     labels[i - offset, self.labels_list.index(root)] = target
@@ -518,6 +518,9 @@ class AudioProcessor(object):
                 if invert_bool:
                     iinvert = np.random.choice([-1,1], (nsounds,1,1))
                     audio_slice *= iinvert
+
+            if loss=='autoencoder':
+                labels = audio_slice
 
             if use_audio and use_video:
                 q.put([[audio_slice, video_slice], labels, sounds])

@@ -45,9 +45,11 @@ def main():
     validation_recall={}
     validation_time={}
     validation_step={}
+    validation_loss={}
     labels_touse={}
     nparameters_total={}
     nparameters_finallayer={}
+    bottleneck={}
     batch_size={}
     nlayers={}
     hyperparameters={}
@@ -65,12 +67,12 @@ def main():
         hyperparameters[logdir] = set(logdir.split('_'))
         _, _, train_time[logdir], _, \
                 _, _, validation_precision[logdir], validation_recall[logdir], \
-                validation_time[logdir], validation_step[logdir], \
-                _, _, _, _, \
+                validation_time[logdir], validation_step[logdir], validation_loss[logdir], \
+                _, _, _, _, _, \
                 labels_touse[logdir], _, \
-                nparameters_total[logdir], nparameters_finallayer[logdir], \
+                nparameters_total[logdir], nparameters_finallayer[logdir], bottleneck[logdir], \
                 batch_size[logdir], nlayers[logdir] = \
-                read_logs(os.path.join(logdirs_dirname,logdir))
+                read_logs(os.path.join(logdirs_dirname,logdir), loss=FLAGS.loss)
         if len(set([tuple(x) for x in labels_touse[logdir].values()]))>1:
             print('WARNING: not all labels_touse are the same')
         if len(set(nparameters_total[logdir].values()))>1:
@@ -97,7 +99,6 @@ def main():
     differentparameters = {x:','.join(natsorted(list(hyperparameters[x]-commonparameters))) \
                            for x in logdirs}
 
-
     def sortby_indepvar(logdir):
         params = logdir.split('_')
         iindepvar = next(i for i,x in enumerate(params) if x.startswith(indepvar))
@@ -106,39 +107,55 @@ def main():
     fig = plt.figure(figsize=(8,10*2/3))
 
     ax = fig.add_subplot(2,2,1)
-
-    precisions_mean, recalls_mean = [], []
-    for (ilogdir,logdir) in enumerate(natsorted(logdirs, key=sortby_indepvar)):
-        color = cm.viridis(ilogdir/max(1,len(validation_recall)-1))
-        precisions_all, recalls_all = [], []
-        for model in validation_recall[logdir].keys():
-            precisions_all.append(max(validation_precision[logdir][model]))
-            recalls_all.append(max(validation_recall[logdir][model]))
-            ax.plot(recalls_all[-1], precisions_all[-1], 'o', markeredgecolor='w', color=color)
-        precisions_mean.append(np.nanmean(precisions_all))
-        recalls_mean.append(np.nanmean(recalls_all))
-        ax.plot(recalls_mean[-1], precisions_mean[-1], 'o', markeredgecolor='k', color=color, zorder=10)
-    label_precisions_recall(ax, recalls_mean, precisions_mean, "", False)
+    if FLAGS.loss!="autoencoder":
+        precisions_mean, recalls_mean = [], []
+        for (ilogdir,logdir) in enumerate(natsorted(logdirs, key=sortby_indepvar)):
+            color = cm.viridis(ilogdir/max(1,len(validation_recall)-1))
+            precisions_all, recalls_all = [], []
+            for model in validation_recall[logdir].keys():
+                precisions_all.append(max(validation_precision[logdir][model]))
+                recalls_all.append(max(validation_recall[logdir][model]))
+                ax.plot(recalls_all[-1], precisions_all[-1], 'o', markeredgecolor='w', color=color)
+            precisions_mean.append(np.nanmean(precisions_all))
+            recalls_mean.append(np.nanmean(recalls_all))
+            ax.plot(recalls_mean[-1], precisions_mean[-1], 'o', markeredgecolor='k', color=color, zorder=10)
+        label_precisions_recall(ax, recalls_mean, precisions_mean, "", False)
+    else:
+        ldata = natsorted(bottleneck.keys(), key=sortby_indepvar)
+        xdata = range(len(ldata))
+        ydata = [next(iter(bottleneck[x].values())) for x in ldata]
+        ax.bar(xdata,ydata,color='k')
+        ax.set_xlabel(logdirs_basename)
+        ax.set_ylabel('bottleneck')
+        ax.set_xticks(xdata)
+        ax.set_xticklabels([differentparameters[x] for x in ldata], rotation=40, ha='right')
 
     ax = fig.add_subplot(2,2,2)
+    validation_var = validation_recall if FLAGS.loss!="autoencoder" else validation_loss
     bottom=100
-    for (iexpt,expt) in enumerate(natsorted(validation_recall.keys(), key=sortby_indepvar)):
-        color = cm.viridis(iexpt/max(1,len(validation_recall)-1))
-        validation_recall_average = np.zeros(len(next(iter(validation_recall[expt].values()))))
+    for (iexpt,expt) in enumerate(natsorted(validation_var.keys(), key=sortby_indepvar)):
+        color = cm.viridis(iexpt/max(1,len(validation_var)-1))
+        validation_var_average = np.zeros(len(next(iter(validation_var[expt].values()))))
         for model in validation_time[expt].keys():
+            y = validation_var[expt][model]
             ax.plot(np.array(validation_time[expt][model])/60,
-                    validation_recall[expt][model], \
+                    y if FLAGS.loss!='autoencoder' else np.log10(y), \
                     color=color, zorder=iexpt, linewidth=1)
-            bottom = min([bottom]+[x for x in validation_recall[expt][model] if x>outlier_criteria])
-            validation_recall_average += validation_recall[expt][model]
+            bottom = min([bottom]+[x for x in validation_var[expt][model] if x>outlier_criteria])
+            validation_var_average += validation_var[expt][model]
+        y = validation_var_average / len(validation_time[expt].keys())
         line, = ax.plot(np.array(next(iter(validation_time[expt].values())))/60,
-                        validation_recall_average / len(validation_time[expt].keys()),
-                        color=color, zorder=len(validation_recall)+iexpt, linewidth=3)
+                        y if FLAGS.loss!='autoencoder' else np.log10(y),
+                        color=color, zorder=len(validation_var)+iexpt, linewidth=3)
         line.set_label(differentparameters[expt])
-    ax.set_ylim(bottom=bottom-5, top=100)
+
+    if FLAGS.loss!="autoencoder":
+        ax.set_ylim(bottom=bottom-5, top=100)
+        ax.set_ylabel('Overall validation recall')
+    else:
+        ax.set_ylabel('log10 overall validation loss')
     ax.set_xlabel('Training time (min)')
-    ax.set_ylabel('Overall validation recall')
-    ax.legend(loc='lower right', ncol=2 if "Annotations" in logdirs_basename else 1)
+    #ax.legend(loc='lower right', ncol=2 if "Annotations" in logdirs_basename else 1)
 
     ax = fig.add_subplot(2,2,3)
     ldata = natsorted(nparameters_total.keys(), key=sortby_indepvar)
@@ -168,6 +185,8 @@ def main():
     plt.savefig(logdirs_filter+'-compare-overall-params-speed.pdf')
     plt.close()
 
+    if FLAGS.loss=='autoencoder':
+        return
 
     recall_confusion_matrices={}
     precision_confusion_matrices={}
@@ -289,8 +308,8 @@ if __name__ == "__main__":
         '--loss',
         type=str,
         default='exclusive',
-        choices=['exclusive', 'overlapped'],
-        help='Sigmoid cross entropy is used for "overlapped" labels while softmax cross entropy is used for "exclusive" labels.')
+        choices=['exclusive', 'overlapped', 'autoencoder'],
+        help='Sigmoid cross entropy is used for "overlapped" and "autoencoder" labels while softmax cross entropy is used for "exclusive" labels.')
     parser.add_argument(
         '--overlapped_prefix',
         type=str,

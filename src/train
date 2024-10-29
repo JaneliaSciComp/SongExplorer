@@ -262,8 +262,8 @@ if __name__ == '__main__':
       '--loss',
       type=str,
       default='exclusive',
-      choices=['exclusive', 'overlapped'],
-      help='Sigmoid cross entropy is used for "overlapped" labels while softmax cross entropy is used for "exclusive" labels.')
+      choices=['exclusive', 'overlapped', 'autoencoder'],
+      help='Sigmoid cross entropy is used for "overlapped" and "autoencoder" labels while softmax cross entropy is used for "exclusive" labels.')
   parser.add_argument(
       '--overlapped_prefix',
       type=str,

@@ -91,16 +91,19 @@ def main():
   with open(FLAGS.model_labels, 'r') as fid:
     model_labels = fid.read().splitlines()
 
-  if FLAGS.labels:
-    labels = np.array(FLAGS.labels.split(','))
-    iimodel_labels = np.argsort(np.argsort(model_labels))
-    ilabels = np.argsort(labels)
-    labels = labels[ilabels][iimodel_labels]
-    assert np.all(labels==model_labels)
+  if FLAGS.loss != 'autoencoder':
+      if FLAGS.labels:
+        labels = np.array(FLAGS.labels.split(','))
+        iimodel_labels = np.argsort(np.argsort(model_labels))
+        ilabels = np.argsort(labels)
+        labels = labels[ilabels][iimodel_labels]
+        assert np.all(labels==model_labels)
+      else:
+        labels = model_labels
+        ilabels = iimodel_labels = range(len(labels))
+      print('labels: '+str(labels))
   else:
-    labels = model_labels
-    ilabels = iimodel_labels = range(len(labels))
-  print('labels: '+str(labels))
+      labels = ilabels = None
 
   if FLAGS.prevalences and FLAGS.loss=='exclusive':
     prevalences = np.array([float(x) for x in FLAGS.prevalences.split(',')])
@@ -184,11 +187,17 @@ def main():
 
   context_samples = int(FLAGS.context * FLAGS.time_scale * data_sample_rate)
   stride_x_downsample_samples = (clip_window_samples - context_samples) // (FLAGS.parallelize-1)
-  clip_stride_samples = stride_x_downsample_samples * FLAGS.parallelize
+  if FLAGS.loss=='autoencoder':
+      clip_stride_samples = clip_window_samples
+  else:
+      clip_stride_samples = stride_x_downsample_samples * FLAGS.parallelize
 
   stride_x_downsample_sec = stride_x_downsample_samples / data_sample_rate
   npadding = round((FLAGS.context / 2 + FLAGS.shiftby) * FLAGS.time_scale / stride_x_downsample_sec)
-  probability_list = [np.zeros((npadding, len(labels)), dtype=np.float32)]
+  if FLAGS.loss == 'autoencoder':
+      probability_list = [np.zeros((npadding, ), dtype=np.float32)]
+  else:
+      probability_list = [np.zeros((npadding, len(labels)), dtype=np.float32)]
 
   # Inference along audio stream.
   for data_offset_samples in range(0, 1+data_len_samples, clip_stride_samples):
@@ -220,31 +229,42 @@ def main():
       inputs = tf.expand_dims(video_slice, 0)
     _,outputs = recognize_graph(inputs)
 
-    current_time_sec = np.round(data_offset_samples / data_sample_rate).astype(int)
     if pad_len>0:
       discard_len = np.ceil(pad_len/stride_x_downsample_samples).astype(int)
-      probability_list.append(np.array(outputs.numpy()[0,:-discard_len,:]))
+      if FLAGS.loss == 'autoencoder':
+          probability_list.append(np.array(outputs.numpy()[0,:-discard_len,0]))
+      else:
+          probability_list.append(np.array(outputs.numpy()[0,:-discard_len,:]))
       break
     else:
-      probability_list.append(np.array(outputs.numpy()[0,:,:]))
+      if FLAGS.loss == 'autoencoder':
+          probability_list.append(np.array(outputs.numpy()[0,:,0]))
+      else:
+          probability_list.append(np.array(outputs.numpy()[0,:,:]))
 
   sample_rate = round(1/stride_x_downsample_sec)
   if sample_rate != 1/stride_x_downsample_sec:
     print('WARNING: .wav files do not support fractional sampling rates!')
 
   probability_matrix = np.concatenate(probability_list)
-  if prevalences:
-      denominator = np.sum(probability_matrix * prevalences, axis=1)
-  for ch in range(len(labels)):
-    if prevalences:
-      adjusted_probability = probability_matrix[:,ch] * prevalences[ch]
-      adjusted_probability[npadding:] /= denominator[npadding:]
-    else:
-      adjusted_probability = probability_matrix[:,ch]
-    waveform = adjusted_probability*np.iinfo(np.int16).max
-    withoutext = trim_ext(FLAGS.wav)
-    filename = withoutext+'-'+labels[ch]+'.wav'
-    wavfile.write(filename, int(sample_rate), waveform.astype('int16'))
+  if FLAGS.loss != 'autoencoder':
+      if prevalences:
+          denominator = np.sum(probability_matrix * prevalences, axis=1)
+      for ch in range(len(labels)):
+        if prevalences:
+          adjusted_probability = probability_matrix[:,ch] * prevalences[ch]
+          adjusted_probability[npadding:] /= denominator[npadding:]
+        else:
+          adjusted_probability = probability_matrix[:,ch]
+        waveform = adjusted_probability*np.iinfo(np.int16).max
+        withoutext = trim_ext(FLAGS.wav)
+        filename = withoutext+'-'+labels[ch]+'.wav'
+        wavfile.write(filename, int(sample_rate), waveform.astype('int16'))
+  else:
+        waveform = probability_matrix * np.iinfo(np.int16).max
+        withoutext = trim_ext(FLAGS.wav)
+        filename = withoutext+'-.wav'
+        wavfile.write(filename, int(sample_rate), waveform.astype('int16'))
 
 if __name__ == '__main__':
   parser = argparse.ArgumentParser(description='test_streaming_accuracy')
@@ -271,8 +291,8 @@ if __name__ == '__main__':
       '--loss',
       type=str,
       default='exclusive',
-      choices=['exclusive', 'overlapped'],
-      help='Sigmoid cross entropy is used for "overlapped" labels while softmax cross entropy is used for "exclusive" labels.')
+      choices=['exclusive', 'overlapped', 'autoencoder'],
+      help='Sigmoid cross entropy is used for "overlapped" or "autoencoder" labels while softmax cross entropy is used for "exclusive" labels.')
   parser.add_argument(
       '--context',
       type=float,

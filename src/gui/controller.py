@@ -1616,18 +1616,26 @@ def accuracy_succeeded(logdir, reftime):
     logfile = os.path.join(logdir, 'accuracy.log')
     if not logfile_succeeded(logfile, reftime):
         return False
-    traindirs = list(filter(lambda x: os.path.isdir(os.path.join(logdir,x)) and \
-                            not x.startswith('summaries_'), os.listdir(logdir)))
-    toplevelfiles = ["precision-recall.pdf",
-                     "confusion-matrix.pdf",
-                     "train-validation-loss.pdf",
-                     "P-R-F1-average.pdf",
-                     "P-R-F1-label.pdf",
-                     "P-R-F1-model.pdf",
-                     "PvR.pdf"]
+    with open(logfile) as fid:
+        for line in fid:
+            if "loss = " in line:
+                m=re.search('loss = (.+)',line)
+                loss = m.group(1)
+    toplevelfiles = ["train-validation-loss.pdf"]
+    if loss != 'autoencoder':
+        toplevelfiles.extend(["precision-recall.pdf",
+                              "confusion-matrix.pdf",
+                              "P-R-F1-average.pdf",
+                              "P-R-F1-label.pdf",
+                              "P-R-F1-model.pdf",
+                              "PvR.pdf"])
     for toplevelfile in toplevelfiles:
         if not pdffile_succeeded(os.path.join(logdir, toplevelfile), reftime):
             return False
+    if loss == 'autoencoder':
+        return True
+    traindirs = list(filter(lambda x: os.path.isdir(os.path.join(logdir,x)) and \
+                            not x.startswith('summaries_'), os.listdir(logdir)))
     one_fold_has_thresholds = False
     for traindir in traindirs:
         trainfiles = os.listdir(os.path.join(logdir,traindir))
@@ -1972,9 +1980,11 @@ def compare_succeeded(logdirprefix, reftime):
     logfile = logdirprefix+'-compare.log'
     if not logfile_succeeded(logfile, reftime):
         return False
-    for pdffile in ["-compare-overall-params-speed.pdf", 
-                    "-compare-confusion-matrices.pdf", 
-                    "-compare-PR-classes.pdf"]:
+    pdffiles = ["-compare-overall-params-speed.pdf"]
+    if V.loss.value!="autoencoder":
+        pdffiles.extend(["-compare-confusion-matrices.pdf", 
+                         "-compare-PR-classes.pdf"])
+    for pdffile in pdffiles:
         if not pdffile_succeeded(logdirprefix+pdffile, reftime):
             return False
     return True
