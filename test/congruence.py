@@ -19,7 +19,7 @@ def check_value(dfrow, colname, shouldbe):
 
 _, repo_path, bindirs = get_srcrepobindirs()
 
-os.environ['PATH'] = os.pathsep.join([*os.environ['PATH'].split(os.pathsep), *bindirs])
+os.environ['PATH'] = os.pathsep.join([*bindirs, *os.environ['PATH'].split(os.pathsep)])
   
 sys.path.append(os.path.join(repo_path, "src", "gui"))
 import model as M

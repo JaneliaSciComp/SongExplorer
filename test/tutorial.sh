@@ -27,7 +27,7 @@ repo_path=$(dirname $testdir)
 bindir=$(dirname $repo_path)
 srcdir=${repo_path}/src
 
-PATH=$PATH:$bindir
+PATH=$bindir:$PATH
 
 mkdir -p $repo_path/test/scratch/tutorial-sh
 cp $repo_path/configuration.py $repo_path/test/scratch/tutorial-sh
