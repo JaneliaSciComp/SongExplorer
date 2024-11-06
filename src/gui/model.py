@@ -15,7 +15,7 @@ import view as V
 import importlib
 
 sys.path.append(os.path.dirname(os.path.dirname(os.path.realpath(__file__))))
-from lib import get_srcrepobindirs, load_audio_read_plugin
+from lib import get_srcrepobindirs, load_audio_read_plugin, load_video_read_plugin
 
 def parse_model_file(modelstr):
     filepath, filename = os.path.split(modelstr)
@@ -268,13 +268,8 @@ def init(_bokeh_document, _configuration_file, _use_aitch):
     sys.path.insert(0,srcdir)
 
     load_audio_read_plugin(audio_read_plugin, audio_read_plugin_kwargs)
-    from lib import audio_read, audio_read_exts, audio_read_rec2ch, audio_read_strip_rec, trim_ext
-
-    sys.path.insert(0,os.path.dirname(video_read_plugin))
-    video_read_module = importlib.import_module(os.path.basename(video_read_plugin))
-    def video_read(fullpath, start_frame=None, stop_frame=None):
-        return video_read_module.video_read(fullpath, start_frame, stop_frame,
-                                            **video_read_plugin_kwargs)
+    load_video_read_plugin(video_read_plugin, video_read_plugin_kwargs)
+    from lib import audio_read, audio_read_exts, audio_read_rec2ch, audio_read_strip_rec, video_read, trim_ext
 
     sys.path.insert(0,os.path.dirname(detect_plugin))
     tmp = importlib.import_module(os.path.basename(detect_plugin))

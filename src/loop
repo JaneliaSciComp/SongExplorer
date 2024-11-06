@@ -82,7 +82,7 @@ import numpy as np
 import tensorflow as tf
 from tensorflow.keras.optimizers import *
 
-import data
+import data as D
 
 from datetime import datetime
 import socket
@@ -186,7 +186,7 @@ def main():
                     'parallelize': 1,
                     'context': FLAGS.context}
 
-  audio_processor = data.AudioProcessor(
+  D.init(
       FLAGS.data_dir,
       FLAGS.shiftby,
       labels_touse.split(','), FLAGS.kinds_touse.split(','),
@@ -241,16 +241,16 @@ def main():
   # exit if how_many_training_steps==0
   if FLAGS.how_many_training_steps==0:
       # pre-process a batch of data to make sure settings are valid
-      train_fingerprints, train_ground_truth, _ = audio_processor.get_data(
+      train_fingerprints, train_ground_truth, _ = D.get_data(
           FLAGS.batch_size, 0, model_settings, FLAGS.loss,
           FLAGS.overlapped_prefix, FLAGS.shiftby, 'training',
           model.use_audio, model.use_video, video_findfile)
       evaluate_fn(FLAGS.loss, thismodel, train_fingerprints, train_ground_truth, False)
       return
 
-  training_set_size = audio_processor.set_size('training')
-  testing_set_size = audio_processor.set_size('testing')
-  validation_set_size = audio_processor.set_size('validation')
+  training_set_size = D.set_size('training')
+  testing_set_size = D.set_size('testing')
+  validation_set_size = D.set_size('validation')
 
   @tf.function
   def train_step(train_fingerprints, train_ground_truth):
@@ -272,7 +272,7 @@ def main():
   for training_step in range(start_step, FLAGS.how_many_training_steps + 1):
     if training_set_size>0:
       # Pull the sounds we'll use for training.
-      train_fingerprints, train_ground_truth, _ = audio_processor.get_data(
+      train_fingerprints, train_ground_truth, _ = D.get_data(
           FLAGS.batch_size, 0, model_settings, FLAGS.loss,
           FLAGS.overlapped_prefix, FLAGS.shiftby, 'training',
           model.use_audio, model.use_video, video_findfile)
@@ -302,18 +302,18 @@ def main():
        (FLAGS.validate_step_period > 0 and training_step % FLAGS.validate_step_period == 0):
       gc.collect()
       validate_and_test(thismodel, thisloss, 'validation', validation_set_size, model_settings, \
-                        audio_processor, False, training_step, t0, nlabels, \
+                        False, training_step, t0, nlabels, \
                         validation_writer, model.use_audio, model.use_video,
                         video_findfile, FLAGS.loss)
 
   if validation_set_size>0:
     validate_and_test(thismodel, thisloss, 'validation', validation_set_size, model_settings, \
-                      audio_processor, True, FLAGS.how_many_training_steps, t0, nlabels, \
+                      True, FLAGS.how_many_training_steps, t0, nlabels, \
                       validation_writer, model.use_audio, model.use_video,
                       video_findfile, FLAGS.loss)
   if testing_set_size>0:
     validate_and_test(thismodel, thisloss, 'testing', testing_set_size, model_settings, \
-                      audio_processor, True, FLAGS.how_many_training_steps, t0, nlabels, \
+                      True, FLAGS.how_many_training_steps, t0, nlabels, \
                       validation_writer, model.use_audio, model.use_video,
                       video_findfile, FLAGS.loss)
 
@@ -340,7 +340,7 @@ def validate_test_step(model, loss, nlabels, fingerprints, ground_truth, loss_st
   return logits, accuracy, hidden_activations, cross_entropy_mean, confusion_matrix
 
 def validate_and_test(model, loss, set_kind, set_size, model_settings, \
-                      audio_processor, is_last_step, training_step, t0, nlabels, \
+                      is_last_step, training_step, t0, nlabels, \
                       validation_writer, use_audio, use_video, video_findfile,
                       loss_str):
   total_accuracy = 0
@@ -349,7 +349,7 @@ def validate_and_test(model, loss, set_kind, set_size, model_settings, \
   for _ in range(0, set_size, FLAGS.batch_size):
     # HACK: get_data not guaranteed to return isounds in order
     fingerprints, ground_truth, sounds = (
-        audio_processor.get_data(FLAGS.batch_size, isound, model_settings,
+        D.get_data(FLAGS.batch_size, isound, model_settings,
                                  FLAGS.loss, FLAGS.overlapped_prefix,
                                  FLAGS.shiftby, set_kind,
                                  use_audio, use_video, video_findfile))
@@ -408,7 +408,7 @@ def validate_and_test(model, loss, set_kind, set_size, model_settings, \
     isound += this_batch_size
   if loss_str != 'autoencoder':
     print('Confusion Matrix:\n %s\n %s' % \
-                    (audio_processor.labels_list, total_conf_matrix.numpy()))
+                    (D.labels_list, total_conf_matrix.numpy()))
     t1=datetime.now()-t0
     print('%f,%d,%.1f %s' %
                     (t1.total_seconds(), training_step, \

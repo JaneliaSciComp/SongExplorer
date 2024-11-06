@@ -60,7 +60,7 @@ import importlib
 from lib import log_nvidia_smi_output, select_GPUs
 
 import tifffile
-from lib import compute_background, load_audio_read_plugin
+from lib import compute_background, load_audio_read_plugin, load_video_read_plugin
 
 FLAGS = None
 
@@ -80,13 +80,8 @@ def main():
   video_findfile = importlib.import_module(os.path.basename(FLAGS.video_findfile)).video_findfile
 
   load_audio_read_plugin(FLAGS.audio_read_plugin, FLAGS.audio_read_plugin_kwargs)
-  from lib import  audio_read, trim_ext
-
-  sys.path.append(os.path.dirname(FLAGS.video_read_plugin))
-  video_read_module = importlib.import_module(os.path.basename(FLAGS.video_read_plugin))
-  def video_read(fullpath, start_frame=None, stop_frame=None):
-      return video_read_module.video_read(fullpath, start_frame, stop_frame,
-                                          **FLAGS.video_read_plugin_kwargs)
+  load_video_read_plugin(FLAGS.video_read_plugin, FLAGS.video_read_plugin_kwargs)
+  from lib import audio_read, video_read, trim_ext
 
   with open(FLAGS.model_labels, 'r') as fid:
     model_labels = fid.read().splitlines()
