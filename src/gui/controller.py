@@ -1052,7 +1052,7 @@ def _validation_test_files(files_string, comma=True):
         return __validation_test_files(files_string, comma)
     elif files_string:
         lastfile = files_string.split(',')[-1]
-        ext = os.path.splitext(M.audio_read_strip_rec(lastfile))
+        ext = os.path.splitext(M.audio_read_strip_rec(lastfile))[1]
         if ext in M.audio_read_exts():
             return [files_string] if comma else files_string.split(',')
         elif os.path.isdir(files_string):
