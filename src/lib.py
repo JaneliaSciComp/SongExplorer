@@ -43,6 +43,14 @@ def load_audio_read_plugin(audio_read_plugin, audio_read_plugin_kwargs):
          return audio_read_module.audio_read_strip_rec(recfile, **audio_read_plugin_kwargs)
     return audio_read_module.audio_read_init(**audio_read_plugin_kwargs)
 
+def load_video_read_plugin(video_read_plugin, video_read_plugin_kwargs):
+    sys.path.append(os.path.dirname(video_read_plugin))
+    video_read_module = importlib.import_module(os.path.basename(video_read_plugin))
+    global video_read
+    def video_read(fullpath, start_frame=None, stop_frame=None):
+        return video_read_module.video_read(fullpath, start_frame, stop_frame,
+                                            **video_read_plugin_kwargs)
+
 def trim_ext(wavfile):
     if len(audio_read_rec2ch(audio_read_strip_rec(wavfile))) > 1:
         tmp = wavfile.split('-')

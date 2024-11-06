@@ -62,7 +62,7 @@ import socket
 import numpy as np
 import tensorflow as tf
 
-import data
+import data as D
 
 import datetime as dt
 
@@ -120,7 +120,7 @@ def main():
                     'parallelize': 1,
                     'context': FLAGS.context}
 
-  audio_processor = data.AudioProcessor(
+  D.init(
       FLAGS.data_dir,
       FLAGS.shiftby,
       FLAGS.labels_touse.split(','), FLAGS.kinds_touse.split(','),
@@ -146,14 +146,14 @@ def main():
 
   time_shift_tics = int(FLAGS.shiftby * FLAGS.audio_tic_rate * FLAGS.time_scale)
 
-  testing_set_size = audio_processor.set_size('testing')
+  testing_set_size = D.set_size('testing')
   if testing_set_size==0:
     print('ERROR: no annotations to process')
     exit()
 
   def infer_step(isound):
     # HACK: get_data not guaranteed to return isounds in order
-    fingerprints, _, sounds = audio_processor.get_data(
+    fingerprints, _, sounds = D.get_data(
                                  FLAGS.batch_size, isound, model_settings,
                                  FLAGS.loss, FLAGS.overlapped_prefix,
                                  time_shift_tics, 'testing',
