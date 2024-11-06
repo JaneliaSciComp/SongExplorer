@@ -42,7 +42,10 @@ queues = {}
 processes = {}
 offsets = {}
 
-set_start_method('fork')
+import platform
+if platform.system()=='Darwin':
+    from multiprocessing import set_start_method
+    set_start_method('fork')
 
 def term(signum, frame):
     for ps in processes.values():
