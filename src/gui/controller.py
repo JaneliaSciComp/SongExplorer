@@ -1686,7 +1686,7 @@ async def accuracy_actuate():
             "--nprobabilities="+str(M.nprobabilities), \
             "--loss="+V.loss.value, \
             "--overlapped_prefix="+M.overlapped_prefix, \
-            "--accuracy_parallelize="+str(M.accuracy_parallelize)]
+            "--parallelize="+str(M.accuracy_parallelize)]
     jobid = generic_actuate("accuracy", logfile,
                             M.accuracy_where,
                             M.accuracy_ncpu_cores,
