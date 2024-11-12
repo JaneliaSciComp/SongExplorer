@@ -204,6 +204,7 @@ def create_model(model_settings, model_parameters, io=sys.stdout):
         upperlegs = []
         for x in lowerlegs:
             if minshape1 != x.shape[1] or minshape2 != x.shape[2]:
+                x = ReLU()(x)
                 x = Conv2D(x.shape[3], (x.shape[1] - minshape1 + 1, x.shape[2] - minshape2 + 1))(x)
                 hidden_layers.append(x)
             upperlegs.append(x)
@@ -211,9 +212,10 @@ def create_model(model_settings, model_parameters, io=sys.stdout):
     else:
         x = lowerlegs[0]
 
+    x = ReLU()(x)
     for (t,f,m) in conv_layers:
-        x = ReLU()(x)
         x = Conv2D(m, (t,f))(x)
+        x = ReLU()(x)
         hidden_layers.append(x)
 
     if dropout>0:
