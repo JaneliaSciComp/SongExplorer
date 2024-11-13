@@ -186,7 +186,7 @@ def create_model(model_settings, model_parameters, io=sys.stdout):
         else:
             ninput_tics = model.input.shape[1]
         model.trainable = trainable[i]
-        truncated_model = tf.keras.Model(inputs=model.inputs,
+        truncated_model = tf.keras.Model(inputs=model.input,
                                          outputs=[model.output[0][:splice_layers[i]],
                                                   model.output[0][splice_layers[i]]])
         models.append(truncated_model)
