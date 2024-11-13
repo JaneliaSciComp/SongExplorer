@@ -146,8 +146,16 @@ class Resample(tf.keras.layers.Layer):
 
 def create_model(model_settings, model_parameters, io=sys.stdout):
     ckpt_files = []
-    for ckpt_file in model_parameters['ckpt_files'].split(','):
+    for ckpt_file in filter(lambda x: x!='', model_parameters['ckpt_files'].split(',')):
         ckpt_files.append(strip_ckpt(ckpt_file))
+
+    if not ckpt_files:
+        print('ensemble-transfer.py version = 0.2', file=io)
+        print('', file=io)
+        print('THE BELOW IS A STUB MODEL.  ENTER A VALID CHECKPOINT FILE FOR A PRE-TRAINED MODEL ABOVE TO CONTINUE', file=io)
+        x = Input(shape=(1,))
+        return tf.keras.Model(inputs=x, outputs=x, name="ensemble-transfer")
+
     trainable = [0]*len(ckpt_files) if model_parameters['trainable']=='' \
                 else [int(x) for x in model_parameters['trainable'].split(',')]
     splice_layers = [-1]*len(ckpt_files) if model_parameters['splice_layers']=='' \
