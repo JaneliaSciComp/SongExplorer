@@ -16,6 +16,7 @@ EOF
 if [ `uname -m` == arm64 ] ; then
 cat << EOF >> ${PREFIX}/.messages.txt
 pip3 install tensorflow-metal
+pip3 install tensorflow-io==<VERSION>  # https://github.com/tensorflow/io?tab=readme-ov-file#tensorflow-version-compatibility
 EOF
 fi
 else
@@ -27,3 +28,5 @@ fi
 cat << EOF >> ${PREFIX}/.messages.txt
 ********** IMPORTANT !!! **********
 EOF
+
+# pims, av, git;  see https://github.com/soft-matter/pims/issues/425;  requires python <=3.10
