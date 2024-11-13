@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+#!/usr/bin/env python
 
 # e.g. cluster-plugin.py \
 #     --data_dir=`pwd`/groundtruth-data \
