@@ -24,7 +24,7 @@ use_video=0
 def model_parameters(time_units, freq_units, time_scale, freq_scale):
     return [
         # key, title in GUI, '' for textbox or [] for pull-down, default value, width, enable logic, callback, required
-        ["ckpt_files",    "checkpoint file(s)", '', '',   6, [], None, True],
+        ["ckpt_files",    "checkpoint file(s)", '', '',   5, [], None, True],
         ["trainable",     "trainable?",         '', '',   1, [], None, False],
         ["splice_layers", "layer(s)",           '', '',   1, [], None, False],
         ["conv_layers",   "conv",               '', '',   2, [], None, False],

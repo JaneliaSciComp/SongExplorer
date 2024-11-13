@@ -233,6 +233,7 @@ def next_pow2_sec(x_sec):
     return False, x_sec
 
 def init(_bokeh_document, _configuration_file, _use_aitch):
+    global changed_style
     global bokeh_document, configuration_file, bindirs, repodir, srcdir
     global use_aitch, local_current_job, server_current_job
     global audio_tic_rate, audio_nchannels, video_channels
@@ -257,6 +258,8 @@ def init(_bokeh_document, _configuration_file, _use_aitch):
     bokeh_document = _bokeh_document
 
     exec(open(_configuration_file).read(), globals())
+
+    changed_style = [".bk-input { background-color: #FFA500; }"]
 
     time_units = gui_time_units
     time_scale = gui_time_scale
