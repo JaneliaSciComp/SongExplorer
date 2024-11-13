@@ -25,14 +25,14 @@ import json
 
 def _callback(p,M,V,C):
     C.time.sleep(0.5)
-    V.cluster_parameters[p].css_classes = []
+    V.cluster_parameters[p].stylesheets = []
     M.save_state_callback()
     V.buttons_update()
 
 def pca_fraction_callback(n,M,V,C):
     pca_fraction = float(V.cluster_parameters['pca-fraction'].value)
     if not 0 < pca_fraction <= 1:
-        V.cluster_parameters['pca-fraction'].css_classes = ['changed']
+        V.cluster_parameters['pca-fraction'].stylesheets = M.changed_style
         V.cluster_parameters['pca-fraction'].value = str(min(1, max(0, pca_fraction)))
         bokehlog.info("WARNING:  `PCA fraction` must be between 0 and 1")
         if V.bokeh_document:
@@ -43,7 +43,7 @@ def pca_fraction_callback(n,M,V,C):
 def positive_callback(key,n,M,V,C):
     value = float(V.cluster_parameters[key].value)
     if value <= 0:
-        V.cluster_parameters[key].css_classes = ['changed']
+        V.cluster_parameters[key].stylesheets = M.changed_style
         V.cluster_parameters[key].value = "1"
         bokehlog.info("WARNING:  `"+key+"` must be positive")
         if V.bokeh_document:

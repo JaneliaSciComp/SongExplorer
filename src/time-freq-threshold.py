@@ -46,18 +46,18 @@ from lib import combine_events, load_audio_read_plugin
 
 def _frequency_n_callback(M,V,C):
     C.time.sleep(0.5)
-    V.detect_parameters['frequency_n'].css_classes = []
-    V.detect_parameters['frequency_smooth'].css_classes = []
+    V.detect_parameters['frequency_n'].stylesheets = [""]
+    V.detect_parameters['frequency_smooth'].stylesheets = [""]
     M.save_state_callback()
     V.buttons_update()
 
 def frequency_n_callback(n,M,V,C):
     changed, frequency_n_sec2 = M.next_pow2_sec(float(V.detect_parameters['frequency_n'].value) * M.time_scale)
     if changed:
-        V.detect_parameters['frequency_n'].css_classes = ['changed']
+        V.detect_parameters['frequency_n'].stylesheets = M.changed_style
         V.detect_parameters['frequency_n'].value = str(frequency_n_sec2 / M.time_scale)
     if float(V.detect_parameters['frequency_smooth'].value) < float(V.detect_parameters['frequency_n'].value):
-        V.detect_parameters['frequency_smooth'].css_classes = ['changed']
+        V.detect_parameters['frequency_smooth'].stylesheets = M.changed_style
         V.detect_parameters['frequency_smooth'].value = V.detect_parameters['frequency_n'].value
     if V.bokeh_document:
         V.bokeh_document.add_next_tick_callback(lambda: _frequency_n_callback(M,V,C))

@@ -1,9 +1,3 @@
-.fixedwidth textarea {
-    font-family: Monaco, monospace !important;
-    font-size: 11px !important;
-    resize: none;
-}
-
 .changed .bk-input {
     background-color: #FFA500 !important;
 }

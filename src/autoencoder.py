@@ -13,7 +13,7 @@ bokehlog = logging.getLogger("songexplorer")
 def _callback(ps,M,V,C):
     C.time.sleep(0.5)
     for p in ps:
-        V.model_parameters[p].css_classes = []
+        V.model_parameters[p].stylesheets = [""]
     M.save_state_callback()
     V.buttons_update()
 
@@ -22,7 +22,7 @@ def window_callback(n,M,V,C):
     changed, window_sec2 = M.next_pow2_sec(float(V.model_parameters['window'].value) * M.time_scale)
     if changed:
         bokehlog.info("WARNING:  adjusting `window ("+M.time_units+")` to be a power of two in tics")
-        V.model_parameters['window'].css_classes = ['changed']
+        V.model_parameters['window'].stylesheets = M.changed_style
         V.model_parameters['window'].value = str(window_sec2 / M.time_scale)
         ps.append('window')
     mel, _ = V.model_parameters['mel_dct'].value.split(',')
@@ -30,7 +30,7 @@ def window_callback(n,M,V,C):
     if int(mel) != nfreqs:
         changed=True
         bokehlog.info("WARNING:  adjusting `mel & DCT` to both be equal to the number of frequencies")
-        V.model_parameters['mel_dct'].css_classes = ['changed']
+        V.model_parameters['mel_dct'].stylesheets = M.changed_style
         V.model_parameters['mel_dct'].value = str(nfreqs)+','+str(nfreqs)
         ps.append('mel_dct')
     if changed:
@@ -70,7 +70,7 @@ def stride_callback(n,M,V,C):
                 else:
                     stride_sec2 = "-1"
                     bokehlog.info("ERROR:  downsampling achieved by `stride after` is prime")
-        V.model_parameters['stride'].css_classes = ['changed']
+        V.model_parameters['stride'].stylesheets = M.changed_style
         V.model_parameters['stride'].value = str(stride_sec2 * M.time_scale)
         if V.bokeh_document:
             V.bokeh_document.add_next_tick_callback(lambda: _callback(['stride_sec'],M,V,C))
@@ -84,7 +84,7 @@ def mel_dct_callback(n,M,V,C):
     mel, dct = V.model_parameters['mel_dct'].value.split(',')
     if int(dct) > int(mel):
         bokehlog.info("WARNING:  adjusting `mel & DCT` such that DCT is less than or equal to mel")
-        V.model_parameters['mel_dct'].css_classes = ['changed']
+        V.model_parameters['mel_dct'].stylesheets = M.changed_style
         V.model_parameters['mel_dct'].value = mel+','+mel
         if V.bokeh_document:
             V.bokeh_document.add_next_tick_callback(lambda: _callback(['mel_dct'],M,V,C))
@@ -103,7 +103,7 @@ def range_callback(n,M,V,C):
     if lo > hi:  lo=0;
     if V.model_parameters['range'].value != str(lo/M.freq_scale)+'-'+str(hi/M.freq_scale):
         bokehlog.info("WARNING:  adjusting `range ("+M.freq_units+")` such that lower bound is not negative and the higher bound less than the Nyquist frequency.")
-        V.model_parameters['range'].css_classes = ['changed']
+        V.model_parameters['range'].stylesheets = M.changed_style
         V.model_parameters['range'].value = str(lo/M.freq_scale)+'-'+str(hi/M.freq_scale)
         if V.bokeh_document:
             V.bokeh_document.add_next_tick_callback(lambda: _callback(['range'],M,V,C))
@@ -124,7 +124,7 @@ def dilate_stride_callback(key,n,M,V,C):
     dilate = set(dilate_time + dilate_freq)
     if stride & dilate:
         bokehlog.info("WARNING:  adjusting `"+key+"` so that the convolutional layers with strides do not overlap with those that dilate")
-        V.model_parameters[key].css_classes = ['changed']
+        V.model_parameters[key].stylesheets = M.changed_style
         tmp = set(parse_layers(V.model_parameters[key].value, nconvlayers))
         V.model_parameters[key].value = esrap_layers(list(tmp - (stride & dilate)), nconvlayers)
         if V.bokeh_document:
@@ -141,7 +141,7 @@ def dilate_stride_callback(key,n,M,V,C):
 #        while downsampled_rate != round(downsampled_rate):
 #            stride_time.pop()
 #            downsampled_rate = M.audio_tic_rate / 2 ** min(nconvlayers, len(stride_time))
-#        V.model_parameters['stride_time'].css_classes = ['changed']
+#        V.model_parameters['stride_time'].stylesheets = M.changed_style
 #        V.model_parameters['stride_time'].value = esrap_layers(stride_time, nconvlayers)
 #        if V.bokeh_document:
 #            V.bokeh_document.add_next_tick_callback(lambda: _callback(['stride_time'],M,V,C))
@@ -159,7 +159,7 @@ def dilate_stride_callback(key,n,M,V,C):
 #            downsampled_rate = M.audio_tic_rate / 2 ** min(this_nconvlayers, len(stride_time))
 #            if downsampled_rate == round(downsampled_rate):
 #                break
-#        V.model_parameters['nconvlayers'].css_classes = ['changed']
+#        V.model_parameters['nconvlayers'].stylesheets = M.changed_style
 #        V.model_parameters['nconvlayers'].value = str(this_nconvlayers)
 #        if V.bokeh_document:
 #            V.bokeh_document.add_next_tick_callback(lambda: _callback(['nconvlayers'],M,V,C))

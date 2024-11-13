@@ -319,12 +319,12 @@ def _recordings_callback(n):
         V.snippets_update(True)
     V.context_update()
     V.recordings.disabled=False
-    V.recordings.css_classes = []
+    V.recordings.stylesheets = [""]
 
 def recordings_callback(a,o,n):
     if M.user_changed_recording:
         V.recordings.disabled=True
-        V.recordings.css_classes = ['changed']
+        V.recordings.stylesheets = M.changed_style
         if bokeh_document:
             bokeh_document.add_next_tick_callback(lambda: _recordings_callback(n))
         else:
@@ -486,7 +486,7 @@ def waveform_tap_callback(event):
 def _spectrogram_window_callback(any_changed):
     if any_changed:
         time.sleep(0.5)
-        V.spectrogram_length.css_classes = []
+        V.spectrogram_length.stylesheets = [""]
     M.save_state_callback()
     V.context_update()
 
@@ -497,7 +497,7 @@ def spectrogram_window_callback(attr, old, new):
         changed, length_sec2 = M.next_pow2_sec(length_sec)
         if changed:
             any_changed = True
-            V.spectrogram_length.css_classes = ['changed']
+            V.spectrogram_length.stylesheets = M.changed_style
             M.spectrogram_length_sec[ilength] = length_sec2
     if any_changed:
         V.spectrogram_length.value = ','.join([str(x / M.time_scale) for x in M.spectrogram_length_sec])
@@ -622,7 +622,7 @@ def _touse_callback(n,button):
     V.recordings_update()
     M.save_state_callback()
     V.recordings.disabled=False
-    V.recordings.css_classes = []
+    V.recordings.stylesheets = [""]
     button.disabled=False
     M.user_copied_parameters=0
 
@@ -630,7 +630,7 @@ def touse_callback(n,button):
     if M.user_copied_parameters<2:
         M.user_copied_parameters += 1
         V.recordings.disabled=True
-        V.recordings.css_classes = ['changed']
+        V.recordings.stylesheets = M.changed_style
         button.disabled=True
         if bokeh_document:
             bokeh_document.add_next_tick_callback(lambda: _touse_callback(n,button))
