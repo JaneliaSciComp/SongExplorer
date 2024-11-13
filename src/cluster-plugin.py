@@ -18,17 +18,17 @@ import numpy as np
 # optional callbacks can be used to validate user input
 def _callback(p,M,V,C):
     C.time.sleep(0.5)
-    V.cluster_parameters[p].css_classes = []
+    V.cluster_parameters[p].stylesheets = [""]
     M.save_state_callback()
     V.buttons_update()
 
 def callback(n,M,V,C):
     # M, V, C are the model, view, and controller in src/gui
     # access the hyperparameters below with the V.detect_parameters dictionary
-    # the value is stored in .value, and the appearance can be controlled with .css_classes
+    # the value is stored in .value, and the appearance can be controlled with .stylesheets
     if int(V.detect_parameters['a-bounded-value'].value) < 0:
         #bokehlog.info("a-bounded-value = "+str(V.detect_parameters['a-bounded-value'].value))  # uncomment to debug
-        V.detect_parameters['a-bounded-value'].css_classes = ['changed']
+        V.detect_parameters['a-bounded-value'].stylesheets = [".bk-input { background-color: #FFA500; }"]
         V.detect_parameters['a-bounded-value'].value = "0"
         if V.bokeh_document:  # if interactive V.bokeh_document.add_next_tick_callback(lambda: _callback('a-bounded-value',M,V,C))
             V.bokeh_document.add_next_tick_callback(lambda: _callback('a-bounded-value',M,V,C))

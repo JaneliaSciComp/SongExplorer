@@ -462,7 +462,8 @@ Workstation](#another-workstation) to specify the path to the SongExplorer
 executable.  If modifying your .bashrc file to export a modified PATH is not an
 option, then specify the `-env` flag in your configuration.py:
 
-	cluster_cmd="bsub -env 'all, PATH=<path-to-unzipped-executable>/songexplorer/bin:<paths-to-everything-else>'"
+    cluster_cmd="bsub -env 'all, \
+        PATH=<path-to-unzipped-executable>/songexplorer/bin:<paths-to-everything-else>'"
 
 
 # Tutorial #
@@ -1714,7 +1715,10 @@ documentation showing how to call it.  Here, for example, is the interface for
     # e.g.
     # time-freq-threshold.py \
     #     --filename=`pwd`/groundtruth-data/round2/20161207T102314_ch1_p1.wav \
-    #     --parameters={"time_sigma":"9,4", "time_smooth_ms":"6.4", "frequency_n_ms":"25.6", "frequency_nw":"4", "frequency_p":"0.1,1.0", "frequency_smooth_ms":"25.6", "time_sigma_robust":"median"} \
+    #     --parameters={"time_sigma":"9,4", "time_smooth_ms":"6.4", \
+                        "frequency_n_ms":"25.6", "frequency_nw":"4", \
+                        "frequency_p":"0.1,1.0", "frequency_smooth_ms":"25.6", \
+                        "time_sigma_robust":"median"} \
     #     --audio_tic_rate=2500 \
     #     --audio_nchannels=1 \
     #     --audio_read_plugin=load-wav \
@@ -2000,7 +2004,8 @@ library, set XLA_FLAGS in your environment, and install cuda-nvcc:
     $ conda activate songexplorer
     $ mkdir -p $CONDA_PREFIX/lib/nvvm/libdevice/
     $ cp -p $CONDA_PREFIX/lib/libdevice.10.bc $CONDA_PREFIX/lib/nvvm/libdevice/
-    $ echo 'export XLA_FLAGS=--xla_gpu_cuda_data_dir=$CONDA_PREFIX/lib' >> $CONDA_PREFIX/etc/conda/activate.d/env_vars.sh
+    $ echo 'export XLA_FLAGS=--xla_gpu_cuda_data_dir=$CONDA_PREFIX/lib' \
+            >> $CONDA_PREFIX/etc/conda/activate.d/env_vars.sh
     $ conda install -c nvidia cuda-nvcc
 
 To upload to the [Janelia forge](https://anaconda.org/janelia):
@@ -2035,9 +2040,10 @@ asset:
 To upload a tarball to Github, compress the conda environment and drag and drop
 it into the assets section of the releases page:
 
-    $ cd $CONDA_PREFIX/envs
+    $ cd $CONDA_PREFIX/..
     $ tar czf songexplorer-<version>-<architecture>.tar.gz songexplorer
-    $ cat songexplorer-<version>-<architecture>.tar.gz | split --bytes=2GB - songexplorer-<version>-<architecture>.tar.gz.
+    $ cat songexplorer-<version>-<architecture>.tar.gz | \
+          split --bytes=2GB - songexplorer-<version>-<architecture>.tar.gz.
 
 After downloading, some users will need to re-install some pip dependencies
 (e.g. tensorflow-metal on MacOS) as they are not in general relocatable:
@@ -2075,7 +2081,8 @@ To build an image, change to a local (i.e. not NFS mounted; e.g.
 
     $ git clone https://github.com/JaneliaSciComp/SongExplorer.git
     $ rm -rf songexplorer/.git
-    $ sudo singularity build -s [-B /opt:/mnt] [--no-cleanup] songexplorer.img songexplorer/install/singularity.def
+    $ sudo singularity build -s [-B /opt:/mnt] [--no-cleanup] \
+          songexplorer.img songexplorer/install/singularity.def
 
 To confirm that the image works:
 

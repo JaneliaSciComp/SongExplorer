@@ -19,7 +19,7 @@ requirements:
     - cudatoolkit=11  # [win]
     - cudnn=8  # [win]
     - cuda-nvcc=11  # [win]
-    - bokeh >=2,<3
+    - bokeh=3
     - matplotlib-base
     - natsort 
     - scikit-image
@@ -30,7 +30,7 @@ requirements:
     - portion
     - matplotlib-venn
     - psutil
-    - nodejs >=10.13.10
+    - nodejs >=18
     - aitch >=0.2.2
     - opentsne
     - libssh2 [win]

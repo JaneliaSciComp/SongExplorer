@@ -1,13 +1,13 @@
 import os
 import sys
 from bokeh.models.widgets import RadioButtonGroup, TextInput, Button, Div, DateFormatter, TextAreaInput, Select, NumberFormatter, Slider, Toggle, ColorPicker, MultiSelect, Paragraph
-from bokeh.models.formatters import FuncTickFormatter
+from bokeh.models.formatters import CustomJSTickFormatter
 from bokeh.models import ColumnDataSource, TableColumn, DataTable, LayoutDOM, Span, HoverTool
 from bokeh.plotting import figure
 from bokeh.transform import linear_cmap, stack
 from bokeh.events import Tap, DoubleTap, PanStart, Pan, PanEnd, ButtonClick, MouseWheel
 from bokeh.models.callbacks import CustomJS
-from bokeh.models.markers import Circle
+from bokeh.models.glyphs import Circle
 import numpy as np
 import glob
 from datetime import datetime
@@ -52,7 +52,6 @@ class ScatterNd(LayoutDOM):
     __implementation__ = TypeScript("""
 import {LayoutDOM, LayoutDOMView} from "models/layouts/layout_dom"
 import {ColumnDataSource} from "models/sources/column_data_source"
-import {LayoutItem} from "core/layout"
 import * as p from "core/properties"
 
 declare namespace Plotly {
@@ -123,7 +122,7 @@ icosphere162.forEach((x)=>{
 });
 
 export class ScatterNdView extends LayoutDOMView {
-  model: ScatterNd
+  declare model: ScatterNd
 
   initialize(): void {
     super.initialize()
@@ -137,57 +136,58 @@ export class ScatterNdView extends LayoutDOMView {
   }
 
   ndims() {
-    if (this.model.dots_source.data[this.model.dz].length==0) {
+    if (this.model.dots_source.get(this.model.dz).length==0) {
       return 0 }
-    else if (isNaN(this.model.dots_source.data[this.model.dz][0])) {
+    else if (isNaN(this.model.dots_source.get(this.model.dz)[0] as number)) {
       return 2 }
     return 3
   }
 
   get_dots_data() {
-    return {x: this.model.dots_source.data[this.model.dx],
-            y: this.model.dots_source.data[this.model.dy],
-            z: this.model.dots_source.data[this.model.dz],
-            text: this.model.dots_source.data[this.model.dl],
+    return {x: this.model.dots_source.get(this.model.dx),
+            y: this.model.dots_source.get(this.model.dy),
+            z: this.model.dots_source.get(this.model.dz),
+            text: this.model.dots_source.get(this.model.dl),
             marker: {
-              color: this.model.dots_source.data[this.model.dc],
-              size: this.model.dot_size_source.data[this.model.ds][0],
-              opacity: this.model.dot_alpha_source.data[this.model.da][0],
+              color: this.model.dots_source.get(this.model.dc),
+              size: this.model.dot_size_source.get(this.model.ds)[0],
+              opacity: this.model.dot_alpha_source.get(this.model.da)[0],
             }
            };
   }
 
   set_circle_fuchsia_data2() {
-    if (this.model.circle_fuchsia_source.data[this.model.cx].length==0) {
+    if (this.model.circle_fuchsia_source.get(this.model.cx).length==0) {
       OPTIONS2.shapes[0].x0 = 0
       OPTIONS2.shapes[0].y0 = 0
       OPTIONS2.shapes[0].x1 = 0
-      OPTIONS2.shapes[0].y1 = 0 }
-    else {
-      OPTIONS2.shapes[0].line.color = this.model.circle_fuchsia_source.data[this.model.cc][0]
-      let x = this.model.circle_fuchsia_source.data[this.model.cx][0]
-      let y = this.model.circle_fuchsia_source.data[this.model.cy][0]
-      let r = this.model.circle_fuchsia_source.data[this.model.cr][0]
+      OPTIONS2.shapes[0].y1 = 0
+    } else {
+      OPTIONS2.shapes[0].line.color = this.model.circle_fuchsia_source.get(this.model.cc)[0] as string
+      let x = this.model.circle_fuchsia_source.get(this.model.cx)[0] as number
+      let y = this.model.circle_fuchsia_source.get(this.model.cy)[0] as number
+      let r = this.model.circle_fuchsia_source.get(this.model.cr)[0] as number
       OPTIONS2.shapes[0].x0 = x-r
       OPTIONS2.shapes[0].y0 = y-r
       OPTIONS2.shapes[0].x1 = x- -r
-      OPTIONS2.shapes[0].y1 = y- -r }
+      OPTIONS2.shapes[0].y1 = y- -r
+    }
   }
 
   get_circle_fuchsia_data3() {
-    if (this.model.circle_fuchsia_source.data[this.model.cx].length==0) {
+    if (this.model.circle_fuchsia_source.get(this.model.cx).length==0) {
       return {type: 'mesh3d',
               x:[0], y:[0], z:[0],
-             }; }
-    else {
-      let radius = this.model.circle_fuchsia_source.data[this.model.cr][0]
+             };
+    } else {
+      let radius = this.model.circle_fuchsia_source.get(this.model.cr)[0]
       return {type: 'mesh3d',
               // @ts-ignore
-              x: xicosphere.map(x=>x*radius+this.model.circle_fuchsia_source.data[this.model.cx][0]),
+              x: xicosphere.map(x=>x*radius+this.model.circle_fuchsia_source.get(this.model.cx)[0]),
               // @ts-ignore
-              y: yicosphere.map(x=>x*radius+this.model.circle_fuchsia_source.data[this.model.cy][0]),
+              y: yicosphere.map(x=>x*radius+this.model.circle_fuchsia_source.get(this.model.cy)[0]),
               // @ts-ignore
-              z: zicosphere.map(x=>x*radius+this.model.circle_fuchsia_source.data[this.model.cz][0]),
+              z: zicosphere.map(x=>x*radius+this.model.circle_fuchsia_source.get(this.model.cz)[0]),
              }; }
   }
 
@@ -266,17 +266,12 @@ export class ScatterNdView extends LayoutDOMView {
         // @ts-ignore
         Plotly.restyle(this.el,
                        {x: [new_data['x']], y: [new_data['y']], z: [new_data['z']],
-                        color: this.model.circle_fuchsia_source.data[this.model.cc][0]},
+                        color: this.model.circle_fuchsia_source.get(this.model.cc)[0]},
                        [0]); }
     });
   }
 
   get child_models(): LayoutDOM[] { return [] }
-
-  _update_layout(): void {
-    this.layout = new LayoutItem()
-    this.layout.set_sizing(this.box_sizing())
-  }
 }
 
 export namespace ScatterNd {
@@ -306,34 +301,35 @@ export namespace ScatterNd {
 export interface ScatterNd extends ScatterNd.Attrs {}
 
 export class ScatterNd extends LayoutDOM {
-  properties: ScatterNd.Props
+  declare properties: ScatterNd.Props
+  declare __view_type__: ScatterNdView
 
   constructor(attrs?: Partial<ScatterNd.Attrs>) { super(attrs) }
 
   static __name__ = "ScatterNd"
 
-  static init_ScatterNd() {
+  static {
     this.prototype.default_view = ScatterNdView
 
-    this.define<ScatterNd.Props>({
-      cx: [ p.String   ],
-      cy: [ p.String   ],
-      cz: [ p.String   ],
-      cr: [ p.String   ],
-      cc: [ p.String   ],
-      dx: [ p.String   ],
-      dy: [ p.String   ],
-      dz: [ p.String   ],
-      dl: [ p.String   ],
-      dc: [ p.String   ],
-      ds: [ p.String   ],
-      da: [ p.String   ],
-      click_position:  [ p.Array   ],
-      circle_fuchsia_source: [ p.Instance ],
-      dots_source: [ p.Instance ],
-      dot_size_source: [ p.Instance ],
-      dot_alpha_source: [ p.Instance ],
-    })
+    this.define<ScatterNd.Props>(({Str, Any, Ref}) => ({
+      cx: [ Str ],
+      cy: [ Str ],
+      cz: [ Str ],
+      cr: [ Str ],
+      cc: [ Str ],
+      dx: [ Str ],
+      dy: [ Str ],
+      dz: [ Str ],
+      dl: [ Str ],
+      dc: [ Str ],
+      ds: [ Str ],
+      da: [ Str ],
+      click_position: [ Any ],
+      circle_fuchsia_source: [ Ref(ColumnDataSource) ],
+      dots_source: [ Ref(ColumnDataSource) ],
+      dot_size_source: [ Ref(ColumnDataSource) ],
+      dot_alpha_source: [ Ref(ColumnDataSource) ],
+    }))
   }
 }
 """
@@ -668,8 +664,8 @@ def snippets_update(redraw_wavs):
     for isnippet in range(M.snippets_nx*M.snippets_ny):
         ix, iy = isnippet%M.snippets_nx, isnippet//M.snippets_nx
         if redraw_wavs:
-            xdata = range(ix*(M.snippets_gap_pix+M.snippets_pix),
-                          (ix+1)*(M.snippets_gap_pix+M.snippets_pix)-M.snippets_gap_pix)
+            xdata = list(range(ix*(M.snippets_gap_pix+M.snippets_pix),
+                              (ix+1)*(M.snippets_gap_pix+M.snippets_pix)-M.snippets_gap_pix))
             for ichannel in range(M.audio_nchannels):
                 if ichannel+1 in M.snippets_waveform:
                     idx = M.snippets_waveform.index(ichannel+1)
@@ -684,20 +680,18 @@ def snippets_update(redraw_wavs):
                 if ichannel+1 in M.snippets_spectrogram:
                     idx = M.snippets_spectrogram.index(ichannel+1)
                     if gram_images[isnippet]:
-                        snippets_gram_glyphs[isnippet][idx].glyph.x = xdata[0]
-                        snippets_gram_glyphs[isnippet][idx].glyph.y = \
-                                -iy*snippets_dy - 1 - snippets_both \
-                                +len(M.snippets_spectrogram) - 1 - idx
-                        snippets_gram_glyphs[isnippet][idx].glyph.dw = xdata[-1] - xdata[0] + \
-                                                                       xdata[1] - xdata[0]
-                        snippets_gram_glyphs[isnippet][idx].glyph.dh = 2/len(M.snippets_spectrogram)
                         log_img = np.log10(1e-15 + gram_images[isnippet][idx][ilows[isnippet][idx] : 1+ihighs[isnippet][idx], :])
                         clip_vals = np.percentile(log_img, M.spectrogram_clip)
                         np.where(log_img, log_img<clip_vals[0], clip_vals[0])
                         np.where(log_img, log_img>clip_vals[1], clip_vals[1])
-                        snippets_gram_sources[isnippet][idx].data.update(image=[log_img])
+                        snippets_gram_sources[isnippet][idx].data.update(
+                                im = [log_img],
+                                x = [xdata[0]],
+                                y = [-iy*snippets_dy - 1 - snippets_both + len(M.snippets_spectrogram) - 1 - idx],
+                                dw = [xdata[-1] - xdata[0] + xdata[1] - xdata[0]],
+                                dh = [2/len(M.snippets_spectrogram)])
                     else:
-                        snippets_gram_sources[isnippet][idx].data.update(image=[])
+                        snippets_gram_sources[isnippet][idx].data.update(im=[], x=[], y=[], dw=[], dh=[])
         if labels_annotated[isnippet]!='':
             left_clustered.append(ix*(M.snippets_gap_pix+M.snippets_pix))
             right_clustered.append((ix+1)*(M.snippets_gap_pix+M.snippets_pix)-M.snippets_gap_pix)
@@ -803,15 +797,13 @@ def __context_update(wavi, context_sound, istart_bounded, ilength, npad_sec):
         base64vid, height, width, frame_rate = nparray2base64mp4(os.path.join(sound_dirname,
                                                                               vidfile),
                                                                  start_sec, stop_sec, npad_sec)
-        labelcounts.style = {'overflow-y':'hidden', 'overflow-x':'scroll',
-                             'width':str(max(100,M.gui_width_pix-450-width))+'px'}
-        video_div.style = {'width':str(width)+'px', 'height':str(height)+'px'}
+        labelcounts.styles = {'overflow-y':'hidden', 'overflow-x':'scroll'}
+        video_div.styles = {'width':str(width)+'px', 'height':str(height)+'px'}
     else:
         frame_rate = 0
         base64vid = ""
-        labelcounts.style = {'overflow-y':'hidden', 'overflow-x':'scroll',
-                            'width':str(M.gui_width_pix-450-1)+'px'}
-        video_div.style = {'width':'1px', 'height':'1px'}
+        labelcounts.styles = {'overflow-y':'hidden', 'overflow-x':'scroll'}
+        video_div.styles = {'width':'1px', 'height':'1px'}
 
     base64wav = nparray2base64wav(wavi, M.audio_tic_rate)
     load_multimedia_callback.code = C.load_multimedia_callback_code % (base64wav, base64vid)
@@ -972,7 +964,7 @@ def context_update():
                                  for i in range(len(probi_trimmed))]
 
             if M.context_spectrogram:
-                p_spectrogram.yaxis.formatter = FuncTickFormatter(
+                p_spectrogram.yaxis.formatter = CustomJSTickFormatter(
                     args=dict(low_hz=[gram_freq[i][x] / M.context_freq_scale for i,x in enumerate(ilow)],
                               high_hz=[gram_freq[i][x] / M.context_freq_scale for i,x in enumerate(ihigh)]),
                     code="""
@@ -1115,18 +1107,18 @@ def context_update():
         if ichannel+1 in M.context_spectrogram:
             idx = M.context_spectrogram.index(ichannel+1)
             if not np.isnan(gram_time[idx][0]):
-                spectrogram_glyph[idx].glyph.x = istart / M.audio_tic_rate / M.context_time_scale
-                spectrogram_glyph[idx].glyph.y = len(M.context_spectrogram) - 1 - idx
-                spectrogram_glyph[idx].glyph.dw = gram_time[idx][-1] + \
-                        M.spectrogram_length_sec[ichannel] / M.context_time_scale * M.gui_spectrogram_overlap
-                spectrogram_glyph[idx].glyph.dh = 1
                 log_img = np.log10(1e-15 + gram_image[idx][ilow[idx] : 1+ihigh[idx], :])
                 clip_vals = np.percentile(log_img, M.spectrogram_clip)
                 np.place(log_img, log_img<clip_vals[0], clip_vals[0])
                 np.place(log_img, log_img>clip_vals[1], clip_vals[1])
-                spectrogram_source[idx].data.update(image=[log_img])
+                spectrogram_source[idx].data.update(
+                        im = [log_img],
+                        x = [istart / M.audio_tic_rate / M.context_time_scale],
+                        y = [len(M.context_spectrogram) - 1 - idx],
+                        dw = [gram_time[idx][-1] + M.spectrogram_length_sec[ichannel] / M.context_time_scale * M.gui_spectrogram_overlap],
+                        dh = [1])
             else:
-                spectrogram_source[idx].data.update(image=[])
+                spectrogram_source[idx].data.update(im=[], x=[], y=[], dw=[], dh=[])
         if xwav and not np.isnan(xwav[0][-1]):
             spectrogram_range_source.data.update(x=[xwav[0][-1]])
 
@@ -1136,9 +1128,9 @@ def context_update():
                                        labels=list(M.used_labels))
     else:
         probability_source.data.update(**{'x'+str(i):(xprob[i] if i<len(xprob) else xprob[0] if len(xprob)>0 else [])
-                                          for i in range(M.nlabels)},
+                                          for i in list(range(M.nlabels))},
                                        **{'y'+str(i):(yprob[i] if i<len(yprob) else [0]*len(yprob[0]) if len(yprob)>0 else [])
-                                          for i in range(M.nlabels)})
+                                          for i in list(range(M.nlabels))})
         if len(xprob)>0 and len(xprob[0])>1:
             for g in probability_glyphs:
                 g.glyph.width = xprob[0][1] - xprob[0][0]
@@ -1197,7 +1189,7 @@ def cluster_these_layers_update():
         nlayers = len(list(filter(lambda x: x.startswith('arr_'), npzfile.files)))
         cluster_these_layers.options = [("0", "input"),
                                         *[(str(i), "hidden #"+str(i)) \
-                                          for i in range(1,nlayers-1)],
+                                          for i in list(range(1,nlayers-1))],
                                         (str(nlayers-1), "output")]
     else:
         cluster_these_layers.options = []
@@ -1277,7 +1269,7 @@ def _groundtruth_update():
     recordings_update()
     M.save_state_callback()
     recordings.disabled=False
-    recordings.css_classes = []
+    recordings.stylesheets = [""]
     groundtruth_folder_button.disabled=True
     buttons_update()
     M.user_copied_parameters=0
@@ -1289,7 +1281,7 @@ def groundtruth_update():
     if M.user_copied_parameters<2:
         M.user_copied_parameters += 1
         recordings.disabled=True
-        recordings.css_classes = ['changed']
+        recordings.stylesheets = [".bk-input:disabled { background-color: #FFA500; }"]
         groundtruth_folder_button.disabled=True
         if bokeh_document: 
             bokeh_document.add_next_tick_callback(_groundtruth_update)
@@ -1411,12 +1403,10 @@ def file_dialog_update():
         names=[os.path.basename(x) + (os.sep if os.path.isdir(x) else '') for x in files]
     else:
         names=[x + (os.sep if os.path.isdir(x) else '') for x in files]
-    file_dialog = dict(
-        names=names,
-        sizes=[os.path.getsize(f) for f in files],
-        dates=[datetime.fromtimestamp(os.path.getmtime(f)) for f in files],
-    )
-    file_dialog_source.data = file_dialog
+    sizes=[os.path.getsize(f) for f in files]
+    dates=[datetime.fromtimestamp(os.path.getmtime(f)) for f in files]
+    file_dialog_source.selected.indices = []
+    file_dialog_source.data.update(names=names, sizes=sizes, dates=dates)
 
 def labelcounts_update():
     dfs, subdirs = [], []
@@ -1527,7 +1517,7 @@ def model_summary_update():
     def update_model_summary(x):
         if not x.isspace():
             model_summary.value += x + '\n'
-    thismodel.summary(line_length = int(M.gui_width_pix/2/7), print_fn = update_model_summary)
+    thismodel.summary(line_length = int(M.gui_width_pix/18), print_fn = update_model_summary)
 
 def init(_bokeh_document):
     global bokeh_document, configuration_file
@@ -1547,10 +1537,10 @@ def init(_bokeh_document):
     global status_ticker, waitfor, deletefailures
     global file_dialog_source, configuration_contents
     global logs_folder_button, logs_folder, model_file_button, model_file, wavcsv_files_button, wavcsv_files, groundtruth_folder_button, groundtruth_folder, validation_files_button, test_files_button, validation_files, test_files, labels_touse_button, labels_touse, kinds_touse_button, kinds_touse, prevalences_button, prevalences, delete_ckpts, copy, labelsounds, makepredictions, fixfalsepositives, fixfalsenegatives, generalize, tunehyperparameters, findnovellabels, examineerrors, testdensely, doit, nsteps, restore_from, save_and_validate_period, validate_percentage, mini_batch, kfold, activations_equalize_ratio, activations_max_sounds, cluster_these_layers, precision_recall_ratios, congruence_portion, congruence_convolve, congruence_measure, context, shiftby, optimizer, loss, learning_rate, nreplicates, batch_seed, weights_seed, augment_volume, augment_noise, augment_dc, augment_reverse, augment_invert, file_dialog_string, file_dialog_table, readme_contents, model_summary, labelcounts, wizard_buttons, action_buttons, parameter_buttons, parameter_textinputs, wizard2actions, action2parameterbuttons, action2parametertextinputs, status_ticker_update, status_ticker_pre, status_ticker_post
-    global detect_parameters, detect_parameters_enable_logic, detect_parameters_required, detect_parameters_partitioned
+    global detect_parameters, detect_parameters_enable_logic, detect_parameters_required, detect_parameters_partitioned, detect_parameters_width
     global doubleclick_parameters, doubleclick_parameters_enable_logic, doubleclick_parameters_required
-    global model_parameters, model_parameters_enable_logic, model_parameters_required, model_parameters_partitioned
-    global cluster_parameters, cluster_parameters_enable_logic, cluster_parameters_required, cluster_parameters_partitioned
+    global model_parameters, model_parameters_enable_logic, model_parameters_required, model_parameters_partitioned, model_parameters_width
+    global cluster_parameters, cluster_parameters_enable_logic, cluster_parameters_required, cluster_parameters_partitioned, cluster_parameters_width
     global context_cache_file, context_cache_data
 
     context_cache_file, context_cache_data = None, None
@@ -1574,12 +1564,12 @@ def init(_bokeh_document):
     p_cluster = ScatterNd(dx='dx', dy='dy', dz='dz', dl='dl', dc='dc',
                           dots_source=cluster_dots,
                           cx='cx', cy='cy', cz='cz', cr='cr', cc='cc',
+                          click_position=[0,0],
                           circle_fuchsia_source=cluster_circle_fuchsia,
                           ds='ds',
                           dot_size_source=dot_size_cluster,
                           da='da',
-                          dot_alpha_source=dot_alpha_cluster,
-                          width=M.gui_width_pix//2)
+                          dot_alpha_source=dot_alpha_cluster)
     p_cluster.on_change("click_position", lambda a,o,n: C.cluster_tap_callback(n))
 
     precomputed_dots = None
@@ -1587,8 +1577,7 @@ def init(_bokeh_document):
     snippets_dy = 2*((len(M.snippets_waveform)>0) + (len(M.snippets_spectrogram)>0))
     snippets_both = 2*((len(M.snippets_waveform)>0) and (len(M.snippets_spectrogram)>0))
 
-    p_snippets = figure(plot_width=M.gui_width_pix//2, \
-                        background_fill_color='#FFFFFF', toolbar_location=None)
+    p_snippets = figure(background_fill_color='#FFFFFF', toolbar_location=None)
     p_snippets.toolbar.active_drag = None
     p_snippets.grid.visible = False
     p_snippets.xaxis.visible = False
@@ -1600,8 +1589,9 @@ def init(_bokeh_document):
         snippets_gram_sources[ixy]=[None]*len(M.snippets_spectrogram)
         snippets_gram_glyphs[ixy]=[None]*len(M.snippets_spectrogram)
         for idx in range(len(M.snippets_spectrogram)):
-            snippets_gram_sources[ixy][idx] = ColumnDataSource(data=dict(image=[]))
-            snippets_gram_glyphs[ixy][idx] = p_snippets.image('image',
+            snippets_gram_sources[ixy][idx] = ColumnDataSource(data=dict(im=[], x=[], y=[], dw=[], dh=[]))
+            snippets_gram_glyphs[ixy][idx] = p_snippets.image(
+                    image='im', x='x', y='y', dw='dw', dh='dh',
                     source=snippets_gram_sources[ixy][idx],
                     palette=M.spectrogram_colormap)
 
@@ -1620,20 +1610,20 @@ def init(_bokeh_document):
                     'x', 'y', source=snippets_wave_sources[ixy][idx])
 
     xdata = [(i%M.snippets_nx)*(M.snippets_gap_pix+M.snippets_pix)
-             for i in range(M.snippets_nx*M.snippets_ny)]
+             for i in list(range(M.snippets_nx*M.snippets_ny))]
     ydata = [-(i//M.snippets_nx*snippets_dy-1)
-             for i in range(M.snippets_nx*M.snippets_ny)]
-    text = ['' for i in range(M.snippets_nx*M.snippets_ny)]
+             for i in list(range(M.snippets_nx*M.snippets_ny))]
+    text = ['' for i in list(range(M.snippets_nx*M.snippets_ny))]
     snippets_label_sources_clustered = ColumnDataSource(data=dict(x=xdata, y=ydata, text=text))
     p_snippets.text('x', 'y', source=snippets_label_sources_clustered, text_font_size='6pt',
                     text_baseline='top',
                     text_color='black' if M.snippets_waveform else 'white')
 
     xdata = [(i%M.snippets_nx)*(M.snippets_gap_pix+M.snippets_pix)
-             for i in range(M.snippets_nx*M.snippets_ny)]
+             for i in list(range(M.snippets_nx*M.snippets_ny))]
     ydata = [-(i//M.snippets_nx*snippets_dy+1+snippets_both)
-             for i in range(M.snippets_nx*M.snippets_ny)]
-    text_annotated = ['' for i in range(M.snippets_nx*M.snippets_ny)]
+             for i in list(range(M.snippets_nx*M.snippets_ny))]
+    text_annotated = ['' for i in list(range(M.snippets_nx*M.snippets_ny))]
     snippets_label_sources_annotated = ColumnDataSource(data=dict(x=xdata, y=ydata,
                                                                   text=text_annotated))
     p_snippets.text('x', 'y', source=snippets_label_sources_annotated,
@@ -1647,8 +1637,8 @@ def init(_bokeh_document):
     p_snippets.on_event(Tap, C.snippets_tap_callback)
     p_snippets.on_event(DoubleTap, C.snippets_doubletap_callback)
 
-    p_waveform = figure(plot_width=M.gui_width_pix,
-                        plot_height=M.context_waveform_height_pix,
+    p_waveform = figure(width=M.gui_width_pix,
+                        height=M.context_waveform_height_pix,
                         background_fill_color='#FFFFFF', toolbar_location=None)
     p_waveform.toolbar.active_drag = None
     p_waveform.grid.visible = False
@@ -1704,8 +1694,8 @@ def init(_bokeh_document):
     p_waveform.on_event(PanEnd, C.waveform_pan_end_callback)
     p_waveform.on_event(Tap, C.waveform_tap_callback)
 
-    p_spectrogram = figure(plot_width=M.gui_width_pix,
-                           plot_height=M.context_spectrogram_height_pix,
+    p_spectrogram = figure(width=M.gui_width_pix,
+                           height=M.context_spectrogram_height_pix,
                            background_fill_color='#FFFFFF', toolbar_location=None)
     p_spectrogram.toolbar.active_drag = None
     p_spectrogram.x_range.range_padding = p_spectrogram.y_range.range_padding = 0
@@ -1718,13 +1708,13 @@ def init(_bokeh_document):
     spectrogram_source = [None]*len(M.context_spectrogram)
     spectrogram_glyph = [None]*len(M.context_spectrogram)
     for idx in range(len(M.context_spectrogram)):
-        spectrogram_source[idx] = ColumnDataSource(data=dict(image=[]))
-        spectrogram_glyph[idx] = p_spectrogram.image('image',
+        spectrogram_source[idx] = ColumnDataSource(data=dict(im=[], x=[], y=[], dw=[], dh=[]))
+        spectrogram_glyph[idx] = p_spectrogram.image(image='im', x='x', y='y', dw='dw', dh='dh',
                                                      source=spectrogram_source[idx],
                                                      palette=M.spectrogram_colormap,
                                                      level="image")
     spectrogram_range_source = ColumnDataSource(data=dict(x=[]))
-    spectrogram_range_glyph = p_spectrogram.square('x', y=0, size=1, alpha=0,
+    spectrogram_range_glyph = p_spectrogram.scatter('x', marker='square', y=0, size=1, alpha=0,
                                                    source=spectrogram_range_source)
 
     p_spectrogram.on_event(MouseWheel, C.spectrogram_mousewheel_callback)
@@ -1773,9 +1763,10 @@ def init(_bokeh_document):
     else:
         TOOLTIPS = ""
 
-    p_probability = figure(plot_width=M.gui_width_pix, tooltips=TOOLTIPS,
-                           plot_height=M.context_probability_height_pix,
-                           background_fill_color='#FFFFFF', toolbar_location=None)
+    p_probability = figure(width=M.gui_width_pix,
+                           height=M.context_probability_height_pix,
+                           tooltips=TOOLTIPS, toolbar_location=None,
+                           background_fill_color='#FFFFFF')
     p_probability.toolbar.active_drag = None
     p_probability.grid.visible = False
     p_probability.yaxis.axis_label = "Probability"
@@ -1790,16 +1781,16 @@ def init(_bokeh_document):
         probability_glyph = p_probability.multi_line(xs='xs', ys='ys',
                                                      source=probability_source, color='colors')
     else:
-        xs = {'x'+str(i):[] for i in range(M.nlabels)}
-        ys = {'y'+str(i):[] for i in range(M.nlabels)}
+        xs = {'x'+str(i):[] for i in list(range(M.nlabels))}
+        ys = {'y'+str(i):[] for i in list(range(M.nlabels))}
         probability_source = ColumnDataSource(data=xs|ys)
         global probability_glyphs
         probability_glyphs = []
         for i in range(M.nlabels):
             probability_glyphs.append(p_probability.vbar(
                     x='x'+str(i),
-                    bottom=stack(*['y'+str(j) for j in range(i)]),
-                    top=stack(*['y'+str(j) for j in range(i+1)]),
+                    bottom=stack(*['y'+str(j) for j in list(range(i))]),
+                    top=stack(*['y'+str(j) for j in list(range(i+1))]),
                     line_width = 0,
                     fill_color=label_palette[i],
                     source=probability_source))
@@ -1831,19 +1822,21 @@ def init(_bokeh_document):
     circle_radius = Slider(start=0, end=10, step=1, \
                            value=M.state["circle_radius"], \
                            title="circle radius", \
-                           disabled=True)
+                           disabled=True,
+                           sizing_mode='stretch_width')
     circle_radius.on_change("value_throttled", C.circle_radius_callback)
 
-    dot_size = Slider(start=1, end=24, step=1, \
-                      value=M.state["dot_size"], \
-                      title="dot size", \
-                      disabled=True)
+    dot_size = Slider(start=1, end=24, step=1,
+                      value=M.state["dot_size"],
+                      title="dot size",
+                      disabled=True, sizing_mode='stretch_width')
     dot_size.on_change("value", C.dot_size_callback)
 
     dot_alpha = Slider(start=0.01, end=1.0, step=0.01, \
                        value=M.state["dot_alpha"], \
                        title="dot alpha", \
-                       disabled=True)
+                       disabled=True,
+                       sizing_mode='stretch_width')
     dot_alpha.on_change("value", C.dot_alpha_callback)
 
     cluster_update()
@@ -1852,38 +1845,41 @@ def init(_bokeh_document):
         spectrogram_length = TextInput(value=','.join([str(x / M.time_scale)
                                                        for x in M.spectrogram_length_sec]), \
                                        title="length ("+M.time_units+")", \
-                                       disabled=False)
+                                       disabled=False,
+                                       sizing_mode='stretch_width')
         spectrogram_length.on_change('value', C.spectrogram_window_callback)
 
     zoom_width = TextInput(value=str(M.context_width_sec / M.time_scale),
                              title="width ("+M.time_units+"):",
-                             disabled=True)
+                             disabled=True,
+                             sizing_mode='stretch_width')
     zoom_width.on_change("value", C.zoom_width_callback)
 
     zoom_offset = TextInput(value=str(M.context_offset_sec / M.time_scale),
                             title="offset ("+M.time_units+"):",
-                            disabled=True)
+                            disabled=True,
+                            sizing_mode='stretch_width')
     zoom_offset.on_change("value", C.zoom_offset_callback)
 
-    zoomin = Button(label='\u2191', disabled=True)
+    zoomin = Button(label='\u2191', disabled=True, align="center")
     zoomin.on_click(C.zoomin_callback)
 
-    zoomout = Button(label='\u2193', disabled=True)
+    zoomout = Button(label='\u2193', disabled=True, align="center")
     zoomout.on_click(C.zoomout_callback)
 
     reset = Button(label='\u25ef', disabled=True)
     reset.on_click(C.zero_callback)
 
-    panleft = Button(label='\u2190', disabled=True)
+    panleft = Button(label='\u2190', disabled=True, align="center")
     panleft.on_click(C.panleft_callback)
 
-    panright = Button(label='\u2192', disabled=True)
+    panright = Button(label='\u2192', disabled=True, align="center")
     panright.on_click(C.panright_callback)
 
     allleft = Button(label='\u21e4', disabled=True)
     allleft.on_click(C.allleft_callback)
 
-    allout = Button(label='\u2913', disabled=True)
+    allout = Button(label='\u2913', disabled=True, align="center")
     allout.on_click(C.allout_callback)
 
     allright = Button(label='\u21e5', disabled=True)
@@ -1901,7 +1897,7 @@ def init(_bokeh_document):
     lastlabel = Button(label='L \u21e5', disabled=True)
     lastlabel.on_click(C.lastlabel_callback)
 
-    save_indicator = Button(label='0')
+    save_indicator = Button(label='0', align=("center","end"))
 
     nsounds_per_label_callbacks=[]
     nsounds_per_label_buttons=[]
@@ -1910,7 +1906,7 @@ def init(_bokeh_document):
 
     for i in range(M.nlabels):
         nsounds_per_label_callbacks.append(lambda i=i: C.nsounds_per_label_callback(i))
-        nsounds_per_label_buttons.append(Button(label='0', css_classes=['hide-label'], width=40))
+        nsounds_per_label_buttons.append(Button(label='0', css_classes=['hide-label']))
         nsounds_per_label_buttons[-1].on_click(nsounds_per_label_callbacks[-1])
 
         label_callbacks.append(lambda a,o,n,i=i: C.label_callback(n,i))
@@ -1924,7 +1920,7 @@ def init(_bokeh_document):
     load_multimedia_callback = CustomJS(code=C.load_multimedia_callback_code % ("",""))
     load_multimedia.js_on_change('text', load_multimedia_callback)
 
-    play = Button(label='play', disabled=True)
+    play = Button(label='play', disabled=True, align=("center","end"))
     play_callback = CustomJS(args=dict(waveform_span_red=waveform_span_red,
                                        spectrogram_span_red=spectrogram_span_red,
                                        probability_span_red=probability_span_red,
@@ -1933,11 +1929,11 @@ def init(_bokeh_document):
     play.js_on_event(ButtonClick, play_callback)
     play.on_change('disabled', lambda a,o,n: reset_video())
 
-    video_toggle = Toggle(label='video', active=False, disabled=True)
+    video_toggle = Toggle(label='video', active=False, disabled=True, align=("center","end"))
     video_toggle.on_click(lambda x: context_update())
 
     video_div = Div(text="""<video id="context_video"></video>""",
-                    style={'width':'1px'})
+                    styles={'width':'1px'})
 
     video_slider = Slider(title="", show_value=False, visible=False,
                           start=0, end=1, value=0, step=1)
@@ -1947,10 +1943,10 @@ def init(_bokeh_document):
                                      code=C.video_slider_callback_code)
     video_slider.js_on_change("value", video_slider_callback)
 
-    undo = Button(label='undo', disabled=True)
+    undo = Button(label='undo', disabled=True, align=("center","end"))
     undo.on_click(C.undo_callback)
 
-    redo = Button(label='redo', disabled=True)
+    redo = Button(label='redo', disabled=True, align=("center","end"))
     redo.on_click(C.redo_callback)
 
     remaining = Button(label='add remaining', disabled=True)
@@ -1959,57 +1955,57 @@ def init(_bokeh_document):
     recordings = Select(title="recording:", height=50)
     recordings.on_change('value', C.recordings_callback)
 
-    detect = Button(label='detect')
+    detect = Button(label='detect', width_policy='fit')
     detect.on_click(lambda: C.action_callback(detect, C.detect_actuate))
 
-    misses = Button(label='misses')
+    misses = Button(label='misses', width_policy='fit')
     misses.on_click(lambda: C.action_callback(misses, C.misses_actuate))
 
-    train = Button(label='train')
+    train = Button(label='train', width_policy='fit')
     train.on_click(lambda: C.action_callback(train, C.train_actuate))
 
-    leaveoneout = Button(label='omit one')
+    leaveoneout = Button(label='omit one', width_policy='fit')
     leaveoneout.on_click(lambda: C.action_callback(leaveoneout,
                                                    lambda: C.leaveout_actuate(False)))
 
-    leaveallout = Button(label='omit all')
+    leaveallout = Button(label='omit all', width_policy='fit')
     leaveallout.on_click(lambda: C.action_callback(leaveallout,
                                                    lambda: C.leaveout_actuate(True)))
 
-    xvalidate = Button(label='x-validate')
+    xvalidate = Button(label='x-validate', width_policy='fit')
     xvalidate.on_click(lambda: C.action_callback(xvalidate, C.xvalidate_actuate))
 
-    mistakes = Button(label='mistakes')
+    mistakes = Button(label='mistakes', width_policy='fit')
     mistakes.on_click(lambda: C.action_callback(mistakes, C.mistakes_actuate))
 
-    activations = Button(label='activations')
+    activations = Button(label='activations', width_policy='fit')
     activations.on_click(lambda: C.action_callback(activations, C.activations_actuate))
 
-    cluster = Button(label='cluster')
+    cluster = Button(label='cluster', width_policy='fit')
     cluster.on_click(lambda: C.action_callback(cluster, C.cluster_actuate))
 
-    visualize = Button(label='visualize')
+    visualize = Button(label='visualize', width_policy='fit')
     visualize.on_click(lambda: C.action_callback(visualize, C.visualize_actuate))
 
-    accuracy = Button(label='accuracy')
+    accuracy = Button(label='accuracy', width_policy='fit')
     accuracy.on_click(lambda: C.action_callback(accuracy, C.accuracy_actuate))
 
-    freeze = Button(label='freeze')
+    freeze = Button(label='freeze', width_policy='fit')
     freeze.on_click(lambda: C.action_callback(freeze, C.freeze_actuate))
 
-    ensemble = Button(label='ensemble')
+    ensemble = Button(label='ensemble', width_policy='fit')
     ensemble.on_click(lambda: C.action_callback(ensemble, C.ensemble_actuate))
 
-    classify = Button(label='classify')
+    classify = Button(label='classify', width_policy='fit')
     classify.on_click(C.classify_callback)
 
-    ethogram = Button(label='ethogram')
+    ethogram = Button(label='ethogram', width_policy='fit')
     ethogram.on_click(lambda: C.action_callback(ethogram, C.ethogram_actuate))
 
-    compare = Button(label='compare')
+    compare = Button(label='compare', width_policy='fit')
     compare.on_click(lambda: C.action_callback(compare, C.compare_actuate))
 
-    congruence = Button(label='congruence')
+    congruence = Button(label='congruence', width_policy='fit')
     congruence.on_click(lambda: C.action_callback(congruence, C.congruence_actuate))
 
     status_ticker_pre="<div style='overflow:auto; white-space:nowrap; width:"+str(M.gui_width_pix-236)+"px'>status: "
@@ -2022,48 +2018,57 @@ def init(_bokeh_document):
     waitfor = Toggle(label='wait for last job', active=False, disabled=True)
     waitfor.on_click(C.waitfor_callback)
 
-    logs_folder_button = Button(label='logs folder:', width=120)
+    logs_folder_button = Button(label='logs folder:', min_width=110)
     logs_folder_button.on_click(C.logs_callback)
-    logs_folder = TextInput(value=M.state['logs_folder'], title="", disabled=False)
+    logs_folder = TextInput(value=M.state['logs_folder'], title="", disabled=False,
+                            sizing_mode="stretch_width")
     logs_folder.on_change('value', lambda a,o,n: C.generic_parameters_callback(n))
 
-    model_file_button = Button(label='checkpoint file:', width=120)
+    model_file_button = Button(label='checkpoint file:', min_width=110)
     model_file_button.on_click(C.model_callback)
-    model_file = TextInput(value=M.state['model_file'], title="", disabled=False)
+    model_file = TextInput(value=M.state['model_file'], title="", disabled=False,
+                           sizing_mode="stretch_width")
     model_file.on_change('value', lambda a,o,n: C.generic_parameters_callback(n))
 
-    wavcsv_files_button = Button(label='wav,csv files:', width=120)
+    wavcsv_files_button = Button(label='wav,csv files:', min_width=110)
     wavcsv_files_button.on_click(C.wavcsv_files_callback)
-    wavcsv_files = TextInput(value=M.state['wavcsv_files'], title="", disabled=False)
+    wavcsv_files = TextInput(value=M.state['wavcsv_files'], title="", disabled=False,
+                             sizing_mode="stretch_width")
     wavcsv_files.on_change('value', lambda a,o,n: C.generic_parameters_callback(n))
 
-    groundtruth_folder_button = Button(label='ground truth:', width=120)
+    groundtruth_folder_button = Button(label='ground truth:', min_width=110)
     groundtruth_folder_button.on_click(C.groundtruth_callback)
-    groundtruth_folder = TextInput(value=M.state['groundtruth_folder'], title="", disabled=False)
+    groundtruth_folder = TextInput(value=M.state['groundtruth_folder'], title="", disabled=False,
+                                   sizing_mode="stretch_width")
     groundtruth_folder.on_change('value', lambda a,o,n: groundtruth_update())
 
-    validation_files_button = Button(label='validation files:', width=120)
+    validation_files_button = Button(label='validation files:', min_width=110)
     validation_files_button.on_click(C.validationfiles_callback)
-    validation_files = TextInput(value=M.state['validation_files'], title="", disabled=False)
+    validation_files = TextInput(value=M.state['validation_files'], title="", disabled=False,
+                                 sizing_mode="stretch_width")
     validation_files.on_change('value', lambda a,o,n: C.generic_parameters_callback(n))
 
-    test_files_button = Button(label='test files:', width=120)
+    test_files_button = Button(label='test files:', min_width=110)
     test_files_button.on_click(C.test_files_callback)
-    test_files = TextInput(value=M.state['test_files'], title="", disabled=False)
+    test_files = TextInput(value=M.state['test_files'], title="", disabled=False,
+                           sizing_mode="stretch_width")
     test_files.on_change('value', lambda a,o,n: C.generic_parameters_callback(n))
 
-    labels_touse_button = Button(label='labels to use:', width=120)
+    labels_touse_button = Button(label='labels to use:', min_width=110)
     labels_touse_button.on_click(C.labels_touse_callback)
-    labels_touse = TextInput(value=M.state['labels_touse'], title="", disabled=False)
+    labels_touse = TextInput(value=M.state['labels_touse'], title="", disabled=False,
+                             sizing_mode="stretch_width")
     labels_touse.on_change('value', lambda a,o,n: C.touse_callback(n,labels_touse_button))
 
-    kinds_touse_button = Button(label='kinds to use:', width=120)
-    kinds_touse = TextInput(value=M.state['kinds_touse'], title="", disabled=False)
+    kinds_touse_button = Button(label='kinds to use:', min_width=110)
+    kinds_touse = TextInput(value=M.state['kinds_touse'], title="", disabled=False,
+                            sizing_mode="stretch_width")
     kinds_touse.on_change('value', lambda a,o,n: C.touse_callback(n,kinds_touse_button))
 
-    prevalences_button = Button(label='prevalences:', width=120)
+    prevalences_button = Button(label='prevalences:')
     prevalences_button.on_click(C.prevalences_callback)
-    prevalences = TextInput(value=M.state['prevalences'], title="", disabled=False)
+    prevalences = TextInput(value=M.state['prevalences'], title="", disabled=False,
+                            sizing_mode="stretch_width")
     prevalences.on_change('value', lambda a,o,n: C.generic_parameters_callback(n))
 
     delete_ckpts = Button(label='delete ckpts')
@@ -2072,113 +2077,112 @@ def init(_bokeh_document):
     copy = Button(label='copy')
     copy.on_click(C.copy_callback)
 
-    labelsounds = Button(label='label sounds')
+    labelsounds = Button(label='label sounds', sizing_mode="stretch_width")
     labelsounds.on_click(lambda: C.wizard_callback(labelsounds))
 
-    makepredictions = Button(label='make predictions')
+    makepredictions = Button(label='make predictions', sizing_mode="stretch_width")
     makepredictions.on_click(lambda: C.wizard_callback(makepredictions))
 
-    fixfalsepositives = Button(label='fix false positives')
+    fixfalsepositives = Button(label='fix false positives', sizing_mode="stretch_width")
     fixfalsepositives.on_click(lambda: C.wizard_callback(fixfalsepositives))
 
-    fixfalsenegatives = Button(label='fix false negatives')
+    fixfalsenegatives = Button(label='fix false negatives', sizing_mode="stretch_width")
     fixfalsenegatives.on_click(lambda: C.wizard_callback(fixfalsenegatives))
 
-    generalize = Button(label='test generalization')
+    generalize = Button(label='test generalization', sizing_mode="stretch_width")
     generalize.on_click(lambda: C.wizard_callback(generalize))
 
-    tunehyperparameters = Button(label='tune h-parameters')
+    tunehyperparameters = Button(label='tune h-parameters', sizing_mode="stretch_width")
     tunehyperparameters.on_click(lambda: C.wizard_callback(tunehyperparameters))
 
-    findnovellabels = Button(label='find novel labels')
+    findnovellabels = Button(label='find novel labels', sizing_mode="stretch_width")
     findnovellabels.on_click(lambda: C.wizard_callback(findnovellabels))
 
-    examineerrors = Button(label='examine errors')
+    examineerrors = Button(label='examine errors', sizing_mode="stretch_width")
     examineerrors.on_click(lambda: C.wizard_callback(examineerrors))
 
-    testdensely = Button(label='test densely')
+    testdensely = Button(label='test densely', sizing_mode="stretch_width")
     testdensely .on_click(lambda: C.wizard_callback(testdensely))
 
     doit = Button(label='do it!', disabled=True)
     doit.on_click(C.doit_callback)
 
-    nsteps = TextInput(value=M.state['nsteps'], title="# steps", disabled=False)
+    nsteps = TextInput(value=M.state['nsteps'], title="# steps", disabled=False,
+                       sizing_mode="stretch_width")
     nsteps.on_change('value', lambda a,o,n: C.generic_parameters_callback(n))
 
-    restore_from = TextInput(value=M.state['restore_from'], title="restore from", disabled=False)
+    restore_from = TextInput(value=M.state['restore_from'], title="restore from",
+                             disabled=False, sizing_mode="stretch_width")
     restore_from.on_change('value', lambda a,o,n: C.generic_parameters_callback(n))
 
-    save_and_validate_period = TextInput(value=M.state['save_and_validate_period'], \
-                                                title="validate period", \
-                                                disabled=False)
+    save_and_validate_period = TextInput(value=M.state['save_and_validate_period'],
+                                         title="validate period",
+                                         disabled=False, sizing_mode='stretch_width')
     save_and_validate_period.on_change('value', lambda a,o,n: C.generic_parameters_callback(n))
 
-    validate_percentage = TextInput(value=M.state['validate_percentage'], \
-                                           title="validate %", \
-                                           disabled=False)
+    validate_percentage = TextInput(value=M.state['validate_percentage'],
+                                    title="validate %",
+                                    disabled=False, sizing_mode='stretch_width')
     validate_percentage.on_change('value', lambda a,o,n: C.generic_parameters_callback(n))
 
-    mini_batch = TextInput(value=M.state['mini_batch'], \
-                                  title="mini-batch", \
-                                  disabled=False)
+    mini_batch = TextInput(value=M.state['mini_batch'], title="mini-batch",
+                                  disabled=False, sizing_mode="stretch_width")
     mini_batch.on_change('value', lambda a,o,n: C.generic_parameters_callback(n))
 
-    kfold = TextInput(value=M.state['kfold'], title="k-fold",  disabled=False)
+    kfold = TextInput(value=M.state['kfold'], title="k-fold",
+                      disabled=False, sizing_mode='stretch_width')
     kfold.on_change('value', lambda a,o,n: C.generic_parameters_callback(n))
 
-    activations_equalize_ratio = TextInput(value=M.state['activations_equalize_ratio'], \
-                                             title="equalize ratio", \
-                                             disabled=False)
+    activations_equalize_ratio = TextInput(value=M.state['activations_equalize_ratio'],
+                                           title="equalize ratio",
+                                           disabled=False, sizing_mode='stretch_width')
     activations_equalize_ratio.on_change('value', lambda a,o,n: C.generic_parameters_callback(n))
 
-    activations_max_sounds = TextInput(value=M.state['activations_max_sounds'], \
-                                          title="max sounds", \
-                                          disabled=False)
+    activations_max_sounds = TextInput(value=M.state['activations_max_sounds'], title="max sounds",
+                                       disabled=False, sizing_mode='stretch_width')
     activations_max_sounds.on_change('value', lambda a,o,n: C.generic_parameters_callback(n))
 
-    precision_recall_ratios = TextInput(value=M.state['precision_recall_ratios'], \
-                                               title="P/Rs", \
-                                               disabled=False)
+    precision_recall_ratios = TextInput(value=M.state['precision_recall_ratios'], title="P/Rs",
+                                               disabled=False, sizing_mode='stretch_width')
     precision_recall_ratios.on_change('value', lambda a,o,n: C.generic_parameters_callback(n))
     
-    congruence_portion = Select(title="portion", height=50, \
-                                value=M.state['congruence_portion'], \
-                                options=["union", "intersection"])
+    congruence_portion = Select(title="portion", height=50,
+                                value=M.state['congruence_portion'],
+                                options=["union", "intersection"],
+                                sizing_mode='stretch_width')
     congruence_portion.on_change('value', lambda a,o,n: C.generic_parameters_callback(''))
 
-    congruence_convolve = TextInput(value=M.state['congruence_convolve'], \
-                                                   title="convolve ("+M.time_units+")", \
-                                                   disabled=False)
+    congruence_convolve = TextInput(value=M.state['congruence_convolve'],
+                                    title="convolve ("+M.time_units+")",
+                                    disabled=False, sizing_mode='stretch_width')
     congruence_convolve.on_change('value', lambda a,o,n: C.generic_parameters_callback(n))
     
-    congruence_measure = Select(title="measure", height=50, \
-                                value=M.state['congruence_measure'], \
-                                options=["label", "tic", "both"])
+    congruence_measure = Select(title="measure", height=50,
+                                value=M.state['congruence_measure'],
+                                options=["label", "tic", "both"],
+                                sizing_mode='stretch_width')
     congruence_measure.on_change('value', lambda a,o,n: C.generic_parameters_callback(''))
 
-    context = TextInput(value=M.state['context'], \
-                        title="context ("+M.time_units+")", \
-                        disabled=False)
+    context = TextInput(value=M.state['context'], title="context ("+M.time_units+")",
+                        disabled=False, sizing_mode="stretch_width")
     context.on_change('value', lambda a,o,n: C.context_callback(n))
 
-    shiftby = TextInput(value=M.state['shiftby'], \
-                        title="shift by ("+M.time_units+")", \
-                        disabled=False)
+    shiftby = TextInput(value=M.state['shiftby'], title="shift by ("+M.time_units+")",
+                        disabled=False, sizing_mode='stretch_width')
     shiftby.on_change('value', lambda a,o,n: C.generic_parameters_callback(n))
 
-    optimizer = Select(title="optimizer", height=50, \
-                       value=M.state['optimizer'], \
-                       options=["Adadelta", "Adagrad", "Adam", "Adamax", "Ftrl", "Nadam", "RMSProp", "SGD"])
+    optimizer = Select(title="optimizer", height=50, value=M.state['optimizer'],
+                       options=["Adadelta", "Adagrad", "Adam", "Adamax", "Ftrl", "Nadam", "RMSProp", "SGD"],
+                       sizing_mode="stretch_width")
     optimizer.on_change('value', lambda a,o,n: C.generic_parameters_callback(''))
 
-    loss = Select(title="loss", height=50, \
-                  value=M.state['loss'], \
-                  options=["exclusive", "overlapped", "autoencoder"])
+    loss = Select(title="loss", height=50, value=M.state['loss'],
+                  options=["exclusive", "overlapped", "autoencoder"],
+                  sizing_mode="stretch_width")
     loss.on_change('value', lambda a,o,n: C.generic_parameters_callback(''))
 
-    learning_rate = TextInput(value=M.state['learning_rate'], \
-                                     title="learning rate", \
-                                     disabled=False)
+    learning_rate = TextInput(value=M.state['learning_rate'], title="learning rate",
+                                     disabled=False, sizing_mode='stretch_width')
     learning_rate.on_change('value', lambda a,o,n: C.generic_parameters_callback(n))
 
     V = sys.modules[__name__]
@@ -2195,14 +2199,16 @@ def init(_bokeh_document):
         parameters_required = {}
         for parameter in Mparameters:
             if parameter[2]=='':
-                thisparameter = TextInput(value=M.state[parameter[0]], \
-                                          title=parameter[1], \
-                                          disabled=False, width=parameter[4]*104-10)
+                thisparameter = TextInput(value=M.state[parameter[0]],
+                                          title=parameter[1],
+                                          disabled=False,
+                                          sizing_mode='stretch_width')
             else:
-                thisparameter = Select(value=M.state[parameter[0]], \
-                                       title=parameter[1], \
-                                       options=parameter[2], \
-                                       height=50, width=parameter[4]*104-10)
+                thisparameter = Select(value=M.state[parameter[0]],
+                                       title=parameter[1],
+                                       options=parameter[2],
+                                       height=50,
+                                       sizing_mode='stretch_width')
             thisparameter.on_change('value', get_callback(parameter[6], msu))
             parameters[parameter[0]] = thisparameter
             parameters_enable_logic[thisparameter] = parameter[5]
@@ -2218,32 +2224,33 @@ def init(_bokeh_document):
             if i==len(parameters_width)-1:
                 parameters_partitioned.append(range(i0, i+1))
 
-        return parameters, parameters_enable_logic, parameters_required, parameters_partitioned
+        return parameters, parameters_enable_logic, parameters_required, parameters_partitioned, parameters_width
 
-    detect_parameters, detect_parameters_enable_logic, detect_parameters_required, detect_parameters_partitioned = parse_plugin_parameters(M.detect_parameters, 8)
-    doubleclick_parameters, doubleclick_parameters_enable_logic, doubleclick_parameters_required, _ = parse_plugin_parameters(M.doubleclick_parameters, 1)
-    model_parameters, model_parameters_enable_logic, model_parameters_required, model_parameters_partitioned = parse_plugin_parameters(M.model_parameters, 6, True)
-    cluster_parameters, cluster_parameters_enable_logic, cluster_parameters_required, cluster_parameters_partitioned = parse_plugin_parameters(M.cluster_parameters, 2)
+    detect_parameters, detect_parameters_enable_logic, detect_parameters_required, detect_parameters_partitioned, detect_parameters_width = parse_plugin_parameters(M.detect_parameters, 2)
+    doubleclick_parameters, doubleclick_parameters_enable_logic, doubleclick_parameters_required, _, _ = parse_plugin_parameters(M.doubleclick_parameters, 1)
+    model_parameters, model_parameters_enable_logic, model_parameters_required, model_parameters_partitioned, model_parameters_width = parse_plugin_parameters(M.model_parameters, 5, True)
+    cluster_parameters, cluster_parameters_enable_logic, cluster_parameters_required, cluster_parameters_partitioned, cluster_parameters_width = parse_plugin_parameters(M.cluster_parameters, 1)
 
     file_dialog_source = ColumnDataSource(data=dict(names=[], sizes=[], dates=[]))
     file_dialog_source.selected.on_change('indices', C.file_dialog_callback)
 
     file_dialog_columns = [
-        TableColumn(field="names", title="Name", width=M.gui_width_pix//2-50-115-30),
-        TableColumn(field="sizes", title="Size", width=50, \
+        TableColumn(field="names", title="Name"),
+        TableColumn(field="sizes", title="Size", \
                     formatter=NumberFormatter(format="0 b")),
-        TableColumn(field="dates", title="Date", width=115, \
+        TableColumn(field="dates", title="Date", \
                     formatter=DateFormatter(format="%Y-%m-%d %H:%M:%S")),
     ]
     file_dialog_table = DataTable(source=file_dialog_source, \
                                   columns=file_dialog_columns, \
                                   height=800-20*len(detect_parameters_partitioned),
-                                  width=M.gui_width_pix//2-11, \
                                   index_position=None,
-                                  fit_columns=False)
+                                  fit_columns=False,
+                                  sizing_mode='stretch_width')
 
-    configuration_contents = TextAreaInput(rows=20, max_length=50000, \
-                                           disabled=True, css_classes=['fixedwidth'])
+    configuration_contents = TextAreaInput(rows=20, max_length=50000,
+                                           styles={'font-family': 'Courier New'},
+                                           disabled=True, sizing_mode='stretch_width')
     if M.configuration_file:
         with open(M.configuration_file, 'r') as fid:
             configuration_contents.value = fid.read()
@@ -2252,64 +2259,65 @@ def init(_bokeh_document):
     cluster_these_layers = MultiSelect(title='layers', \
                                        value=M.state['cluster_these_layers'], \
                                        options=[],
-                                       height=110)
+                                       sizing_mode='stretch_both')
     cluster_these_layers.on_change('value', lambda a,o,n: C.generic_parameters_callback(''))
     cluster_these_layers_update()
 
-    nreplicates = TextInput(value=M.state['nreplicates'], \
-                            title="# replicates", \
-                            disabled=False)
+    nreplicates = TextInput(value=M.state['nreplicates'], title="# replicates",
+                            disabled=False, sizing_mode='stretch_width')
     nreplicates.on_change('value', lambda a,o,n: C.generic_parameters_callback(n))
 
-    batch_seed = TextInput(value=M.state['batch_seed'], \
-                           title="batch seed", \
-                           disabled=False)
+    batch_seed = TextInput(value=M.state['batch_seed'], title="batch seed",
+                           disabled=False, sizing_mode='stretch_width')
     batch_seed.on_change('value', lambda a,o,n: C.generic_parameters_callback(n))
 
-    weights_seed = TextInput(value=M.state['weights_seed'], \
-                             title="weights seed", \
-                             disabled=False)
+    weights_seed = TextInput(value=M.state['weights_seed'], title="weights seed",
+                             disabled=False, sizing_mode="stretch_width")
     weights_seed.on_change('value', lambda a,o,n: C.generic_parameters_callback(n))
 
 
-    augment_volume = TextInput(value=M.state['augment_volume'], \
-                               title="augment volume")
+    augment_volume = TextInput(value=M.state['augment_volume'], title="augment volume",
+                               sizing_mode='stretch_width')
     augment_volume.on_change('value', lambda a,o,n: C.generic_parameters_callback(n))
 
-    augment_noise = TextInput(value=M.state['augment_noise'], \
-                              title="augment noise")
+    augment_noise = TextInput(value=M.state['augment_noise'], title="augment noise",
+                              sizing_mode='stretch_width')
     augment_noise.on_change('value', lambda a,o,n: C.generic_parameters_callback(n))
 
-    augment_dc = TextInput(value=M.state['augment_dc'], \
-                           title="augment DC")
+    augment_dc = TextInput(value=M.state['augment_dc'], title="augment DC",
+                           sizing_mode='stretch_width')
     augment_dc.on_change('value', lambda a,o,n: C.generic_parameters_callback(n))
 
-    augment_reverse = Select(value=M.state['augment_reverse'], \
-                             title="augment reverse", \
-                             options=["no", "yes"])
+    augment_reverse = Select(value=M.state['augment_reverse'],
+                             title="augment reverse",
+                             options=["no", "yes"],
+                             sizing_mode='stretch_width')
     augment_reverse.on_change('value', lambda a,o,n: C.generic_parameters_callback(n))
 
     augment_invert = Select(value=M.state['augment_invert'], \
                             title="augment invert", \
-                            options=["no", "yes"])
+                            options=["no", "yes"],
+                            sizing_mode='stretch_width')
     augment_invert.on_change('value', lambda a,o,n: C.generic_parameters_callback(n))
 
-    file_dialog_string = TextInput(disabled=False)
+    file_dialog_string = TextInput(disabled=False, sizing_mode='stretch_width')
     file_dialog_string.on_change("value", C.file_dialog_path_callback)
     file_dialog_string.value = M.state['file_dialog_string']
      
     with open(os.path.join(os.path.dirname(os.path.realpath(__file__)),'..','..','README.md'), 'r', encoding='utf-8') as fid:
         contents = fid.read()
     html = markdown.markdown(contents, extensions=['tables','toc'])
-    readme_contents = Div(text=html, style={'overflow':'scroll','width':'600px','height':'1140px'})
+    readme_contents = Div(text=html, height=1140, width=M.gui_width_pix//2,
+                          stylesheets=["p { margin: 10px; }"],
+                          styles={'overflow':'scroll', 'display':'flex', 'flex-direction':'column'})
 
     model_summary = TextAreaInput(rows=49-3*len(model_parameters_partitioned),
-                                  max_length=50000, \
-                                  disabled=True, css_classes=['fixedwidth'])
+                                  max_length=50000,
+                                  styles={'font-family': 'Courier New'},
+                                  disabled=True, sizing_mode='stretch_width')
 
     labelcounts = Div(text="",
-                      style={'overflow-y':'hidden', 'overflow-x':'scroll',
-                             'width':str(M.gui_width_pix-450-1)+'px'})
+                      styles={'overflow-y':'hidden', 'overflow-x':'scroll'})
     wizard_buttons = set([
         labelsounds,
         makepredictions,
