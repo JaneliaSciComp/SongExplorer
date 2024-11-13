@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+#!/usr/bin/env python
 
 # test that freeze and classify work with different representations,
 # downsamplings via strided convolutions, and numbers of outputs tics

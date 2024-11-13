@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+#!/usr/bin/env python
 
 # reduce dimensionality of internal activation states with UMAP.  optionally
 # reducing with PCA first too
