@@ -360,30 +360,30 @@ def read_log(frompath, logfile, loss='exclusive'):
     conf_matrix_state, confusion_string = False, ""
     for line in fid:
       if "num validation labels" in line:
-        count_validation_state=True
-        label_counts = {"validation":{}, "testing":{}, "training":{}, }
+          count_validation_state=True
+          label_counts = {"validation":{}, "testing":{}, "training":{}, }
       elif count_validation_state:
-        if "num testing labels" in line:
-          count_validation_state = False
-        else:
           m=re.search('\s*(\d+)\s(.*)',line)
-          label_counts["validation"][m.group(2)]=int(m.group(1))
+          if m:
+              label_counts["validation"][m.group(2)]=int(m.group(1))
+          else:
+              count_validation_state = False
       if "num testing labels" in line:
-        count_testing_state=True
+          count_testing_state=True
       elif count_testing_state:
-        if "num training labels" in line:
-          count_testing_state = False
-        else:
           m=re.search('\s*(\d+)\s(.*)',line)
-          label_counts["testing"][m.group(2)]=int(m.group(1))
+          if m:
+              label_counts["testing"][m.group(2)]=int(m.group(1))
+          else:
+              count_testing_state = False
       if "num training labels" in line:
-        count_training_state=True
+          count_training_state=True
       elif count_training_state:
-        if "downsample_by = " in line:
-          count_training_state = False
-        else:
           m=re.search('\s*(\d+)\s(.*)',line)
-          label_counts["training"][m.group(2)]=int(m.group(1))
+          if m:
+              label_counts["training"][m.group(2)]=int(m.group(1))
+          else:
+              count_training_state = False
       if "labels_touse = " in line:
         m=re.search('labels_touse = (.+)',line)
         labels_touse = m.group(1).split(',')
