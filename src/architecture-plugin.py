@@ -28,6 +28,9 @@ def callback(n,M,V,C):
         else:  # if scripted
             _callback('a-bounded-value',M,V,C)
 
+use_audio=1
+use_video=0
+
 # a list of lists specifying the architecture-specific hyperparameters in the GUI
 def model_parameters(time_units, freq_units, time_scale, freq_scale):
     return [
@@ -69,11 +72,15 @@ def create_model(model_settings, model_parameters, io=sys.stdout):
     # simultaneously when classifying.  stride (from e.g. spectrograms)
     # and downsampling (from e.g. conv kernel strides) must be taken into
     # account to get the corresponding number of input tics
-    ninput_tics = model_settings["context_tics"] + model_settings["parallelize"] - 1
+    context_tics = int(model_settings['audio_tic_rate'] * model_settings['context'] * model_settings['time_scale'])
+    ninput_tics = context_tics + model_settings["parallelize"] - 1
+    noutput_tics = context_tics  # adjust for each layer or freeze won't work
     input_layer = Input(shape=(ninput_tics, model_settings["audio_nchannels"]))
 
-    x = Conv1D(hyperparameter1, nonnegative)(input_layer);
+    stride = 2
+    x = Conv1D(hyperparameter1, nonnegative, strides=stride)(input_layer);
     hidden_layers.append(x)
+    noutput_tics = math.ceil((noutput_tics - nonnegative + 1) / stride)
     if model_parameters["an-optional-param"]!="":
         x = Dropout(float(model_parameters["an-optional-param"]))(x)
     if model_parameters["a-menu"]=="this":
@@ -85,7 +92,7 @@ def create_model(model_settings, model_parameters, io=sys.stdout):
     # append interesting ones to hidden_layers
 
     # last layer must be convolutional with nlabels as the output size
-    output_layer = Conv1D(model_settings['nlabels'], 1)(x)
+    output_layer = Conv1D(model_settings['nlabels'], noutput_tics)(x)
 
     print('architecture-plugin.py version = 0.1', file=io)
     return tf.keras.Model(inputs=input_layer, outputs=[hidden_layers, output_layer],
