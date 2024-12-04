@@ -61,7 +61,7 @@ about:
   license: BSD-3-Clause
   license_family: BSD
   license_file:
-    - LICENSE.txt
+    - ../../../LICENSE.txt
 
 extra:
   recipe-maintainers:
