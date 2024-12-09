@@ -73,7 +73,7 @@ bazel run tensorflow/examples/speech_commands:train -- \
 
 """
 import argparse
-import os.path
+import os
 import sys
 import re
 import gc
@@ -205,7 +205,7 @@ def main():
       FLAGS.audio_read_plugin_kwargs, FLAGS.video_read_plugin_kwargs)
 
   thismodel = model.create_model(model_settings, FLAGS.model_parameters)
-  thismodel.summary()
+  thismodel.summary(line_length=120, positions=[0.4,0.6,0.7,1])
 
   thisoptimizer = getattr(tf.keras.optimizers, FLAGS.optimizer)(learning_rate=FLAGS.learning_rate)
 
@@ -752,6 +752,8 @@ if __name__ == '__main__':
     print('SongExplorer version = '+fid.read().strip().replace('\n',', '))
   print("hostname = "+socket.gethostname())
   log_nvidia_smi_output(FLAGS.igpu)
+
+  os.environ['COLUMNS']='120'
 
   try:
     main()

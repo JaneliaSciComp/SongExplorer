@@ -44,7 +44,7 @@
 #      --igpu=1 \
 
 import argparse
-import os.path
+import os
 import sys
 import platform
 import re
@@ -85,7 +85,7 @@ def create_inference_graph():
                     'parallelize': FLAGS.parallelize,
                     'context': FLAGS.context }
   thismodel = model.create_model(model_settings, FLAGS.model_parameters)
-  thismodel.summary()
+  thismodel.summary(line_length=120, positions=[0.4,0.6,0.7,1])
 
   checkpoint = tf.train.Checkpoint(thismodel=thismodel)
   checkpoint.read(FLAGS.start_checkpoint).expect_partial()
@@ -256,6 +256,8 @@ if __name__ == '__main__':
     print('SongExplorer version = '+fid.read().strip().replace('\n',', '))
   print("hostname = "+socket.gethostname())
   log_nvidia_smi_output(FLAGS.igpu)
+
+  os.environ['COLUMNS']='120'
 
   try:
     main()
