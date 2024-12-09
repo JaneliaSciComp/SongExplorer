@@ -816,7 +816,7 @@ if __name__ == "__main__":
   with open(os.path.join(repodir, "VERSION.txt"), 'r') as fid:
     print('SongExplorer version = '+fid.read().strip().replace('\n',', '))
   print("hostname = "+socket.gethostname())
-  
+
   try:
     main()
   
