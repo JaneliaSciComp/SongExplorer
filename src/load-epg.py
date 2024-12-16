@@ -11,7 +11,7 @@ import os
 import scipy.io.wavfile as spiowav
 
 def audio_read(fullpath_aq8_rec_or_wav, start_tic, stop_tic,
-               nchan=8, ncomments=3, Fs="smpl.frq= ([0-9.]+)Hz", mmap=True, **kw):
+               nchan=8, ncomments=3, Fs="smpl.frq= ([0-9.,]+)Hz", mmap=True, **kw):
     if not start_tic:  start_tic=0
     ext = os.path.splitext(fullpath_aq8_rec_or_wav)[1]
 
@@ -22,7 +22,7 @@ def audio_read(fullpath_aq8_rec_or_wav, start_tic, stop_tic,
             for _ in range(ncomments):
                 line = fid.readline().decode()
                 m = re.search(Fs, line)
-                if m:  sampling_rate = float(m.group(1))
+                if m:  sampling_rate = float(m.group(1).replace(",", "."))
             n0 = fid.tell()
             n1 = fid.seek(0,2)
             nsamples = (n1-n0)//4//nchan
@@ -61,7 +61,7 @@ def audio_read(fullpath_aq8_rec_or_wav, start_tic, stop_tic,
             for _ in range(ncomments):
                 line = fid.readline().decode()
                 m = re.search(Fs, line)
-                if m:  sampling_rate = float(m.group(1))
+                if m:  sampling_rate = float(m.group(1).replace(",", "."))
             n0 = fid.tell()
             n1 = fid.seek(0,2)
             nsamples = (n1-n0)//4
