@@ -1577,7 +1577,10 @@ def buttons_update():
     for button in wizard_buttons:
         button.button_type="success" if button==M.wizard else "default"
     for button in action_buttons:
-        button.button_type="primary" if button==M.action else "default"
+        if button == leaveout:
+            button.stylesheets = M.primary_style if button==M.action else M.default_style
+        else:
+            button.button_type="primary" if button==M.action else "default"
         button.disabled = button not in wizard2actions[M.wizard]
     if M.action in [detect,classify,ethogram]:
         wavcsv_files_button.label='wav files:'
@@ -1624,6 +1627,8 @@ def buttons_update():
                     textinput.disabled = cluster_parameters[thislogic[0]].value not in thislogic[1]
                 else:
                     textinput.disabled = False
+            elif M.action is leaveout and textinput is kfold:
+                textinput.disabled = leaveout.value != "omit some"
             else:
                 textinput.disabled=False
             if textinput.disabled==False and textinput.value=='':
@@ -1808,7 +1813,7 @@ def init(_bokeh_document):
     global load_multimedia, play, video_slider, load_multimedia_callback, play_callback, video_slider_callback, video_toggle, video_div
     global undo, redo, remaining
     global recordings
-    global detect, misses, train, leaveoneout, leaveallout, xvalidate, mistakes, activations, cluster, visualize, accuracy, freeze, ensemble, classify, ethogram, compare, congruence
+    global detect, misses, train, leaveout, xvalidate, mistakes, activations, cluster, visualize, accuracy, freeze, ensemble, classify, ethogram, compare, congruence
     global status_ticker, waitfor, deletefailures
     global file_dialog_source, configuration_contents
     global logs_folder_button, logs_folder, model_file_button, model_file, wavcsv_files_button, wavcsv_files, groundtruth_folder_button, groundtruth_folder, validation_files_button, test_files_button, validation_files, test_files, labels_touse_button, labels_touse, kinds_touse_button, kinds_touse, prevalences_button, prevalences, delete_ckpts, copy, labelsounds, makepredictions, fixfalsepositives, fixfalsenegatives, generalize, tunehyperparameters, findnovellabels, examineerrors, testdensely, doit, nsteps, restore_from, save_and_validate_period, validate_percentage, mini_batch, kfold, activations_equalize_ratio, activations_max_sounds, cluster_these_layers, precision_recall_ratios, congruence_portion, congruence_convolve, congruence_measure, context, shiftby, optimizer, loss, learning_rate, nreplicates, batch_seed, weights_seed, augment_volume, augment_noise, augment_dc, augment_reverse, augment_invert, file_dialog_string, file_dialog_table, readme_contents, model_summary, labelcounts, wizard_buttons, action_buttons, parameter_buttons, parameter_textinputs, wizard2actions, action2parameterbuttons, action2parametertextinputs, status_ticker_update, status_ticker_pre, status_ticker_post
@@ -2227,7 +2232,7 @@ def init(_bokeh_document):
     remaining = Button(label='add remaining', disabled=True)
     remaining.on_click(C.remaining_callback)
 
-    recordings = Select(title="recording:", height=50)
+    recordings = Select(title="recording:", height=48)
     recordings.on_change('value', C.recordings_callback)
 
     detect = Button(label='detect', width_policy='fit')
@@ -2239,13 +2244,11 @@ def init(_bokeh_document):
     train = Button(label='train', width_policy='fit')
     train.on_click(lambda: C.action_callback(train, C.train_actuate))
 
-    leaveoneout = Button(label='omit one', width_policy='fit')
-    leaveoneout.on_click(lambda: C.action_callback(leaveoneout,
-                                                   lambda: C.leaveout_actuate(False)))
-
-    leaveallout = Button(label='omit all', width_policy='fit')
-    leaveallout.on_click(lambda: C.action_callback(leaveallout,
-                                                   lambda: C.leaveout_actuate(True)))
+    leaveout = Select(title="", value="omit one", margin = 4,
+                      options=["omit one", "omit some", "omit all"],
+                      width_policy='fit', stylesheets=M.default_style)
+    leaveout.on_change('value',
+                       lambda a,o,n: C.action_callback(leaveout, lambda: C.leaveout_actuate(n)))
 
     xvalidate = Button(label='x-validate', width_policy='fit')
     xvalidate.on_click(lambda: C.action_callback(xvalidate, C.xvalidate_actuate))
@@ -2421,7 +2424,7 @@ def init(_bokeh_document):
                                                disabled=False, sizing_mode='stretch_width')
     precision_recall_ratios.on_change('value', lambda a,o,n: C.generic_parameters_callback(n))
     
-    congruence_portion = Select(title="portion", height=50,
+    congruence_portion = Select(title="portion", height=48,
                                 value=M.state['congruence_portion'],
                                 options=["union", "intersection"],
                                 sizing_mode='stretch_width')
@@ -2432,7 +2435,7 @@ def init(_bokeh_document):
                                     disabled=False, sizing_mode='stretch_width')
     congruence_convolve.on_change('value', lambda a,o,n: C.generic_parameters_callback(n))
     
-    congruence_measure = Select(title="measure", height=50,
+    congruence_measure = Select(title="measure", height=48,
                                 value=M.state['congruence_measure'],
                                 options=["label", "tic", "both"],
                                 sizing_mode='stretch_width')
@@ -2446,12 +2449,12 @@ def init(_bokeh_document):
                         disabled=False, sizing_mode='stretch_width')
     shiftby.on_change('value', lambda a,o,n: C.generic_parameters_callback(n))
 
-    optimizer = Select(title="optimizer", height=50, value=M.state['optimizer'],
+    optimizer = Select(title="optimizer", height=48, value=M.state['optimizer'],
                        options=["Adadelta", "Adagrad", "Adam", "Adamax", "Ftrl", "Nadam", "RMSProp", "SGD"],
                        sizing_mode="stretch_width")
     optimizer.on_change('value', lambda a,o,n: C.generic_parameters_callback(''))
 
-    loss = Select(title="loss", height=50, value=M.state['loss'],
+    loss = Select(title="loss", height=48, value=M.state['loss'],
                   options=["exclusive", "overlapped", "autoencoder"],
                   sizing_mode="stretch_width")
     loss.on_change('value', lambda a,o,n: C.generic_parameters_callback(''))
@@ -2482,7 +2485,7 @@ def init(_bokeh_document):
                 thisparameter = Select(value=M.state[parameter[0]],
                                        title=parameter[1],
                                        options=parameter[2],
-                                       height=50,
+                                       height=48,
                                        sizing_mode='stretch_width')
             thisparameter.on_change('value', get_callback(parameter[6], msu))
             parameters[parameter[0]] = thisparameter
@@ -2607,8 +2610,7 @@ def init(_bokeh_document):
     action_buttons = set([
         detect,
         train,
-        leaveoneout,
-        leaveallout,
+        leaveout,
         xvalidate,
         mistakes,
         activations,
@@ -2684,7 +2686,7 @@ def init(_bokeh_document):
             makepredictions: [train, accuracy, freeze, classify, ethogram, delete_ckpts],
             fixfalsepositives: [activations, cluster, visualize, delete_ckpts],
             fixfalsenegatives: [detect, misses, activations, cluster, visualize, delete_ckpts],
-            generalize: [leaveoneout, leaveallout, accuracy, delete_ckpts],
+            generalize: [leaveout, accuracy, delete_ckpts],
             tunehyperparameters: [xvalidate, accuracy, compare, delete_ckpts],
             findnovellabels: [detect, train, activations, cluster, visualize, delete_ckpts],
             examineerrors: [detect, mistakes, activations, cluster, visualize, delete_ckpts],
@@ -2694,8 +2696,7 @@ def init(_bokeh_document):
     action2parameterbuttons = {
             detect: [wavcsv_files_button],
             train: [logs_folder_button, groundtruth_folder_button, labels_touse_button, test_files_button, kinds_touse_button],
-            leaveoneout: [logs_folder_button, groundtruth_folder_button, validation_files_button, test_files_button, labels_touse_button, kinds_touse_button],
-            leaveallout: [logs_folder_button, groundtruth_folder_button, validation_files_button, test_files_button, labels_touse_button, kinds_touse_button],
+            leaveout: [logs_folder_button, groundtruth_folder_button, validation_files_button, test_files_button, labels_touse_button, kinds_touse_button],
             xvalidate: [logs_folder_button, groundtruth_folder_button, test_files_button, labels_touse_button, kinds_touse_button],
             mistakes: [groundtruth_folder_button],
             activations: [logs_folder_button, model_file_button, groundtruth_folder_button, labels_touse_button, kinds_touse_button],
@@ -2715,8 +2716,7 @@ def init(_bokeh_document):
     action2parametertextinputs = {
             detect: [wavcsv_files] + list(detect_parameters.values()),
             train: [context, shiftby, optimizer, loss, learning_rate, nreplicates, batch_seed, weights_seed, augment_volume, augment_noise, augment_dc, augment_reverse, augment_invert, logs_folder, groundtruth_folder, test_files, labels_touse, kinds_touse, nsteps, restore_from, save_and_validate_period, validate_percentage, mini_batch] + list(model_parameters.values()),
-            leaveoneout: [context, shiftby, optimizer, loss, learning_rate, batch_seed, weights_seed, augment_volume, augment_noise, augment_dc, augment_reverse, augment_invert, logs_folder, groundtruth_folder, validation_files, test_files, labels_touse, kinds_touse, nsteps, restore_from, save_and_validate_period, mini_batch] + list(model_parameters.values()),
-            leaveallout: [context, shiftby, optimizer, loss, learning_rate, batch_seed, weights_seed, augment_volume, augment_noise, augment_dc, augment_reverse, augment_invert, logs_folder, groundtruth_folder, validation_files, test_files, labels_touse, kinds_touse, nsteps, restore_from, save_and_validate_period, mini_batch] + list(model_parameters.values()),
+            leaveout: [context, shiftby, optimizer, loss, learning_rate, batch_seed, weights_seed, augment_volume, augment_noise, augment_dc, augment_reverse, augment_invert, logs_folder, groundtruth_folder, validation_files, test_files, labels_touse, kinds_touse, nsteps, restore_from, save_and_validate_period, mini_batch, kfold] + list(model_parameters.values()),
             xvalidate: [context, shiftby, optimizer, loss, learning_rate, batch_seed, weights_seed, augment_volume, augment_noise, augment_dc, augment_reverse, augment_invert, logs_folder, groundtruth_folder, test_files, labels_touse, kinds_touse, nsteps, restore_from, save_and_validate_period, mini_batch, kfold] + list(model_parameters.values()),
             mistakes: [groundtruth_folder],
             activations: [context, shiftby, logs_folder, model_file, groundtruth_folder, labels_touse, kinds_touse, activations_equalize_ratio, activations_max_sounds, mini_batch, batch_seed] + list(model_parameters.values()),

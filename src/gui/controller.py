@@ -844,7 +844,7 @@ def remaining_callback():
     V.context_update()
 
 def action_callback(thisaction, thisactuate):
-    M.action=None if M.action is thisaction else thisaction
+    M.action=None if M.action is thisaction and M.action is not V.leaveout else thisaction
     M.function=thisactuate
     V.buttons_update()
 
@@ -1272,11 +1272,16 @@ def generalize_xvalidate_succeeded(kind, logdir, currtime):
             return False
     return True
 
-async def leaveout_actuate(comma):
+async def leaveout_actuate(kind):
     test_files = _validation_test_files(V.test_files.value)[0]
     validation_files = list(filter(
             lambda x: not any([y!='' and y in x for y in test_files.split(',')]),
-            _validation_test_files(V.validation_files.value, comma)))
+            _validation_test_files(V.validation_files.value, False)))
+    if kind=="omit all":
+        validation_files = [','.join(validation_files)]
+    elif kind=="omit some":
+        k = int(V.kfold.value)
+        validation_files = [','.join(validation_files[x::k]) for x in range(k)]
     currtime = time.time()
     jobids = []
     os.makedirs(V.logs_folder.value, exist_ok=True)

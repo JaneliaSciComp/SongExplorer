@@ -91,7 +91,7 @@ main_content = row(
                 V.fixfalsenegatives, V.generalize, V.tunehyperparameters,
                 V.examineerrors, V.testdensely, V.findnovellabels,
                 V.doit, width=M.gui_width_pix),
-            row(V.detect, V.misses, V.train, V.leaveoneout, V.leaveallout, V.xvalidate,
+            row(V.detect, V.misses, V.train, V.leaveout, V.xvalidate,
                 V.mistakes, V.activations, V.cluster, V.visualize, V.accuracy, V.freeze,
                 V.ensemble, V.classify, V.ethogram, V.compare, V.congruence,
                 width=M.gui_width_pix),

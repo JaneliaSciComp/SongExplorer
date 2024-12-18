@@ -1092,24 +1092,31 @@ file.
 ## Measuring Generalization ##
 
 Up to this point we have validated on a small portion of each recording.  Once
-you have annotated many recordings though, it is good to set aside entire WAV
-files to validate on.  In this way we measure the classifier's ability to
+you have annotated many recordings though, it is good to set aside entire
+recordings to validate on.  In this way we measure the classifier's ability to
 extrapolate to different microphones, individuals, or whatever other
 characteristics that are unique to the withheld recordings.
 
 To train one classifier with a single recording or set of recordings withheld
 for validation, first click on `Generalize` and then `Omit All`.  Use the `File
-Browser` to either select (1) specific WAV file(s), (2) a text file
-containing a list of WAV file(s) (either comma separated or one per line), or
-(3) the `Ground Truth` folder or a subdirectory therein.  Finally press the
-`Validation Files` button and `DoIt!`.
+Browser` to either select (1) specific WAV file(s), (2) a text file containing
+a list of WAV file(s) (either comma separated or one per line), or (3) a
+subdirectory within the `Ground Truth` folder.  Finally press the `Validation
+Files` button and `DoIt!`.
 
 To train multiple classifiers, each of which withholds a single recording in a
 set you specify, click on `Omit One`.  Select the set as described above for
 `Omit All`.  The `DoIt!` button will then iteratively launch a job for each WAV
 file that has been selected, storing the result in the same `Logs Folder` but in
-separate files and subdirectories that are suffixed with the letter "w".  Of
-course, training multiple classifiers is quickest when done simultaneously
+separate files and subdirectories that are suffixed with the letter "w".
+
+To train multiple classifiers, each of which withholds a portion of the
+recordings in the set you specify, click on `Omit Some`.  Select the set as
+before, and specify the number of partitions using `k-fold`.  For example, if
+`k-fold` is "4", then four models will be trained, each with a different fourth
+of the recordings in the chosen set withheld.
+
+Of course, training multiple classifiers is quickest when done simultaneously
 instead of sequentially.  If your model is small, you might be able to fit
 multiple on a single GPU (see the `models_per_job` variable in
 "configuration.py").  Otherwise, you'll need a machine with multiple GPUs,
@@ -1268,20 +1275,22 @@ To perform a simple grid search for the optimal value of a particular
 hyperparameter, first choose how many folds you want to partition your
 ground-truth data into using `k-fold`.  More folds permit characterizing the
 variance better, but take longer to train and also result in fewer annotations
-to measure the accuracy.  Ensure that you have at least 10 annotations for each
-label in the validation set if using many folds.  Then set the hyperparameter
-of interest to the first value you want to optimize and use the name of the
-hyperparameter and it's value as the `Logs Folder` (e.g. "mb64" for a
-mini-batch size of 64).  Suffix any additional hyperparameters of interest
-using underscores (e.g. "mb64_ks129_fm64" for a kernel size of 129 and 64
-feature maps).  If your model is small, use `models_per_job` in
-"configuration.py" to train multiple folds on a GPU.  Click the `X-Validate`
-button and then `DoIt!`.  One classifier will be trained for each fold, using
-it as the validation set and the remaining folds for training.  Separate files
-and subdirectories are created in the `Logs Folder` that are suffixed by the
-fold number and the letter "k".  Plot training curves with the `Accuracy`
-button, as before.  Repeat the above procedure for each of remaining
-hyperparameter values you want to try (e.g. "mb128_ks129_fm64",
+to measure the accuracy.  Unlike `Omit Some` in [Measuring
+Generalization](#measuring-generalization) above, the partitions here group
+individual annotations, as opposed to entire recordings.  Ensure that you have
+at least 10 annotations for each label in the validation set if using many
+folds.  Then set the hyperparameter of interest to the first value you want to
+optimize and use the name of the hyperparameter and it's value as the `Logs
+Folder` (e.g. "mb64" for a mini-batch size of 64).  Suffix any additional
+hyperparameters of interest using underscores (e.g.  "mb64_ks129_fm64" for a
+kernel size of 129 and 64 feature maps).  If your model is small, use
+`models_per_job` in "configuration.py" to train multiple folds on a GPU.  Click
+the `X-Validate` button and then `DoIt!`.  One classifier will be trained for
+each fold, using it as the validation set and the remaining folds for training.
+Separate files and subdirectories are created in the `Logs Folder` that are
+suffixed by the fold number and the letter "k".  Plot training curves with the
+`Accuracy` button, as before.  Repeat the above procedure for each of remaining
+hyperparameter values you want to try (e.g.  "mb128_ks129_fm64",
 "mb256_ks129_fm64", etc.).  Then use the `Compare` button to create a figure of
 the cross-validation data over the hyperparameter values, specifying for the
 `Logs Folder` the independent variable (e.g. "mb") suffixed with the fixed
