@@ -158,9 +158,7 @@ if __name__ == "__main__":
   FLAGS, unparsed = parser.parse_known_args()
 
   print(str(datetime.now())+": start time")
-  repodir = os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
-  with open(os.path.join(repodir, "VERSION.txt"), 'r') as fid:
-    print('SongExplorer version = '+fid.read().strip().replace('\n',', '))
+  print('PCA.py version = 0.1')
   print("hostname = "+socket.gethostname())
   
   try:

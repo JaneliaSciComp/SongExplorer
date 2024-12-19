@@ -42,7 +42,9 @@ from datetime import datetime
 import socket
 import json
 
-from lib import combine_events, load_audio_read_plugin
+srcdir = os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
+sys.path.insert(0, srcdir)
+from lib import add_plugins_to_path, combine_events, load_audio_read_plugin
 
 def _frequency_n_callback(M,V,C):
     C.time.sleep(0.5)
@@ -94,6 +96,8 @@ def main():
     audio_tic_rate = FLAGS.audio_tic_rate
     time_scale = FLAGS.time_scale
     time_units = FLAGS.time_units
+
+    add_plugins_to_path(srcdir)
 
     load_audio_read_plugin(FLAGS.audio_read_plugin, FLAGS.audio_read_plugin_kwargs)
     from lib import audio_read, trim_ext

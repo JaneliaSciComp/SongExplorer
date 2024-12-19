@@ -138,6 +138,16 @@ def get_srcrepobindirs():
         bindirs = [os.path.join(envdir, "bin")]
     return srcdir, repodir, bindirs
 
+def add_plugins_to_path(srcdir):
+    sys.path.insert(0, srcdir)
+    sys.path.insert(0, os.path.join(srcdir, "audio-read-plugins"))
+    sys.path.insert(0, os.path.join(srcdir, "video-read-plugins"))
+    sys.path.insert(0, os.path.join(srcdir, "detect-plugins"))
+    sys.path.insert(0, os.path.join(srcdir, "doubleclick-plugins"))
+    sys.path.insert(0, os.path.join(srcdir, "architecture-plugins"))
+    sys.path.insert(0, os.path.join(srcdir, "cluster-plugins"))
+    sys.path.insert(0, os.path.join(srcdir, "video-findfile-plugins"))
+
 def compute_background(vidfile, video_bkg_frames, video_data, tiffile):
     print("INFO: calculating median background for "+vidfile)
     nframes = min(video_bkg_frames, video_data.shape[0])

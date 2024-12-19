@@ -15,7 +15,7 @@ import view as V
 import importlib
 
 sys.path.append(os.path.dirname(os.path.dirname(os.path.realpath(__file__))))
-from lib import get_srcrepobindirs, load_audio_read_plugin, load_video_read_plugin
+from lib import get_srcrepobindirs, add_plugins_to_path, load_audio_read_plugin, load_video_read_plugin
 
 def parse_model_file(modelstr):
     filepath, filename = os.path.split(modelstr)
@@ -269,8 +269,7 @@ def init(_bokeh_document, _configuration_file, _use_aitch):
     freq_scale = gui_freq_scale
 
     srcdir, repodir, bindirs = get_srcrepobindirs()
-
-    sys.path.insert(0,srcdir)
+    add_plugins_to_path(srcdir)
 
     load_audio_read_plugin(audio_read_plugin, audio_read_plugin_kwargs)
     load_video_read_plugin(video_read_plugin, video_read_plugin_kwargs)

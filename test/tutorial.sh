@@ -46,7 +46,7 @@ freq_scale=1
 
 wavpath_noext=$repo_path/test/scratch/tutorial-sh/groundtruth-data/round1/PS_20130625111709_ch3
 detect_parameters='{"time_sigma":"9,4","time_smooth":"6.4","frequency_n":"25.6","frequency_nw":"4","frequency_p":"0.1,1.0","frequency_range":"0-","frequency_smooth":"25.6","time_sigma_robust":"median"}'
-cmd="${srcdir}/${detect_plugin}.py \
+cmd="${srcdir}/detect-plugins/${detect_plugin}.py \
       --filename=${wavpath_noext}.wav \
       --parameters='$detect_parameters' \
       --time_units=$time_units \
@@ -254,7 +254,7 @@ count_lines_with_label ${wavpath_noext}-predicted-1.0pr.csv mel-pulse 510 WARNIN
 count_lines_with_label ${wavpath_noext}-predicted-1.0pr.csv mel-sine 767 WARNING
 count_lines_with_label ${wavpath_noext}-predicted-1.0pr.csv ambient 124 WARNING
 
-cmd="${srcdir}/${detect_plugin}.py\
+cmd="${srcdir}/detect-plugins/${detect_plugin}.py\
       --filename=${wavpath_noext}.wav \
       --parameters='$detect_parameters' \
       --time_units=$time_units \
@@ -326,7 +326,7 @@ these_layers=2,3
 pca_batch_size=0
 cluster_parallelize=1
 cluster_parameters='{"ndims":3,"pca-fraction":1.0,"neighbors":10,"distance":0.1}'
-cmd="${srcdir}/${cluster_plugin}.py \
+cmd="${srcdir}/cluster-plugins/${cluster_plugin}.py \
      --data_dir=$groundtruth_directory \
      --layers=$these_layers \
      --pca_batch_size=$pca_batch_size \

@@ -18,7 +18,7 @@ video_frame_height=0
 video_channels=0  # comma-separated list of which colors to use
 video_bkg_frames=0  # how many frames to use when computing median background image to subtract
 video_findfile_plugin="same-basename"  # given a directory and a WAV file, return the corresponding video file
-video_read_plugin="video-read-plugin"
+video_read_plugin="template"
 video_read_plugin_kwargs={}
 
 # URL of the 'server' computer
