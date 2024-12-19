@@ -956,7 +956,8 @@ async def _detect_actuate(i, wavfiles, threads, results):
     wavfile = wavfiles.pop(0)
     currtime = time.time()
     logfile = M.trim_ext(wavfile)+'-detect.log'
-    jobid = generic_actuate(M.detect_plugin+".py", logfile, \
+    jobid = generic_actuate(os.path.join("detect-plugins", M.detect_plugin+".py"),
+                            logfile,
                             M.detect_where,
                             M.detect_ncpu_cores,
                             M.detect_ngpu_cards,
@@ -1531,7 +1532,8 @@ async def cluster_actuate():
     currtime = time.time()
     these_layers = ','.join([x for x in V.cluster_these_layers.value])
     logfile = os.path.join(V.groundtruth_folder.value, "cluster.log")
-    jobid = generic_actuate(M.cluster_plugin+".py", logfile,
+    jobid = generic_actuate(os.path.join("cluster-plugins", M.cluster_plugin+".py"),
+                            logfile,
                             M.cluster_where,
                             M.cluster_ncpu_cores,
                             M.cluster_ngpu_cards,

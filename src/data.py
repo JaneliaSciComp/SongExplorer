@@ -34,8 +34,6 @@ import tifffile
 import signal
 from multiprocessing import Process, Queue, cpu_count, set_start_method
 
-import importlib
-
 MAX_NUM_WAVS_PER_CLASS = 2**27 - 1  # ~134M
 
 queues = {}

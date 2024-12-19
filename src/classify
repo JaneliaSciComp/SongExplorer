@@ -57,7 +57,7 @@ from scipy.io import wavfile
 
 import importlib
 
-from lib import log_nvidia_smi_output, select_GPUs
+from lib import get_srcrepobindirs, add_plugins_to_path, log_nvidia_smi_output, select_GPUs
 
 import tifffile
 from lib import compute_background, load_audio_read_plugin, load_video_read_plugin
@@ -75,6 +75,9 @@ def main():
   os.environ['TF_DISABLE_SPARSE_SOFTMAX_XENT_WITH_LOGITS_OP_DETERMINISM_EXCEPTIONS']=FLAGS.deterministic
 
   select_GPUs(FLAGS.igpu)
+
+  srcdir, repodir, bindirs = get_srcrepobindirs()
+  add_plugins_to_path(srcdir)
 
   sys.path.append(os.path.dirname(FLAGS.video_findfile))
   video_findfile = importlib.import_module(os.path.basename(FLAGS.video_findfile)).video_findfile

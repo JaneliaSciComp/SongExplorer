@@ -33,7 +33,7 @@ import numpy as np
 import json
 import importlib
 
-from lib import log_nvidia_smi_output
+from lib import get_srcrepobindirs, add_plugins_to_path, log_nvidia_smi_output
 
 FLAGS = None
 
@@ -43,6 +43,10 @@ def create_inference_graph():
   Uses the supplied arguments to create a model, and inserts the input and
   output nodes that are needed to use the graph for inference.
   """
+
+  srcdir, repodir, bindirs = get_srcrepobindirs()
+  add_plugins_to_path(srcdir)
+
   sys.path.append(os.path.dirname(FLAGS.model_architecture))
   model = importlib.import_module(os.path.basename(FLAGS.model_architecture))
 
