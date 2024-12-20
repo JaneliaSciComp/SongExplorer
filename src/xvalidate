@@ -40,11 +40,8 @@
 #     --video_channels=0 \
 #     --batch_seed=-1 \
 #     --weights_seed=-1 \
-#     --augment_volume=1,1 \
-#     --augment_noise=0,0 \
-#     --augment_dc=0,0 \
-#     --augment_reverse=no \
-#     --augment_invert=no \
+#     --augmentation_plugin=volume-noise-dc-invert-reverse \
+#     --augmentation_parameters='{"volume":"1,1", "noise":"0,0", "dc:"0,0", "reverse":"no", "invert":"no"}' \
 #     --deterministic=0 \
 #     --igpu=0 \
 #     --kfold=8 \
@@ -140,11 +137,8 @@ def main():
             "--video_channels="+FLAGS.video_channels,
             "--random_seed_batch="+str(FLAGS.batch_seed),
             "--random_seed_weights="+str(FLAGS.weights_seed),
-            "--augment_volume="+str(FLAGS.augment_volume),
-            "--augment_noise="+str(FLAGS.augment_noise),
-            "--augment_dc="+str(FLAGS.augment_dc),
-            "--augment_reverse="+str(FLAGS.augment_reverse),
-            "--augment_invert="+str(FLAGS.augment_invert),
+            "--augmentation_plugin="+FLAGS.augmentation_plugin,
+            "--augmentation_parameters="+FLAGS.augmentation_parameters.replace('<','^^^<').replace('>','^^^>'),
             "--deterministic="+FLAGS.deterministic,
             "--validation_percentage="+str(kpercent),
             "--validation_offset_percentage="+str(koffset),
@@ -306,30 +300,15 @@ if __name__ == '__main__':
       default=59185,
       help='Randomize weight initialization if -1; otherwise use supplied number as seed.')
   parser.add_argument(
-      '--augment_volume',
+      '--augmentation_plugin',
       type=str,
-      default='1,1',
-      help='Multiply each annotation by a uniform random number in this interval when training')
+      default='{}',
+      help='What augmentation plugin to use')
   parser.add_argument(
-      '--augment_noise',
+      '--augmentation_parameters',
       type=str,
-      default='0,0',
-      help='Add noise to each annotation with a uniform random std dev in this interval when training')
-  parser.add_argument(
-      '--augment_dc',
-      type=str,
-      default='0,0',
-      help='Add to each annotation a uniform random number in this interval when training')
-  parser.add_argument(
-      '--augment_reverse',
-      type=str,
-      default='no',
-      help='Flip in time with a probability of half each annotation when training')
-  parser.add_argument(
-      '--augment_invert',
-      type=str,
-      default='no',
-      help='Negate with a probability of half each annotation when training')
+      default='{}',
+      help='What augmentation parameters to use')
   parser.add_argument(
       '--model_architecture',
       type=str,
