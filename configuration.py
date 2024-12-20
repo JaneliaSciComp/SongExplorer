@@ -73,6 +73,7 @@ gui_probability_style="lines" # either "lines" or "bars"
 # neural network architecture to use
 architecture_plugin="convolutional"
 overlapped_prefix="not_"
+augmentation_plugin="volume-noise-dc-reverse-invert"
 
 # on what computer to do the computation
 default_where="local"
