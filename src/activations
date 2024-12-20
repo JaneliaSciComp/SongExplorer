@@ -157,10 +157,11 @@ def main():
   def infer_step(isound):
     # HACK: get_data not guaranteed to return isounds in order
     fingerprints, _, sounds = D.get_data(
-                                 FLAGS.batch_size, isound, model_settings,
-                                 FLAGS.loss, FLAGS.overlapped_prefix,
-                                 time_shift_tics, 'testing',
-                                 model.use_audio, model.use_video, video_findfile)
+            FLAGS.batch_size, isound, model_settings,
+            FLAGS.loss, FLAGS.overlapped_prefix,
+            time_shift_tics, 'testing',
+            model.use_audio, model.use_video, video_findfile,
+            None, None)
     hidden_activations, logits = thismodel(fingerprints, training=False)
     return fingerprints, sounds, logits, hidden_activations
 

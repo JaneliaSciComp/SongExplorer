@@ -38,6 +38,7 @@ detect_parameters = list(V.detect_parameters.values())
 doubleclick_parameters = list(V.doubleclick_parameters.values())
 model_parameters = list(V.model_parameters.values())
 cluster_parameters = list(V.cluster_parameters.values())
+augmentation_parameters = list(V.augmentation_parameters.values())
 
 main_content = row(
         column(
@@ -128,12 +129,10 @@ main_content = row(
                                for c in r])
                          for r in V.cluster_parameters_partitioned],
                        background="honeydew"),
-                column(row(V.augment_volume, V.augment_noise,
-                           width=M.gui_width_pix//11*2),
-                       row(V.augment_dc, V.augment_reverse,
-                           width=M.gui_width_pix//11*2),
-                       row(V.augment_invert,
-                           width=M.gui_width_pix//11),
+                column(*[row(*[column(augmentation_parameters[c],
+                                      width=round(M.gui_width_pix/11*V.augmentation_parameters_width[c]))
+                               for c in r])
+                         for r in V.augmentation_parameters_partitioned],
                        background="azure"),
                 column(*[row(*[column(model_parameters[c],
                                       width=round(M.gui_width_pix/11*V.model_parameters_width[c]))

@@ -146,6 +146,7 @@ def add_plugins_to_path(srcdir):
     sys.path.insert(0, os.path.join(srcdir, "doubleclick-plugins"))
     sys.path.insert(0, os.path.join(srcdir, "architecture-plugins"))
     sys.path.insert(0, os.path.join(srcdir, "cluster-plugins"))
+    sys.path.insert(0, os.path.join(srcdir, "augmentation-plugins"))
     sys.path.insert(0, os.path.join(srcdir, "video-findfile-plugins"))
 
 def compute_background(vidfile, video_bkg_frames, video_data, tiffile):

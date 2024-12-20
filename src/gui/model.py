@@ -57,11 +57,6 @@ def save_state_callback():
                      'nreplicates': V.nreplicates.value,
                      'batch_seed': V.batch_seed.value,
                      'weights_seed': V.weights_seed.value,
-                     'augment_volume': V.augment_volume.value,
-                     'augment_noise': V.augment_noise.value,
-                     'augment_dc': V.augment_dc.value,
-                     'augment_reverse': V.augment_reverse.value,
-                     'augment_invert': V.augment_invert.value,
                      'labels': str.join(',',[x.value for x in V.label_texts]),
                      'file_dialog_string': V.file_dialog_string.value,
                      'context': V.context.value,
@@ -72,7 +67,8 @@ def save_state_callback():
                   **{k:v.value for k,v in V.detect_parameters.items()},
                   **{k:v.value for k,v in V.doubleclick_parameters.items()},
                   **{k:v.value for k,v in V.model_parameters.items()},
-                  **{k:v.value for k,v in V.cluster_parameters.items()}},
+                  **{k:v.value for k,v in V.cluster_parameters.items()},
+                  **{k:v.value for k,v in V.augmentation_parameters.items()}},
                  fid)
 
 def isannotated(sound):
@@ -253,7 +249,7 @@ def init(_bokeh_document, _configuration_file, _use_aitch):
     global user_changed_recording, user_copied_parameters
     global audio_read, audio_read_exts, audio_read_rec2ch, audio_read_strip_rec, trim_ext
     global video_read, detect_labels, doubleclick_annotation, context_data, context_data_istart, model, video_findfile
-    global detect_parameters, doubleclick_parameters, model_parameters, cluster_parameters
+    global detect_parameters, doubleclick_parameters, model_parameters, cluster_parameters, augmentation_parameters
 
     bokeh_document = _bokeh_document
 
@@ -292,6 +288,10 @@ def init(_bokeh_document, _configuration_file, _use_aitch):
     sys.path.insert(0,os.path.dirname(cluster_plugin))
     tmp = importlib.import_module(os.path.basename(cluster_plugin))
     cluster_parameters = tmp.cluster_parameters()
+
+    sys.path.insert(0,os.path.dirname(augmentation_plugin))
+    tmp = importlib.import_module(os.path.basename(augmentation_plugin))
+    augmentation_parameters = tmp.augmentation_parameters()
 
     sys.path.insert(0,os.path.dirname(video_findfile_plugin))
     video_findfile = importlib.import_module(os.path.basename(video_findfile_plugin)).video_findfile
@@ -499,11 +499,6 @@ def init(_bokeh_document, _configuration_file, _use_aitch):
                           'nreplicates':'1', \
                           'batch_seed':'-1', \
                           'weights_seed':'-1', \
-                          'augment_volume':'1,1', \
-                          'augment_noise':'0,0', \
-                          'augment_dc':'0,0', \
-                          'augment_reverse':'no', \
-                          'augment_invert':'no', \
                           'labels':','*(nlabels-1), \
                           'file_dialog_string':os.getcwd(), \
                           'context':str(0.2048 / time_scale), \
@@ -514,7 +509,8 @@ def init(_bokeh_document, _configuration_file, _use_aitch):
                        **{x[0]:x[3] for x in detect_parameters}, \
                        **{x[0]:x[3] for x in doubleclick_parameters}, \
                        **{x[0]:x[3] for x in model_parameters},
-                       **{x[0]:x[3] for x in cluster_parameters}},
+                       **{x[0]:x[3] for x in cluster_parameters},
+                       **{x[0]:x[3] for x in augmentation_parameters}},
                       fid)
 
     with open(statepath, 'r') as fid:

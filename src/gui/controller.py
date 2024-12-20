@@ -1224,11 +1224,8 @@ async def train_actuate():
                 "--video_channels="+str(M.video_channels), \
                 "--batch_seed="+V.batch_seed.value, \
                 "--weights_seed="+V.weights_seed.value, \
-                "--augment_volume="+V.augment_volume.value, \
-                "--augment_noise="+V.augment_noise.value, \
-                "--augment_dc="+V.augment_dc.value, \
-                "--augment_reverse="+V.augment_reverse.value, \
-                "--augment_invert="+V.augment_invert.value, \
+                "--augmentation_plugin="+M.augmentation_plugin, \
+                "--augmentation_parameters="+json.dumps({k:v.value for k,v in V.augmentation_parameters.items()}), \
                 "--deterministic="+M.deterministic, \
                 "--igpu=QUEUE1", \
                 "--ireplicates="+','.join([str(x) for x in range(ireplicate, min(1+nreplicates, \
@@ -1325,11 +1322,8 @@ async def leaveout_actuate(kind):
                 "--video_channels="+str(M.video_channels), \
                 "--batch_seed="+V.batch_seed.value, \
                 "--weights_seed="+V.weights_seed.value, \
-                "--augment_volume="+V.augment_volume.value, \
-                "--augment_noise="+V.augment_noise.value, \
-                "--augment_dc="+V.augment_dc.value, \
-                "--augment_reverse="+V.augment_reverse.value, \
-                "--augment_invert="+V.augment_invert.value, \
+                "--augmentation_plugin="+M.augmentation_plugin, \
+                "--augmentation_parameters="+json.dumps({k:v.value for k,v in V.augmentation_parameters.items()}), \
                 "--deterministic="+M.deterministic, \
                 "--ioffset="+str(ivalidation_file),
                 "--igpu=QUEUE1", \
@@ -1401,11 +1395,8 @@ async def xvalidate_actuate():
                 "--video_channels="+str(M.video_channels), \
                 "--batch_seed="+V.batch_seed.value, \
                 "--weights_seed="+V.weights_seed.value, \
-                "--augment_volume="+V.augment_volume.value, \
-                "--augment_noise="+V.augment_noise.value, \
-                "--augment_dc="+V.augment_dc.value, \
-                "--augment_reverse="+V.augment_reverse.value, \
-                "--augment_invert="+V.augment_invert.value, \
+                "--augmentation_plugin="+M.augmentation_plugin, \
+                "--augmentation_parameters="+json.dumps({k:v.value for k,v in V.augmentation_parameters.items()}), \
                 "--deterministic="+M.deterministic, \
                 "--igpu=QUEUE1", \
                 "--kfold="+V.kfold.value, \
@@ -2251,21 +2242,6 @@ def _copy_callback():
             elif "random_seed_weights = " in line:
                 m=re.search('random_seed_weights = (.*)', line)
                 V.weights_seed.value = m.group(1)
-            elif "augment_volume = " in line:
-                m=re.search('augment_volume = (.*)', line)
-                V.augment_volume.value = m.group(1)
-            elif "augment_noise = " in line:
-                m=re.search('augment_noise = (.*)', line)
-                V.augment_noise.value = m.group(1)
-            elif "augment_dc = " in line:
-                m=re.search('augment_dc = (.*)', line)
-                V.augment_dc.value = m.group(1)
-            elif "augment_reverse = " in line:
-                m=re.search('augment_reverse = (.*)', line)
-                V.augment_reverse.value = m.group(1)
-            elif "augment_invert = " in line:
-                m=re.search('augment_invert = (.*)', line)
-                V.augment_invert.value = m.group(1)
             elif "validate_step_period = " in line:
                 m=re.search('validate_step_period = (\d+)', line)
                 V.save_and_validate_period.value = m.group(1)
@@ -2312,6 +2288,11 @@ def _copy_callback():
                 params = json.loads(m.group(1).replace("'",'"'))
                 for k,v in params.items():
                   V.model_parameters[k].value = v
+            elif "augmentation_parameters = " in line:
+                m=re.search('augmentation_parameters = ({.*})', line)
+                params = json.loads(m.group(1).replace("'",'"'))
+                for k,v in params.items():
+                  V.augmentation_parameters[k].value = v
     _copy_callback_finalize()
     
 def copy_callback():
