@@ -37,6 +37,8 @@ parameters = [
     "--video_bkg_frames=0",
     "--data_loader_queuesize=1",
     "--data_loader_maxprocs=0",
+    "--augmentation_plugin=volume-noise-dc-reverse-invert",
+    '--augmentation_parameters={"volume":"1,1","noise":"0,0","dc":"0,0","reverse":"no","invert":"no"}',
     "--model_architecture=convolutional",
     '--model_parameters={"representation": "waveform", \
                          "window": "3.2", \

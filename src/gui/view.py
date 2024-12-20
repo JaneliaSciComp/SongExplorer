@@ -1627,6 +1627,12 @@ def buttons_update():
                     textinput.disabled = cluster_parameters[thislogic[0]].value not in thislogic[1]
                 else:
                     textinput.disabled = False
+            elif textinput in augmentation_parameters.values():
+                thislogic = augmentation_parameters_enable_logic[textinput]
+                if thislogic:
+                    textinput.disabled = augmentation_parameters[thislogic[0]].value not in thislogic[1]
+                else:
+                    textinput.disabled = False
             elif M.action is leaveout and textinput is kfold:
                 textinput.disabled = leaveout.value != "omit some"
             else:
@@ -1646,6 +1652,9 @@ def buttons_update():
                         okay=False
                 elif textinput in cluster_parameters.values():
                     if cluster_parameters_required[textinput]:
+                        okay=False
+                elif textinput in augmentation_parameters.values():
+                    if augmentation_parameters_required[textinput]:
                         okay=False
                 else:
                     if textinput not in [test_files, restore_from]:
@@ -1816,11 +1825,12 @@ def init(_bokeh_document):
     global detect, misses, train, leaveout, xvalidate, mistakes, activations, cluster, visualize, accuracy, freeze, ensemble, classify, ethogram, compare, congruence
     global status_ticker, waitfor, deletefailures
     global file_dialog_source, configuration_contents
-    global logs_folder_button, logs_folder, model_file_button, model_file, wavcsv_files_button, wavcsv_files, groundtruth_folder_button, groundtruth_folder, validation_files_button, test_files_button, validation_files, test_files, labels_touse_button, labels_touse, kinds_touse_button, kinds_touse, prevalences_button, prevalences, delete_ckpts, copy, labelsounds, makepredictions, fixfalsepositives, fixfalsenegatives, generalize, tunehyperparameters, findnovellabels, examineerrors, testdensely, doit, nsteps, restore_from, save_and_validate_period, validate_percentage, mini_batch, kfold, activations_equalize_ratio, activations_max_sounds, cluster_these_layers, precision_recall_ratios, congruence_portion, congruence_convolve, congruence_measure, context, shiftby, optimizer, loss, learning_rate, nreplicates, batch_seed, weights_seed, augment_volume, augment_noise, augment_dc, augment_reverse, augment_invert, file_dialog_string, file_dialog_table, readme_contents, model_summary, labelcounts, wizard_buttons, action_buttons, parameter_buttons, parameter_textinputs, wizard2actions, action2parameterbuttons, action2parametertextinputs, status_ticker_update, status_ticker_pre, status_ticker_post
+    global logs_folder_button, logs_folder, model_file_button, model_file, wavcsv_files_button, wavcsv_files, groundtruth_folder_button, groundtruth_folder, validation_files_button, test_files_button, validation_files, test_files, labels_touse_button, labels_touse, kinds_touse_button, kinds_touse, prevalences_button, prevalences, delete_ckpts, copy, labelsounds, makepredictions, fixfalsepositives, fixfalsenegatives, generalize, tunehyperparameters, findnovellabels, examineerrors, testdensely, doit, nsteps, restore_from, save_and_validate_period, validate_percentage, mini_batch, kfold, activations_equalize_ratio, activations_max_sounds, cluster_these_layers, precision_recall_ratios, congruence_portion, congruence_convolve, congruence_measure, context, shiftby, optimizer, loss, learning_rate, nreplicates, batch_seed, weights_seed, file_dialog_string, file_dialog_table, readme_contents, model_summary, labelcounts, wizard_buttons, action_buttons, parameter_buttons, parameter_textinputs, wizard2actions, action2parameterbuttons, action2parametertextinputs, status_ticker_update, status_ticker_pre, status_ticker_post
     global detect_parameters, detect_parameters_enable_logic, detect_parameters_required, detect_parameters_partitioned, detect_parameters_width
     global doubleclick_parameters, doubleclick_parameters_enable_logic, doubleclick_parameters_required
     global model_parameters, model_parameters_enable_logic, model_parameters_required, model_parameters_partitioned, model_parameters_width
     global cluster_parameters, cluster_parameters_enable_logic, cluster_parameters_required, cluster_parameters_partitioned, cluster_parameters_width
+    global augmentation_parameters, augmentation_parameters_enable_logic, augmentation_parameters_required, augmentation_parameters_partitioned, augmentation_parameters_width
     global context_cache_file, context_cache_data
 
     context_cache_file, context_cache_data = None, None
@@ -2508,6 +2518,7 @@ def init(_bokeh_document):
     doubleclick_parameters, doubleclick_parameters_enable_logic, doubleclick_parameters_required, _, _ = parse_plugin_parameters(M.doubleclick_parameters, 1)
     model_parameters, model_parameters_enable_logic, model_parameters_required, model_parameters_partitioned, model_parameters_width = parse_plugin_parameters(M.model_parameters, 5, True)
     cluster_parameters, cluster_parameters_enable_logic, cluster_parameters_required, cluster_parameters_partitioned, cluster_parameters_width = parse_plugin_parameters(M.cluster_parameters, 1)
+    augmentation_parameters, augmentation_parameters_enable_logic, augmentation_parameters_required, augmentation_parameters_partitioned, augmentation_parameters_width = parse_plugin_parameters(M.augmentation_parameters, 2)
 
     file_dialog_source = ColumnDataSource(data=dict(names=[], sizes=[], dates=[]))
     file_dialog_source.selected.on_change('indices', C.file_dialog_callback)
@@ -2552,31 +2563,6 @@ def init(_bokeh_document):
     weights_seed = TextInput(value=M.state['weights_seed'], title="weights seed",
                              disabled=False, sizing_mode="stretch_width")
     weights_seed.on_change('value', lambda a,o,n: C.generic_parameters_callback(n))
-
-
-    augment_volume = TextInput(value=M.state['augment_volume'], title="augment volume",
-                               sizing_mode='stretch_width')
-    augment_volume.on_change('value', lambda a,o,n: C.generic_parameters_callback(n))
-
-    augment_noise = TextInput(value=M.state['augment_noise'], title="augment noise",
-                              sizing_mode='stretch_width')
-    augment_noise.on_change('value', lambda a,o,n: C.generic_parameters_callback(n))
-
-    augment_dc = TextInput(value=M.state['augment_dc'], title="augment DC",
-                           sizing_mode='stretch_width')
-    augment_dc.on_change('value', lambda a,o,n: C.generic_parameters_callback(n))
-
-    augment_reverse = Select(value=M.state['augment_reverse'],
-                             title="augment reverse",
-                             options=["no", "yes"],
-                             sizing_mode='stretch_width')
-    augment_reverse.on_change('value', lambda a,o,n: C.generic_parameters_callback(n))
-
-    augment_invert = Select(value=M.state['augment_invert'], \
-                            title="augment invert", \
-                            options=["no", "yes"],
-                            sizing_mode='stretch_width')
-    augment_invert.on_change('value', lambda a,o,n: C.generic_parameters_callback(n))
 
     file_dialog_string = TextInput(disabled=False, sizing_mode='stretch_width')
     file_dialog_string.on_change("value", C.file_dialog_path_callback)
@@ -2665,12 +2651,6 @@ def init(_bokeh_document):
         batch_seed,
         weights_seed,
 
-        augment_volume,
-        augment_noise,
-        augment_dc,
-        augment_reverse,
-        augment_invert,
-
         context,
         shiftby,
         optimizer,
@@ -2679,7 +2659,8 @@ def init(_bokeh_document):
 
         list(detect_parameters.values()) +
         list(model_parameters.values()) +
-        list(cluster_parameters.values()))
+        list(cluster_parameters.values()) +
+        list(augmentation_parameters.values()))
 
     wizard2actions = {
             labelsounds: [detect, train, activations, cluster, visualize, delete_ckpts],
@@ -2715,12 +2696,12 @@ def init(_bokeh_document):
 
     action2parametertextinputs = {
             detect: [wavcsv_files] + list(detect_parameters.values()),
-            train: [context, shiftby, optimizer, loss, learning_rate, nreplicates, batch_seed, weights_seed, augment_volume, augment_noise, augment_dc, augment_reverse, augment_invert, logs_folder, groundtruth_folder, test_files, labels_touse, kinds_touse, nsteps, restore_from, save_and_validate_period, validate_percentage, mini_batch] + list(model_parameters.values()),
-            leaveout: [context, shiftby, optimizer, loss, learning_rate, batch_seed, weights_seed, augment_volume, augment_noise, augment_dc, augment_reverse, augment_invert, logs_folder, groundtruth_folder, validation_files, test_files, labels_touse, kinds_touse, nsteps, restore_from, save_and_validate_period, mini_batch, kfold] + list(model_parameters.values()),
-            xvalidate: [context, shiftby, optimizer, loss, learning_rate, batch_seed, weights_seed, augment_volume, augment_noise, augment_dc, augment_reverse, augment_invert, logs_folder, groundtruth_folder, test_files, labels_touse, kinds_touse, nsteps, restore_from, save_and_validate_period, mini_batch, kfold] + list(model_parameters.values()),
+            train: [context, shiftby, optimizer, loss, learning_rate, nreplicates, batch_seed, weights_seed, logs_folder, groundtruth_folder, test_files, labels_touse, kinds_touse, nsteps, restore_from, save_and_validate_period, validate_percentage, mini_batch] + list(model_parameters.values()) + list(augmentation_parameters.values()),
+            leaveout: [context, shiftby, optimizer, loss, learning_rate, batch_seed, weights_seed, logs_folder, groundtruth_folder, validation_files, test_files, labels_touse, kinds_touse, nsteps, restore_from, save_and_validate_period, mini_batch, kfold] + list(model_parameters.values()) + list(augmentation_parameters.values()),
+            xvalidate: [context, shiftby, optimizer, loss, learning_rate, batch_seed, weights_seed, logs_folder, groundtruth_folder, test_files, labels_touse, kinds_touse, nsteps, restore_from, save_and_validate_period, mini_batch, kfold] + list(model_parameters.values()) + list(augmentation_parameters.values()),
             mistakes: [groundtruth_folder],
             activations: [context, shiftby, logs_folder, model_file, groundtruth_folder, labels_touse, kinds_touse, activations_equalize_ratio, activations_max_sounds, mini_batch, batch_seed] + list(model_parameters.values()),
-            cluster: [groundtruth_folder]+ list(cluster_parameters.values()),
+            cluster: [groundtruth_folder] + list(cluster_parameters.values()),
             visualize: [groundtruth_folder],
             accuracy: [logs_folder, precision_recall_ratios, loss],
             delete_ckpts: [logs_folder],
