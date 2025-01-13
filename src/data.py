@@ -108,7 +108,7 @@ def which_set(filename, validation_percentage, validation_offset_percentage, tes
     return result
 
 def init(_data_dir,
-         shiftby,
+         shiftby, _clip_window_samples,
          labels_touse, kinds_touse,
          validation_percentage, validation_offset_percentage, validation_files,
          testing_percentage, testing_files, subsample_skip, subsample_label,
@@ -121,9 +121,10 @@ def init(_data_dir,
          _audio_read_plugin, _video_read_plugin,
          _audio_read_plugin_kwargs, _video_read_plugin_kwargs):
 
-    global data_dir, np_rng, audio_read_plugin_kwargs, audio_read_plugin, video_read_plugin_kwargs, video_read_plugin, queue_size, max_procs
+    global data_dir, clip_window_samples, np_rng, audio_read_plugin_kwargs, audio_read_plugin, video_read_plugin_kwargs, video_read_plugin, queue_size, max_procs
 
     data_dir = _data_dir
+    clip_window_samples = _clip_window_samples
     np_rng = np.random.default_rng(None if random_seed_batch==-1 else random_seed_batch)
 
     audio_read_plugin = _audio_read_plugin
@@ -198,6 +199,8 @@ def prepare_data_index(shiftby,
     audio_tic_rate = model_settings['audio_tic_rate']
     time_scale = model_settings['time_scale']
     context_tics = int(audio_tic_rate * model_settings['context'] * time_scale)
+    parallelize = int(model_settings['parallelize'])
+    stride_x_downsample = (clip_window_samples - context_tics) // (parallelize-1)
     shiftby_tics = int(shiftby * audio_tic_rate * time_scale)
     audio_ntics = {}
     video_nframes = {}
@@ -266,19 +269,21 @@ def prepare_data_index(shiftby,
                           f'in configuration.py but is actually {audio_data_shape[1]} in {wav_path}')
                 audio_ntics[wav_path] = audio_data_shape[0]
             if use_audio:
-                if ticks[1] < context_tics//2 + shiftby_tics or \
-                   ticks[0] > (audio_ntics[wav_path] - context_tics//2 + shiftby_tics):
+                left_room = context_tics//2 + (parallelize//2+1)*stride_x_downsample + shiftby_tics
+                right_room = context_tics//2 + (parallelize//2)*stride_x_downsample - shiftby_tics
+                if ticks[1] < left_room or \
+                   ticks[0] > (audio_ntics[wav_path] - right_room):
                     print(f"WARNING: {str(annotation)} is too close to an edge of the recording.  "
                           f"not using at all")
                     continue
-                if ticks[0] < context_tics//2 + shiftby_tics:
+                if ticks[0] < left_room:
                     print(f"WARNING: {str(annotation)} is close to beginning of recording.  "
                           f"shortening interval to usable range")
-                    ticks[0] = context_tics//2 + shiftby_tics
-                if ticks[1] > audio_ntics[wav_path] - context_tics//2 + shiftby_tics:
+                    ticks[0] = left_room
+                if ticks[1] > audio_ntics[wav_path] - right_room:
                     print(f"WARNING: {str(annotation)} is close to end of recording.  "
                           f"shortening interval to usable range")
-                    ticks[1] = audio_ntics[wav_path] - context_tics//2 + shiftby_tics
+                    ticks[1] = audio_ntics[wav_path] - right_room
             if use_video and wav_path not in video_nframes:
                 sound_dirname = os.path.join(data_dir, wav_base2[0])
                 vidfile = video_findfile(sound_dirname, wavfile)
@@ -438,11 +443,14 @@ def _get_data(q, o, how_many, offset, model_settings, loss, overlapped_prefix,
         video_channels = model_settings['video_channels']
         time_scale = model_settings['time_scale']
         context_tics = int(audio_tic_rate * model_settings['context'] * time_scale)
+        parallelize = int(model_settings['parallelize'])
+        ninput_tics = clip_window_samples
+        stride_x_downsample = (clip_window_samples - context_tics) // (parallelize-1)
         shiftby_tics = int(shiftby * audio_tic_rate * time_scale)
         if use_audio:
-            audio_slice = np.zeros((nsounds, context_tics, audio_nchannels), dtype=np.float32)
+            audio_slice = np.zeros((nsounds, ninput_tics, audio_nchannels), dtype=np.float32)
         if use_video:
-            nframes = round(model_settings['context'] * time_scale * video_frame_rate)
+            nframes = round(ninput_tics / audio_tic_rate * video_frame_rate)
             video_slice = np.zeros((nsounds,
                                     nframes,
                                     model_settings['video_frame_height'],
@@ -451,9 +459,9 @@ def _get_data(q, o, how_many, offset, model_settings, loss, overlapped_prefix,
                                    dtype=np.float32)
             bkg = {}
         if loss=='exclusive':
-            labels = np.zeros(nsounds, dtype=np.int32)
+            labels = -1*np.ones((nsounds, parallelize), dtype=np.int32)
         elif loss=='overlapped':
-            labels = 2*np.ones((nsounds, len(labels_list)), dtype=np.float32)
+            labels = 2*np.ones((nsounds, parallelize, len(labels_list)), dtype=np.float32)
         # repeatedly to generate the final output sound data we'll use in training.
         for i in range(offset, offset + nsounds):
             # Pick which sound to use.
@@ -466,8 +474,8 @@ def _get_data(q, o, how_many, offset, model_settings, loss, overlapped_prefix,
             offset_tic = (np_rng.integers(sound['ticks'][0], high=1+sound['ticks'][1]) \
                           if sound['ticks'][0] < sound['ticks'][1] \
                           else sound['ticks'][0])
-            start_tic = offset_tic - math.floor(context_tics/2) - shiftby_tics
-            stop_tic  = offset_tic + math.ceil(context_tics/2) - shiftby_tics
+            start_tic = offset_tic - math.ceil(ninput_tics/2) - shiftby_tics
+            stop_tic  = offset_tic + math.floor(ninput_tics/2) - shiftby_tics
             if use_audio:
                 wavpath = os.path.join(data_dir, *sound['file'])
                 _, _, audio_data = audio_read(wavpath, start_tic, stop_tic)
@@ -486,9 +494,18 @@ def _get_data(q, o, how_many, offset, model_settings, loss, overlapped_prefix,
                     video_slice[i-offset,iframe,:,:,:] = \
                             frame[:,:,video_channels] - bkg[vidfile][:,:,video_channels]
             if loss=='exclusive':
-                labels[i - offset] = labels_list.index(sound['label'])
+                start_in_tic = max(sound['ticks'][0] - offset_tic,
+                                   (1 - parallelize / 2) * stride_x_downsample)
+                start_out_tic = math.ceil(start_in_tic / stride_x_downsample)
+                start_out_tic += parallelize // 2 - 1
+                stop_in_tic = min(sound['ticks'][1] - offset_tic + stride_x_downsample,
+                                  parallelize / 2 * stride_x_downsample)
+                stop_out_tic = math.floor(stop_in_tic / stride_x_downsample)
+                stop_out_tic += parallelize // 2 - 1
+                labels[i - offset, start_out_tic : 1+stop_out_tic] = labels_list.index(sound['label'])
+                sound['offset_tic'] = offset_tic
                 sounds.append({k: v for k,v in sound.items() if k!='overlaps'})
-            elif loss=='overlapped':
+            elif loss=='overlapped':  ### !!!
                 target = 0 if sound['label'].startswith(overlapped_prefix) else 1
                 root = sound['label'].removeprefix(overlapped_prefix)
                 labels[i - offset, labels_list.index(root)] = target

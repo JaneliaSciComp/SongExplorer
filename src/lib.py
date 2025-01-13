@@ -89,7 +89,6 @@ def check_config(configuration_file):
     isinteger(locals(), "accuracy_parallelize")
     isinteger(locals(), "cluster_parallelize")
     isinteger(locals(), "congruence_parallelize")
-    isinteger(locals(), "classify_parallelize")
 
     all_minusone = True
     local_vars = locals().copy()
@@ -566,8 +565,8 @@ def calculate_precision_recall_specificity(validation_ground_truth, test_logits,
         itrue = validation_ground_truth==ilabel
         ifalse = validation_ground_truth!=ilabel
     else:
-        itrue = validation_ground_truth[:,ilabel]==1
-        ifalse = validation_ground_truth[:,ilabel]!=1
+        itrue = validation_ground_truth[:,:,ilabel]==1
+        ifalse = validation_ground_truth[:,:,ilabel]!=1
     precisions[labels[ilabel]] = np.full([nprobabilities],np.nan)
     recalls[labels[ilabel]] = np.full([nprobabilities],np.nan)
     sensitivities[labels[ilabel]] = np.full([nprobabilities],np.nan)
