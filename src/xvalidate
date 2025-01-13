@@ -7,6 +7,7 @@
 #     --shiftby=0.0 \
 #     --optimizer=Adam \
 #     --loss=exclusive \
+#     --parallelize=64 \
 #     --overlapped_prefix=not_ \
 #     --learning_rate=0.0002 \
 #     --audio_read_plugin=load-wav \
@@ -104,6 +105,7 @@ def main():
             "--shiftby="+str(FLAGS.shiftby),
             "--optimizer="+FLAGS.optimizer,
             "--loss="+FLAGS.loss,
+            "--parallelize="+str(FLAGS.parallelize),
             "--overlapped_prefix="+FLAGS.overlapped_prefix,
             "--learning_rate="+str(FLAGS.learning_rate),
             "--audio_read_plugin="+FLAGS.audio_read_plugin,
@@ -233,6 +235,11 @@ if __name__ == '__main__':
       type=float,
       default=1000,
       help='Expected duration in milliseconds of the wavs',)
+  parser.add_argument(
+      '--parallelize',
+      type=int,
+      default=64,
+      help='how many output time tics to simultaneously process',)
   parser.add_argument(
       '--learning_rate',
       type=float,
