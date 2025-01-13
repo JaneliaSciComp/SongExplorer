@@ -109,7 +109,7 @@ main_content = row(
                 V.prevalences_button, V.prevalences,
                 V.delete_ckpts, V.copy, width=M.gui_width_pix),
             row(V.nsteps, V.restore_from, V.weights_seed, V.optimizer, V.context,
-                V.mini_batch, V.nreplicates, V.activations_equalize_ratio,
+                V.parallelize, V.mini_batch, V.nreplicates, V.activations_equalize_ratio,
                 V.precision_recall_ratios, V.congruence_portion,
                 width=M.gui_width_pix),
             row(V.save_and_validate_period, V.validate_percentage, V.batch_seed,

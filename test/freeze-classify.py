@@ -101,7 +101,7 @@ for representation in ["waveform", "spectrogram", "mel-cepstrum"]:
     V.prevalences.value = ""
 
     for parallelize in ["64", "16384"]:
-      M.classify_parallelize=int(parallelize)
+      V.parallelize.value=str(parallelize)
       asyncio.run(C.freeze_actuate())
       wait_for_job(M.status_ticker_queue)
 

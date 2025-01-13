@@ -194,10 +194,6 @@ congruence_parallelize=-1
 # how many points to use for the precision-recall, sensitivity-specificity, and congruence curves
 nprobabilities=20
 
-# used by freeze and classify to specify how many output time tics to process in parallel.
-# must be greater than one.
-classify_parallelize=64
-
 # used by train, generalize, xvalidate, and activations
 data_loader_maxprocs=0  # 0 = num CPU cores
 data_loader_queuesize=1  # 0 = infinite
