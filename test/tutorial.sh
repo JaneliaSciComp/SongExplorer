@@ -70,6 +70,7 @@ cp $repo_path/data/PS_20130625111709_ch3-annotated-person1.csv \
    $repo_path/test/scratch/tutorial-sh/groundtruth-data/round1
 
 context=204.8
+parallelize=64
 shiftby=0.0
 optimizer=Adam
 learning_rate=0.0002
@@ -95,6 +96,7 @@ overlapped_prefix=not_
 mkdir $logdir
 cmd="${srcdir}/train \
      --context=$context \
+     --parallelize=$parallelize \
      --shiftby=$shiftby \
      --optimizer=$optimizer \
      --loss=$loss \
@@ -171,13 +173,13 @@ check_file_exists $logdir/PvR.pdf
 
 cmd="${srcdir}/freeze \
       --context=$context \
+      --parallelize=$parallelize \
       --loss=$loss \
       --model_architecture=$architecture \
       --model_parameters='$model_parameters' \
       --start_checkpoint=${logdir}/train_${ireplicates}r/ckpt-$nsteps \
       --output_file=${logdir}/train_${ireplicates}r/frozen-graph.ckpt-${nsteps}.pb \
       --labels_touse=$labels_touse \
-      --parallelize=$classify_parallelize \
       --time_units=$time_units \
       --freq_units=$freq_units \
       --time_scale=$time_scale \
@@ -202,6 +204,7 @@ cp $repo_path/data/20161207T102314_ch1.wav \
 wavpath_noext=$repo_path/test/scratch/tutorial-sh/groundtruth-data/round2/20161207T102314_ch1
 cmd="${srcdir}/classify \
       --context=$context \
+      --parallelize=$parallelize \
       --loss=$loss \
       --shiftby=$shiftby \
       --audio_read_plugin=$audio_read_plugin \
@@ -213,7 +216,6 @@ cmd="${srcdir}/classify \
       --model=$logdir/train_${ireplicates}r/frozen-graph.ckpt-${nsteps}.pb \
       --model_labels=$logdir/train_${ireplicates}r/labels.txt \
       --wav=${wavpath_noext}.wav \
-      --parallelize=$classify_parallelize \
       --time_scale=$time_scale \
       --audio_tic_rate=$audio_tic_rate \
       --audio_nchannels=$audio_nchannels \
@@ -342,6 +344,7 @@ ioffsets=$(seq 0 $(( ${#wavfiles[@]} - 1 )) )
 for ioffset in $ioffsets ; do
   cmd="${srcdir}/generalize \
        --context=$context \
+       --parallelize=$parallelize \
        --shiftby=$shiftby \
        --optimizer=$optimizer \
        --loss=$loss \
@@ -443,6 +446,7 @@ for loss in ${losses[@]} ; do
         for ifold in $ifolds ; do
             cmd="${srcdir}/xvalidate \
                  --context=$context \
+                 --parallelize=$parallelize \
                  --shiftby=$shiftby \
                  --optimizer=$optimizer \
                  --loss=$loss \
@@ -551,6 +555,7 @@ validation_percentage=20
 mkdir $logdir
 cmd="${srcdir}/train \
      --context=$context \
+     --parallelize=$parallelize \
      --shiftby=$shiftby \
      --optimizer=$optimizer \
      --loss=$loss \
@@ -626,6 +631,7 @@ check_file_exists $logdir/PvR.pdf
 
 cmd="${srcdir}/freeze \
       --context=$context \
+      --parallelize=$parallelize \
       --loss=$loss \
       --model_architecture=$architecture \
       --model_parameters='$model_parameters' \
@@ -657,6 +663,7 @@ cp $repo_path/data/20190122T093303a-7.wav \
 wavpath_noext=$repo_path/test/scratch/tutorial-sh/groundtruth-data/dense/20190122T093303a-7
 cmd="${srcdir}/classify \
       --context=$context \
+      --parallelize=$parallelize \
       --loss=$loss \
       --shiftby=$shiftby \
       --audio_read_plugin=$audio_read_plugin \
@@ -668,7 +675,6 @@ cmd="${srcdir}/classify \
       --model=$logdir/train_${ireplicates}r/frozen-graph.ckpt-${nsteps}.pb \
       --model_labels=$logdir/train_${ireplicates}r/labels.txt \
       --wav=${wavpath_noext}.wav \
-      --parallelize=$classify_parallelize \
       --time_scale=$time_scale \
       --audio_tic_rate=$audio_tic_rate \
       --audio_nchannels=$audio_nchannels \
@@ -781,6 +787,7 @@ cp $repo_path/data/20190122T132554a-14.wav \
 wavpath_noext=$repo_path/test/scratch/tutorial-sh/groundtruth-data/dense-ensemble/20190122T132554a-14
 cmd="${srcdir}/classify \
       --context=$context \
+      --parallelize=$parallelize \
       --loss=$loss \
       --shiftby=$shiftby \
       --audio_read_plugin=$audio_read_plugin \
@@ -792,7 +799,6 @@ cmd="${srcdir}/classify \
       --model=${logdir}/xvalidate_1k_2k/frozen-graph.ckpt-${nsteps}_${nsteps}.pb \
       --model_labels=${logdir}/xvalidate_1k_2k/labels.txt \
       --wav=${wavpath_noext}.wav \
-      --parallelize=$classify_parallelize \
       --time_scale=$time_scale \
       --audio_tic_rate=$audio_tic_rate \
       --audio_nchannels=$audio_nchannels \
@@ -878,6 +884,7 @@ done
 wavpath_noext=$repo_path/test/scratch/tutorial-sh/groundtruth-data/round1/PS_20130625111709_ch3
 cmd="${srcdir}/classify \
       --context=$context \
+      --parallelize=$parallelize \
       --loss=$loss \
       --shiftby=$shiftby \
       --audio_read_plugin=$audio_read_plugin \
@@ -889,7 +896,6 @@ cmd="${srcdir}/classify \
       --model=${logdir}/xvalidate_1k_2k/frozen-graph.ckpt-${nsteps}_${nsteps}.pb \
       --model_labels=${logdir}/xvalidate_1k_2k/labels.txt \
       --wav=${wavpath_noext}.wav \
-      --parallelize=$classify_parallelize \
       --time_scale=$time_scale \
       --audio_tic_rate=$audio_tic_rate \
       --audio_nchannels=$audio_nchannels \

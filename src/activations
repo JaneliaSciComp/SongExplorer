@@ -120,12 +120,19 @@ def main():
                     'video_frame_width': FLAGS.video_frame_width,
                     'video_frame_height': FLAGS.video_frame_height,
                     'video_channels': [int(x)-1 for x in FLAGS.video_channels.split(',')],
-                    'parallelize': 1,
+                    'parallelize': FLAGS.parallelize,
                     'context': FLAGS.context}
+
+  thismodel = model.create_model(model_settings, FLAGS.model_parameters)
+  thismodel.summary(line_length=120, positions=[0.4,0.6,0.7,1])
+
+  input_shape = thismodel.input_shape
+  clip_window_samples = input_shape[0][1] if model.use_video else input_shape[1]
 
   D.init(
       FLAGS.data_dir,
       FLAGS.shiftby,
+      clip_window_samples,
       FLAGS.labels_touse.split(','), FLAGS.kinds_touse.split(','),
       FLAGS.validation_percentage, FLAGS.validation_offset_percentage,
       FLAGS.validation_files.split(','),
@@ -140,9 +147,6 @@ def main():
       model.use_audio, model.use_video, video_findfile, FLAGS.video_bkg_frames,
       FLAGS.audio_read_plugin, FLAGS.video_read_plugin,
       audio_read_plugin_kwargs, video_read_plugin_kwargs)
-
-  thismodel = model.create_model(model_settings, FLAGS.model_parameters)
-  thismodel.summary(line_length=120, positions=[0.4,0.6,0.7,1])
 
   checkpoint = tf.train.Checkpoint(thismodel=thismodel)
   checkpoint.read(FLAGS.start_checkpoint).expect_partial()
@@ -326,6 +330,11 @@ if __name__ == '__main__':
       type=float,
       default=1000,
       help='Expected duration in milliseconds of the wavs',)
+  parser.add_argument(
+      '--parallelize',
+      type=int,
+      default=64,
+      help='how many output time tics to simultaneously process',)
   parser.add_argument(
       '--loss',
       type=str,

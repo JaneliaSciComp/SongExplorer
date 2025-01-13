@@ -1515,7 +1515,7 @@ def model_summary_update():
                       'video_frame_width': M.video_frame_width,
                       'video_frame_height': M.video_frame_height,
                       'video_channels': [int(x)-1 for x in M.video_channels.split(',')],
-                      'parallelize': 1,
+                      'parallelize': int(parallelize.value),
                       'batch_size': int(mini_batch.value),
                       'context': float(context.value) }
     tf.keras.backend.clear_session()
@@ -1550,7 +1550,7 @@ def init(_bokeh_document):
     global detect, misses, train, leaveout, xvalidate, mistakes, activations, cluster, visualize, accuracy, freeze, ensemble, classify, ethogram, compare, congruence
     global status_ticker, waitfor, deletefailures
     global file_dialog_source, configuration_contents
-    global logs_folder_button, logs_folder, model_file_button, model_file, wavcsv_files_button, wavcsv_files, groundtruth_folder_button, groundtruth_folder, validation_files_button, test_files_button, validation_files, test_files, labels_touse_button, labels_touse, kinds_touse_button, kinds_touse, prevalences_button, prevalences, delete_ckpts, copy, labelsounds, makepredictions, fixfalsepositives, fixfalsenegatives, generalize, tunehyperparameters, findnovellabels, examineerrors, testdensely, doit, nsteps, restore_from, save_and_validate_period, validate_percentage, mini_batch, kfold, activations_equalize_ratio, activations_max_sounds, cluster_these_layers, precision_recall_ratios, congruence_portion, congruence_convolve, congruence_measure, context, shiftby, optimizer, loss, learning_rate, nreplicates, batch_seed, weights_seed, file_dialog_string, file_dialog_table, readme_contents, model_summary, labelcounts, wizard_buttons, action_buttons, parameter_buttons, parameter_textinputs, wizard2actions, action2parameterbuttons, action2parametertextinputs, status_ticker_update, status_ticker_pre, status_ticker_post
+    global logs_folder_button, logs_folder, model_file_button, model_file, wavcsv_files_button, wavcsv_files, groundtruth_folder_button, groundtruth_folder, validation_files_button, test_files_button, validation_files, test_files, labels_touse_button, labels_touse, kinds_touse_button, kinds_touse, prevalences_button, prevalences, delete_ckpts, copy, labelsounds, makepredictions, fixfalsepositives, fixfalsenegatives, generalize, tunehyperparameters, findnovellabels, examineerrors, testdensely, doit, nsteps, restore_from, save_and_validate_period, validate_percentage, mini_batch, kfold, activations_equalize_ratio, activations_max_sounds, cluster_these_layers, precision_recall_ratios, congruence_portion, congruence_convolve, congruence_measure, context, parallelize, shiftby, optimizer, loss, learning_rate, nreplicates, batch_seed, weights_seed, file_dialog_string, file_dialog_table, readme_contents, model_summary, labelcounts, wizard_buttons, action_buttons, parameter_buttons, parameter_textinputs, wizard2actions, action2parameterbuttons, action2parametertextinputs, status_ticker_update, status_ticker_pre, status_ticker_post
     global detect_parameters, detect_parameters_enable_logic, detect_parameters_required, detect_parameters_partitioned, detect_parameters_width
     global doubleclick_parameters, doubleclick_parameters_enable_logic, doubleclick_parameters_required
     global model_parameters, model_parameters_enable_logic, model_parameters_required, model_parameters_partitioned, model_parameters_width
@@ -2178,7 +2178,11 @@ def init(_bokeh_document):
 
     context = TextInput(value=M.state['context'], title="context ("+M.time_units+")",
                         disabled=False, sizing_mode="stretch_width")
-    context.on_change('value', lambda a,o,n: C.context_callback(n))
+    context.on_change('value', lambda a,o,n: C.context_parallelize_callback(n))
+
+    parallelize = TextInput(value=M.state['parallelize'], title="parallelize",
+                        disabled=False, sizing_mode="stretch_width")
+    parallelize.on_change('value', lambda a,o,n: C.context_parallelize_callback(n))
 
     shiftby = TextInput(value=M.state['shiftby'], title="shift by ("+M.time_units+")",
                         disabled=False, sizing_mode='stretch_width')
@@ -2377,6 +2381,7 @@ def init(_bokeh_document):
         weights_seed,
 
         context,
+        parallelize,
         shiftby,
         optimizer,
         loss,
@@ -2421,18 +2426,18 @@ def init(_bokeh_document):
 
     action2parametertextinputs = {
             detect: [wavcsv_files] + list(detect_parameters.values()),
-            train: [context, shiftby, optimizer, loss, learning_rate, nreplicates, batch_seed, weights_seed, logs_folder, groundtruth_folder, test_files, labels_touse, kinds_touse, nsteps, restore_from, save_and_validate_period, validate_percentage, mini_batch] + list(model_parameters.values()) + list(augmentation_parameters.values()),
-            leaveout: [context, shiftby, optimizer, loss, learning_rate, batch_seed, weights_seed, logs_folder, groundtruth_folder, validation_files, test_files, labels_touse, kinds_touse, nsteps, restore_from, save_and_validate_period, mini_batch, kfold] + list(model_parameters.values()) + list(augmentation_parameters.values()),
-            xvalidate: [context, shiftby, optimizer, loss, learning_rate, batch_seed, weights_seed, logs_folder, groundtruth_folder, test_files, labels_touse, kinds_touse, nsteps, restore_from, save_and_validate_period, mini_batch, kfold] + list(model_parameters.values()) + list(augmentation_parameters.values()),
+            train: [context, parallelize, shiftby, optimizer, loss, learning_rate, nreplicates, batch_seed, weights_seed, logs_folder, groundtruth_folder, test_files, labels_touse, kinds_touse, nsteps, restore_from, save_and_validate_period, validate_percentage, mini_batch] + list(model_parameters.values()) + list(augmentation_parameters.values()),
+            leaveout: [context, parallelize, shiftby, optimizer, loss, learning_rate, batch_seed, weights_seed, logs_folder, groundtruth_folder, validation_files, test_files, labels_touse, kinds_touse, nsteps, restore_from, save_and_validate_period, mini_batch, kfold] + list(model_parameters.values()) + list(augmentation_parameters.values()),
+            xvalidate: [context, parallelize, shiftby, optimizer, loss, learning_rate, batch_seed, weights_seed, logs_folder, groundtruth_folder, test_files, labels_touse, kinds_touse, nsteps, restore_from, save_and_validate_period, mini_batch, kfold] + list(model_parameters.values()) + list(augmentation_parameters.values()),
             mistakes: [groundtruth_folder],
-            activations: [context, shiftby, logs_folder, model_file, groundtruth_folder, labels_touse, kinds_touse, activations_equalize_ratio, activations_max_sounds, mini_batch, batch_seed] + list(model_parameters.values()),
+            activations: [context, parallelize, shiftby, logs_folder, model_file, groundtruth_folder, labels_touse, kinds_touse, activations_equalize_ratio, activations_max_sounds, mini_batch, batch_seed] + list(model_parameters.values()),
             cluster: [groundtruth_folder] + list(cluster_parameters.values()),
             visualize: [groundtruth_folder],
             accuracy: [logs_folder, precision_recall_ratios, loss],
             delete_ckpts: [logs_folder],
-            freeze: [context, logs_folder, model_file, loss] + list(model_parameters.values()),
-            ensemble: [context, logs_folder, model_file] + list(model_parameters.values()),
-            classify: [context, shiftby, logs_folder, model_file, wavcsv_files, labels_touse, prevalences, loss],
+            freeze: [context, parallelize, logs_folder, model_file, loss] + list(model_parameters.values()),
+            ensemble: [context, parallelize, logs_folder, model_file] + list(model_parameters.values()),
+            classify: [context, parallelize, shiftby, logs_folder, model_file, wavcsv_files, labels_touse, prevalences, loss],
             ethogram: [model_file, wavcsv_files],
             misses: [wavcsv_files],
             compare: [logs_folder, loss],

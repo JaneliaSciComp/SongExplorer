@@ -113,7 +113,7 @@ def generic_parameters_callback(n):
     M.save_state_callback()
     V.buttons_update()
 
-def context_callback(n):
+def context_parallelize_callback(n):
     V.model_summary_update()
     generic_parameters_callback(n)
 
@@ -1190,6 +1190,7 @@ async def train_actuate():
                 "--shiftby="+V.shiftby.value, \
                 "--optimizer="+V.optimizer.value, \
                 "--loss="+V.loss.value, \
+                "--parallelize="+str(V.parallelize.value),
                 "--overlapped_prefix="+M.overlapped_prefix, \
                 "--learning_rate="+V.learning_rate.value, \
                 "--audio_read_plugin="+str(M.audio_read_plugin), \
@@ -1289,6 +1290,7 @@ async def leaveout_actuate(kind):
                 "--shiftby="+V.shiftby.value, \
                 "--optimizer="+V.optimizer.value, \
                 "--loss="+V.loss.value, \
+                "--parallelize="+str(V.parallelize.value),
                 "--overlapped_prefix="+M.overlapped_prefix, \
                 "--learning_rate="+V.learning_rate.value, \
                 "--audio_read_plugin="+str(M.audio_read_plugin), \
@@ -1362,6 +1364,7 @@ async def xvalidate_actuate():
                 "--shiftby="+V.shiftby.value, \
                 "--optimizer="+V.optimizer.value, \
                 "--loss="+V.loss.value, \
+                "--parallelize="+str(V.parallelize.value),
                 "--overlapped_prefix="+M.overlapped_prefix, \
                 "--learning_rate="+V.learning_rate.value, \
                 "--audio_read_plugin="+str(M.audio_read_plugin), \
@@ -1735,7 +1738,7 @@ async def _freeze_actuate(ckpts):
                             "--model_architecture="+M.architecture_plugin,
                             "--model_parameters="+json.dumps({k:v.value for k,v in V.model_parameters.items()}),
                             "--loss="+V.loss.value, \
-                            "--parallelize="+str(M.classify_parallelize),
+                            "--parallelize="+str(V.parallelize.value),
                             "--time_units="+str(M.time_units),
                             "--freq_units="+str(M.freq_units),
                             "--time_scale="+str(M.time_scale),
@@ -1821,7 +1824,7 @@ async def ensemble_actuate():
                             "--context="+V.context.value,
                             "--model_architecture="+M.architecture_plugin,
                             "--model_parameters="+json.dumps({k:v.value for k,v in V.model_parameters.items()}),
-                            "--parallelize="+str(M.classify_parallelize),
+                            "--parallelize="+str(V.parallelize.value),
                             "--time_units="+str(M.time_units),
                             "--freq_units="+str(M.freq_units),
                             "--time_scale="+str(M.time_scale),
@@ -1871,7 +1874,7 @@ async def _classify_actuate(wavfiles):
             "--model="+os.path.join(logdir,model,"frozen-graph.ckpt-"+check_point+".pb"),
             "--model_labels="+os.path.join(logdir,model,"labels.txt"),
             "--wav="+wavfile,
-            "--parallelize="+str(M.classify_parallelize),
+            "--parallelize="+str(V.parallelize.value),
             "--time_scale="+str(M.time_scale),
             "--audio_tic_rate="+str(M.audio_tic_rate),
             "--audio_nchannels="+str(M.audio_nchannels),
@@ -2230,6 +2233,9 @@ def _copy_callback():
             elif "context = " in line:
                 m=re.search('context = (.*)', line)
                 V.context.value = m.group(1)
+            elif "parallelize = " in line:
+                m=re.search('parallelize = (.*)', line)
+                V.parallelize.value = m.group(1)
             elif "time_shift_sec = " in line:
                 m=re.search('time_shift_sec = (.*)', line)
                 V.shiftby.value = m.group(1)
