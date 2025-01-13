@@ -60,6 +60,7 @@ def save_state_callback():
                      'labels': str.join(',',[x.value for x in V.label_texts]),
                      'file_dialog_string': V.file_dialog_string.value,
                      'context': V.context.value,
+                     'parallelize': V.parallelize.value,
                      'shiftby': V.shiftby.value,
                      'optimizer': V.optimizer.value,
                      'loss': V.loss.value,
@@ -502,6 +503,7 @@ def init(_bokeh_document, _configuration_file, _use_aitch):
                           'labels':','*(nlabels-1), \
                           'file_dialog_string':os.getcwd(), \
                           'context':str(0.2048 / time_scale), \
+                          'parallelize':'64', \
                           'shiftby':'0.0', \
                           'optimizer':'Adam', \
                           'loss':'exclusive', \

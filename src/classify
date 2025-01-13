@@ -163,7 +163,7 @@ def main():
       exit()
 
   if FLAGS.parallelize==1:
-    print("WARNING: classify_parallelize in configuration.py is set to 1.  making predictions is faster if it is > 1")
+    print("WARNING: parallelize in configuration.py is set to 1.  making predictions is faster if it is > 1")
 
   input_shape = thismodel.get_input_shape()
   if use_audio:
