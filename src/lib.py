@@ -89,7 +89,6 @@ def check_config(configuration_file):
     isinteger(locals(), "accuracy_parallelize")
     isinteger(locals(), "cluster_parallelize")
     isinteger(locals(), "congruence_parallelize")
-    isinteger(locals(), "classify_parallelize")
 
     all_minusone = True
     local_vars = locals().copy()
