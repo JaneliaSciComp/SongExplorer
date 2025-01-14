@@ -147,14 +147,10 @@ def init(_data_dir,
 
 def catalog_overlaps(data):
     data.sort(key=lambda x: x['ticks'][0])
-    k = [True]*len(data)
     for i in range(len(data)):
         for j in range(i-1):
-            if not k[j]:  continue
-            if data[j]['ticks'][1] < data[i]['ticks'][0]:
-                k[j] = False
-                continue
-            data[i]['overlaps'].append(j)
+            if data[j]['file'] == data[i]['file'] and data[j]['ticks'][1] > data[i]['ticks'][0]:
+                data[i]['overlaps'].append(j)
 
 def prepare_data_index(shiftby,
                        labels_touse, kinds_touse,
@@ -345,7 +341,7 @@ def prepare_data_index(shiftby,
     for set_index in ['validation', 'testing', 'training']:
         print("num "+set_index+" labels")
         if set_index != 'testing':
-            catalog_overlaps(data_index[set_index])
+            if loss=="overlapped": catalog_overlaps(data_index[set_index])
             labels = [sound['label'] for sound in data_index[set_index]]
             for uniqlabel in sorted(set(labels)):
                 print('%8d %s' % (sum(label==uniqlabel for label in labels), uniqlabel))
@@ -385,7 +381,7 @@ def prepare_data_index(shiftby,
                                                       testing_max_sounds,
                                                       replace=False).tolist()
         if set_index == 'testing':
-            catalog_overlaps(data_index['testing'])
+            if loss=="overlapped":  catalog_overlaps(data_index['testing'])
             labels = [sound['label'] for sound in data_index['testing']]
             for uniqlabel in sorted(set(labels)):
                 print('%7d %s' % (sum(label==uniqlabel for label in labels), uniqlabel))
