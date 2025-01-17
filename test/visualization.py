@@ -36,7 +36,7 @@ M.deterministic='1'
 os.makedirs(os.path.join(repo_path, "test", "scratch", "visualization", "groundtruth-data", "round1"))
 shutil.copy(os.path.join(repo_path, "data", "PS_20130625111709_ch3.wav"), \
             os.path.join(repo_path, "test", "scratch", "visualization", "groundtruth-data", "round1"))
-shutil.copy(os.path.join(repo_path, "data", "PS_20130625111709_ch3-annotated-person1.csv"), \
+shutil.copy(os.path.join(repo_path, "data", "PS_20130625111709_ch3.wav-annotated-person1.csv"), \
             os.path.join(repo_path, "test", "scratch", "visualization", "groundtruth-data", "round1"))
 
 run(["hstart", "1,0,1"])

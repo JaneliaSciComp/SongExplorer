@@ -36,15 +36,15 @@ if os.name == "posix":
                  os.path.join(repo_path, "test", "scratch", "tutorial-py")):
         print("ERROR directory hierarchies differ between tutorial-{py,sh}")
 
-    files = [os.path.join("groundtruth-data", "round1", "PS_20130625111709_ch3-detected.csv"),
+    files = [os.path.join("groundtruth-data", "round1", "PS_20130625111709_ch3.wav-detected.csv"),
              os.path.join("trained-classifier1", "train_1r", "thresholds.ckpt-30.csv"),
              os.path.join("trained-classifier1", "train_1r", "thresholds.ckpt-300.csv"),
-             os.path.join("groundtruth-data", "round2", "20161207T102314_ch1-predicted-1.0pr.csv"),
-             os.path.join("groundtruth-data", "round2", "20161207T102314_ch1-detected.csv"),
-             os.path.join("groundtruth-data", "round2", "20161207T102314_ch1-missed.csv"),
+             os.path.join("groundtruth-data", "round2", "20161207T102314_ch1.wav-predicted-1.0pr.csv"),
+             os.path.join("groundtruth-data", "round2", "20161207T102314_ch1.wav-detected.csv"),
+             os.path.join("groundtruth-data", "round2", "20161207T102314_ch1.wav-missed.csv"),
              os.path.join("trained-classifier2", "train_1r", "thresholds.ckpt-30.csv"),
              os.path.join("trained-classifier2", "train_1r", "thresholds.ckpt-300.csv"),
-             os.path.join("groundtruth-data", "round1", "PS_20130625111709_ch3-mistakes.csv"),
+             os.path.join("groundtruth-data", "round1", "PS_20130625111709_ch3.wav-mistakes.csv"),
              os.path.join("omit-one", "generalize_1w", "thresholds.ckpt-30.csv"),
              os.path.join("omit-one", "generalize_1w", "thresholds.ckpt-300.csv"),
              os.path.join("nfeaturesexclusive32", "xvalidate_1k", "thresholds.ckpt-30.csv"),

@@ -22,7 +22,7 @@ shutil.copy(os.path.join(repo_path, "configuration.py"),
 os.makedirs(os.path.join(repo_path, "test", "scratch", "shiftby", "groundtruth-data", "round1"))
 shutil.copy(os.path.join(repo_path, "data", "PS_20130625111709_ch3.wav"), \
             os.path.join(repo_path, "test", "scratch", "shiftby", "groundtruth-data", "round1"))
-shutil.copy(os.path.join(repo_path, "data", "PS_20130625111709_ch3-annotated-person1.csv"), \
+shutil.copy(os.path.join(repo_path, "data", "PS_20130625111709_ch3.wav-annotated-person1.csv"), \
             os.path.join(repo_path, "test", "scratch", "shiftby", "groundtruth-data", "round1"))
 
 parameters = [

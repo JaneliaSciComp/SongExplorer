@@ -1,3 +1,5 @@
+#!/usr/bin/env python3
+
 import sys
 import ast
 import os
@@ -25,9 +27,7 @@ import model as M
 
 M.init(None, os.path.join(__dir__, "configuration.py"), False)
 
-wavfile_noext = M.trim_ext(wavfile)
-
-with open(wavfile_noext+"-classify.log",'r') as fid:
+with open(wavfile+"-classify.log",'r') as fid:
     for line in fid:
         if "labels: " in line:
             m=re.search('labels: (.+)',line)
@@ -40,13 +40,13 @@ print("audio_tic_rate  = ", audio_tic_rate)
 
 if delete_wavs:
     for label in labels:
-        fullpath = wavfile_noext+'-'+label+'.wav'
+        fullpath = wavfile+'-'+label+'.wav'
         os.remove(fullpath)
         print("deleting ", fullpath)
     
 durations = {}
 counts = {}
-with open(wavfile_noext+'-predicted-1.0pr.csv') as fid:
+with open(wavfile+'-predicted-1.0pr.csv') as fid:
     csvreader = csv.reader(fid)
     for row in csvreader:
         if row[4] not in durations:
@@ -55,7 +55,7 @@ with open(wavfile_noext+'-predicted-1.0pr.csv') as fid:
         durations[row[4]] += (int(row[2]) - int(row[1]))
         counts[row[4]] += 1
 
-with open(wavfile_noext+"-post-process.csv",'w') as fid:
+with open(wavfile+"-post-process.csv",'w') as fid:
     fid.write("wavfile,label,duration ("+M.context_time_units+"),num events\n")
     for label in durations.keys():
         fid.write(os.path.basename(wavfile)+','+
@@ -64,8 +64,8 @@ with open(wavfile_noext+"-post-process.csv",'w') as fid:
                   str(counts[label])+'\n')
 
 if delete_logs:
-    os.remove(wavfile_noext+'-classify.log')
-    os.remove(wavfile_noext+'-ethogram.log')
-    os.remove(wavfile_noext+'-post-process.log')
+    os.remove(wavfile+'-classify.log')
+    os.remove(wavfile+'-ethogram.log')
+    os.remove(wavfile+'-post-process.log')
 
 print(str(datetime.now())+": finish time")

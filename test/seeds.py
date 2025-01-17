@@ -36,7 +36,7 @@ shutil.copy(os.path.join(repo_path, "data", "PS_20130625111709_ch3.wav"),
 
 run(["hstart", "1,0,1"])
 
-shutil.copy(os.path.join(repo_path, "data", "PS_20130625111709_ch3-annotated-person1.csv"),
+shutil.copy(os.path.join(repo_path, "data", "PS_20130625111709_ch3.wav-annotated-person1.csv"),
             os.path.join(repo_path, "test", "scratch", "seeds", "groundtruth-data", "round1"))
 
 V.context.value = "204.8"
