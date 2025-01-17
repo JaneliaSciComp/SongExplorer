@@ -66,9 +66,8 @@ try:
           detected_events[wavfile], predicted_events[wavfile],
           lambda x,y: np.logical_and(x, np.logical_not(y)))
 
-    noext = os.path.splitext(wavfile)[0]
     basepath = os.path.dirname(csv_files[0])
-    filename = os.path.join(basepath, noext+'-missed.csv')
+    filename = os.path.join(basepath, wavfile+'-missed.csv')
     with open(filename,'w') as fid:
       csvwriter = csv.writer(fid, lineterminator='\n')
       csvwriter.writerows(zip(cycle([wavfile]), \
