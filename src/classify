@@ -84,7 +84,7 @@ def main():
 
   load_audio_read_plugin(FLAGS.audio_read_plugin, FLAGS.audio_read_plugin_kwargs)
   load_video_read_plugin(FLAGS.video_read_plugin, FLAGS.video_read_plugin_kwargs)
-  from lib import audio_read, video_read, trim_ext
+  from lib import audio_read, video_read
 
   with open(FLAGS.model_labels, 'r') as fid:
     model_labels = fid.read().splitlines()
@@ -255,13 +255,11 @@ def main():
         else:
           adjusted_probability = probability_matrix[:,ch]
         waveform = adjusted_probability*np.iinfo(np.int16).max
-        withoutext = trim_ext(FLAGS.wav)
-        filename = withoutext+'-'+labels[ch]+'.wav'
+        filename = FLAGS.wav+'-'+labels[ch]+'.wav'
         wavfile.write(filename, int(sample_rate), waveform.astype('int16'))
   else:
         waveform = probability_matrix * np.iinfo(np.int16).max
-        withoutext = trim_ext(FLAGS.wav)
-        filename = withoutext+'-.wav'
+        filename = FLAGS.wav+'-.wav'
         wavfile.write(filename, int(sample_rate), waveform.astype('int16'))
 
 if __name__ == '__main__':

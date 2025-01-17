@@ -44,10 +44,10 @@ freq_units=Hz
 time_scale=0.001
 freq_scale=1
 
-wavpath_noext=$repo_path/test/scratch/tutorial-sh/groundtruth-data/round1/PS_20130625111709_ch3
+wavpath=$repo_path/test/scratch/tutorial-sh/groundtruth-data/round1/PS_20130625111709_ch3.wav
 detect_parameters='{"time_sigma":"9,4","time_smooth":"6.4","frequency_n":"25.6","frequency_nw":"4","frequency_p":"0.1,1.0","frequency_range":"0-","frequency_smooth":"25.6","time_sigma_robust":"median"}'
 cmd="${srcdir}/detect-plugins/${detect_plugin}.py \
-      --filename=${wavpath_noext}.wav \
+      --filename=${wavpath} \
       --parameters='$detect_parameters' \
       --time_units=$time_units \
       --freq_units=$freq_units \
@@ -57,14 +57,14 @@ cmd="${srcdir}/detect-plugins/${detect_plugin}.py \
       --audio_nchannels=$audio_nchannels \
       --audio_read_plugin=$audio_read_plugin \
       --audio_read_plugin_kwargs=$audio_read_plugin_kwargs"
-echo $cmd >> ${wavpath_noext}-detect.log 2>&1
-eval $cmd >> ${wavpath_noext}-detect.log 2>&1
+echo $cmd >> ${wavpath}-detect.log 2>&1
+eval $cmd >> ${wavpath}-detect.log 2>&1
 
-check_file_exists ${wavpath_noext}-detect.log
-check_file_exists ${wavpath_noext}-detected.csv
-count_lines_with_label ${wavpath_noext}-detected.csv time 536 ERROR
-count_lines_with_label ${wavpath_noext}-detected.csv frequency 45 ERROR
-count_lines_with_label ${wavpath_noext}-detected.csv neither 1635 ERROR
+check_file_exists ${wavpath}-detect.log
+check_file_exists ${wavpath}-detected.csv
+count_lines_with_label ${wavpath}-detected.csv time 536 ERROR
+count_lines_with_label ${wavpath}-detected.csv frequency 45 ERROR
+count_lines_with_label ${wavpath}-detected.csv neither 1635 ERROR
 
 cp $repo_path/data/PS_20130625111709_ch3-annotated-person1.csv \
    $repo_path/test/scratch/tutorial-sh/groundtruth-data/round1
@@ -201,7 +201,7 @@ mkdir $repo_path/test/scratch/tutorial-sh/groundtruth-data/round2
 cp $repo_path/data/20161207T102314_ch1.wav \
    $repo_path/test/scratch/tutorial-sh/groundtruth-data/round2
 
-wavpath_noext=$repo_path/test/scratch/tutorial-sh/groundtruth-data/round2/20161207T102314_ch1
+wavpath=$repo_path/test/scratch/tutorial-sh/groundtruth-data/round2/20161207T102314_ch1.wav
 cmd="${srcdir}/classify \
       --context=$context \
       --parallelize=$parallelize \
@@ -215,7 +215,7 @@ cmd="${srcdir}/classify \
       --video_bkg_frames=$video_bkg_frames \
       --model=$logdir/train_${ireplicates}r/frozen-graph.ckpt-${nsteps}.pb \
       --model_labels=$logdir/train_${ireplicates}r/labels.txt \
-      --wav=${wavpath_noext}.wav \
+      --wav=${wavpath} \
       --time_scale=$time_scale \
       --audio_tic_rate=$audio_tic_rate \
       --audio_nchannels=$audio_nchannels \
@@ -227,31 +227,31 @@ cmd="${srcdir}/classify \
       --labels= \
       --prevalences= \
       --igpu="
-echo $cmd >> ${wavpath_noext}-classify.log 2>&1
-eval $cmd >> ${wavpath_noext}-classify.log 2>&1
+echo $cmd >> ${wavpath}-classify.log 2>&1
+eval $cmd >> ${wavpath}-classify.log 2>&1
 
-check_file_exists ${wavpath_noext}-classify.log
+check_file_exists ${wavpath}-classify.log
 
 for label in $(echo $labels_touse | sed "s/,/ /g") ; do
-  check_file_exists ${wavpath_noext}-${label}.wav
+  check_file_exists ${wavpath}-${label}.wav
 done
 
 cmd="${srcdir}/ethogram \
       $logdir train_${ireplicates}r thresholds.ckpt-${nsteps}.csv \
-      ${wavpath_noext}.wav $audio_tic_rate False"
-echo $cmd >> ${wavpath_noext}-ethogram.log 2>&1
-eval $cmd >> ${wavpath_noext}-ethogram.log 2>&1
+      ${wavpath} $audio_tic_rate False"
+echo $cmd >> ${wavpath}-ethogram.log 2>&1
+eval $cmd >> ${wavpath}-ethogram.log 2>&1
 
-check_file_exists ${wavpath_noext}-ethogram.log
+check_file_exists ${wavpath}-ethogram.log
 for pr in $(echo $precision_recall_ratios | sed "s/,/ /g") ; do
-  check_file_exists ${wavpath_noext}-predicted-${pr}pr.csv
+  check_file_exists ${wavpath}-predicted-${pr}pr.csv
 done
-count_lines_with_label ${wavpath_noext}-predicted-1.0pr.csv mel-pulse 510 WARNING
-count_lines_with_label ${wavpath_noext}-predicted-1.0pr.csv mel-sine 767 WARNING
-count_lines_with_label ${wavpath_noext}-predicted-1.0pr.csv ambient 124 WARNING
+count_lines_with_label ${wavpath}-predicted-1.0pr.csv mel-pulse 510 WARNING
+count_lines_with_label ${wavpath}-predicted-1.0pr.csv mel-sine 767 WARNING
+count_lines_with_label ${wavpath}-predicted-1.0pr.csv ambient 124 WARNING
 
 cmd="${srcdir}/detect-plugins/${detect_plugin}.py\
-      --filename=${wavpath_noext}.wav \
+      --filename=${wavpath} \
       --parameters='$detect_parameters' \
       --time_units=$time_units \
       --freq_units=$freq_units \
@@ -261,22 +261,22 @@ cmd="${srcdir}/detect-plugins/${detect_plugin}.py\
       --audio_nchannels=$audio_nchannels \
       --audio_read_plugin=$audio_read_plugin \
       --audio_read_plugin_kwargs=$audio_read_plugin_kwargs"
-echo $cmd >> ${wavpath_noext}-detect.log 2>&1
-eval $cmd >> ${wavpath_noext}-detect.log 2>&1
+echo $cmd >> ${wavpath}-detect.log 2>&1
+eval $cmd >> ${wavpath}-detect.log 2>&1
 
-check_file_exists ${wavpath_noext}-detect.log
-check_file_exists ${wavpath_noext}-detected.csv
-count_lines_with_label ${wavpath_noext}-detected.csv time 1298 ERROR
-count_lines_with_label ${wavpath_noext}-detected.csv frequency 179 ERROR
+check_file_exists ${wavpath}-detect.log
+check_file_exists ${wavpath}-detected.csv
+count_lines_with_label ${wavpath}-detected.csv time 1298 ERROR
+count_lines_with_label ${wavpath}-detected.csv frequency 179 ERROR
 
-csvfiles=${wavpath_noext}-detected.csv,${wavpath_noext}-predicted-1.0pr.csv
+csvfiles=${wavpath}-detected.csv,${wavpath}-predicted-1.0pr.csv
 cmd="${srcdir}/misses $csvfiles"
-echo $cmd >> ${wavpath_noext}-misses.log 2>&1
-eval $cmd >> ${wavpath_noext}-misses.log 2>&1
+echo $cmd >> ${wavpath}-misses.log 2>&1
+eval $cmd >> ${wavpath}-misses.log 2>&1
 
-check_file_exists ${wavpath_noext}-misses.log
-check_file_exists ${wavpath_noext}-missed.csv
-count_lines_with_label ${wavpath_noext}-missed.csv other 1569 WARNING
+check_file_exists ${wavpath}-misses.log
+check_file_exists ${wavpath}-missed.csv
+count_lines_with_label ${wavpath}-missed.csv other 1569 WARNING
 
 model=train_${ireplicates}r
 kinds_touse=annotated,missed
@@ -660,7 +660,7 @@ mkdir $repo_path/test/scratch/tutorial-sh/groundtruth-data/dense
 cp $repo_path/data/20190122T093303a-7.wav \
    $repo_path/test/scratch/tutorial-sh/groundtruth-data/dense
 
-wavpath_noext=$repo_path/test/scratch/tutorial-sh/groundtruth-data/dense/20190122T093303a-7
+wavpath=$repo_path/test/scratch/tutorial-sh/groundtruth-data/dense/20190122T093303a-7.wav
 cmd="${srcdir}/classify \
       --context=$context \
       --parallelize=$parallelize \
@@ -674,7 +674,7 @@ cmd="${srcdir}/classify \
       --video_bkg_frames=$video_bkg_frames \
       --model=$logdir/train_${ireplicates}r/frozen-graph.ckpt-${nsteps}.pb \
       --model_labels=$logdir/train_${ireplicates}r/labels.txt \
-      --wav=${wavpath_noext}.wav \
+      --wav=${wavpath} \
       --time_scale=$time_scale \
       --audio_tic_rate=$audio_tic_rate \
       --audio_nchannels=$audio_nchannels \
@@ -686,30 +686,30 @@ cmd="${srcdir}/classify \
       --labels= \
       --prevalences= \
       --igpu="
-echo $cmd >> ${wavpath_noext}-classify.log 2>&1
-eval $cmd >> ${wavpath_noext}-classify.log 2>&1
+echo $cmd >> ${wavpath}-classify.log 2>&1
+eval $cmd >> ${wavpath}-classify.log 2>&1
 
-check_file_exists ${wavpath_noext}-classify.log
+check_file_exists ${wavpath}-classify.log
 
 for label in $(echo $labels_touse | sed "s/,/ /g") ; do
-  check_file_exists ${wavpath_noext}-${label}.wav
+  check_file_exists ${wavpath}-${label}.wav
 done
 
 cmd="${srcdir}/ethogram \
       $logdir train_${ireplicates}r thresholds.ckpt-${nsteps}.csv \
-      ${wavpath_noext}.wav $audio_tic_rate False"
-echo $cmd >> ${wavpath_noext}-ethogram.log 2>&1
-eval $cmd >> ${wavpath_noext}-ethogram.log 2>&1
+      ${wavpath} $audio_tic_rate False"
+echo $cmd >> ${wavpath}-ethogram.log 2>&1
+eval $cmd >> ${wavpath}-ethogram.log 2>&1
 
-check_file_exists ${wavpath_noext}-ethogram.log
+check_file_exists ${wavpath}-ethogram.log
 for pr in $(echo $precision_recall_ratios | sed "s/,/ /g") ; do
-  check_file_exists ${wavpath_noext}-predicted-${pr}pr.csv
+  check_file_exists ${wavpath}-predicted-${pr}pr.csv
 done
 
-wav_file_noext=20190122T093303a-7
-cp $repo_path/data/${wav_file_noext}-annotated-person2.csv \
+wavfile=20190122T093303a-7.wav
+cp $repo_path/data/${wavfile}-annotated-person2.csv \
    $repo_path/test/scratch/tutorial-sh/groundtruth-data/dense
-cp $repo_path/data/${wav_file_noext}-annotated-person3.csv \
+cp $repo_path/data/${wavfile}-annotated-person3.csv \
    $repo_path/test/scratch/tutorial-sh/groundtruth-data/dense
 
 portion=union
@@ -720,7 +720,7 @@ mkdir $congruence_dir
 cmd="${srcdir}/congruence \
      --basepath=$data_dir \
      --topath=$congruence_dir \
-     --wavfiles=${wav_file_noext}.wav \
+     --wavfiles=${wavfile} \
      --portion=$portion \
      --convolve=$convolve \
      --measure=$measure \
@@ -732,7 +732,7 @@ echo $cmd >> $congruence_dir/congruence.log 2>&1
 eval $cmd >> $congruence_dir/congruence.log 2>&1
 
 check_file_exists $congruence_dir/congruence.log
-check_file_exists $congruence_dir/dense/$wav_file_noext-disjoint-everyone.csv
+check_file_exists $congruence_dir/dense/${wavfile}-disjoint-everyone.csv
 kinds=(tic label)
 persons=(person2 person3)
 IFS=', ' read -r -a prs <<< "$precision_recall_ratios"
@@ -748,12 +748,12 @@ for kind in ${kinds[@]} ; do
       check_file_exists $congruence_dir/congruence.${kind}.${label}.${pr}pr-venn.pdf
       check_file_exists $congruence_dir/congruence.${kind}.${label}.${pr}pr.pdf
     done
-    check_file_exists $congruence_dir/dense/$wav_file_noext-disjoint-${kind}-not${pr}pr.csv
-    check_file_exists $congruence_dir/dense/$wav_file_noext-disjoint-${kind}-only${pr}pr.csv
+    check_file_exists $congruence_dir/dense/${wavfile}-disjoint-${kind}-not${pr}pr.csv
+    check_file_exists $congruence_dir/dense/${wavfile}-disjoint-${kind}-only${pr}pr.csv
   done
   for person in ${persons[@]} ; do
-    check_file_exists $congruence_dir/dense/$wav_file_noext-disjoint-${kind}-not${person}.csv
-    check_file_exists $congruence_dir/dense/$wav_file_noext-disjoint-${kind}-only${person}.csv
+    check_file_exists $congruence_dir/dense/${wavfile}-disjoint-${kind}-not${person}.csv
+    check_file_exists $congruence_dir/dense/${wavfile}-disjoint-${kind}-only${person}.csv
   done
 done
 
@@ -784,7 +784,7 @@ mkdir -p $repo_path/test/scratch/tutorial-sh/groundtruth-data/dense-ensemble
 cp $repo_path/data/20190122T132554a-14.wav \
    $repo_path/test/scratch/tutorial-sh/groundtruth-data/dense-ensemble
 
-wavpath_noext=$repo_path/test/scratch/tutorial-sh/groundtruth-data/dense-ensemble/20190122T132554a-14
+wavpath=$repo_path/test/scratch/tutorial-sh/groundtruth-data/dense-ensemble/20190122T132554a-14.wav
 cmd="${srcdir}/classify \
       --context=$context \
       --parallelize=$parallelize \
@@ -798,7 +798,7 @@ cmd="${srcdir}/classify \
       --video_bkg_frames=$video_bkg_frames \
       --model=${logdir}/xvalidate_1k_2k/frozen-graph.ckpt-${nsteps}_${nsteps}.pb \
       --model_labels=${logdir}/xvalidate_1k_2k/labels.txt \
-      --wav=${wavpath_noext}.wav \
+      --wav=${wavpath} \
       --time_scale=$time_scale \
       --audio_tic_rate=$audio_tic_rate \
       --audio_nchannels=$audio_nchannels \
@@ -810,33 +810,33 @@ cmd="${srcdir}/classify \
       --labels= \
       --prevalences= \
       --igpu="
-echo $cmd >> ${wavpath_noext}-classify.log 2>&1
-eval $cmd >> ${wavpath_noext}-classify.log 2>&1
+echo $cmd >> ${wavpath}-classify.log 2>&1
+eval $cmd >> ${wavpath}-classify.log 2>&1
 
-check_file_exists ${wavpath_noext}-classify.log
+check_file_exists ${wavpath}-classify.log
 
 for label in $(echo $labels_touse | sed "s/,/ /g") ; do
-  check_file_exists ${wavpath_noext}-${label}.wav
+  check_file_exists ${wavpath}-${label}.wav
 done
 
 cmd="${srcdir}/ethogram \
       $logdir xvalidate_1k thresholds.ckpt-${nsteps}.csv \
-      ${wavpath_noext}.wav $audio_tic_rate False"
-echo $cmd >> ${wavpath_noext}-ethogram.log 2>&1
-eval $cmd >> ${wavpath_noext}-ethogram.log 2>&1
+      ${wavpath} $audio_tic_rate False"
+echo $cmd >> ${wavpath}-ethogram.log 2>&1
+eval $cmd >> ${wavpath}-ethogram.log 2>&1
 
-check_file_exists ${wavpath_noext}-ethogram.log
+check_file_exists ${wavpath}-ethogram.log
 for pr in $(echo $precision_recall_ratios | sed "s/,/ /g") ; do
-  check_file_exists ${wavpath_noext}-predicted-${pr}pr.csv
+  check_file_exists ${wavpath}-predicted-${pr}pr.csv
 done
-count_lines_with_label ${wavpath_noext}-predicted-1.0pr.csv mel-pulse 56 WARNING
-count_lines_with_label ${wavpath_noext}-predicted-1.0pr.csv mel-sine 140 WARNING
-count_lines_with_label ${wavpath_noext}-predicted-1.0pr.csv ambient 70 WARNING
+count_lines_with_label ${wavpath}-predicted-1.0pr.csv mel-pulse 56 WARNING
+count_lines_with_label ${wavpath}-predicted-1.0pr.csv mel-sine 140 WARNING
+count_lines_with_label ${wavpath}-predicted-1.0pr.csv ambient 70 WARNING
 
-wav_file_noext=20190122T132554a-14
-cp $repo_path/data/${wav_file_noext}-annotated-person2.csv \
+wavfile=20190122T132554a-14.wav
+cp $repo_path/data/${wavfile}-annotated-person2.csv \
    $repo_path/test/scratch/tutorial-sh/groundtruth-data/dense-ensemble
-cp $repo_path/data/${wav_file_noext}-annotated-person3.csv \
+cp $repo_path/data/${wavfile}-annotated-person3.csv \
    $repo_path/test/scratch/tutorial-sh/groundtruth-data/dense-ensemble
 
 congruence_dir=$data_dir/congruence-99998877T665544
@@ -844,7 +844,7 @@ mkdir $congruence_dir
 cmd="${srcdir}/congruence \
      --basepath=$data_dir \
      --topath=$congruence_dir \
-     --wavfiles=${wav_file_noext}.wav \
+     --wavfiles=${wavfile} \
      --portion=$portion \
      --convolve=$convolve \
      --measure=$measure \
@@ -856,7 +856,7 @@ echo $cmd >> $congruence_dir/congruence.log 2>&1
 eval $cmd >> $congruence_dir/congruence.log 2>&1
 
 check_file_exists $congruence_dir/congruence.log
-check_file_exists $congruence_dir/dense-ensemble/$wav_file_noext-disjoint-everyone.csv
+check_file_exists $congruence_dir/dense-ensemble/${wavfile}-disjoint-everyone.csv
 kinds=(tic label)
 persons=(person2 person3)
 IFS=', ' read -r -a prs <<< "$precision_recall_ratios"
@@ -872,16 +872,16 @@ for kind in ${kinds[@]} ; do
       check_file_exists $congruence_dir/congruence.${kind}.${label}.${pr}pr-venn.pdf
       check_file_exists $congruence_dir/congruence.${kind}.${label}.${pr}pr.pdf
     done
-    check_file_exists $congruence_dir/dense-ensemble/$wav_file_noext-disjoint-${kind}-not${pr}pr.csv
-    check_file_exists $congruence_dir/dense-ensemble/$wav_file_noext-disjoint-${kind}-only${pr}pr.csv
+    check_file_exists $congruence_dir/dense-ensemble/${wavfile}-disjoint-${kind}-not${pr}pr.csv
+    check_file_exists $congruence_dir/dense-ensemble/${wavfile}-disjoint-${kind}-only${pr}pr.csv
   done
   for person in ${persons[@]} ; do
-    check_file_exists $congruence_dir/dense-ensemble/$wav_file_noext-disjoint-${kind}-not${person}.csv
-    check_file_exists $congruence_dir/dense-ensemble/$wav_file_noext-disjoint-${kind}-only${person}.csv
+    check_file_exists $congruence_dir/dense-ensemble/${wavfile}-disjoint-${kind}-not${person}.csv
+    check_file_exists $congruence_dir/dense-ensemble/${wavfile}-disjoint-${kind}-only${person}.csv
   done
 done
 
-wavpath_noext=$repo_path/test/scratch/tutorial-sh/groundtruth-data/round1/PS_20130625111709_ch3
+wavpath=$repo_path/test/scratch/tutorial-sh/groundtruth-data/round1/PS_20130625111709_ch3.wav
 cmd="${srcdir}/classify \
       --context=$context \
       --parallelize=$parallelize \
@@ -895,7 +895,7 @@ cmd="${srcdir}/classify \
       --video_bkg_frames=$video_bkg_frames \
       --model=${logdir}/xvalidate_1k_2k/frozen-graph.ckpt-${nsteps}_${nsteps}.pb \
       --model_labels=${logdir}/xvalidate_1k_2k/labels.txt \
-      --wav=${wavpath_noext}.wav \
+      --wav=${wavpath} \
       --time_scale=$time_scale \
       --audio_tic_rate=$audio_tic_rate \
       --audio_nchannels=$audio_nchannels \
@@ -907,13 +907,13 @@ cmd="${srcdir}/classify \
       --labels= \
       --prevalences= \
       --igpu="
-echo $cmd >> ${wavpath_noext}-classify.log 2>&1
-eval $cmd >> ${wavpath_noext}-classify.log 2>&1
+echo $cmd >> ${wavpath}-classify.log 2>&1
+eval $cmd >> ${wavpath}-classify.log 2>&1
 
-check_file_exists ${wavpath_noext}-classify.log
+check_file_exists ${wavpath}-classify.log
 
 for label in $(echo $labels_touse | sed "s/,/ /g") ; do
-  check_file_exists ${wavpath_noext}-${label}.wav
+  check_file_exists ${wavpath}-${label}.wav
 done
 
 thresholds_dense_file=$(basename $(ls ${logdir}/xvalidate_1k/thresholds-dense-*))
@@ -921,12 +921,12 @@ mv ${logdir}/xvalidate_1k/${thresholds_dense_file} ${logdir}/xvalidate_1k_2k
 
 cmd="${srcdir}/ethogram \
       $logdir xvalidate_1k_2k ${thresholds_dense_file} \
-      ${wavpath_noext}.wav $audio_tic_rate False"
-echo $cmd >> ${wavpath_noext}-ethogram.log 2>&1
-eval $cmd >> ${wavpath_noext}-ethogram.log 2>&1
+      ${wavpath}.wav $audio_tic_rate False"
+echo $cmd >> ${wavpath}-ethogram.log 2>&1
+eval $cmd >> ${wavpath}-ethogram.log 2>&1
 
-check_file_exists ${wavpath_noext}-ethogram.log
+check_file_exists ${wavpath}-ethogram.log
 for pr in $(echo $precision_recall_ratios | sed "s/,/ /g") ; do
-  check_file_exists ${wavpath_noext}-predicted-${pr}pr.csv
+  check_file_exists ${wavpath}-predicted-${pr}pr.csv
 done
-count_lines_with_label ${wavpath_noext}-predicted-1.0pr.csv mel-pulse 594 WARNING
+count_lines_with_label ${wavpath}-predicted-1.0pr.csv mel-pulse 594 WARNING

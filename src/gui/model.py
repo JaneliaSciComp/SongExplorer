@@ -89,7 +89,7 @@ def save_annotations():
         wavfiles = set()
         for sound in annotated_sounds:
             if not sound["label"]:  continue
-            wavfiles |= set([trim_ext(os.path.join(*sound["file"]))])
+            wavfiles |= set([os.path.join(*sound["file"])])
         for wavfile in wavfiles:
             csvfile = wavfile+"-annotated-"+songexplorer_starttime+".csv"
             annotated_csvfiles_all.add(csvfile)
@@ -104,8 +104,7 @@ def save_annotations():
         corrected_sounds=[]
         for annotation in annotated_sounds:
             if annotation['label']!="" and not annotation['label'].isspace():
-                wavfile_noext = trim_ext(os.path.join(*annotation['file']))
-                csvwriters[wavfile_noext].writerow(
+                csvwriters[os.path.join(*annotation['file'])].writerow(
                         [annotation['file'][1],
                          annotation['ticks'][0], annotation['ticks'][1],
                          'annotated', annotation['label']])
@@ -119,8 +118,7 @@ def save_annotations():
                                         columns=['file','start','stop','kind','label'])
             wavfiles = set()
             for sound in corrected_sounds:
-                wavfile_noext = trim_ext(os.path.join(*sound["file"]))
-                wavfiles |= set([wavfile_noext])
+                wavfiles |= set([os.path.join(*sound["file"])])
             for wavfile in wavfiles:
                 wavdir, wavbase = os.path.split(wavfile)
                 wavpath = os.path.join(V.groundtruth_folder.value, wavdir)
@@ -248,7 +246,7 @@ def init(_bokeh_document, _configuration_file, _use_aitch):
     global context_width_sec0, context_offset_sec0
     global xcluster, ycluster, zcluster, ndcluster, tic2pix_max, snippet_width_pix, ilayer, ispecies, iword, inohyphen, ikind, nlayers, layers, species, words, nohyphens, kinds, used_labels, snippets_gap_sec, snippets_tic, snippets_gap_tic, snippets_decimate_by, snippets_pix, snippets_gap_pix, context_decimate_by, context_width_tic, context_offset_tic, context_sound, isnippet, xsnippet, ysnippet, file_nframes, context_midpoint_tic, ilabel, used_sounds, used_starts_sorted, used_stops, iused_stops_sorted, annotated_sounds, annotated_starts_sorted, annotated_stops, iannotated_stops_sorted, annotated_csvfiles_all, nrecent_annotations, clustered_sounds, clustered_activations, used_recording2firstsound, clustered_starts_sorted, clustered_stops, iclustered_stops_sorted, songexplorer_starttime, history_stack, history_idx, wizard, action, function, statepath, state, file_dialog_root, file_dialog_filter, nearest_sounds, status_ticker_queue, waitfor_job, dfs, remaining_isounds
     global user_changed_recording, user_copied_parameters
-    global audio_read, audio_read_exts, audio_read_rec2ch, audio_read_strip_rec, trim_ext
+    global audio_read, audio_read_exts, audio_read_rec2ch, audio_read_strip_rec
     global video_read, detect_labels, doubleclick_annotation, context_data, context_data_istart, model, video_findfile
     global detect_parameters, doubleclick_parameters, model_parameters, cluster_parameters, augmentation_parameters
 
@@ -270,7 +268,7 @@ def init(_bokeh_document, _configuration_file, _use_aitch):
 
     load_audio_read_plugin(audio_read_plugin, audio_read_plugin_kwargs)
     load_video_read_plugin(video_read_plugin, video_read_plugin_kwargs)
-    from lib import audio_read, audio_read_exts, audio_read_rec2ch, audio_read_strip_rec, video_read, trim_ext
+    from lib import audio_read, audio_read_exts, audio_read_rec2ch, audio_read_strip_rec, video_read
 
     sys.path.insert(0,os.path.dirname(detect_plugin))
     tmp = importlib.import_module(os.path.basename(detect_plugin))

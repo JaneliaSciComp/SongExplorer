@@ -39,18 +39,9 @@ try:
   audio_tic_rate=float(audio_tic_rate)
 
   wavpath, wavname = os.path.split(wav_file)
-  if has_rec == "False":
-    if not os.path.isfile(wav_file):
-      print('cannot find WAV file')
-      exit()
-    wavname_noext  = os.path.splitext(wavname)[0]
-  else:
-    tmp = wavname.split('-')
-    withext, rec = '-'.join(tmp[:-1]), tmp[-1]
-    wavname_noext  = os.path.splitext(withext)[0]+'-'+rec
-    if not os.path.isfile(os.path.join(wavpath, withext)):
-      print('cannot find WAV file')
-      exit()
+  if not os.path.isfile(wav_file):
+    print('cannot find WAV file')
+    exit()
 
   precision_recall_ratios, thresholds = read_thresholds(logdir, model, thresholds_file)
 
@@ -58,7 +49,7 @@ try:
   thresholds = np.array([x[1:] for x in thresholds], dtype=np.float64)
 
   audio_tic_rate_probabilities, half_stride_sec, probability_matrix = \
-        read_probabilities(os.path.join(wavpath, wavname_noext), labels)
+        read_probabilities(os.path.join(wavpath, wavname), labels)
 
   for ithreshold in range(len(precision_recall_ratios)):
     features, start_tics, stop_tics = discretize_probabilities(probability_matrix,
@@ -68,7 +59,7 @@ try:
                                                                half_stride_sec,
                                                                audio_tic_rate)
     filename = os.path.join(wavpath,
-                            wavname_noext+'-predicted-'+precision_recall_ratios[ithreshold]+'pr.csv')
+                            wavname+'-predicted-'+precision_recall_ratios[ithreshold]+'pr.csv')
     isort = np.argsort(start_tics)
     with open(filename,'w') as fid:
       csvwriter = csv.writer(fid, lineterminator='\n')

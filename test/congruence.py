@@ -61,7 +61,6 @@ timestamp = datetime.strftime(datetime.now(),'%Y%m%d')
 congruence_dir = next(filter(lambda x: x.startswith('congruence-'+timestamp),
                              os.listdir(V.groundtruth_folder.value)))
 
-wavpath_noext = V.validation_files.value[:-4]
 check_file_exists(os.path.join(V.groundtruth_folder.value, congruence_dir, "congruence.log"))
 for i in range(1,8):
   check_file_exists(os.path.join(V.groundtruth_folder.value, congruence_dir,
