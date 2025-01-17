@@ -64,7 +64,7 @@ def main():
     print('%s = %s' % (key, flags[key]))
 
   load_audio_read_plugin(FLAGS.audio_read_plugin, FLAGS.audio_read_plugin_kwargs)
-  from lib import audio_read, trim_ext
+  from lib import audio_read
 
   hyperparameter1 = int(FLAGS.parameters["my-simple-textbox"])
 
@@ -75,7 +75,7 @@ def main():
   amplitude = scipy.signal.medfilt(song)
 
   basename = os.path.basename(FLAGS.filename)
-  with open(trim_ext(FLAGS.filename)+'-detected.csv', 'w') as fid:
+  with open(FLAGS.filename+'-detected.csv', 'w') as fid:
       csvwriter = csv.writer(fid, lineterminator='\n')
       for i in range(1,len(amplitude)-1):
           if amplitude[i] > hyperparameter1:

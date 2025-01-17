@@ -100,7 +100,7 @@ def main():
     add_plugins_to_path(srcdir)
 
     load_audio_read_plugin(FLAGS.audio_read_plugin, FLAGS.audio_read_plugin_kwargs)
-    from lib import audio_read, trim_ext
+    from lib import audio_read
 
     time_sigma_signal, time_sigma_noise = [int(x) for x in FLAGS.parameters['time_sigma'].split(',')]
     
@@ -229,7 +229,7 @@ def main():
 
 
     basename = os.path.basename(FLAGS.filename)
-    with open(trim_ext(FLAGS.filename)+'-detected.csv', 'w') as fid:
+    with open(FLAGS.filename+'-detected.csv', 'w') as fid:
       csvwriter = csv.writer(fid, lineterminator='\n')
       for i in intervals_time_signal:
         csvwriter.writerow([basename,i[1],i[2],'detected','time'+i[3]])

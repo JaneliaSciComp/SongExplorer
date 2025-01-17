@@ -51,15 +51,6 @@ def load_video_read_plugin(video_read_plugin, video_read_plugin_kwargs):
         return video_read_module.video_read(fullpath, start_frame, stop_frame,
                                             **video_read_plugin_kwargs)
 
-def trim_ext(wavfile):
-    if len(audio_read_rec2ch(audio_read_strip_rec(wavfile))) > 1:
-        tmp = wavfile.split('-')
-        withext, rec = '-'.join(tmp[:-1]), tmp[-1]
-        withoutext = os.path.splitext(withext)[0]+'-'+rec
-    else:
-        withoutext = os.path.splitext(wavfile)[0]
-    return withoutext
-
 def check_config(configuration_file):
     exec(open(configuration_file).read())
 
