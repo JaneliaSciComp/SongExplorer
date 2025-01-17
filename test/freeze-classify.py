@@ -39,7 +39,7 @@ shutil.copy(os.path.join(repo_path, "data", "PS_20130625111709_ch3.wav"),
 
 run(["hstart", "1,0,1"])
 
-shutil.copy(os.path.join(repo_path, "data", "PS_20130625111709_ch3-annotated-person1.csv"),
+shutil.copy(os.path.join(repo_path, "data", "PS_20130625111709_ch3.wav-annotated-person1.csv"),
             os.path.join(repo_path, "test", "scratch", "freeze-classify", "groundtruth-data", "round1"))
 
 V.context.value = "204.8"
@@ -122,21 +122,21 @@ for representation in ["waveform", "spectrogram", "mel-cepstrum"]:
                              parallelize)
       os.makedirs(outpath)
 
-      wavpath_noext = V.wavcsv_files.value[:-4]
-      check_file_exists(wavpath_noext+"-classify.log")
-      shutil.move(wavpath_noext+"-classify.log", outpath)
+      wavpath = V.wavcsv_files.value
+      check_file_exists(wavpath+"-classify.log")
+      shutil.move(wavpath+"-classify.log", outpath)
       for label in V.labels_touse.value.split(','):
-        check_file_exists(wavpath_noext+"-"+label+".wav")
-        shutil.move(wavpath_noext+"-"+label+".wav", outpath)
+        check_file_exists(wavpath+"-"+label+".wav")
+        shutil.move(wavpath+"-"+label+".wav", outpath)
 
     outpath = os.path.join(repo_path, 
                            "test", "scratch", "freeze-classify",
                            "trained-classifier-r="+representation+
                            "-s="+stride_time)
     for label in V.labels_touse.value.split(','):
-      wavbase_noext = os.path.basename(wavpath_noext)
-      outpath64 = os.path.join(outpath, "64", wavbase_noext+"-"+label+".wav")
-      outpath16384 = os.path.join(outpath, "16384", wavbase_noext+"-"+label+".wav")
+      wavbase = os.path.basename(wavpath)
+      outpath64 = os.path.join(outpath, "64", wavbase+"-"+label+".wav")
+      outpath16384 = os.path.join(outpath, "16384", wavbase+"-"+label+".wav")
       _, wavs64 = spiowav.read(outpath64)
       _, wavs16384 = spiowav.read(outpath16384)
       if len(wavs64) != len(wavs16384):
