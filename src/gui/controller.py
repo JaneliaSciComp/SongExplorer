@@ -937,10 +937,10 @@ def pbfile_succeeded(pbfile, reftime):
     return recent_file_exists(pbfile, reftime, True)
     
 def detect_succeeded(wavfile, reftime):
-    logfile = M.trim_ext(wavfile)+'-detect.log'
+    logfile = wavfile+'-detect.log'
     if not logfile_succeeded(logfile, reftime):
         return False
-    csvfile = M.trim_ext(wavfile)+'-detected.csv'
+    csvfile = wavfile+'-detected.csv'
     if not csvfile_succeeded(csvfile, reftime):
         return False
     return True
@@ -955,7 +955,7 @@ async def detect_actuate():
 async def _detect_actuate(i, wavfiles, threads, results):
     wavfile = wavfiles.pop(0)
     currtime = time.time()
-    logfile = M.trim_ext(wavfile)+'-detect.log'
+    logfile = wavfile+'-detect.log'
     jobid = generic_actuate(os.path.join("detect-plugins", M.detect_plugin+".py"),
                             logfile,
                             M.detect_where,
@@ -1010,8 +1010,7 @@ async def misses_actuate():
         csvreader = csv.reader(fid)
         row1 = next(csvreader)
     wavfile = row1[0]
-    noext = os.path.join(basepath, os.path.splitext(wavfile)[0])
-    logfile = noext+'-misses.log'
+    logfile = os.path.join(basepath, wavfile)+'-misses.log'
     jobid = generic_actuate("misses", logfile, \
                             M.misses_where,
                             M.misses_ncpu_cores,
@@ -1852,7 +1851,7 @@ def classify_succeeded(modeldir, wavfile, reftime):
     with open(os.path.join(modeldir, 'labels.txt'), 'r') as fid:
         labels = fid.read().splitlines()
     for x in labels:
-        if not recent_file_exists(M.trim_ext(wavfile)+'-'+x+'.wav', reftime, True):
+        if not recent_file_exists(wavfile+'-'+x+'.wav', reftime, True):
             return False
     return True
 
@@ -1864,7 +1863,7 @@ async def _classify_actuate(wavfiles):
     wavfile = wavfiles.pop(0)
     currtime = time.time()
     logdir, model, _, check_point = M.parse_model_file(V.model_file.value)
-    logfile = M.trim_ext(wavfile)+'-classify.log'
+    logfile = wavfile+'-classify.log'
     args = ["--context="+V.context.value,
             "--shiftby="+V.shiftby.value,
             "--loss="+V.loss.value,
@@ -1925,7 +1924,7 @@ def ethogram_succeeded(modeldir, ckpt, wavfile, reftime):
         row1 = next(csvreader)
     precision_recalls = row1[1:]
     for x in precision_recalls:
-        if not recent_file_exists(M.trim_ext(wavfile)+'-predicted-'+x+'pr.csv', reftime, True):
+        if not recent_file_exists(wavfile+'-predicted-'+x+'pr.csv', reftime, True):
             return False
     return True
 
@@ -1943,7 +1942,7 @@ async def _ethogram_actuate(i, wavfiles, threads, results):
         thresholds_file = os.path.basename(V.model_file.value)
     else:
         thresholds_file = 'thresholds.ckpt-'+check_point+'.csv'
-    logfile = M.trim_ext(wavfile)+'-ethogram.log'
+    logfile = wavfile+'-ethogram.log'
     jobid = generic_actuate("ethogram", logfile, M.ethogram_where,
                             M.ethogram_ncpu_cores,
                             M.ethogram_ngpu_cards,

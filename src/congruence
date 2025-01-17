@@ -166,15 +166,8 @@ def main():
   thresholds=set()
   for wavdir in wavdirs:
     for wavfile in wavdirs[wavdir]:
-      if has_rec[wavfile] == "False":
-        wavfile_noext  = os.path.splitext(wavfile)[0]
-      else:
-        tmp = wavfile.split('-')
-        withext, rec = '-'.join(tmp[:-1]), tmp[-1]
-        wavfile_noext  = os.path.splitext(withext)[0]+'-'+rec
-
       if not labels:
-        with open(os.path.join(FLAGS.basepath,wavdir,wavfile_noext+'-ethogram.log'), 'r') as fid:
+        with open(os.path.join(FLAGS.basepath,wavdir,wavfile+'-ethogram.log'), 'r') as fid:
           for line in fid:
             if line.startswith('logdir: '):
               m=re.search('logdir: (.*)',line)
@@ -194,7 +187,7 @@ def main():
                                                                       thresholds_file)
 
       audio_tic_rate_probabilities, half_stride_sec, probability_matrix = \
-            read_probabilities(os.path.join(FLAGS.basepath, wavdir, wavfile_noext), labels)
+            read_probabilities(os.path.join(FLAGS.basepath, wavdir, wavfile), labels)
       for threshold in np.linspace(0, 1, num=FLAGS.nprobabilities+2)[1:-1]:
         features, start_tics, stop_tics = discretize_probabilities(probability_matrix,
                                                                    threshold,
@@ -205,7 +198,7 @@ def main():
         if len(features)>0:
           thresholds.add(str(threshold)+'th')
         filename = os.path.join(FLAGS.basepath, wavdir,
-                                wavfile_noext+'-predicted-'+str(threshold)+'th.csv')
+                                wavfile+'-predicted-'+str(threshold)+'th.csv')
         temp_files.append(filename)
         isort = np.argsort(start_tics)
         with open(filename,'w') as fid:
