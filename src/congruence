@@ -41,97 +41,86 @@ srcdir, repodir, _ = get_srcrepobindirs()
 
 def doit(intervals, do_tic, do_label):
 
-    #to calculate the intervals everyone agrees upon (i.e. "everyone"), choose
-    #one of the sets at random.  iterate through each interval therein, testing
-    #whether it overlaps with any of the intervals in all of the other sets.
-    #if it does, delete the matching intervals in the other sets, and add to
-    #the "everyone" set just intersection of the matching intervals.
-
-    intervals_copy = intervals.copy()
-    key0 = next(iter(intervals_copy.keys()))
-    everyone = P.empty()
-    for interval0 in intervals_copy[key0]:
-      ivalues = {}
-      for keyN in set(intervals_copy.keys()) - set([key0]):
-        for i,intervalN in enumerate(intervals_copy[keyN]):
-          if len(interval0 & intervalN)>0:
-            ivalues[keyN] = i
-            break
-        if keyN not in ivalues:
-          break
-      if len(ivalues)==len(intervals_copy)-1:
-        for keyN in ivalues.keys():
-          tmp = intervals_copy[keyN][ivalues[keyN]]
-          interval0 &= tmp
-          tmp |= P.open(tmp.lower-1, tmp.upper+1)
-          intervals_copy[keyN] -= tmp
-        everyone |= interval0
+    key0 = next(iter(intervals.keys()))
+    everyone = intervals[key0]
+    for keyN in set(intervals.keys()) - set([key0]):
+        everyone &= intervals[keyN]
 
     #to calculate the intervals which only one set contains (e.g. "only
     #songexplorer"), iteratively test if each interval therein overlaps
     #with any of the other sets.  if it does, delete the matching intervals
     #in the other sets; otherwise add this interval to the "only label" set.
-    #for tics, delete from the interval the points in each matching interval
-    #and add what remains to the "only tic" set.
 
-    onlyone_tic = {}
     onlyone_label = {}
     for key0 in intervals.keys():
-      intervals_copy = intervals.copy()
-      onlyone_tic[key0] = P.empty() if do_tic else None
-      onlyone_label[key0] = P.empty() if do_label else None
-      for interval0 in intervals_copy[key0]:
-        ivalues = {}
-        for keyN in set(intervals_copy.keys()) - set([key0]):
-          for i,intervalN in enumerate(intervals_copy[keyN]):
-            if len(interval0 & intervalN)>0:
-              ivalues[keyN] = i
-              break
-        if do_label and len(ivalues)==0:
-          onlyone_label[key0] |= interval0
-        for keyN in ivalues.keys():
-          tmp = intervals_copy[keyN][ivalues[keyN]]
-          tmp |= P.open(tmp.lower-1, tmp.upper+1)
-          if do_tic:
-            interval0 -= tmp
-          intervals_copy[keyN] -= tmp
+      if do_label:
+          onlyone_label[key0] = P.empty()
+          intervals_copy = intervals.copy()
+          for interval0 in intervals_copy[key0]:
+            ivalues = {}
+            for keyN in set(intervals_copy.keys()) - set([key0]):
+              for i,intervalN in enumerate(intervals_copy[keyN]):
+                if len(interval0 & intervalN)>0:
+                  ivalues[keyN] = i
+                  break
+            if len(ivalues)==0:
+              onlyone_label[key0] |= interval0
+            for keyN in ivalues.keys():
+              tmp = intervals_copy[keyN][ivalues[keyN]]
+              tmp |= P.open(tmp.lower-1, tmp.upper+1)
+              intervals_copy[keyN] -= tmp
+      else:
+          onlyone_label[key0] = None
+
+    onlyone_tic = {}
+    for key0 in intervals.keys():
         if do_tic:
-          onlyone_tic[key0] |= interval0
+            onlyone_tic[key0] = intervals[key0]
+            for keyN in set(intervals.keys()) - set([key0]):
+                onlyone_tic[key0] -= intervals[keyN]
+        else:
+            onlyone_tic[key0] = None
 
     #to calculate the intervals which only one set does not contain (e.g. "not
     #david"), choose one of the other sets at random.  iteratively test whether
     #its intervals overlap with an interval in the rest of the other sets
     #but not with the set of interest.  for those intervals which meet this
     #criteria, delete the matching intervals in the rest of the other sets,
-    #and add this interval to the "not" set.  for tics, add to the "not tic"
-    #set the intersection of all the matching intervals.
+    #and add this interval to the "not" set.
 
-    notone_tic = {}
     notone_label = {}
     for key0 in intervals.keys():
-      intervals_copy = intervals.copy()
-      notone_tic[key0] = P.empty() if do_tic else None
-      notone_label[key0] = P.empty() if do_label else None
-      key1 = next(iter(set(intervals_copy.keys()) - set([key0])))
-      for interval1 in intervals_copy[key1]:
-        ivalues = {}
-        for keyN in set(intervals_copy.keys()) - set([key1]):
-          for i,intervalN in enumerate(intervals_copy[keyN]):
-            if len(interval1 & intervalN)>0:
-              ivalues[keyN] = i
-              break
-        if len(ivalues)==len(intervals_copy)-2 and key0 not in ivalues.keys():
-          if do_label:
-            notone_label[key0] |= interval1
-          for keyN in ivalues.keys():
-            tmp = intervals_copy[keyN][ivalues[keyN]]
-            if do_tic:
-              interval1 &= tmp
-            tmp |= P.open(tmp.lower-1, tmp.upper+1)
-            intervals_copy[keyN] -= tmp
-          if do_tic:
-            notone_tic[key0] |= interval1
-        
+      if do_label:
+          notone_label[key0] = P.empty()
+          intervals_copy = intervals.copy()
+          key1 = next(iter(set(intervals_copy.keys()) - set([key0])))
+          for interval1 in intervals_copy[key1]:
+            ivalues = {}
+            for keyN in set(intervals_copy.keys()) - set([key1]):
+              for i,intervalN in enumerate(intervals_copy[keyN]):
+                if len(interval1 & intervalN)>0:
+                  ivalues[keyN] = i
+                  break
+            if len(ivalues)==len(intervals_copy)-2 and key0 not in ivalues.keys():
+              notone_label[key0] |= interval1
+              for keyN in ivalues.keys():
+                tmp = intervals_copy[keyN][ivalues[keyN]]
+                tmp |= P.open(tmp.lower-1, tmp.upper+1)
+                intervals_copy[keyN] -= tmp
+      else:
+          notone_label[key0] = None
+
+    notone_tic = {}
+    for key0 in intervals.keys():
+        if do_tic:
+            key1 = next(iter(set(intervals.keys()) - set([key0])))
+            notone_tic[key0] = intervals[key1]
+            for keyN in set(intervals.keys()) - set([key0,key1]):
+                notone_tic[key0] &= intervals[keyN]
+            notone_tic[key0] -= intervals[key0]
+        else:
+            notone_tic[key0] = None
+
     return everyone, onlyone_tic, notone_tic, onlyone_label, notone_label
 
 FLAGS = None
@@ -396,6 +385,9 @@ def main():
     ax.set_xticklabels(xdata, rotation=40, ha='right')
     ax.set_title('all files', fontsize=8)
 
+  def tic_dist(x):
+    return x.upper - x.lower - 1 + (x.left==P.CLOSED) + (x.right==P.CLOSED)
+
   for pr in precision_recalls:
     print('P/R = '+pr)
     for label in timestamps.keys():
@@ -436,10 +428,10 @@ def main():
 
         if do_tic:
           plot_file(fig_tic, fig_tic_venn,
-                    [sum([x.upper-x.lower+1 for x in everyone[pr][label][csvbase]]), \
-                     *[sum([y.upper-y.lower+1 for y in onlyone_tic[pr][label][csvbase][x]]) \
+                    [sum([tic_dist(x) for x in everyone[pr][label][csvbase]]), \
+                     *[sum([tic_dist(y) for y in onlyone_tic[pr][label][csvbase][x]]) \
                        for x in sorted_hm]],
-                    [sum([y.upper-y.lower+1 for y in notone_tic[pr][label][csvbase][x]]) \
+                    [sum([tic_dist(y) for y in notone_tic[pr][label][csvbase][x]]) \
                      for x in sorted_hm] if len(sorted_hm)>2 else None)
         if do_label:
           plot_file(fig_label, fig_label_venn,
@@ -456,11 +448,11 @@ def main():
         csvbase0 = list(onlyone_tic[pr][label].keys())[0]
         if do_tic:
           plot_sumfiles(fig_tic, fig_tic_venn,
-                        [sum([x.upper-x.lower+1 for f in everyone[pr][label].values() for x in f]),
-                         *[sum([sum([y.upper-y.lower+1 for y in f[hm]])
+                        [sum([tic_dist(x) for f in everyone[pr][label].values() for x in f]),
+                         *[sum([sum([tic_dist(y) for y in f[hm]])
                                 for f in onlyone_tic[pr][label].values()])
                            for hm in sorted_hm]],
-                        [sum([sum([y.upper-y.lower+1 for y in f[hm]]) \
+                        [sum([sum([tic_dist(y) for y in f[hm]]) \
                                for f in notone_tic[pr][label].values()])
                          for hm in onlyone_tic[pr][label][csvbase0].keys()]
                             if len(sorted_hm)>2 else None)
@@ -504,8 +496,11 @@ def main():
       csvwriter = csv.writer(fid, lineterminator='\n')
       for ilabel,label in enumerate(timestamps.keys()):
         for i in intervals[ilabel]:
+          if tic_dist(i)==0: continue
           csvwriter.writerow([os.path.basename(csvbase),
-                              int(i.lower), int(i.upper), whichset, label])
+                              int(i.lower)+(i.left==P.OPEN),
+                              int(i.upper)-(i.right==P.OPEN),
+                              whichset, label])
 
   for pr in filter(lambda x: x not in thresholds, precision_recalls):
     for csvbase in csvbases:
@@ -552,19 +547,19 @@ def main():
       for hm in sorted_hm:
         key = 'only '+hm
         if do_tic:
-          roc_table_tic[label][pr][key] = int(sum([sum([y.upper-y.lower+1 for y in f[hm]]) \
+          roc_table_tic[label][pr][key] = int(sum([sum([tic_dist(y) for y in f[hm]]) \
                                                    for f in onlyone_tic[pr][label].values()]))
         if do_label:
           roc_table_label[label][pr][key] = sum([len(f[hm]) for f in onlyone_label[pr][label].values()])
         if len(sorted_hm)>2:
           key = 'not '+hm
           if do_tic:
-            roc_table_tic[label][pr][key] = int(sum([sum([y.upper-y.lower+1 for y in f[hm]]) \
+            roc_table_tic[label][pr][key] = int(sum([sum([tic_dist(y) for y in f[hm]]) \
                                                      for f in notone_tic[pr][label].values()]))
           if do_label:
             roc_table_label[label][pr][key] = sum([len(f[hm])
                                                    for f in notone_label[pr][label].values()])
-      roc_table_tic[label][pr]['Everyone'] = int(sum([x.upper-x.lower+1
+      roc_table_tic[label][pr]['Everyone'] = int(sum([tic_dist(x)
                                                       for f in everyone[pr][label].values()
                                                       for x in f]))
       roc_table_label[label][pr]['Everyone'] = sum([len(f) for f in everyone[pr][label].values()])
@@ -666,13 +661,18 @@ def main():
     return thresholds_touse
 
   if do_tic:
-    plot_versus_thresholds(roc_table_tic, measure='tic')
+    thresholds_touse = plot_versus_thresholds(roc_table_tic, measure='tic')
+    if len(thresholds_touse)>0:
+      save_thresholds(logdir, model, ckpt, thresholds_touse, precision_recalls_sparse,
+                      list(thresholds_touse.keys()),
+                      '-dense-tic-'+datetime.strftime(datetime.now(),'%Y%m%dT%H%M%S'))
   if do_label:
     thresholds_touse = plot_versus_thresholds(roc_table_label, measure='label')
+    if len(thresholds_touse)>0:
+      save_thresholds(logdir, model, ckpt, thresholds_touse, precision_recalls_sparse,
+                      list(thresholds_touse.keys()),
+                      '-dense-label-'+datetime.strftime(datetime.now(),'%Y%m%dT%H%M%S'))
    
-  if len(thresholds_touse)>0:
-    save_thresholds(logdir, model, ckpt, thresholds_touse, precision_recalls_sparse,
-                    list(thresholds_touse.keys()), True)
   
 if __name__ == "__main__":
   parser = argparse.ArgumentParser()

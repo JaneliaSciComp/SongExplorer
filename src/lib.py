@@ -673,10 +673,8 @@ def read_thresholds(logdir, model, thresholds_file):
         thresholds.append(row)
   return precision_recall_ratios, thresholds
 
-def save_thresholds(logdir, model, ckpt, thresholds, ratios, labels, dense=False):
-  filename = 'thresholds'+\
-             ('-dense-'+datetime.strftime(datetime.now(),'%Y%m%dT%H%M%S') if dense else '')+\
-             '.ckpt-'+str(ckpt)+'.csv'
+def save_thresholds(logdir, model, ckpt, thresholds, ratios, labels, dense=''):
+  filename = 'thresholds'+dense+'.ckpt-'+str(ckpt)+'.csv'
   fid = open(os.path.join(logdir,model,filename),"w")
   fidcsv = csv.writer(fid, lineterminator='\n')
   fidcsv.writerow(['precision/recall'] + ratios)
