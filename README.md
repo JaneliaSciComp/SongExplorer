@@ -134,28 +134,36 @@ hardware used (e.g. GPU make and model).
 
 # Citations and Repositories
 
-Lee S (2024)
-Studying Aphid feeding behavior using the Electrical Penetration Graph
+Ribeiro TdS, Lollar MJ, Sprengelmeyer QD, Huang Y, Benson DM, Orr MS, Johnson ZC, Corbett-Detig RB, Pool JE (2024)  
+Recombinant inbred line panels inform the genetic architecture and interactions of adaptive traits in Drosophila melanogaster  
+[bioRxiv](https://www.biorxiv.org/content/10.1101/2024.05.14.594228v1)
+
+Lollar MJ, Kim E, Stern DL, Pool JE (2024)  
+Courtship song differs between African and European populations of Drosophila melanogaster and involves a strong effect locus  
+[bioRxiv](https://www.biorxiv.org/content/10.1101/2024.05.14.594231v1)
+
+Lee S (2024)  
+Studying Aphid feeding behavior using the Electrical Penetration Graph  
 Janelia Meyerhoff Undergraduate Scholars Symposium
 
-D Ye, JT Walsh, IP Junker, Y Ding (2024)
-Changes in the cellular makeup of motor patterning circuits drive courtship song evolution in Drosophila
+D Ye, JT Walsh, IP Junker, Y Ding (2024)  
+Changes in the cellular makeup of motor patterning circuits drive courtship song evolution in Drosophila  
 [bioRxiv](https://www.biorxiv.org/content/10.1101/2024.01.23.576861v1.full)
 
-T Wiesner (2023)
-How good is SongExplorer, a machine learning based classifier, at recognising the electrical signals of Apteronotus leptorhynchus?
+T Wiesner (2023)  
+How good is SongExplorer, a machine learning based classifier, at recognising the electrical signals of Apteronotus leptorhynchus?  
 Bachelor's Thesis, Humboldt Universitat zu Berlin
 
-HM Shiozaki, K Wang, JL Lillvis, M Xu, BJ Dickson, DL Stern (2023)
-Activity of nested neural circuits drives different courtship songs in Drosophila
+HM Shiozaki, K Wang, JL Lillvis, M Xu, BJ Dickson, DL Stern (2023)  
+Activity of nested neural circuits drives different courtship songs in Drosophila  
 [Nat. Neurosci.](https://doi.org/10.1038/s41593-024-01738-9) [bioRxiv](https://www.biorxiv.org/content/10.1101/2022.12.14.520499v2.full)
 
-JL Lillvis, K Wang, HM Shiozaki, M Xu,  DL Stern, BJ Dickson (2023)
-Nested neural circuits generate distinct acoustic signals during Drosophila courtship
+JL Lillvis, K Wang, HM Shiozaki, M Xu,  DL Stern, BJ Dickson (2023)  
+Nested neural circuits generate distinct acoustic signals during Drosophila courtship  
 [Current Biology](https://www.cell.com/current-biology/fulltext/S0960-9822%2824%2900015-0) [bioRxiv](https://www.biorxiv.org/content/10.1101/2023.08.30.555537v2.abstract)  [figshare](https://doi.org/10.25378/janelia.24707544)
 
-JL Lillvis, H Otsuna, X Ding, I Pisarev, T Kawase, J Colonell, K Rokicki, C Goina, R Gao, A Hu, K Wang, J Bogovic, DE Milkie, L Meienberg, BD Mensh, ES Boyden, S Saalfeld, PW Tillberg, BJ Dickson  (2022)
-Rapid reconstruction of neural circuits using tissue expansion and light sheet microscopy
+JL Lillvis, H Otsuna, X Ding, I Pisarev, T Kawase, J Colonell, K Rokicki, C Goina, R Gao, A Hu, K Wang, J Bogovic, DE Milkie, L Meienberg, BD Mensh, ES Boyden, S Saalfeld, PW Tillberg, BJ Dickson (2022)  
+Rapid reconstruction of neural circuits using tissue expansion and light sheet microscopy  
 [eLife](https://elifesciences.org/articles/81248) [bioRxiv](https://www.biorxiv.org/content/10.1101/2021.11.14.468535v2.abstract)
 
 BJ Arthur, Y Ding, M Sosale, F Khalif, E Kim, P Waddell, S Turaga, DL Stern (2021)  
