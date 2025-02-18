@@ -39,7 +39,7 @@ parameters = [
     "--data_loader_maxprocs=0",
     "--augmentation_plugin=volume-noise-dc-reverse-invert",
     '--augmentation_parameters={"volume":"1,1","noise":"0,0","dc":"0,0","reverse":"no","invert":"no"}',
-    "--model_architecture=convolutional",
+    "--model_architecture=res-net",
     '--model_parameters={"representation": "waveform", \
                          "window": "3.2", \
                          "stride": "0.8", \

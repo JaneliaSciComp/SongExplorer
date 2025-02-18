@@ -71,7 +71,7 @@ gui_spectrogram_clip=[1,99]
 gui_probability_style="lines" # either "lines" or "bars"
 
 # neural network architecture to use
-architecture_plugin="convolutional"
+architecture_plugin="res-net"
 overlapped_prefix="not_"
 augmentation_plugin="volume-noise-dc-reverse-invert"
 
