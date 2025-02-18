@@ -519,5 +519,5 @@ def create_model(model_settings, model_parameters, io=sys.stdout):
 
   final = Reshape((-1,model_settings['nlabels']))(x)
 
-  print('convolutional.py version = 0.2', file=io)
+  print('res-net.py version = 0.2', file=io)
   return tf.keras.Model(inputs=inputs, outputs=[hidden_layers, final], name="convolutional")
