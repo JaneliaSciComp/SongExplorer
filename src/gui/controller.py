@@ -1032,38 +1032,32 @@ async def misses_actuate():
                                             misses_succeeded(w, t)))
     asyncio.create_task(actuate_finalize(threads, results, V.groundtruth_update))
 
-def __validation_test_files(folder, comma):
-    csvfiles = glob.glob("**/*csv", root_dir=folder, recursive=True)
-    csvfiles = list(filter(lambda x: 'oldfiles-' not in x and \
-                                     'congruence-' not in x, csvfiles))
-    dfs = []
-    for csvfile in csvfiles:
-        if os.path.getsize(os.path.join(folder, csvfile)) > 0:
-            dfs.append(pd.read_csv(os.path.join(folder, csvfile), header=None, index_col=False))
-    if dfs:
-        df = pd.concat(dfs)
-        wavfiles = sorted(list(set(df.loc[df[3]=="annotated"][0])))
-        return [','.join(wavfiles)] if comma else list(wavfiles)
-
-def _validation_test_files(files_string, comma=True):
-    basepath = os.path.commonprefix((V.groundtruth_folder.value.rstrip(os.sep),
-                                     files_string.rstrip(os.sep)))
-    if basepath.startswith(V.groundtruth_folder.value.rstrip(os.sep)):
-        return __validation_test_files(files_string, comma)
-    elif files_string:
-        lastfile = files_string.split(',')[-1]
-        ext = os.path.splitext(M.audio_read_strip_rec(lastfile))[1]
-        if ext in M.audio_read_exts():
-            return [files_string] if comma else files_string.split(',')
-        elif os.path.isdir(files_string):
-            with open(files_string, "r") as fid:
-                wavfiles = fid.readlines()
-            wavfiles = [x.strip() for x in wavfiles]
-            return [','.join(wavfiles)] if comma else wavfiles
-        else:
-            bokehlog.info("ERROR: invalid value for validation / test files.")
-    else:
-        return ['']
+def _validation_test_files(list_string, comma=True):
+    wavfiles = []
+    for elt in list_string.split(','):
+        if os.path.isdir(elt):
+            csvfiles = glob.glob("**/*csv", root_dir=elt, recursive=True)
+            csvfiles = list(filter(lambda x: 'oldfiles-' not in x and \
+                                             'congruence-' not in x, csvfiles))
+            dfs = []
+            for csvfile in csvfiles:
+                if os.path.getsize(os.path.join(elt, csvfile)) > 0:
+                    dfs.append(pd.read_csv(os.path.join(elt, csvfile), header=None, index_col=False))
+            if dfs:
+                df = pd.concat(dfs)
+                wavfiles.extend(sorted(list(set(df.loc[df[3]=="annotated"][0]))))
+            continue
+        file_norec = M.audio_read_strip_rec(elt)
+        if file_norec and os.path.splitext(file_norec)[1] in M.audio_read_exts():
+            wavfiles.append(elt)
+            continue
+        if os.path.isfile(elt):
+            with open(elt, "r") as fid:
+                wavfiles.extend(os.path.basename(x.strip()) for x in fid.readlines())
+            continue
+        if elt:
+            bokehlog.info("ERROR: invalid value for validation / test files-- "+elt)
+    return [','.join(wavfiles)] if comma else list(wavfiles)
 
 def _train_succeeded(logdir, kind, model, reftime):
     train_dir = os.path.join(logdir, kind+"_"+model)

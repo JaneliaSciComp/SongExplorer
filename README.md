@@ -1109,7 +1109,7 @@ To train one classifier with a single recording or set of recordings withheld
 for validation, first click on `Generalize` and then `Omit All`.  Use the `File
 Browser` to either select (1) specific WAV file(s), (2) a text file containing
 a list of WAV file(s) (either comma separated or one per line), or (3) a
-subdirectory within the `Ground Truth` folder.  Finally press the `Validation
+directory with WAV and annotated CSV files.  Finally press the `Validation
 Files` button and `DoIt!`.
 
 To train multiple classifiers, each of which withholds a single recording in a
