@@ -4,6 +4,6 @@ Set-Variable -Name SONGEXPLORER_BIN -Value ($tbpath + ";" + $tbpath + "\Library\
  
 $env:Path = $SONGEXPLORER_BIN + $env:Path
 
-python.exe $PSScriptRoot\songexplorer\bin\songexplorer\src\songexplorer $PSScriptRoot\configuration.py 5006
+python.exe $PSScriptRoot\songexplorer\bin\songexplorer\src\songexplorer $PSScriptRoot\configuration.py 8080
 
 sleep 10

@@ -535,10 +535,10 @@ RUN-WITH-POWERSHELL.ps1 on MS Windows).  Like this on the command line:
     $ ./OPEN-WITH-TERMINAL.sh
     INFO: detected 12 local_ncpu_cores, 1 local_ngpu_cards, 31 local_ngigabytes_memory
     SongExplorer version: 27 May 2022 b0c7d5b5452c
-    arthurb-ws2:5006
+    arthurb-ws2:8080
     2020-08-09 09:30:02,377 Starting Bokeh server version 2.0.2 (running on Tornado 6.0.4)
     2020-08-09 09:30:02,381 User authentication hooks NOT provided (default user enabled)
-    2020-08-09 09:30:02,387 Bokeh app running at: http://localhost:5006/gui
+    2020-08-09 09:30:02,387 Bokeh app running at: http://localhost:8080/gui
     2020-08-09 09:30:02,387 Starting Bokeh server with process id: 1189
     2020-08-09 09:30:15,054 404 GET /favicon.ico (10.60.1.47) 1.15ms
     2020-08-09 09:30:15,054 WebSocket connection opened
@@ -547,8 +547,8 @@ RUN-WITH-POWERSHELL.ps1 on MS Windows).  Like this on the command line:
 The SongExplorer GUI should automatically open in a new tab of your default
 internet browswer.  If not, manually navigate to the URL on the line printed
 to the terminal immediately below the version information.  In the output
-above this is "arthurb-ws2:5006", which is my computer's name, but for you
-it will be different.  If that doesn't work, try "http://localhost:5006/gui".
+above this is "arthurb-ws2:8080", which is my computer's name, but for you
+it will be different.  If that doesn't work, try "http://localhost:8080/gui".
 
 On the left you'll see three empty panels (two large squares side by side and
 three wide rectangles underneath) in which the sound recordings are displayed and
@@ -2135,7 +2135,7 @@ Put these definitions in your .bashrc  file:
 
     export SONGEXPLORER_BIN="singularity exec [--nv] [-B <disk-drive>] \
         [--vm-cpu] [--vm-ram] <path-to-songexplorer_latest.sif>"
-    alias songexplorer="$SONGEXPLORER_BIN songexplorer <path-to-configuration.py> 5006"
+    alias songexplorer="$SONGEXPLORER_BIN songexplorer <path-to-configuration.py> 8080"
 
 To use a copy of the SongExplorer source code outside of the container, set
 SINGULARITYENV_PREPEND_PATH to the full path to SongExplorer's `src` directory in
@@ -2178,8 +2178,8 @@ Put these definitions in your .bashrc file:
         bjarthur/songexplorer"
     alias songexplorer="docker run \
         [-v <disk-drive>] [-u <userid>] [-w <working-directory] \
-        -e SONGEXPLORER_BIN -h=`hostname` -p 5006:5006 \
-        bjarthur/songexplorer songexplorer <path-to-configuration.py> 5006"
+        -e SONGEXPLORER_BIN -h=`hostname` -p 8080:8080 \
+        bjarthur/songexplorer songexplorer <path-to-configuration.py> 8080"
 
 Add to these definitions any directories you want to access using the `-v`
 flag.  You might also need to use the `-u` flag to specify your username

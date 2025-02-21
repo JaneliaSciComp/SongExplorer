@@ -5,7 +5,7 @@
 # songexplorer <configuration-file> <port>
 # http://<hostname>:<port>/gui
 
-# e.g. songexplorer `pwd`/configuration.py 5006
+# e.g. songexplorer `pwd`/configuration.py 8080
 
 import os
 import sys
