@@ -68,7 +68,7 @@ gui_spectrogram_overlap=0.5
 gui_spectrogram_low_hz=0
 gui_spectrogram_high_hz=1250
 gui_spectrogram_clip=[1,99]
-gui_probability_style="lines" # either "lines" or "bars"
+gui_probability_style="bars" # either "lines" or "bars"
 
 # neural network architecture to use
 architecture_plugin="res-net"
