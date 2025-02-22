@@ -14,15 +14,19 @@ Table of Contents
          * [Locally](#locally)
          * [Another Workstation](#another-workstation)
          * [An On-Premise Cluster](#an-on-premise-cluster)
+   * [Starting SongExplorer](#starting-songExplorer)
    * [Tutorial](#tutorial)
-      * [Detecting Sounds](#detecting-sounds)
       * [Manually Annotating](#manually-annotating)
       * [Training a Classifier](#training-a-classifier)
       * [Quantifying Accuracy](#quantifying-accuracy)
       * [Making Predictions](#making-predictions)
+      * [Fixing Mistakes](#fixing-mistakes)
+      * [Minimizing Annotation Effort](#minimizing-annotation-effort)
+   * [Advanced Usage](#advanced-usage)
+      * [Detecting Rare Sounds](#detecting-rare-sounds)
+      * [Clustering Annotations](#clustering-annotations)
       * [Correcting False Alarms](#correcting-false-alarms)
       * [Correcting Misses](#correcting-misses)
-      * [Minimizing Annotation Effort](#minimizing-annotation-effort)
       * [Double Checking Annotations](#double-checking-annotations)
       * [Measuring Generalization](#measuring-generalization)
       * [Searching Hyperparameters](#searching-hyperparameters)
@@ -34,8 +38,8 @@ Table of Contents
       * [Testing Densely](#testing-densely)
       * [Discovering Novel Sounds](#discovering-novel-sounds)
       * [Overlapped Classes](#overlapped-classes)
-      * [Unsupervised Methods](#unsupervised-methods)
-      * [Scripting Automation](#scripting-automation)
+   * [Unsupervised Methods](#unsupervised-methods)
+   * [Scripting Automation](#scripting-automation)
    * [Training on Video](#training-on-video)
    * [Customizing with Plug-ins](#customizing-with-plug-ins)
       * [Loading Data](#loading-data)
@@ -44,6 +48,7 @@ Table of Contents
       * [Double-Click Annotations](#double-click-annotations)
       * [Network Architecture](#network-architecture)
       * [Clustering Algorithm](#clustering-algorithm)
+      * [Augmentation](#augmentation)
    * [Troubleshooting](#troubleshooting)
    * [Frequently Asked Questions](#frequently-asked-questions)
    * [Reporting Problems](#reporting-problems)
@@ -61,31 +66,23 @@ sounds are.  SongExplorer is trained to recognize such words by manually giving
 it a few examples.  It will then automatically calculate the probability,
 over time, of when those words occur in all of your recordings.
 
-Alternatively, you have two or more sets of audio recordings, and you want to
-know if there are differences between them.  SongExplorer can automatically
-detect sounds in those recordings and cluster them based on how well it
-can distinguish between them.
-
 Applications suitable for SongExplorer include quantifying the rate or pattern
 of words emitted by a particular species, distinguishing a recording of one
 species from another, and discerning whether individuals of the same species
 produce different song.
 
 Underneath the hood is a deep convolutional neural network.  The input is the
-raw audio stream, and the output is a set of mutually-exclusive probability
-waveforms corresponding to each word of interest.
+raw audio stream, and the output is a set of probability waveforms
+corresponding to each word of interest.
 
-Training begins by first thresholding one of your recordings in the time- and
-frequency-domains to find sounds that exceed the ambient noise.  These sounds
-are then clustered based on similarities in the waveforms for you to manually
-annotate with however many word labels naturally occur.  A classifier is
-then trained on this corpus of ground truth, and a new recording is analyzed
-by it.  The words it automatically finds are then clustered, this time using
-the activations of the hidden neurons, and displayed with predicted labels.
-You manually correct the mistakes, both re-labeling words that it got wrong,
-as well as labeling words it missed.  These new annotations are added to the
-ground truth, and the process of retraining the classifier and analyzing and
-correcting new recordings is repeated until the desired accuracy is reached.
+Training begins by first manually annotating a few sounds with however many
+word labels naturally occur.  A classifier is then trained on this corpus of
+ground truth, and a new recording is analyzed by it.  The words it
+automatically finds are then displayed with predicted labels.  You manually
+correct the mistakes, both re-labeling words that it got wrong, as well as
+labeling words it missed.  These new annotations are added to the ground truth,
+and the process of retraining the classifier and analyzing and correcting new
+recordings is repeated until the desired accuracy is reached.
 
 
 # Public Domain Annotations #
@@ -190,11 +187,10 @@ container (e.g. Docker), as Tensorflow, the machine learning framework from
 Google that SongExplorer uses, only supports Ubuntu.
 
 Training your own classifier is fastest with a graphics processing unit (GPU).
-On Linux and Windows you'll need to install the CUDA and CUDNN drivers from
-nvidia.com.  The latter requires you to register for an account.  SongExplorer
-was tested and built with version 12.1.  On Macs with Apple silicon processors
-(i.e. the M series chips), the integrated GPU is accessed via the Metal
-framework, which comes preinstalled on MacOS.
+On Linux and Windows you'll need an Nvidia card.  SongExplorer was tested and
+built with CUDA version 12.1 on Ubuntu and 11.8 on Windows.  On Macs with Apple
+silicon processors (i.e. the M series chips), the integrated GPU is accessed
+via the Metal framework, which comes preinstalled on MacOS.
 
 ## Downloading Executables ##
 
@@ -242,7 +238,9 @@ Inside you'll find many variables which control where SongExplorer does its work
     activations_where=default_where
     cluster_where=default_where
     accuracy_where=default_where
+    delete_ckpts_where=default_where
     freeze_where=default_where
+    ensemble_where=default_where
     classify_where=default_where
     ethogram_where=default_where
     compare_where=default_where
@@ -302,8 +300,9 @@ just one GPU, you could only train one model at a time.
 Note that these settings don't actually limit the job to that amount of
 resources, but rather they just limit how many jobs are running simultaneously.
 It is important not to overburden your computer with tasks, so don't
-underestimate the resources required, particularly memory consumption.  To make
-an accurate assessment for your particular workflow, use the `top` and
+underestimate the resources required, particularly memory consumption.
+
+To make an accurate assessment for your particular workflow, use the `top` and
 `nvidia-smi` commands on Unix, the Task Manager on Windows, or the Activity
 Monitor on Macs to monitor jobs while they are running.
 
@@ -363,8 +362,7 @@ can be run on your workstation.  In this case:
 * Store all SongExplorer related files on the share, including the uncompressed
 ZIP file or container image, "configuration.py", and all of your data.
 
-* Set the PATH environment variable on the remote machine, either directly or by
-specifying it in `SONGEXPLORER_BIN` as follows.
+* Set the SONGEXPLORER_BIN environment variable on the remote machine as follows:
 
 On MacOS (and Linux), put this definition in your .bashrc file:
 
@@ -387,18 +385,12 @@ privileges:
             $env:SONGEXPLORER_BIN + $env:Path,
             [EnvironmentVariableTarget]::Machine)
 
-* Make the remote and local file paths match by creating a symbolic link.
-For example, if on a Mac you use SMB to mount as "/Volumes/MyLab" an NSF
-drive whose path is "/groups/MyLab", then add `-[v|B] /groups/MyLab`
-to `SONGEXPLORER_BIN` and `mkdir -p /groups && ln -s /Volumes/MyLab/
-/groups/MyLab`.  With Docker you'll additionally need to open the preferences
-panel and configure file sharing to bind "/groups".
+* Make the remote and local file paths match by creating a symbolic link.  For
+  example, if on a Mac you use SMB to mount as "/Volumes/MyLab" an NSF drive
+  whose path is "/groups/MyLab", then execute on your Mac `mkdir -p /groups &&
+  ln -s /Volumes/MyLab/ /groups/MyLab`. 
 
-* Set the `SONGEXPLORER_BIN` environment variable plus the `songexplorer` alias
-on both your workstation and the server to point to this same image.
-
-* You might need an RSA key pair.  If so, you'll need to add `-[v|B]
-~/.ssh:/root/.ssh` to `SONGEXPLORER_BIN`.
+* You might need an RSA key pair.
 
 * You might need to use ssh flags `-i /ssh/id_rsa -o "StrictHostKeyChecking
 no"` in "configuration.py".
@@ -415,8 +407,8 @@ resources used are the same as specified for the local machine in
 
     $ grep -A2 \'server configuration.py
     # URL of the 'server' computer
-    server_username="arthurb"
-    server_ipaddr="c03u14.int.janelia.org"
+    server_username=<your-username>
+    server_ipaddr=<the-hostname-of-your-server>
 
 ### An On-Premise Cluster ###
 
@@ -445,10 +437,10 @@ your system administrator.
 
     $ grep -A4 \'cluster configuration.py
     # specs of the 'cluster'
-    cluster_username="arthurb"
-    cluster_ipaddr="login1"
-    cluster_cmd="bsub -Ne -Pmylab"
-    cluster_logfile_flag="-oo"
+    cluster_username=<your-username>
+    cluster_ipaddr=<the-hostname-of-your-cluster's-head-node>
+    cluster_cmd="bsub -Ne -Pmylab"  # e.g.
+    cluster_logfile_flag="-oo"  # e.g.
 
 The syntax used to specify the resources required is unique to the particular
 scheduler your cluster uses and how it is configured.  SongExplorer was
@@ -460,9 +452,8 @@ maximum flexibility.  Instead of specifying the cores, GPUs, and RAM needed
 explicitly, you give it the flags that the job submission command uses to
 allocate those same resources.
 
-    $ grep -E train.*cluster configuration.py
-    train_cluster_flags="-n 2 -gpu 'num=1' -q gpu_rtx"
-    train_cluster_flags="-n 12"
+    $ grep -E train_cluster_flags configuration.py
+    train_cluster_flags="-n 2 -gpu 'num=1' -q gpu_rtx"  # e.g.
 
 LSF, and maybe other schedulers, does not honor bash's optional variable
 assignments.  So one cannot use SONGEXPLORER_BIN as described in [Another
@@ -474,62 +465,9 @@ option, then specify the `-env` flag in your configuration.py:
         PATH=<path-to-unzipped-executable>/songexplorer/bin:<paths-to-everything-else>'"
 
 
-# Tutorial #
+# Starting SongExplorer #
 
-SongExplorer provides two main workflows.  A supervised approach in
-which you iteratively train a model to output the probabilities over
-time of specific words of your choosing (yellow curve below).  And an
-unsupervised approach in which the recordings are such that labels can be
-applied automatically, with the output being how those sounds cluster
-after a model is trained to distinguish between them (pink curve).
-This tutorial describes both, starting with the supervised workflow.
-It's best to read it in it's entirety, but you could also skip to
-[Unsupervised Methods](#unsupervised-methods).  The blue curve below is
-described in [Discovering Novel Sounds](#discovering-novel-sounds).  [Video
-tutorials](https://www.youtube.com/playlist?list=PLYXyXDkMwZip8x78RAyN6ee9NK42WBbKb)
-are also available.
-
-<img src='src/gui/static/workflows.svg' width=400px alt=''>
-<img src='gui/static/workflows.svg' width=400px alt=''>
-
-Let's walk through the steps needed to train a classifier completely from
-scratch.
-
-Recordings need to be monaural 16-bit little-endian PCM-encoded WAV files.
-They should all be sampled at the same rate, which can be anything.  For this
-tutorial we supply you with *Drosophila melanogaster* data sampled at 2500 Hz.
-
-First, let's get some data bundled with SongExplorer into your home directory.
-Using your computer's file browser, create a new folder called
-"groundtruth-data" with a subfolder inside it called "round1", and copy into
-there the WAV recording called "PS_20130625111709_ch3.wav" from
-"<path-to-unzipped-executable>/songexplorer/bin/songexplorer/data".  Like this
-on the command line:
-
-    $ ls -1 <path-to-unzipped-executable>/songexplorer/bin/songexplorer/data
-    20161207T102314_ch1-annotated-person1.csv
-    20161207T102314_ch1.wav*
-    20190122T093303a-7-annotated-person2.csv*
-    20190122T093303a-7-annotated-person3.csv*
-    20190122T093303a-7.wav*
-    20190122T132554a-14-annotated-person2.csv*
-    20190122T132554a-14-annotated-person3.csv*
-    20190122T132554a-14.wav*
-    Antigua_20110313095210_ch26.wav
-    PS_20130625111709_ch3-annotated-person1.csv
-    PS_20130625111709_ch3.wav*
-
-    $ mkdir -p groundtruth-data/round1
-
-    $ cd <path-to-unzipped-executable>/songexplorer/bin/songexplorer/data
-    $ cp PS_20130625111709_ch3.wav $PWD/groundtruth-data/round1
-
-## Detecting Sounds ##
-
-Now that we have some data, let's extract the timestamps of some sounds from
-one of these as-of-yet unannotated audio recordings.
-
-First, start SongExplorer's GUI by right-clicking on OPEN-WITH-TERMINAL.sh (or
+Launch SongExplorer's GUI by right-clicking on OPEN-WITH-TERMINAL.sh (or
 RUN-WITH-POWERSHELL.ps1 on MS Windows).  Like this on the command line:
 
     $ ./OPEN-WITH-TERMINAL.sh
@@ -545,7 +483,7 @@ RUN-WITH-POWERSHELL.ps1 on MS Windows).  Like this on the command line:
     2020-08-09 09:30:15,055 ServerConnection created
 
 The SongExplorer GUI should automatically open in a new tab of your default
-internet browswer.  If not, manually navigate to the URL on the line printed
+internet browser.  If not, manually navigate to the URL on the line printed
 to the terminal immediately below the version information.  In the output
 above this is "arthurb-ws2:8080", which is my computer's name, but for you
 it will be different.  If that doesn't work, try "http://localhost:8080/gui".
@@ -554,100 +492,90 @@ On the left you'll see three empty panels (two large squares side by side and
 three wide rectangles underneath) in which the sound recordings are displayed and
 annotated.  In the middle are buttons and text boxes used to train the
 classifier and make predictions with it, as well as a file browser and a large
-editable text box with "configuration.py".  On the right is this instruction
-manual for easy reference.
-
-Click on the `Label Sounds` button and then `Detect`.  All of the parameters
-below that are *not* used in this step will be greyed out and disabled.  If all
-of the required parameters are filled in, the `DoIt!` button in the upper right
-will in addition be enabled and turn red.
+grey text box with the network architecture.  On the right is this instruction
+manual for easy reference and below it the contents of "configuration.py".
 
 The first time you use SongExplorer many of the parameters will need to be
 manually specified.  Their values are saved into "songexplorer.state.yml" and
 are subsequently automatically filled in with their previous values.
 
-In the `File Browser`, navigate to the WAV file in the "round1/" directory and
-click on the `WAV Files` button.
 
-Then specify the eight parameters that control the algorithm used to find
-sounds.  The default values are suitable to the data in this tutorial and so
-should not need to be changed.  If it's not finding sounds though, try making
-the first number in `time σ` smaller and/or the first number in `freq ρ`
-bigger.  If rather it's too sensitive, do the opposite.  Conversely, if it's
-labelling ambient as a sound, make the second number in `time σ` bigger and the
-second number in `freq ρ` smaller.  `time smooth` and `freq smooth` will fill
-in small gaps between detected sounds and cull detected sounds that are too
-short.  For further details, see the comments at the top of
-"time-freq-threshold.py".
+# Tutorial #
 
-[Customizing with Plug-ins](#customizing-with-plug-ins) describes how to
-use arbitrary custom code of your choosing to detect events should this
-default algorithm not suit your data.
+SongExplorer provides two main workflows.  A supervised approach in which you
+iteratively train a model to output the probabilities over time of specific
+words of your choosing (yellow curve below).  And an unsupervised approach in
+which the recordings are such that labels can be applied automatically, with
+the output being how those sounds cluster after a model is trained to
+distinguish between them (pink curve).  This tutorial describes the former
+supervised workflow.  It's best to read it in it's entirety, but you could also
+skip to [Unsupervised Methods](#unsupervised-methods).  The blue curve below is
+described in [Discovering Novel Sounds](#discovering-novel-sounds).  [Video
+tutorials](https://www.youtube.com/playlist?list=PLYXyXDkMwZip8x78RAyN6ee9NK42WBbKb)
+are also available.
 
-Once all the needed parameters are specified, click on the red `DoIt!` button
-to start detecting sounds.  It will turn orange while the job is being
-asynchronously dispatched, and then back to grey.  "DETECT
-PS_20130625111709_ch3.wav (<jobid>)" will appear in the status bar.  It's font
-will initially be grey to indicate that it is pending, then turn black when it
-is running, and finally either blue if it successfully finished or red if it
-failed.
+<img src='src/gui/static/workflows.svg' width=400px alt=''>
+<img src='gui/static/workflows.svg' width=400px alt=''>
 
-The result is a file of comma-separated values with the start and stop times
-(in tics) of sounds which exceeded a threshold in either the time or frequency
-domain, plus intervals which did not exceed either.
+Let's walk through the steps needed to train a classifier completely from
+scratch.
 
-    $ grep -m 3 time groundtruth-data/round1/PS_20130625111709_ch3-detected.csv
-    PS_20130625111709_ch3.wav,2251,2252,detected,time
-    PS_20130625111709_ch3.wav,2314,2316,detected,time
-    PS_20130625111709_ch3.wav,2404,2405,detected,time
+By default, recordings need to be monaural 16-bit little-endian PCM-encoded WAV
+files.  They should all be sampled at the same rate, which can be anything.
+For this tutorial we supply you with *Drosophila melanogaster* data sampled at
+2500 Hz.  For other file formats, see the [Loading Data](#loading-data) section
+in [Customizing with Plug-ins](#customizing-with-plug-ins).
 
-    $ grep -m 3 frequency groundtruth-data/round1/PS_20130625111709_ch3-detected.csv
-    PS_20130625111709_ch3.wav,113872,114032,detected,frequency
-    PS_20130625111709_ch3.wav,158224,158672,detected,frequency
-    PS_20130625111709_ch3.wav,182864,182960,detected,frequency
+First, let's get some data bundled with SongExplorer into your home directory.
+Using your computer's file browser, create a new folder called
+"groundtruth-data" with a subfolder inside it called "round1", and copy into
+there the WAV recording called "PS_20130625111709_ch3.wav" from
+"<path-to-unzipped-executable>/songexplorer/bin/songexplorer/data".  Like this
+on the command line:
 
-    $ grep -m 3 neither groundtruth-data/round1/PS_20130625111709_ch3-detected.csv
-    PS_20130625111709_ch3.wav,388,795,detected,neither
-    PS_20130625111709_ch3.wav,813,829,detected,neither
-    PS_20130625111709_ch3.wav,868,2201,detected,neither
+    $ ls -1 <path-to-unzipped-executable>/songexplorer/bin/songexplorer/data
+    20161207T102314_ch1.wav-annotated-person1.csv
+    20161207T102314_ch1.wav
+    20190122T093303a-7.wav-annotated-person2.csv
+    20190122T093303a-7.wav-annotated-person3.csv
+    20190122T093303a-7.wav
+    20190122T132554a-14.wav-annotated-person2.csv
+    20190122T132554a-14.wav-annotated-person3.csv
+    20190122T132554a-14.wav
+    Antigua_20110313095210_ch26.wav
+    PS_20130625111709_ch3.wav-annotated-person1.csv
+    PS_20130625111709_ch3.wav
 
+    $ mkdir -p groundtruth-data/round1
+
+    $ cd <path-to-unzipped-executable>/songexplorer/bin/songexplorer/data
+    $ cp PS_20130625111709_ch3.wav $PWD/groundtruth-data/round1
 
 ## Manually Annotating ##
 
-Now we need to manually curate these heuristically detected sounds into a
-ground truth data set on which to train a classifier.
+Now we need to annotate intervals in time to create a ground truth data set on
+which to train a classifier.
 
-First, check that the `kinds to use` and `labels to use` text boxes are set to
-"detected" and "time,frequency,neither", respectively.  This should have been
-automatically done when pressing the "Label Sounds" button above.
-
-Then enter into the `ground truth` textbox the full path to the
+First, enter into the `Ground Truth` textbox the full path to the
 "groundtruth-data" folder you created above (leaving off the "round1"
 sub-folder).  You can either type it in by hand, or navigate to this folder in
-the `File Browser` and click on the `ground truth` button.  You'll see the wide
+the `File Browser` and click on the `Ground Truth` button.  You'll see the wide
 pull-down menu to the left labeled "recording" briefly turn orange, and below
 that will appear a table showing how many sounds we're detected above.
 
-Then pull down on the "recording" menu on the far left and select the WAV file
-in which you just detected sounds.  In the panel below, the waveform will be
-plotted along with grey rectangles in the upper half indicating the locations
-of detected sounds.  Pan and zoom through the recording with the buttons
-labeled with arrows below and to the left.  The `Play` button can be used to
-listen to the sound, and if the `Video` button is selected and a movie with the
-same root basename exists alongside the corresponding WAV file, it will be
-displayed as well.
+Then check that `labels to use` and `kinds to use` or both blank, pull down on
+the `recording` menu on the far left, and select the WAV file in which you just
+detected sounds.  The waveform will be plotted in the panel below.  Pan and
+zoom through the recording with the buttons labeled with arrows below and to
+the left.  The `Play` button can be used to listen to the sound.
 
-To record a manual annotation, first pick a sound that is an unambiguous
+To record a manual annotation, first find a sound that is an unambiguous
 example of a particular word.  Type the word's name into one of the text boxes
 to the right of the pan and zoom controls and hit return to activate the
-corresponding counter to its left.  Hopefully the chosen sounds was detected
-and the corresponding gray box in the upper half of the context window nicely
-demarcates the temporal extent of the word.  If so, all you have to do is to
-double click the grey box itself and it will be extended to the bottom half and
-your chosen label will be applied.  If not, either double-click or
-click-and-drag in the bottom half of the context window to create a custom time
-span for a new annotation.  In all cases, annotations can be deleted by double
-clicking any of the gray boxes, or clicking on the "undo" button above.
+corresponding counter to its left.  Either double-click or click-and-drag in
+the bottom half of the context window to create a custom time span for a new
+annotation.  Annotations can be deleted by double clicking the gray boxes or
+clicking on the "undo" button above.
 
 For this tutorial, choose the words "mel-pulse", "mel-sine", "ambient", and
 "other".  We use the syntax "A-B" here, where A is the species (mel
@@ -660,47 +588,57 @@ groups of words that share a common prefix or suffix.
 
 Once you have a few tens of examples for each word, it's time to train a
 classifier and make some predictions.  First, confirm that the annotations you
-just made were saved into an "-annotated.csv" file in the "groundtruth/" folder.
+just made were saved into an "-annotated.csv" file in the
+"groundtruth-data/round1" folder.
 
     $ tree groundtruth-data
     groundtruth-data
     └── round1
-        ├── PS_20130625111709_ch3-annotated-<timestamp>.csv
-        ├── PS_20130625111709_ch3-detected.csv
-        ├── PS_20130625111709_ch3-detect.log
+        ├── PS_20130625111709_ch3.wav-annotated-<timestamp>.csv
+        ├── PS_20130625111709_ch3.wav-detected.csv
+        ├── PS_20130625111709_ch3.wav-detect.log
         └── PS_20130625111709_ch3.wav
 
-    $ tail -5 groundtruth-data/round1/PS_20130625111709_ch3-annotated-<timestamp>.csv
+    $ tail -5 groundtruth-data/round1/PS_20130625111709_ch3.wav-annotated-<timestamp>.csv
     PS_20130625111709_ch3.wav,470151,470719,annotated,mel-sine
     PS_20130625111709_ch3.wav,471673,471673,annotated,mel-pulse
     PS_20130625111709_ch3.wav,471752,471752,annotated,mel-pulse
     PS_20130625111709_ch3.wav,471839,471839,annotated,mel-pulse
     PS_20130625111709_ch3.wav,492342,498579,annotated,ambient
 
-Click on the `Make Predictions` button to disable the irrelevant actions
-and fields, and then the `Train` button.  Using the `File Browser`, set
-`Logs Folder` to a directory in which to put the trained model (e.g.
-"trained-classifier1") and `Ground Truth` to the folder one level up in
-the file hierarchy from the WAV and CSV files (i.e. "groundtruth-data" in
-this case).  One hundred steps suffices for this amount of ground truth.
-So we can accurately monitor the progress, withhold 40% of the annotations
-to validate on, and do so every 10 steps.  Enter these values into the
-`# steps`, `validate %`, and `validate period` variables.  Check that the
-`labels to use` variable is set to "mel-pulse,mel-sine,ambient,other", and
-`kinds to use` is "annotated" so that SongExplorer will ignore the detected
-annotations in the `Ground Truth` directory.  Note that the total number of
-annotations must exceed the size of the mini-batches, which is specified by
-the `mini-batch` variable.  The rest of the fields, most of which specify
-the network architecture, are filled in with default values the first time
-you ever use SongExplorer, and any changes you make to them, along with all
-of the other text fields, are saved to a file named "songexplorer.state.yml"
-in the directory specified by "state_dir" in "configuration.py".
+Click on the `Make Predictions` button and then the `Train` button.  All of the
+parameters below that are *not* used in this step will be greyed out and
+disabled.  If all of the required parameters are filled in, the `DoIt!` button
+in the upper right will in addition be enabled and turn red.
 
-Now press `DoIt!`.  Output into the log directory are "train1.log",
-"train_1r.log", and "train_1r/".  The former two files contain error
-transcripts should any problems arise, and the latter folder contains
-checkpoint files prefixed with "ckpt-" which save the weights of the neural
-network at regular intervals.
+Using the `file browser`, set `Logs Folder` to a directory in which to put the
+trained model (e.g. "trained-classifier1") and confirm that `Ground Truth` is
+still set to the parent of the "round1" folder containing the WAV and CSV files
+(i.e.  "groundtruth-data" in this case).  One hundred steps suffices for this
+amount of ground truth.  So we can accurately monitor the progress, withhold
+40% of the annotations to validate on, and do so every 10 steps.  Enter these
+values into the `# steps`, `validate %`, and `validate period` variables.
+Check that the `labels to use` variable is set to
+"mel-pulse,mel-sine,ambient,other", and `kinds to use` is "annotated".  Note
+that the total number of annotations must exceed the size of the mini-batches,
+which is specified by the `mini-batch` variable.  The rest of the fields, most
+of which specify the network architecture, are filled in with default values
+the first time you ever use SongExplorer.  Any changes you make to them, along
+with all of the other text fields, are saved to a file named
+"songexplorer.state.yml" in the directory specified by "state_dir" in
+"configuration.py".
+
+Click on the red `DoIt!` button to start training a classifier.  It will turn
+orange while the job is being asynchronously dispatched, and then back to grey.
+"TRAIN trained-classifier1 (<jobid>)" will appear in the status bar.  It's font
+will initially be grey to indicate that it is pending, then turn black when it
+is running, and finally either blue if it successfully finished or red if it
+failed.
+
+Output into the log directory are "train1.log", "train_1r.log", and
+"train_1r/".  The former two files contain error transcripts should any
+problems arise, and the latter folder contains checkpoint files prefixed with
+"ckpt-" which save the weights of the neural network at regular intervals.
 
 With small data sets the network should just take a minute or so to train.
 As your example set grows, you might want to monitor the training progress
@@ -728,12 +666,13 @@ the validation accuracy should become well above chance.
 
 ## Quantifying Accuracy ##
 
-Measure the classifier's performance using the `Accuracy` button.  For the
-purposes of this tutorial, leave the `P/Rs` textbox (short for Precision /
-Recall ratio) set to the default value of "1.0" so that the false positives and
-false negatives are equally weighted.  In future, if, say, minimizing false
-positives in your experiments is important, and you are tolerant of a few more
-false negatives, you can set it to say "10" (or "0.1" if vice versa).
+Measure the classifier's performance on the withheld annotations using the
+`Accuracy` button.  For the purposes of this tutorial, leave the `P/Rs` textbox
+(short for Precision / Recall ratio) set to the default value of "1.0" so that
+the false positives and false negatives are equally weighted.  [In future, if,
+say, minimizing false positives in your experiments is important, and you are
+tolerant of a few more false negatives, you can set it to say "10" (or "0.1" if
+vice versa).]
 
 Output are the following charts and tables in the logs folder and the `train_1r`
 subdirectory therein:
@@ -789,6 +728,9 @@ subdirectory therein:
   with white perimeters show the label-specific accuracies and larger circles
   with black perimeters show the average across labels for each model.
 
+  The legend to the right indicates the best checkpoint for each model.  Refer
+  here when deciding which model to freeze for making predictions.
+
 * "P-R-F1-label.pdf" plots validation precision, recall, and the F1 score over
   time in the top, middle, and bottom rows respectively with a separate column
   for each label.  Check here to make sure that the accuracy of each label has
@@ -836,9 +778,9 @@ subdirectory therein:
 ## Making Predictions ##
 
 For the next round of manual annotations, we're going to have this newly
-trained classifier find sounds for us instead of using a simple threshold.  And
-we're going to do so with a different recording so that the classifier learns
-to be insensitive to experimental conditions.
+trained classifier find sounds for us.  And we're going to do so with a
+different recording so that the classifier learns to be insensitive to
+experimental conditions.
 
 First let's get some more data bundled with SongExplorer into your home
 directory.  Make a new subfolder in "groundtruth-data" called "round2".  Then
@@ -851,16 +793,16 @@ Like this on the command line:
     $ cd <path-to-unzipped-executable>/songexplorer/bin/songexplorer/data
     $ cp 20161207T102314_ch1.wav $PWD/groundtruth-data/round2
 
-Use the `Freeze` button to save the classifier's neural network graph
-structure and weight parameters into the file format that TensorFlow needs
-for inference.  You'll need to tell it which model to use by selecting the
-last checkpoint file in the classifier's log files with the `File Browser`
-(i.e. one of "trained-classifier1/train_1r/ckpt-100.{index,data\*}" in
-this case).  Output into the log files directory are "freeze.ckpt-\*.log" and
+Use the `Freeze` button to save the classifier's neural network graph structure
+and weight parameters into the file format that TensorFlow needs for inference.
+You'll need to tell it which model to use by selecting the most accurate
+checkpoint file in the classifier's log files with the `File Browser` (i.e. one
+of "trained-classifier1/train_1r/ckpt-100.{index,data\*}" in this case).
+Output into the log files directory are "freeze.ckpt-\*.log" and
 "frozen-graph.ckpt-\*.log" files for errors, and a "frozen-graph.ckpt-\*.pb/"
 folder containing the binary data.  This latter PB folder, or the
-"saved_model.pb" file therein, can in future be chosen as the model instead
-of a checkpoint file.
+"saved_model.pb" file therein, can in future be chosen as the model instead of
+a checkpoint file.
 
 Now use the `Classify` button to generate probabilities over time for each
 annotated label.  Specify which recordings using the `File Browser` and the `WAV
@@ -870,9 +812,9 @@ which it can parse "ckpt-\*".  The probabilities for each label are stored in
 separate WAV files, with the label appended as a suffix:
 
     $ ls groundtruth-data/round2/
-    20161207T102314_ch1-ambient.wav    20161207T102314_ch1-mel-sine.wav
-    20161207T102314_ch1-classify.log   20161207T102314_ch1-other.wav
-    20161207T102314_ch1-mel-pulse.wav  20161207T102314_ch1.wav
+    20161207T102314_ch1.wav-ambient.wav    20161207T102314_ch1.wav-mel-sine.wav
+    20161207T102314_ch1.wav-classify.log   20161207T102314_ch1.wav-other.wav
+    20161207T102314_ch1.wav-mel-pulse.wav  20161207T102314_ch1.wav
 
 Discretize these probabilities using thresholds based on a set of
 precision-recall ratios using the `Ethogram` button.  Choose one of the
@@ -887,10 +829,10 @@ when classifying, as what is needed here is the ".wav" file of the raw
 recording, not those containing the label probabilities.
 
     $ ls -t1 groundtruth-data/round2/ | head -2
-    20161207T102314_ch1-ethogram.log
-    20161207T102314_ch1-predicted-1.0pr.csv
+    20161207T102314_ch1.wav-ethogram.log
+    20161207T102314_ch1.wav-predicted-1.0pr.csv
 
-    $ head -5 groundtruth-data/round2/20161207T102314_ch1-predicted-1.0pr.csv 
+    $ head -5 groundtruth-data/round2/20161207T102314_ch1.wav-predicted-1.0pr.csv 
     20161207T102314_ch1.wav,19976,20008,predicted,mel-pulse
     20161207T102314_ch1.wav,20072,20152,predicted,mel-sine
     20161207T102314_ch1.wav,20176,20232,predicted,mel-pulse
@@ -898,131 +840,37 @@ recording, not those containing the label probabilities.
     20161207T102314_ch1.wav,20360,20416,predicted,mel-pulse
 
 The resulting CSV files are in the same format as those generated when we
-detected sounds in the time and frequency domains as well as when we manually
-annotated words earlier using the GUI.  Note that the fourth column
-distinguishes whether these words were detected, annotated, or predicted.
+manually annotated sounds earlier using the GUI.  Note that the fourth column
+distinguishes whether these sounds were annotated or predicted.
 
-## Correcting False Alarms ##
+## Fixing Mistakes ##
 
-In the preceding section we generated a set of predicted sounds by
-applying word-specific thresholds to the probability waveforms:
+Now that we have the predicted probability of each label over time, we can look
+for sounds the SongExplorer misclassified and add them to the ground truth with
+the correct annotations.
 
-    $ cat trained-classifier/thresholds.csv 
-    precision/recall,1.0
-    mel-pulse,0.508651224000211
-    mel-sine,0.9986744484433365
-    ambient,0.9997531463467944
+First, set `kinds to use` to "predicted" and confirm that `labels to use` is
+still "mel-pulse,mel-sine,ambient,other".  Then, choose the recording for which
+you just made predictions from in the recordings pull-down menu.  Below the
+waveform you'll now see a stacked bar chart of the probability of each label.
+Hover over this chart to see a tool-tip mapping the color to a label.  Pan and
+zoom through the recordings to find intervals for which the label with the
+highest probability is wrong.  Double-click or click-and-drag the correct label
+in the lower half of the waveform as described in [Manually
+Annotating](#manually-annotating).  These are the most important mistakes to
+correct.  While doing so, also keep an eye out for intervals in which all
+labels are similarly probable, which indicates that SongExplorer is confused.
+Annotate these cases with the correct label as well.  All other times-- those
+for which the highest probability was correct-- should be ignored.
 
-Higher thresholds result in fewer false positives and more false negatives.
-A precision-recall ratio of one means these two types of errors occur at
-equal rates.  Your experimental design drives this choice.
+The most effective annotations are those that correct the classifier's
+mistakes, so don't spend much time, if any, annotating what it got right.
 
-Let's manually check whether our classifier in hand accurately
-calls sounds using these thresholds.  First, click on the `Fix False
-Positives` button.  Double check that the `kinds to use` variable
-was auto-populated with "annotated,predicted".
+## Minimizing Annotation Effort ##
 
-Use the `Activations` button to save the input to the neural network as
-well as its hidden state activations and output logits by classifying the
-predicted sounds with the trained network.  The time and amount of memory
-this takes depends directly on the number and dimensionality of detected
-sounds.  To limit the problem to a manageable size one can use `max sounds`
-to randomly choose a subset of samples to cluster.  So that words with few
-samples are not obscured by those with many, one can randomly subsample the
-latter by setting `equalize ratio` to a small integer.  Output are three files
-in the `Ground Truth` directory: "activations.log", "activations-samples.log",
-and "activations.npz".  The two ending in ".log" report any errors, and the
-".npz" file contains the actual data in binary format.
-
-Now reduce the dimensionality of the hidden state activations to either two or
-three dimensions with the `Cluster` button.  By default, Songexplorer uses the
-UMAP algorithm ([McInnes, Healy, and Melville
-(2018)](https://arxiv.org/abs/1802.03426)), but tSNE and PCA can be used
-instead via a plugin (see [Clustering Algorithm](#clustering-algorithm)).  For
-now, leave the `neighbors` and `distance` parameters set to their default
-values.  A description of how they change the resulting clusters can be found
-in the aforementioned article.  Also leave the `PCA fraction` parameter at its
-default.  In future, if you find clustering slow for larger data sets, UMAP can
-be preceded by PCA, and the fraction of coefficients that are retained is
-specified using `PCA fraction`.  Lastly, choose to cluster just the last hidden
-layer using the "layers" multi-select box.  Output are two or three files in
-the `Ground Truth` directory: "cluster.log" contains any errors, "cluster.npz"
-contains binary data, and "cluster-pca.pdf" shows the results of the principal
-components analysis (PCA) if one was performed.
-
-Finally, click on the `Visualize` button to render the clusters in the
-left-most panel.  Adjust the size and transparency of the markers using
-the `Dot Size` and `Dot Alpha` sliders respectively.  There should be some
-structure to the clusters even at this early stage of annotation.
-
-To browse through your recordings, click on one of the more dense areas and
-a fuchsia circle (or sphere if the clustering was done in 3D) will appear.
-In the right panel are now displayed snippets of predicted waveforms which are
-within that circle.  The size of the circle can be adjusted with the `Circle
-Radius` slider and the number of snippets displayed with `gui_snippet_n{x,y}`
-in "configuration.py".  The snippets should exhibit some similarity to one
-another since they are neighbors in the clustered space.  They will each be
-labeled "predicted mel-pulse", "predicted mel-sine", or "predicted ambient"
-to indicate which threshold criterion they passed and that they were predicted
-(as opposed to annotated, detected, or missed; see below).  The color is
-the scale bar-- yellow is loud and purple is quiet.  Clicking on a snippet
-will show it in greater temporal context in the wide context panel below.
-
-Now let's correct the mistakes!  Select `predicted` and `ambient` from the
-`kind` and `no hyphen` pull-down menus, respectively, and then click on
-a dense part of the cluster plot.  Were the classifier perfect, all the
-snippets now displayed would look like background noise.  Click on the ones
-that don't and manually annotate them appropriately as before.  One can
-also simply double click on the snippet to create a new annotation, and
-double-click it again to change your mind.  Similarly select `mel-` and
-`-pulse` from the `species` and `word` pull-down menus and correct any
-mistakes, and then `mel-` and `-sine`.
-
-Keep in mind that the only words which show up in the clusters are those that
-exceed the chosen threshold.  Any mistakes you find in the snippets are hence
-strictly false positives.
-
-## Correcting Misses ##
-
-It's important that false negatives are corrected as well.  One way to find them
-is to click on random snippets and look in the surrounding context in the window
-below for sounds that have not been predicted.  This method is cumbersome in
-that you have to scan through the recording.  A better way is to directly home
-in on detected sounds that don't exceed the probability threshold.
-
-To systematically label missed sounds, first click on the `Fix False Negatives`
-button.  Then detect sounds in the recording you just classified, using the
-`Detect` button as before, and create a list of the subset of these sounds which
-were not assigned a label using the `Misses` button.  For the latter, you'll need
-to specify both the detected and predicted CSV files with the `File Browser`
-and the `WAV Files` button.  The result is another CSV file, this time
-ending in "missed.csv":
-
-    $ head -5 groundtruth-data/round2/20161207T102314_ch1-missed.csv 
-    20161207T102314_ch1.wav,12849,13367,missed,other
-    20161207T102314_ch1.wav,13425,13727,missed,other
-    20161207T102314_ch1.wav,16105,18743,missed,other
-    20161207T102314_ch1.wav,18817,18848,missed,other
-    20161207T102314_ch1.wav,19360,19936,missed,other
-
-Now visualize the hidden state activations--  Double check that the `label
-types` variable was auto-populated with "annotated,missed" by the `Fix False
-Negatives` button, and then use the `Activations`, `Cluster`, and `Visualize`
-buttons in turn.
-
-Examine the false negatives by selecting `missed` in the `kind` pull-down menu
-and click on a dense cluster.  Were the classifier perfect, none of the
-snippets would be an unambiguous example of any of the labels you trained upon
-earlier.  Annotate any of them that are, and add new label types for sound
-events which fall outside the current categories.
-
-## Minimizing Annotation Effort
-
-From here, we just keep alternating between annotating false positives and
-false negatives, using a new recording for each iteration, until mistakes
-become sufficiently rare.  The most effective annotations are those that
-correct the classifier's mistakes, so don't spend much time, if any, annotating
-what it got right.
+From here, we just keep alternating between training a new classifier and
+fixing its mistakes, using a new recording for each iteration, until mistakes
+become sufficiently rare.
 
 Each time you train a new classifier, all of the existing "predicted.csv",
 "missed.csv", and word-probability WAV files are moved to an "oldfiles"
@@ -1045,10 +893,9 @@ quantify accuracy.  Since the learning curves generally don't converge until
 the entire data set has been sampled many times over, set `# steps` to be
 several fold greater than the number of annotations (shown in the table near
 the labels) divided by the `mini-batch` size, and check that it actually
-converges with the "train-validation-loss.pdf", "validation-P-R-F1*.pdf", and
-"validation-PvR.pdf" figures generated by the `Accuracy` button.  If the
-accuracy converges before an entire epoch has been trained upon, use a smaller
-`learning rate`.
+converges with the "train-validation-loss.pdf", "P-R-F1*.pdf", and "PvR.pdf"
+figures generated by the `Accuracy` button.  If the accuracy converges before
+an entire epoch has been trained upon, use a smaller `learning rate`.
 
 As the wall-clock time spent training is generally shorter with larger
 mini-batches, set it as high as the memory in your GPU will permit.  Multiples
@@ -1071,6 +918,178 @@ initial weights to measure the variance.  These replicate models can also
 be combined into an ensemble model (see [Ensemble Models](#ensemble-models))
 for even greater accuracy.  Finally, report accuracy on an entirely separate
 set of densely-annotated test data([see Testing Densely](#testing-densely)).
+
+# Advanced Usage #
+
+## Detecting Rare Sounds ##
+
+If your recordings are mostly ambient, panning and zooming through them to find
+sounds of interest to annotate can be quite laborious.  To make this easier,
+SongExplorer can threshold the recording to demarcate intervals in time which
+exceed a certain volume.
+
+Click on the `Label Sounds` button and then `Detect`.  In the `File Browser`,
+navigate to a WAV file of interest and click on the `WAV Files` button.  Set the
+parameters as described below and then click `DoIt!`.
+
+The eight parameters have default values that are suitable to the data in the
+tutorial above.  If it's not finding sounds for your data, try making the first
+number in `time σ` smaller and/or the first number in `freq ρ` bigger.  If
+rather it's too sensitive, do the opposite.  Conversely, if it's labelling
+ambient as a sound, make the second number in `time σ` bigger and the second
+number in `freq ρ` smaller.  `time smooth` and `freq smooth` will fill in small
+gaps between detected sounds and cull detected sounds that are too short.  For
+further details, see the comments at the top of
+"src/detect-plugins/time-freq-threshold.py".
+
+[Customizing with Plug-ins](#customizing-with-plug-ins) describes how to
+use arbitrary custom code of your choosing to detect events should this
+default algorithm not suit your data.
+
+The result is a file of comma-separated values with the start and stop times
+(in tics) of sounds which exceeded a threshold in either the time or frequency
+domain, plus intervals which did not exceed either.
+
+    $ grep -m 3 time groundtruth-data/round1/PS_20130625111709_ch3.wav-detected.csv
+    PS_20130625111709_ch3.wav,2251,2252,detected,time
+    PS_20130625111709_ch3.wav,2314,2316,detected,time
+    PS_20130625111709_ch3.wav,2404,2405,detected,time
+
+    $ grep -m 3 frequency groundtruth-data/round1/PS_20130625111709_ch3.wav-detected.csv
+    PS_20130625111709_ch3.wav,113872,114032,detected,frequency
+    PS_20130625111709_ch3.wav,158224,158672,detected,frequency
+    PS_20130625111709_ch3.wav,182864,182960,detected,frequency
+
+    $ grep -m 3 neither groundtruth-data/round1/PS_20130625111709_ch3.wav-detected.csv
+    PS_20130625111709_ch3.wav,388,795,detected,neither
+    PS_20130625111709_ch3.wav,813,829,detected,neither
+    PS_20130625111709_ch3.wav,868,2201,detected,neither
+
+You can jump from one such detected event to the next using the arrow buttons
+in the lower left that have an "L".  Check that the `kinds to use` and `labels
+to use` text boxes are set to "detected" and "time,frequency,neither",
+respectively.  This should have been automatically done when pressing the
+"Label Sounds" button above.
+
+
+## Clustering Annotations ##
+
+Once you have a set of annotated sounds, either manual, predicted, detected,
+etc., clustering them based on the hidden states of a trained classifier is a
+useful technique to look for patterns.  It also provides another quick
+alternative to panning and zoom, as sounds within each cluster can be clicked
+on to directly jump to that time in the recording.
+
+First, use the `Activations` button to save the input to the neural network as
+well as its hidden state activations and output logits by classifying sounds
+with the trained network.  Select which sounds to classify using `kinds to use`
+and `labels to use`.  The time and amount of memory this takes depends directly
+on the number and dimensionality of the sounds.  To limit the problem to a
+manageable size one can use `max sounds` to randomly choose a subset of samples
+to cluster.  So that words with few samples are not obscured by those with
+many, one can randomly subsample the latter by setting `equalize ratio` to a
+small integer.  Output are three files in the `Ground Truth` directory:
+"activations.log", "activations-samples.log", and "activations.npz".  The two
+ending in ".log" report any errors, and the ".npz" file contains the actual
+data in binary format.
+
+Now reduce the dimensionality of the hidden state activations to either two or
+three dimensions with the `Cluster` button.  By default, Songexplorer uses the
+UMAP algorithm ([McInnes, Healy, and Melville
+(2018)](https://arxiv.org/abs/1802.03426)), but tSNE and PCA can be used
+instead via a plugin (see [Clustering Algorithm](#clustering-algorithm)).  For
+now, leave the `neighbors` and `distance` parameters set to their default
+values.  A description of how they change the resulting clusters can be found
+in the aforementioned article.  Also leave the `PCA fraction` parameter at its
+default.  In future, if you find clustering slow for larger data sets, UMAP can
+be preceded by PCA, and the fraction of coefficients that are retained is
+specified using `PCA fraction`.  Lastly, choose to cluster just the last hidden
+layer using the "layers" multi-select box.  Output are two or three files in
+the `Ground Truth` directory: "cluster.log" contains any errors, "cluster.npz"
+contains binary data, and "cluster-pca.pdf" shows the results of the principal
+components analysis (PCA) if one was performed.
+
+Finally, click on the `Visualize` button to render the clusters in the
+left-most panel.  Adjust the size and transparency of the markers using
+the `Dot Size` and `Dot Alpha` sliders respectively.  There should be some
+structure to the clusters even at this early stage of annotation.
+
+To browse through your recordings, click on one of the more dense areas and a
+fuchsia circle (or sphere if the clustering was done in 3D) will appear.  In
+the right panel are now displayed snippets of sounds which are within that
+circle.  The size of the circle can be adjusted with the `Circle Radius` slider
+and the number of snippets displayed with `gui_snippet_n{x,y}` in
+"configuration.py".  The snippets should exhibit some similarity to one another
+since they are neighbors in the clustered space.  They will each be labeled
+"mel-pulse", "mel-sine", or "ambient" to indicate which threshold criterion
+they passed.  The color is the scale bar-- yellow is loud and purple is quiet.
+Clicking on a snippet will show it in greater temporal context in the wide
+context panel below.
+
+## Correcting False Alarms ##
+
+If the precision of a classifier is low, that means it's predicting intervals
+in time as having a sound of interest when it shouldn't.  To home in on just
+this kind of mistake, you can set `kinds to use` to "predicted" and use the
+arrow buttons with an "L" to jump from one prediction to the next, correcting
+as you go.  Alternatively, you can cluster all of these predictions to look at
+them in aggregate.
+
+First, click on the `Fix False Positives` button and double check that `kinds
+to use` is auto-populated with "annotated,predicted".  Then cluster as
+described in [Clustering Annotations](#clustering-annotations) .
+
+Select `predicted` and `ambient` from the `kind` and `no hyphen` pull-down
+menus, respectively, and then click on a dense part of the cluster plot.  Were
+the classifier perfect, all the snippets now displayed would look like
+background noise.  Click on one that doesn't.  To manually annotate it, simply
+double click on the snippet to create a new annotation exactly where the gray
+box in the upper half of the context window is.  One can also double-click on
+this grey box itself.  In either case, it will be extended to the bottom half
+and your chosen label will be applied.  Double-click the snippet or the either
+the upper or lower grey box again to change your mind.  If the temporal extent
+of the upper gray box is not quite right, create a new annotation by either
+double-click or click-and-drag in the bottom half of the context window
+instead.  Similarly select `mel-` and `-pulse` from the `species` and `word`
+pull-down menus and correct any mistakes, and then `mel-` and `-sine`.
+
+Keep in mind that the only words which show up in the clusters are those that
+exceed the chosen threshold.  Any mistakes you find in the snippets are hence
+strictly false positives.
+
+## Correcting Misses ##
+
+Conversely, if the recall of a classifier is low, it is \emph{not} predicting
+intervals to have a sound when it should have.  One way to find this kind of
+mistake is to navigate to random predictions and look in the surrounding
+context for sounds that have not been predicted.  This method is cumbersome in
+that you have to scan through the recording.  A better way is to directly home
+in on detected sounds that don't exceed the probability threshold.
+
+First click on the `Fix False Negatives` button.  Then detect sounds in a
+recording that you have classified using the `Detect` button as described in
+[Detecting Rare Sounds](#detecting-rare-sounds).  Then create a list of the
+subset of these sounds which were not assigned a label using the `Misses`
+button.  For the latter, you'll need to specify both the detected and predicted
+CSV files with the `File Browser` and the `WAV Files` button.  The result is
+another CSV file, this time ending in "missed.csv":
+
+    $ head -5 groundtruth-data/round2/20161207T102314_ch1.wav-missed.csv 
+    20161207T102314_ch1.wav,12849,13367,missed,other
+    20161207T102314_ch1.wav,13425,13727,missed,other
+    20161207T102314_ch1.wav,16105,18743,missed,other
+    20161207T102314_ch1.wav,18817,18848,missed,other
+    20161207T102314_ch1.wav,19360,19936,missed,other
+
+Now visualize the hidden state activations--  Double check that the `label
+types` variable was auto-populated with "annotated,missed" and then use the
+`Activations`, `Cluster`, and `Visualize` buttons in turn.
+
+Examine the false negatives by selecting `missed` in the `kind` pull-down menu
+and click on a dense cluster.  Were the classifier perfect, none of the
+snippets would be an unambiguous example of any of the labels you trained upon
+earlier.  Annotate any of them that are, and add new label types for sound
+events which fall outside the current categories.
 
 ## Double Checking Annotations
 
@@ -1679,7 +1698,7 @@ specified in your configuration.py file.  See the variable named
 "overlapped_prefix", which defaults to "not_".
 
 
-## Unsupervised Methods ##
+# Unsupervised Methods #
 
 Until now we have only considered the workflow to manually annotate
 individual sounds.  Some data sets and experiments are amendable to
@@ -1714,7 +1733,7 @@ even if there are natural sounds present, so long as none of them are from
 any species of interest, then the `Detect` button can be used to pick out
 sounds that can all be considered "other".
 
-## Scripting Automation ##
+# Scripting Automation #
 
 For some tasks it may be easier to write code instead of use the GUI-- tasks
 which require many tedious mouse clicks, for example, or simpler ones that must
@@ -1838,69 +1857,82 @@ model with a simple top model.
 
 # Customizing with Plug-ins #
 
+Several features of SongExplorer are engineered in a way to be easy to
+customize with bespoke code on the part of the user.  SongExplorer comes with
+one or more scripts to provide alternate functionality for each of these
+features and a blank template which the user can fill in for additional
+functionality.  Which code to use is specified in variables ending in "plugin"
+in "configuration.py".
+
 ## Loading Data ##
 
 As described above the default file format for audio recordings is WAV files.
 Should your data be in a different format, one option is to convert it all.
-Alternatively, if you are fluent in python, you can write a script which
-tells SongExplorer how to load the raw data.  This script should define a
-function called `audio_read` which inputs the full path to the recording
-as well as an interval of time and possibly some keyword arguments, and
-returns the sampling rate and the slice of the data during that interval.
-To see how this works, take a look at `src/load-wav.py`, which is the
-default plugin, and `src/audio-read-plugin.py` which is a blank template.
+Alternatively, if you are fluent in python, you can write a script which tells
+SongExplorer how to load the raw data.  This script should define a function
+called `audio_read` which inputs the full path to the recording as well as an
+interval of time and possibly some keyword arguments, and returns the sampling
+rate and the slice of the data during that interval.  To see how this works,
+take a look at "src/audio-read-plugins/load-wav.py", which is the default
+plugin, and "src/audio-read-plugins/template.py" which is a blank
+template.
 
 A further advantage of loading data in a plugin script is that you can add
-custom signal pre-preprocessing.  Say for example there is artifactual
-noise in a particular frequency band.  You can eliminate that before
-SongExplorer ever sees the data by simply adding a filter to the plugin.
-One particular use case is ultrasonic vocalizations, which are frequently
-contaminated by low frequency audible noise.  SongExplorer comes with a
-plugin, `src/highpass-filter.py`, which uses a butterworth filter with
-a customizable cutoff frequency to attenuate that noise.
-
-Video loading is also done with a plugin.  The default
-is `src/load-avi-mp4-mov.py` and a blank template is in
-`src/video-read-plugin.py`.
+custom signal pre-preprocessing.  Say for example there is artifactual noise in
+a particular frequency band.  You can eliminate that before SongExplorer ever
+sees the data by simply adding a filter to the plugin.  One particular use case
+is ultrasonic vocalizations, which are frequently contaminated by low frequency
+audible noise.  SongExplorer comes with a plugin,
+"src/audio-read-plugins/highpass-filter.py", which uses a butterworth filter
+with a customizable cutoff frequency to attenuate that noise.
 
 To use an alternative plugin, change the "audio_read_plugin" variable in
-"configuration.py".  It should be a python 2-tuple, with the first element
-being the full path to the script, without the ".py" extension, and the
-second being a dictionary of keyword arguments.  The specific format for
-each plugin is documented in a comment at the top of each python script.
+"configuration.py" to the full path to the script, without the ".py" extension,
+and "audio_read_plugin_kwarg" to a dictionary of keyword arguments.  The
+specific format for the latter for each plugin is documented in a comment at
+the top of each python script.
+
+Video loading is also done with a plugin.  The default is
+"src/video-read-plugins/load-avi-mp4-mov.py", a blank template is in
+"src/video-read-plugins/template.py", and the "configuration.py" file
+variables are "video_read_plugin" and "video_read_plugin_kwargs".
 
 ## Video Filenames ##
 
-By default, SongExplorer expects video files to have the same basename
-as the corresponding audio file, and the extension to be one of AVI, MP4,
-or MOV.  If this is not the case, one can provide a python function which
-inputs a directory and a WAV file and outputs the name of the video file
-to load.  The name and location of the python file containing this function
-is specified, without the ".py" extension, as the "video_findfile_plugin"
-parameter in "configuration.py".  For examples, see "src/same-basename.py"
-(the default) and "src/maybe-1sec-off.py".
+By default, SongExplorer expects video files to have the same basename as the
+corresponding audio file, and the extension to be one of AVI, MP4, or MOV.  If
+this is not the case, one can provide a python function which inputs a
+directory and a WAV file and outputs the name of the video file to load.  The
+name and location of the python file containing this function is specified,
+without the ".py" extension, as the "video_findfile_plugin" parameter in
+"configuration.py".  For examples, see
+"src/video-findfile-plugins/same-basename.py" (the default) and
+"src/video-findfile-plugins/maybe-1sec-off.py".
 
 ## Event Detection ##
 
-By default the Detect button thresholds in the time and frequency domains to
-find sounds of interest.  See the source code in "src/time-freq-threshold.py"
-for exactly how this works.  Should that not suit your needs, you can
-supply your own code instead.  Simply put in a python file a list called
-`detect_parameters` that specifies the hyperparameters, a function called
-`detect_labels` which returns the strings used to annotate the sounds, and a
-script which uses those parameters to generate a "detected.csv" given a WAV
-file.  Then change the "detect_plugin" variable in your "configuration.py"
-file to point to the full path of this python file, without the ".py"
-extension.  See the minimal example in "src/detect-plugin.py" for a template.
+By default, the Detect button thresholds in the time and frequency domains to
+find sounds of interest.  See the source code in
+"src/detect-plugins/time-freq-threshold.py" for exactly how this works.  Should
+that not suit your needs, you can supply your own code instead.  Simply put in
+a python file a list called `detect_parameters` that specifies the
+hyperparameters, a function called `detect_labels` which returns the strings
+used to annotate the sounds, and a script which uses those parameters to
+generate a "detected.csv" given a WAV file.  Then change the "detect_plugin"
+variable in your "configuration.py" file to point to the full path of this
+python file, without the ".py" extension.  The buttons in the pinkish-orange
+box in the GUI will change to reflect the different hyperparameters used by
+this algorithm.  See the minimal example in "src/detect-plugins/template.py"
+for a template.
 
 ## Double-Click Annotations ##
 
-New annotations can be layed down by double-clicking a snippet,
-double-clicking on an event in the upper half of the context window,
-clicking and horizontally dragging in the lower half of the context window,
-or double-clicking in a blank portion of the lower half of context window.
-The default behavior for the latter method results in a point annotation
-at just a single sample tic.
+As explained in [Manually Annotating](#manually-annotating), new annotations can
+be layed down by double-clicking a snippet, double-clicking on an event in the
+upper half of the context window, clicking and horizontally dragging in the
+lower half of the context window, or double-clicking in a blank portion of the
+lower half of context window.  The default behavior for the latter method
+results in a point annotation at just a single sample tic.
 
 While it is best to be as temporally precise as possible when annotating,
 it can be quite slow to position the cursor exactly at an event.  Moreover,
@@ -1909,34 +1941,45 @@ annotation, as SongExplorer will automatically augment these annotations
 by randomly choosing a specific point in time within them each time they
 are chosen for a batch of training examples.
 
-To facilitate temporally-precise range annotations with a double-click
-gesture, SongExplorer has a hook in the callback which you can supply with
-python code to customize the behavior.  The python file must contain a list
-called `doubleclick_parameters` which defines the required hyperparameters,
-and a function called `doubleclick_annotation` which inputs a point in time
-and outputs a range.  See "src/snap-to.py" for a plugin which searches
-for a nearby peak in the waveform and lays down a range annotation of a
-specified width.  The default double-click plugin is "src/point.py" and a
-template is in "src/doubleclick-plugin.py".
+To facilitate temporally-precise range annotations with a double-click gesture,
+SongExplorer has a hook in the callback which you can supply with python code
+to customize the behavior.  The python file must contain a list called
+`doubleclick_parameters` which defines the required hyperparameters, and a
+function called `doubleclick_annotation` which inputs a point in time and
+outputs a range.  See "src/doubleclick-plugins/snap-to.py" for a plugin which
+searches for a nearby peak in the waveform and lays down a range annotation of
+a specified width.
+
+The default double-click plugin is "src/doubleclick-plugins/point.py", a
+template is in "src/doubleclick-plugins/template.py", and the corresponding
+variable in "configuration.py" is "gui_context_doubleclick_plugin".
 
 ## Network Architecture ##
 
 The default network architecture is a set of layered convolutions, the depth
-and width of which can be configured as described above.  Should this not prove
-flexible enough, SongExplorer is designed with a means to supply your own
+and width of which can be configured as described above, with optional skip
+connections, dropout layers, and batch normalization.  A ResNet in other words
+([He, Ren, Sun (2015)](https://arxiv.org/abs/1512.03385)).  Also available is a
+U-net architecture, in which the skip connections are mirrored around a
+bottleneck ([Ronneberger, Fischer, Brox
+(2015)](https://arxiv.org/abs/1505.04597)).
+
+Should these not prove flexible enough, you can provide a plugin with your own
 TensorFlow code that implements a whiz bang architecture of any arbitrary
-design.  See the minimal example in "src/architecture-plugin.py" for a template
-of how this works.  In brief, two objects must be supplied in a python file:
-(1) a list named `model_parameters` which defines the variable names, titles,
-and default values, etc. to appear in the GUI, and (2) a function
-`create_model` which builds and returns the network graph.  Specify as the
-`architecture_plugin` in "configuration.py" the full path to this file, without
-the ".py" extension.  The buttons immediately above the configuration textbox
-in the GUI will change to reflect the different hyperparameters used by this
-architecture.  All the workflows described above (detecting sounds, making
-predicions, fixing mistakes, etc) can be used with this custom network in an
-identical manner.  The default convolutional architecture is itself written as
-a plug-in, and can be found in "src/convolutional.py".
+design.  See the minimal example in "src/architecture-plugins/template.py" for
+a template of how this works.  In brief, two objects must be supplied in a
+python file: (1) a list named `model_parameters` which defines the variable
+names, titles, and default values, etc. to appear in the GUI, and (2) a
+function `create_model` which builds and returns the network graph.  Specify as
+the "architecture_plugin" in "configuration.py" the full path to this file,
+without the ".py" extension.  The buttons in the yellow box in the GUI will
+change to reflect the different hyperparameters used by this architecture.  All
+the workflows described above (detecting sounds, making predictions, fixing
+mistakes, etc) can be used with this custom network in an identical manner.
+
+The default ResNet architecture is itself written as a plug-in, and can be
+found in "src/architecture-plugins/res-net.py".  Similarly the U-net plugin is
+in "src/architecture-plugins/u-net.py".
 
 ## Clustering Algorithm ##
 
@@ -1947,7 +1990,18 @@ also included are plugins for t-SNE ([van der Maaten and Hinton
 these alternatives change "cluster_plugin" in "configuration.py" to "tSNE" or
 "PCA", respectively.  To create your own plugin, write a script which defines a
 list called `cluster_parameters`, inputs "activations.npz" and outputs
-"cluster.npz".  See "src/cluster-plugin.py" for a template.
+"cluster.npz".  See "src/cluster-plugins/template.py" for a template.
+
+## Augmentation ##
+
+Programmatically modifying your recordings to artificially increase the size of
+your ground truth can lead to higher accuracy only if it alters them in a way
+which would not require the labelled annotation to change.  As this is domain
+specific, the data augmentation code is also a plugin.  The default code,
+"src/augmentation-plugins/volume-noise-dc-reverse-invert.py", provides some
+common rudimentary operations applicable to one dimensional data.  To supply
+additional alternatives, simply add to the list of `augmentation_parameters`
+and supply corresponding signal processing code in the `augment` function.
 
 # Troubleshooting #
 
