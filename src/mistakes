@@ -2,7 +2,7 @@
 
 # record whether annotations where correctly or mistakenly classified
  
-# mistakes <path-to-annotations-npz-file>
+# mistakes <path-to-activations-npz-file>
 
 # e.g.
 # mistakes `pwd`/groundtruth-data
