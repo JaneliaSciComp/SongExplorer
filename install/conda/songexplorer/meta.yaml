@@ -13,13 +13,13 @@ build:
 
 requirements:
   run:
-    - python <=3.10
-    - numpy <2
-    - tensorflow >=2.8,<2.14  # [linux]
+    - python=3.10
+    - numpy=1.26
+    - tensorflow=2.13  # [linux]
     - cudatoolkit=11  # [win]
     - cudnn=8  # [win]
     - cuda-nvcc=11  # [win]
-    - bokeh=3
+    - bokeh=3.7
     - matplotlib-base
     - natsort 
     - scikit-image
