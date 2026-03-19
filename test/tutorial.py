@@ -220,7 +220,7 @@ shutil.copy(os.path.join(repo_path, "data", "20161207T102314_ch1.wav-annotated-p
 
 V.logs_folder.value = os.path.join(repo_path, "test", "scratch", "tutorial-py", "omit-one")
 V.validation_files.value = "PS_20130625111709_ch3.wav,20161207T102314_ch1.wav"
-asyncio.run(C.leaveout_actuate(False))
+asyncio.run(C.leaveout_actuate("omit one"))
 
 wait_for_job(M.status_ticker_queue)
 
