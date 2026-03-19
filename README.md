@@ -2125,6 +2125,7 @@ asset:
 To upload a tarball to Github, compress the conda environment and drag and drop
 it into the assets section of the releases page:
 
+    $ conda activate base
     $ conda install -c conda-forge conda-pack
     $ conda pack -n songexplorer -o songexplorer-<version>-<architecture>.tar.gz
 
