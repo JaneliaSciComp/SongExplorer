@@ -2,6 +2,8 @@
 
 SCRIPT_DIR=$( cd -- "$( dirname -- "${(%):-%N}" )" &> /dev/null && pwd )
 
-export PATH=$SCRIPT_DIR/songexplorer/bin:$PATH
+source $SCRIPT_DIR/songexplorer/bin/activate
 
 $SCRIPT_DIR/make-predictions.py $argv
+
+sleep 10
