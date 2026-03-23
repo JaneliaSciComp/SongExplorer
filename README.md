@@ -2093,6 +2093,11 @@ library, set XLA_FLAGS in your environment, and install cuda-nvcc:
             >> $CONDA_PREFIX/etc/conda/activate.d/env_vars.sh
     $ conda install -c nvidia cuda-nvcc
 
+To launch the SongExplorer GUI from this installation:
+
+    $ conda activate songexplorer
+    $ <path-to-songexplorer-repo>/src/songexplorer <path-to-songexplorer-repo>/configuration.py 8080
+
 To upload to the [Janelia forge](https://anaconda.org/janelia):
 
     $ conda activate base
@@ -2122,12 +2127,37 @@ asset:
 
     $ openssl sha256 <github-tar-gz-file>
 
-To upload a tarball to Github, compress the conda environment and drag and drop
-it into the assets section of the releases page:
+To upload a tarball to Github, package the conda environment, bundle it with
+the default configuration file and a launch script, and drag and drop it into
+the assets section of the releases page.  When installed with this method,
+users simply open the launch script in the OS's GUI instead of using the
+command line method above.
 
     $ conda activate base
     $ conda install -c conda-forge conda-pack
-    $ conda pack -n songexplorer -o songexplorer-<version>-<architecture>.tar.gz
+    $ conda pack -n songexplorer -o songexplorer.tar.gz
+    $ mkdir songexplorer-<version>-<architecture>
+    $ tar xvzf songexplorer.tar.gz -C songexplorer-<version>-<architecture>
+    $ cp <path-to-songexplorer-repo>/configuration.py songexplorer-<version>-<architecture>
+    $ cp <path-to-songexplorer-repo>/apps/OPEN-WITH-TERMINAL.sh songexplorer-<version>-<architecture>  # for macOS
+    $ cp <path-to-songexplorer-repo>/apps/DOUBLE_CLICK_ME.bat songexplorer-<version>-<architecture>  # for Windows
+    $ tree -L2 songexplorer-<version>-<architecture>
+    songexplorer-v0.9.1-osx-arm64
+    ├── configuration.py
+    ├── OPEN-WITH-TERMINAL.sh # DOUBLE_CLICK_ME.bat on Windows
+    └── songexplorer
+        ├── bin
+        ├── cmake
+        ├── conda-meta
+        ├── etc
+        ├── include
+        ├── lib
+        ├── libexec
+        ├── man
+        ├── sbin
+        ├── share
+        └── ssl
+    $ tar cvzf songexplorer-<version>-<architecture>.tar.gz songexplorer-<version>-<architecture>
 
 After downloading, some users will need to re-install some pip dependencies
 (e.g. tensorflow-metal on MacOS) as they are not in general relocatable:
